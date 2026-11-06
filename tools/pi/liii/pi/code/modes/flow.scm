@@ -26,6 +26,7 @@
     (liii pi code modes output)
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
+    (liii pi code core skills)
   ) ;import
   (export prepare-system-prompt persist-initial-user-msg!
     run-agent-loop-with-timeout emit-json-event run-session-flow
@@ -48,7 +49,7 @@
       ) ;if
     ) ;define
 
-    (define (prepare-system-prompt cfg parsed)
+    (define* (prepare-system-prompt cfg parsed (skills #f))
       (let* ((cwd (path->string (path-cwd)))
              (sys-override (and (pi-args-ref parsed 'system-prompt)
                              (pi-resolve-prompt-input (pi-args-ref parsed 'system-prompt))
@@ -76,6 +77,16 @@
                                                                              . 0))))
                ) ;let
              ) ;session-timeout
+             ;; skills 未传入时自行加载（独立调用场景）；
+             ;; 会话内由 run-session-flow 一次性加载后下传复用
+             (skills
+               (or skills
+                 (if (pi-args-ref parsed 'no-skills #f)
+                   '()
+                   (pi-load-skills :skill-paths (pi-args-ref parsed 'skill-paths '()))
+                 ) ;if
+               ) ;or
+             ) ;skills
             ) ;
         (pi-build-system-prompt (cdr (assoc 'tools cfg))
           cwd
@@ -85,12 +96,13 @@
           custom-info
           session-timeout
           max-turns
+          :skills skills
         ) ;pi-build-system-prompt
       ) ;let*
-    ) ;define
+    ) ;define*
 
-    (define (%system-prompt-for cfg parsed)
-      (let* ((base (prepare-system-prompt cfg parsed))
+    (define* (%system-prompt-for cfg parsed (skills #f))
+      (let* ((base (prepare-system-prompt cfg parsed skills))
              (reg
                (or (and (pair? cfg) (assoc 'registry cfg) (cdr (assoc 'registry cfg)))
                  (current-extension-registry)
@@ -104,7 +116,7 @@
           ) ;let
         ) ;lambda
       ) ;let*
-    ) ;define
+    ) ;define*
 
     (define (persist-initial-user-msg! parsed sdir sfile init-msgs)
       (let ((old-history
@@ -219,7 +231,14 @@
                (rest-msgs '())
                (emit-initial? #t)
              ) ;run-session-flow
-      (let*-values (((cwd) (path->string (path-cwd)))
+      ;; 技能每会话只扫描加载一次，逐条消息复用同一份快照
+      (let*-values (((skills)
+                     (if (pi-args-ref parsed 'no-skills #f)
+                       '()
+                       (pi-load-skills :skill-paths (pi-args-ref parsed 'skill-paths '()))
+                     ) ;if
+                    ) ;
+                    ((cwd) (path->string (path-cwd)))
                     ((sfile sdir)
                      (if session-file
                        (values session-file #f)
@@ -257,7 +276,7 @@
                 (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout emit))
                        (res-msgs (run-agent-loop-with-timeout cfg
                                    next-msgs
-                                   (%system-prompt-for cfg parsed)
+                                   (%system-prompt-for cfg parsed skills)
                                    emit
                                    parsed
                                    compaction

@@ -1,3 +1,19 @@
+;; PI_BUILTIN_TOOL_SNIPPETS
+;; 内置工具代码片段常量。
+;;
+;; 语法
+;; ----
+;; PI_BUILTIN_TOOL_SNIPPETS
+;;
+;; 参数
+;; ----
+;; 无（常量）
+;;
+;; 返回值
+;; ------
+;; string
+;; 内置工具代码片段文本。
+
 (import (liii check) (liii pi code core prompt) (liii pi code core session-manager))
 
 (check-set-mode! 'report-failed)

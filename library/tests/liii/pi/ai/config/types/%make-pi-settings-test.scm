@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (%make-pi-settings default-provider default-model default-thinking-level http-proxy retry default-tools session-dir hide-thinking-block model-thinking-levels)
+;; (%make-pi-settings default-provider default-model default-thinking-level http-proxy retry default-tools session-dir hide-thinking-block model-thinking-levels enable-skill-commands)
 ;;
 ;; 参数
 ;; ----
@@ -53,6 +53,7 @@
              "/tmp/pi-session"
              #f
              '(("deepseek/deepseek-v4-pro" . "high"))
+               #t
            ) ;%make-pi-settings
       ) ;obj
      ) ;

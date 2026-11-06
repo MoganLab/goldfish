@@ -7,7 +7,7 @@
 ;; 斜杠命令菜单：识别输入行首的命令上下文，过滤命令并构建选择列表
 (define-library (liii pi code modes interactive slash-command-menu)
   (export pi-slash-command-matches make-pi-slash-command-menu)
-  (import (scheme base) (liii string) (liii tui))
+  (import (scheme base) (liii string) (liii tui) (liii pi code core skills types))
   (begin
 
     (define %accent "\x1b;[35m")
@@ -28,15 +28,22 @@
       (string-append color text %reset)
     ) ;define
 
+    (define (%skill->command s)
+      (list (cons 'name (string-append "skill:" (pi-skill-name s)))
+        (cons 'description (pi-skill-description s))
+      ) ;list
+    ) ;define
+
     ;; 仅在输入行（允许前导空白）以 / 开头且尚未输入命令参数时补全；
+    ;; 当 enable-skill-commands? 为 #t 时，混入已发现的 /skill:<name> 命令；
     ;; 无匹配时返回 #f，因此 /tmp 等路径不会留下空菜单。
-    (define (pi-slash-command-matches text)
+    (define* (pi-slash-command-matches text (skills '()) (enable-skill-commands? #t))
       (let ((command-text (string-trim-left text)))
         (if (and (string-starts? command-text "/")
               (not (string-contains? command-text " "))
             ) ;and
           (let ((matches
-                  (fuzzy-filter %commands
+                  (fuzzy-filter (append %commands (if enable-skill-commands? (map %skill->command skills) '()))
                     (substring command-text 1 (string-length command-text))
                     (lambda (command) (cdr (assoc 'name command)))
                   ) ;fuzzy-filter
@@ -47,7 +54,7 @@
           #f
         ) ;if
       ) ;let
-    ) ;define
+    ) ;define*
 
     (define (make-pi-slash-command-menu commands)
       (make-select-list

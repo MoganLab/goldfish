@@ -31,6 +31,7 @@
                 "/tmp/pi-session"
                 #f
                 '(("deepseek/deepseek-v4-pro" . "high"))
+                  #t
               ) ;%make-pi-settings
        ) ;obj-a
        (obj-b (%make-pi-settings "anthropic"
@@ -42,6 +43,7 @@
                 "~/.pi/session"
                 #t
                 '()
+                  #t
               ) ;%make-pi-settings
        ) ;obj-b
       ) ;

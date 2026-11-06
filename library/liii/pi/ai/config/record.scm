@@ -15,6 +15,7 @@
     pi-settings->alist pi-credential pi-credential? pi-credential-provider
     pi-settings-hide-thinking-block pi-settings-session-dir pi-credential-key
     pi-settings-model-thinking-level pi-settings-model-thinking-levels
+    pi-settings-enable-skill-commands
     pi-credential-type pi-credential->alist pi-model-metadata pi-model-metadata?
     pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
     pi-model-metadata-base-url pi-model-metadata-context-window
@@ -58,6 +59,7 @@
                (session-dir #f)
                (hide-thinking-block #f)
                (model-thinking-levels '())
+               (enable-skill-commands #t)
              ) ;pi-settings
       (%make-pi-settings default-provider
         default-model
@@ -68,6 +70,7 @@
         session-dir
         (and hide-thinking-block #t)
         model-thinking-levels
+        (and enable-skill-commands #t)
       ) ;%make-pi-settings
     ) ;define*
 
@@ -83,6 +86,7 @@
           (cons 'session-dir (pi-settings-session-dir s))
           (cons 'hide-thinking-block (pi-settings-hide-thinking-block s))
           (cons 'model-thinking-levels (pi-settings-model-thinking-levels s))
+          (cons 'enable-skill-commands (pi-settings-enable-skill-commands s))
         ) ;list
       ) ;if
     ) ;define

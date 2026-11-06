@@ -65,7 +65,21 @@
   (check (cdr (assoc 'default-provider empty-settings)) => "google")
   (check (cdr (assoc 'default-model empty-settings)) => "gemini-3.8-flash")
   (check (cdr (assoc 'http-proxy empty-settings)) => #f)
-  (check (cdr (assoc 'default-tools empty-settings)) => #f))
+  (check (cdr (assoc 'default-tools empty-settings)) => #f)
+  ;; enableSkillCommands 未配置时默认开启
+  (check-true (pi-settings-enable-skill-commands empty-settings))
+  (check-true (cdr (assoc 'enable-skill-commands empty-settings))))
+
+;; enableSkillCommands: false 生效（/skill: 命令开关）
+(let* ((skill-off-dir
+         (if (file-exists? "tests/fixtures/skill-commands-off")
+           "tests/fixtures/skill-commands-off"
+           "tools/pi/tests/fixtures/skill-commands-off"
+         ) ;if
+       ) ;skill-off-dir
+       (settings (pi-load-settings skill-off-dir)))
+  (check-false (pi-settings-enable-skill-commands settings))
+  (check-false (cdr (assoc 'enable-skill-commands settings))))
 
 ;; retry.provider 嵌套节解析：provider.maxRetries 不再被丢弃
 (let* ((settings (pi-load-settings retry-provider-dir))

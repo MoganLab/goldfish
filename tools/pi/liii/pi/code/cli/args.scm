@@ -61,6 +61,8 @@
         (cons 'list-models #f)
         (cons 'system-prompt #f)
         (cons 'append-system-prompt '())
+        (cons 'skill-paths '())
+        (cons 'no-skills #f)
         (cons 'file-args '())
         (cons 'messages '())
         (cons 'unknown-flags '())
@@ -222,6 +224,13 @@
             ((and (string=? arg "--append-system-prompt") next-arg)
              (values 'append-system-prompt next-arg 2)
             ) ;
+            ((or (string=? arg "--skill") (string=? arg "--skills"))
+             (if next-arg
+               (values 'skill-paths next-arg 2)
+               (error 'pi-arg-error (string-append arg " requires a path value"))
+             ) ;if
+            ) ;
+            ((string=? arg "--no-skills") (values 'no-skills #t 1))
             (else (%match-extension-flag reg arg next-arg))
       ) ;cond
     ) ;define
@@ -235,6 +244,11 @@
               (values (cddr args)
                 (pi-args-set res 'append-system-prompt (append cur (list val)))
               ) ;values
+            ) ;let
+           ) ;
+           ((eq? key 'skill-paths)
+            (let ((cur (pi-args-ref res 'skill-paths '())))
+              (values (cddr args) (pi-args-set res 'skill-paths (append cur (list val))))
             ) ;let
            ) ;
            ((and key (= consumed 1)) (values (cdr args) (pi-args-set res key val)))

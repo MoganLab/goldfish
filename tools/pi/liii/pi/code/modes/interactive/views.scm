@@ -10,10 +10,11 @@
     tool-card? tool-card-component? tool-card-expanded? tool-card-set-expanded!
     tool-card-set-output! tool-card-set-complete! make-thinking-card
     thinking-card-append-line! thinking-card-set-hidden!
-    thinking-card-component?
+    thinking-card-component? skill-card-component? skill-card-set-expanded!
   ) ;export
   (import (scheme base)
     (liii string)
+    (liii tui component)
     (liii pi code modes interactive renderers)
     (liii pi code modes interactive views assistant)
     (liii pi code modes interactive views cache)
@@ -21,6 +22,8 @@
     (liii pi code modes interactive views thinking)
     (liii pi code modes interactive views tool-card)
     (liii pi code modes interactive views wrap)
+    (liii pi code modes interactive views skill-card)
+    (liii pi code core skills format)
   ) ;import
   (begin
 
@@ -48,8 +51,32 @@
       ) ;if
     ) ;define
 
+    (define (%plain-user-card text)
+      (%make-cached-component text (lambda (w) (%render-user-card text w)))
+    ) ;define
+
+    ;; 用户卡片：若文本为技能展开块，则以技能折叠卡片呈现（附参独立成卡）
     (define (make-user-card text)
-      (%make-cached-component text (lambda (width) (%render-user-card text width)))
+      (let ((blk (parse-skill-block text)))
+        (if (not blk)
+          (%plain-user-card text)
+          (let* ((name (cdr (assoc 'name blk)))
+                 (content (cdr (assoc 'content blk)))
+                 (user-msg (cdr (assoc 'user-message blk)))
+                 (sc (make-skill-card name content))
+                ) ;
+            (if
+              (and (string? user-msg) (not (string-null? (string-trim user-msg))))
+              (let ((cnt (make-container)))
+                (container-add! cnt sc)
+                (container-add! cnt (%plain-user-card user-msg))
+                cnt
+              ) ;let
+              sc
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; 等待队列提示卡片组件 (make-queued-card text)
