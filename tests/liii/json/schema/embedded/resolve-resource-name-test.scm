@@ -67,4 +67,25 @@
   "meta/core"
 ) ;check
 
+;; 相对路径中的 ../ 会被正确折叠。
+
+(check (resolve-resource-name "../up/" '(("$id" . "http://h/draft/a/b.json")))
+  =>
+  "http://h/draft/up/"
+) ;check
+
+;; 目录型合并结果可以作为后续合并的 base，不替换目录段。
+
+(check (resolve-resource-name "file.json" '(("$id" . "http://h/draft/baseUriChange/")))
+  =>
+  "http://h/draft/baseUriChange/file.json"
+) ;check
+
+;; 以斜杠结尾的相对引用保留结尾斜杠（RFC 3986 5.2.3）。
+
+(check (resolve-resource-name "baseUriChange/" root)
+  =>
+  "https://example.com/root/baseUriChange/"
+) ;check
+
 (check-report)
