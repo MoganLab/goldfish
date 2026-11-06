@@ -1,5 +1,3 @@
-(import (liii check) (scheme char) (liii string))
-
 ;; string-trim-right
 ;; 从字符串末尾移除指定的字符/空白字符。
 ;;
@@ -40,24 +38,18 @@
 ;; 对于空字符串，始终返回空字符串。
 ;; 当字符串以不匹配的字符结尾，或字符串为空字符串时，返回原字符串的副本。
 ;;
-;; 示例
-;; ----
-;; (string-trim-right "  hello  ") => "  hello"
-;; (string-trim-right "---hello---" #\-) => "---hello"
-;; (string-trim-right "123hello123" char-numeric?) => "123hello"
-;; (string-trim-right "   ") => ""
-;; (string-trim-right "hello") => "hello"
-;; (string-trim-right "") => ""
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当str不是字符串类型时
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
+(import (liii check) (scheme char) (srfi srfi-13))
+
+
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-trim-right 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-trim-right"

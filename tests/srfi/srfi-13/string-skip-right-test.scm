@@ -1,5 +1,3 @@
-(import (liii check) (scheme char) (liii string))
-
 ;; string-skip-right
 ;; 在字符串中从右向左跳过指定字符或满足条件的字符，返回第一个不满足条件的字符位置。
 ;;
@@ -47,10 +45,13 @@
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
+(import (liii check) (scheme char) (srfi srfi-13))
+
+
 ;; 基本功能测试
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-skip-right 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-skip-right"

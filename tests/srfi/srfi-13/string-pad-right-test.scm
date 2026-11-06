@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-pad-right
 ;; 在字符串右侧填充字符以达到指定长度。
 ;;
@@ -40,22 +38,17 @@
 ;; string-pad-right是右填充(right padding)函数，填充字符添加在字符串后面。
 ;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。
 ;;
-;; 示例
-;; ----
-;; (string-pad-right "abc" 6) => "abc   "
-;; (string-pad-right "abc" 6 #\0) => "abc000"
-;; (string-pad-right "abcdef" 3) => "abc"
-;; (string-pad-right "" 5) => "     "
-;; (string-pad-right "a" 1) => "a"
-;;
 ;; 错误处理
 ;; ----
 ;; out-of-range 当len为负数时
 ;; type-error 当str不是字符串类型时
 
+(import (liii check) (srfi srfi-13))
+
+
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-pad-right 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-pad-right"

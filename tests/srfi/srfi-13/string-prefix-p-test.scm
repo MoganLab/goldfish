@@ -1,5 +1,3 @@
-(import (liii check) (srfi srfi-13))
-
 ;; string-prefix?
 ;; 检查字符串是否以指定前缀开始。
 ;;
@@ -42,6 +40,9 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当任一参数不是字符串类型时抛出。
+
+(import (liii check) (srfi srfi-13))
+
 
 (check (string-prefix? "" "hello") => #t)
 (check (string-prefix? "h" "hello") => #t)

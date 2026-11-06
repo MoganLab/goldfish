@@ -1,6 +1,3 @@
-(import (liii check) (liii error) (liii string) (srfi srfi-13))
-(import (liii ascii))
-
 ;; string-fold-right
 ;; 通过从右到左的顺序遍历字符串字符，将给定过程应用于每个字符和累加器值。
 ;;
@@ -46,10 +43,14 @@
 ;; type-error 当s不是字符串类型时
 ;; out-of-range 当start/end超出字符串索引范围或start > end时
 
+(import (liii check) (liii error) (srfi srfi-13))
+(import (liii ascii))
+
+
 ;; 基本功能测试 - 空字符串
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-fold-right 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-fold-right"

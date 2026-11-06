@@ -1,5 +1,3 @@
-(import (liii check) (scheme char) (liii string))
-
 ;; string-index
 ;; 在字符串中查找指定字符或满足条件的第一个字符的位置。
 ;;
@@ -39,25 +37,18 @@
 ;; - 字符匹配：查找与指定字符相等的字符
 ;; - 谓词匹配：查找使谓词返回#t的第一个字符
 ;;
-;; 示例
-;; ----
-;; (string-index "hello" #\e) => 1  (字符'e'在索引1处)
-;; (string-index "hello" #\z) => #f (没有找到字符'z')
-;; (string-index "abc123" char-numeric?) => 3 (第一个数字'1'在索引3处)
-;; (string-index "hello" char-alphabetic?) => 0 (第一个字母'h'在索引0处)
-;; (string-index "hello" #\l 2) => 3 (从索引2开始找前字符'l')
-;; (string-index "hello" #\l 0 2) => #f (在0到2范围内没有找到'l')
-;; (string-index "" #\x) => #f (空字符串返回#f)
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当str不是字符串类型时
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
+(import (liii check) (scheme char) (srfi srfi-13))
+
+
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-index 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-index"

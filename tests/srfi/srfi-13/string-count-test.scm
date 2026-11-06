@@ -1,11 +1,3 @@
-(import (liii check)
-  (scheme char)
-  (liii ascii)
-  (liii error)
-  (liii string)
-  (srfi srfi-13)
-) ;import
-
 ;; string-count
 ;; 统计字符串中满足指定条件的字符数量。
 ;;
@@ -47,10 +39,19 @@
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
+(import (liii check)
+  (scheme char)
+  (liii ascii)
+  (liii error)
+  (liii string)
+  (srfi srfi-13)
+) ;import
+
+
 ;; 基本功能测试 - 字符参数
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-count 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-count"

@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-copy
 ;; 创建字符串的副本，支持可选的开始和结束位置参数进行子串拷贝。
 ;;
@@ -33,8 +31,8 @@
 ;; 与substring函数不同，string-copy始终返回新的字符串对象，
 ;; 而substring在某些实现中可能会返回源字符串本身（当子串与源字符串相同时）。
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 提供了 string-copy/cursors，支持使用游标参数进行字符串复制。
 ;;
 ;; 错误处理
@@ -42,6 +40,9 @@
 ;; type-error 当str不是字符串类型时
 ;; out-of-range 当start或end超出字符串索引范围时
 ;; out-of-range 当start > end时
+
+(import (liii check) (srfi srfi-13))
+
 
 (check-true (equal? (string-copy "hello") "hello"))
 (check-true (equal? (string-copy "hello" 1) "ello"))

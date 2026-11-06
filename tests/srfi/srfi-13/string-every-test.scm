@@ -1,5 +1,3 @@
-(import (liii check) (scheme char) (liii string))
-
 ;; string-every
 ;; 检查字符串中的每个字符是否都满足给定的条件。
 ;;
@@ -36,23 +34,14 @@
 ;; 当使用start/end参数时，检查对应子字符串的范围。
 ;; 空字符串或空范围会返回#t，因为没有任何字符违反条件。
 ;;
-;; 示例
-;; ----
-;; (string-every #\x "xxxxxx") => #t
-;; (string-every #\x "xxx0xx") => #f
-;; (string-every char-numeric? "012345") => #t
-;; (string-every char-numeric? "012d45") => #f
-;; (string-every char-alphabetic? "abc") => #t
-;; (string-every char-alphabetic? "abc123") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 ;; type-error 当str不是字符串时
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-every 函数。
 ;; 差异：
 ;; - (liii string) 版本基于字节索引遍历，start/end 参数指向字节位置，
@@ -61,6 +50,9 @@
 ;; 另外，cursor 版本只接受谓词(procedure)作为第一个参数，
 ;; start/end 可以是整数索引或 string-cursor。
 ;; 参见: gf doc liii/string-cursor "string-every"
+
+(import (liii check) (scheme char) (srfi srfi-13))
+
 
 ;; 字符参数
 (check-true (string-every #\x "xxxxxx"))

@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-tokenize
 ;; 将字符串按指定分隔符分割成多个子字符串（标记化）。
 ;;
@@ -42,6 +40,9 @@
 ;; type-error 当str不是字符串类型时
 ;; type-error 当char不是字符类型时
 ;; out-of-range 当start/end超出字符串索引范围时
+
+(import (liii check) (srfi srfi-13))
+
 
 (check (string-tokenize "a b c") => '("a" "b" "c"))
 (check (string-tokenize "a b c ") => '("a" "b" "c" ""))

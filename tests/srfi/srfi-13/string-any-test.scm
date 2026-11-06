@@ -1,5 +1,3 @@
-(import (liii check) (scheme char) (liii string))
-
 ;; string-any
 ;; 检查字符串中的任意字符是否满足给定的条件。
 ;;
@@ -36,25 +34,14 @@
 ;; 该函数也支持start和end参数来限定检查范围。
 ;; 空字符串或空范围会返回#f，因为没有任何字符满足条件。
 ;;
-;; 示例
-;; ----
-;; (string-any char-numeric? "abc123") => #t
-;; (string-any char-numeric? "hello") => #f
-;; (string-any char-alphabetic? "12345a") => #t
-;; (string-any char-alphabetic? "12345") => #f
-;; (string-any char-upper-case? "abC12") => #t
-;; (string-any char-whitespace? "hello") => #f
-;; (string-any #\a "zebra") => #\a
-;; (string-any #\z "apple") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 ;; type-error 当str不是字符串时
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-any 函数。
 ;; 差异：
 ;; - (liii string) 版本基于字节索引遍历，start/end 参数指向字节位置，
@@ -63,6 +50,9 @@
 ;; 另外，cursor 版本只接受谓词(procedure)作为第一个参数，
 ;; start/end 可以是整数索引或 string-cursor。
 ;; 参见: gf doc liii/string-cursor "string-any"
+
+(import (liii check) (scheme char) (srfi srfi-13))
+
 
 ;; 字符参数
 (check-true (string-any #\a "abcde"))

@@ -1,5 +1,3 @@
-(import (liii check) (scheme char) (liii string))
-
 ;; string-trim
 ;; 从字符串开头移除指定的字符/空白字符。
 ;;
@@ -40,20 +38,11 @@
 ;; 对于空字符串，始终返回空字符串。
 ;; 当字符串以不匹配的字符开头，或字符串为空字符串时，返回原字符串的副本。
 ;;
-;; Unicode 警告
-;; --------
+;; 注意
+;; ----
 ;; string-trim, string-trim-left, string-trim-right, string-trim-both
 ;; 这些函数在处理 Unicode 字符(如中文)时可能有字节截断问题。
 ;; 对于 Unicode 字符串，建议使用 (liii unicode) 中的 utf8-string-trim-* 系列函数。
-;;
-;; 示例
-;; ----
-;; (string-trim "  hello  ") => "hello  "
-;; (string-trim "---hello---" #\-) => "hello---"
-;; (string-trim "   hello   ") => "hello   "
-;; (string-trim "123hello123" char-numeric?) => "hello123"
-;; (string-trim "hello") => "hello"
-;; (string-trim "") => ""
 ;;
 ;; 错误处理
 ;; ----
@@ -61,9 +50,12 @@
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
+(import (liii check) (scheme char) (srfi srfi-13))
+
+
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-trim 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-trim"

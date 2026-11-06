@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-reverse
 ;; 反转字符串的字符顺序。
 ;;
@@ -35,11 +33,14 @@
 ;; out-of-range 当start/end超出字符串索引范围时
 ;; type-error 当str不是字符串类型时
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-reverse 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-reverse"
+
+(import (liii check) (srfi srfi-13))
+
 
 (check (string-reverse "01234") => "43210")
 (check (string-reverse "hello") => "olleh")

@@ -1,5 +1,3 @@
-(import (liii check) (scheme char) (liii string))
-
 ;; string-index-right
 ;; 在字符串中从右向左查找指定字符或满足条件的第一个字符的位置。
 ;;
@@ -41,24 +39,18 @@
 ;;
 ;; 与string-index的主要区别是搜索方向：string-index从左向右搜索，string-index-right从右向左搜索。
 ;;
-;; 示例
-;; ----
-;; (string-index-right "hello" #\l) => 3  (从右向左第一个'l'在索引3处)
-;; (string-index-right "hello" #\z) => #f (没有找到字符'z')
-;; (string-index-right "abc123" char-numeric?) => 5 (最后一个数字'3'在索引5处)
-;; (string-index-right "hello" char-alphabetic?) => 4 (最后一个字母'o'在索引4处)
-;; (string-index-right "hello" #\l 0 4) => 2 (在0到4范围内从右向左找字符'l')
-;; (string-index-right "" #\x) => #f (空字符串返回#f)
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当str不是字符串类型时
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
+(import (liii check) (scheme char) (srfi srfi-13))
+
+
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-index-right 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-index-right"

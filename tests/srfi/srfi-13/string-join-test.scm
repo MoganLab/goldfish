@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-join
 ;; 将一个字符串列表通过指定的分隔符连接起来。
 ;;
@@ -40,10 +38,13 @@
 ;; type-error  当提供了无效的参数类型时
 ;; wrong-number-of-args 当参数数量不正确时
 
+(import (liii check) (srfi srfi-13))
+
+
 ;; 基本功能测试
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-join 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-join"

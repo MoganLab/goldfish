@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-take-right
 ;; 从字符串末尾提取指定数量的字符。
 ;;
@@ -25,20 +23,17 @@
 ;; string-take-right等价于(substring str (- (string-length str) k) (string-length str))，但提供了更语义化的名称。
 ;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
 ;;
-;; 示例
-;; ----
-;; (string-take-right "MathAgape" 4) => "gape"
-;; (string-take-right "Hello" 0) => ""
-;; (string-take-right "abc" 2) => "bc"
-;;
 ;; 错误处理
 ;; ----
 ;; out-of-range 当k大于字符串长度或k为负数时
 ;; type-error 当str不是字符串类型或k不是整数类型时
 
+(import (liii check) (srfi srfi-13))
+
+
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-take-right 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-take-right"

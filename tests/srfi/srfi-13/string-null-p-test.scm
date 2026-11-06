@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-null?
 ;; 判断一个字符串是否为空字符串。
 ;;
@@ -22,21 +20,18 @@
 ;; string-null?主要用于测试字符串是否为零长度。字符串为空字符串的标准是
 ;; 其长度为0。字符串非字符串类型的参数会引发错误。
 ;;
-;; 示例
-;; ----
-;; (string-null? "") => #t
-;; (string-null? "a") => #f
-;; (string-null? " ") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当str不是字符串类型时
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string-cursor) 库中也提供了 string-null? 函数，
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-null?"
+
+(import (liii check) (srfi srfi-13))
+
 
 ;; 基本功能测试
 (check-true (string-null? ""))

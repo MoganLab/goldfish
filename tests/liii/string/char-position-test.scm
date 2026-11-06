@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; char-position
 ;; 在字符串中查找字符首次出现的位置。
 ;;
@@ -29,9 +27,12 @@
 ;; 这是 s7 内置函数，(liii string) 重新导出以便统一使用。
 ;; 与 string-position 不同，char-position 支持按字符查找。
 ;;
-;; 局限性
+;; 注意
 ;; ----
 ;; char-position 按字节匹配，不支持 Unicode 字符。查找多字节 UTF-8 字符时会返回 #f。
+
+(import (liii check) (liii string))
+
 
 (check (char-position #\o "hello world") => 4)
 (check (char-position #\z "hello world") => #f)
