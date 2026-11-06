@@ -44,10 +44,10 @@
   (check (path-name doc-path) => "plus-test.scm")
 ) ;let
 
-(let ((doc-path (function-doc-path "liii/hash-table" "hash-table-set!")))
+(let ((doc-path (function-doc-path "liii/flexvector" "flexvector-set!")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "hash-table-set-bang-test.scm")
+  (check (path-name doc-path) => "flexvector-set-bang-test.scm")
 ) ;let
 
 (let ((doc-path (function-doc-path "scheme/base" "truncate/")))
@@ -56,11 +56,15 @@
   (check (path-name doc-path) => "truncate-slash-test.scm")
 ) ;let
 
-(let ((doc-path (function-doc-path "liii/hash-table" "hash-table-update!/default")))
+(let ((doc-path (function-doc-path "liii/alist" "alist-ref/default")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "hash-table-update-bang-slash-default-test.scm")
+  (check (path-name doc-path) => "alist-ref-slash-default-test.scm")
 ) ;let
+
+;; (liii hash-table) 仅重导出 (srfi srfi-125)，其叶子文档位于
+;; tests/srfi 分组，不在 gf doc 支持范围内，返回 #f
+(check (function-doc-path "liii/hash-table" "hash-table-set!") => #f)
 
 (let ((doc-path (function-doc-path "scheme/char" "char-ci=?")))
   (check-true (string? doc-path))

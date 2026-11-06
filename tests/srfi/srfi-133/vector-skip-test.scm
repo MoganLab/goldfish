@@ -1,9 +1,3 @@
-(import (liii check) (scheme char) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-skip
 ;; 从左到右跳过满足谓词的元素，返回首个不满足谓词的索引。
 ;;
@@ -32,6 +26,10 @@
 ;; ----
 ;; type-error 当pred不是过程，或vec不是向量时
 
+(import (liii check) (scheme char) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-skip even? #(1 2 3 4)) => 0)
 (check (vector-skip odd? #(1 3 5 7)) => #f)

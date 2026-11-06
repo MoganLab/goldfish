@@ -1,9 +1,3 @@
-(import (liii check) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table->alist
 ;; 将哈希表转换为交替键值形式的列表。
 ;;
@@ -25,14 +19,14 @@
 ;; ----
 ;; 结果顺序由底层遍历顺序决定。
 ;;
-;; 示例
-;; ----
-;; (hash-table->alist ht) => '(k1 v1)
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (check (hash-table->alist ht) => '())

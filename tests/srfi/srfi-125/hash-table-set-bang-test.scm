@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-set!
 ;; 将一个或多个键值对写入哈希表。
 ;;
@@ -28,10 +22,6 @@
 ;; ----
 ;; 已存在的键会被覆盖；多个键值对会按顺序依次写入。
 ;;
-;; 示例
-;; ----
-;; (hash-table-set! ht 'a 1) => 通过副作用写入 a->1
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-number-of-args
@@ -39,6 +29,10 @@
 ;; type-error
 ;; 当 ht 不是哈希表时抛出错误。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'a 1)

@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector=
 ;; 使用给定比较函数比较多个向量。
 ;;
@@ -32,6 +26,10 @@
 ;; ----
 ;; type-error 当elt=?不是过程时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (vector= eq?))
 (check-true (vector= eq? '#(a)))

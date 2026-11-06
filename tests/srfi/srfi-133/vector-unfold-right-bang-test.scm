@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-unfold-right!
 ;; 将 `vector-unfold-right` 生成的元素以逆序写入已有向量的指定区间。
 ;;
@@ -34,6 +28,12 @@
 ;; unspecified
 ;;
 ;; 基本展开：填充整个向量（逆序）
+
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
+
 (let ((v (make-vector 5)))
   (vector-unfold-right! (lambda (i x) (values x (+ x 1))) v 0 5 10)
   (check v => #(14 13 12 11 10))

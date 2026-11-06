@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-append-subvectors
 ;; 连接多个向量的子向量并返回新向量。
 ;;
@@ -27,6 +21,10 @@
 ;; ----
 ;; 至少需要一个三元组；start 和 end 指定半开区间 [start, end)。
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-append-subvectors #(a b c d e) 0 2 #(f g h i j) 2 4)
   =>

@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; reverse-vector->list
 ;; 将向量转换为逆序列表。
 ;;
@@ -33,17 +27,15 @@
 ;; ----
 ;; 当start和end相等时，返回空列表。
 ;;
-;; 示例
-;; ----
-;; (reverse-vector->list #(1 2 3)) => '(3 2 1)
-;; (reverse-vector->list #(0 1 2 3) 1 3) => '(2 1)
-;; (reverse-vector->list #()) => '()
-;;
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出向量边界或start大于end时
 ;; type-error 当vec不是向量，或start/end不是整数时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (reverse-vector->list #()) => ())
 (check (reverse-vector->list #(a b c)) => '(c b a))

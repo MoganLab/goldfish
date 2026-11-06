@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-update!
 ;; 直接将哈希表中指定键更新为新值。
 ;;
@@ -31,15 +25,15 @@
 ;; ----
 ;; 该函数不会保留旧值，而是直接覆盖为新值。
 ;;
-;; 示例
-;; ----
-;; (hash-table-update! ht 'key 'value) => 通过副作用写入
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 ht 不是哈希表时抛出错误。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-update! ht 'key 'value)

@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-adjoin
 ;; 返回一个新的 set，包含原 set 的所有元素以及新增的元素。
 ;;
@@ -28,11 +22,11 @@
 ;; ----
 ;; 此函数不修改原 set。
 ;;
-;; 示例
-;; ----
-;; (set-adjoin (set) 1) => 包含 1 的 set
-;; (set-adjoin (set 1) 2 3) => 包含 1, 2, 3 的 set
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

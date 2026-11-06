@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-reverse-copy
 ;; 创建向量的反向副本，可选指定子区间。
 ;;
@@ -33,6 +27,10 @@
 ;; ----
 ;; 原向量不会被修改。
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((vec #(1 2 3)))
   (let ((rev (vector-reverse-copy vec)))

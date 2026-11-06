@@ -1,9 +1,3 @@
-(import (liii check) (liii vector) (only (scheme base) let-values))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-partition
 ;; 按谓词将向量重新排列，并返回命中数量。
 ;;
@@ -34,6 +28,10 @@
 ;; ----
 ;; type-error 当pred不是过程，或vec不是向量时
 
+(import (liii check) (liii vector) (only (scheme base) let-values))
+
+
+(check-set-mode! 'report-failed)
 
 (define (vector-partition->list pred v)
   (let-values (((ret cnt) (vector-partition pred v)))

@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-empty?
 ;; 检查 set 是否为空。
 ;;
@@ -21,16 +15,15 @@
 ;; boolean
 ;; 如果 set 为空，返回 #t；否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (set-empty? (set)) => #t
-;; (set-empty? (set 1)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

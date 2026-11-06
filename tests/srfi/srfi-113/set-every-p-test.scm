@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-every?
 ;; 检查 set 中是否所有元素都满足谓词。
 ;;
@@ -29,16 +23,15 @@
 ;; 与 SRFI 1 的 every 函数不同，此函数不返回满足谓词的元素，只返回布尔值。
 ;; 空 set 返回 #t。
 ;;
-;; 示例
-;; ----
-;; (set-every? (lambda (x) (> x 0)) (set 1 2)) => #t
-;; (set-every? (lambda (x) (> x 1)) (set 1 2)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

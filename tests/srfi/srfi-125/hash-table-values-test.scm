@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-values
 ;; 返回哈希表中所有值的列表。
 ;;
@@ -25,14 +19,14 @@
 ;; ----
 ;; 结果列表的顺序由底层遍历顺序决定。
 ;;
-;; 示例
-;; ----
-;; (hash-table-values ht) => '(v1)
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (check (hash-table-values (make-hash-table)) => '())
 

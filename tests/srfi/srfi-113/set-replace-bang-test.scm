@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-replace!
 ;; 修改 set，将其中指定的元素替换（可变操作）。
 ;;
@@ -30,10 +22,13 @@
 ;; ----
 ;; 此函数会修改原 set。
 ;;
-;; 示例
-;; ----
-;; (set-replace! (set 1) 1) => 修改后的 set，包含 1
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-1 (set 1))
 

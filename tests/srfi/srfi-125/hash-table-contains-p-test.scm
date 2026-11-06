@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-contains?
 ;; 判断哈希表中是否存在指定键且其值不是 #f。
 ;;
@@ -28,14 +22,14 @@
 ;; ----
 ;; 如果键对应的值就是 #f，也会被视为“不包含”。
 ;;
-;; 示例
-;; ----
-;; (hash-table-contains? ht 'brand) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'brand 'liii)

@@ -1,9 +1,3 @@
-(import (liii check) (liii list) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; reverse-list->vector
 ;; 将列表转换为反向向量。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; type-error 当lst不是正规列表时
 
+(import (liii check) (liii list) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (reverse-list->vector '()) => '#())
 (check (reverse-list->vector '(1 2 3)) => '#(3 2 1))

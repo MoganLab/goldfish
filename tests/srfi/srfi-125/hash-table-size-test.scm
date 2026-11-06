@@ -1,9 +1,3 @@
-(import (liii check) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-size
 ;; 返回哈希表中的条目数量。
 ;;
@@ -25,14 +19,14 @@
 ;; ----
 ;; 该值会随着增删操作实时变化。
 ;;
-;; 示例
-;; ----
-;; (hash-table-size (make-hash-table)) => 0
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (check (hash-table-size (make-hash-table)) => 0)
 

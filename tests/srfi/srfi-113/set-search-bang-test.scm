@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-search!
 ;; 在 set 中搜索指定元素，并通过 continuation 决定更新方式（可变操作）。
 ;;
@@ -40,12 +32,13 @@
 ;; (update new-element obj) 用 new-element 替换匹配元素。
 ;; (remove obj) 移除匹配元素。
 ;;
-;; 示例
-;; ----
-;; (set-search! set element
-;;   (lambda (insert ignore) (insert 'payload))
-;;   (lambda (found update remove) (remove 'payload)))
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define string-ci-comparator
   (make-comparator string?

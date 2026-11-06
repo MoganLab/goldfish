@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set=?
 ;; 检查两个或多个 set 是否相等。
 ;;
@@ -25,11 +19,6 @@
 ;; ----
 ;; 比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set=? (set 1) (set 1)) => #t
-;; (set=? (set 1) (set 1) (list->set '(1))) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
@@ -37,6 +26,10 @@
 ;; value-error
 ;; 当 set 的比较器不同时抛出。
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

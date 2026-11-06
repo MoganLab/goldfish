@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-map!
 ;; 破坏性映射操作。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; 多个向量会按对应位置并行映射，以最短向量长度为准。
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((v #(1 2 3)))
   (vector-map! (lambda (x) (* x 10)) v)

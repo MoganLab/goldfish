@@ -1,9 +1,3 @@
-(import (liii check) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-unfold
 ;; 使用 unfold 模式创建 set。
 ;;
@@ -33,11 +27,11 @@
 ;; set
 ;; 返回生成的 set。
 ;;
-;; 示例
-;; ----
-;; (set-unfold (lambda (x) (= x 10)) (lambda (x) x) (lambda (x) (+ x 1)) 0 comp)
-;; => 包含 0 到 9 的 set
 
+(import (liii check) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

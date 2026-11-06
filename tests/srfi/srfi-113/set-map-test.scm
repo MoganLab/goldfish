@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-map
 ;; 对 set 中的每个元素应用 proc，并返回一个新 set。
 ;;
@@ -33,10 +25,13 @@
 ;; ----
 ;; 如果映射后出现等价元素（基于 comparator），重复元素会被去重。
 ;;
-;; 示例
-;; ----
-;; (set-map comp (lambda (x) (+ x 10)) (set 1 2 3)) => 包含 11, 12, 13 的 set
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

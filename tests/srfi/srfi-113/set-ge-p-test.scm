@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set>=?
 ;; 检查一个 set 是否为另一个 set 的超集。
 ;;
@@ -26,11 +20,6 @@
 ;; 超集意味着 set1 包含 set2 的所有元素。
 ;; 比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set>=? (set 1) (set)) => #t
-;; (set>=? (set 1 2) (set 1)) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
@@ -38,6 +27,10 @@
 ;; value-error
 ;; 当 set 的比较器不同时抛出。
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

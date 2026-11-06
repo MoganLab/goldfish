@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-intersection
 ;; 返回多个 set 的交集。
 ;;
@@ -27,10 +19,13 @@
 ;; ----
 ;; 所有 set 的比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set-intersection (set 1 2 3) (set 2 3 4)) => 包含 2, 3 的 set
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

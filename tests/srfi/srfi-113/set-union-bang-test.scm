@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-union!
 ;; 将多个 set 并入 set1（可变操作）。
 ;;
@@ -28,10 +20,13 @@
 ;; 此函数会修改 set1。
 ;; 所有 set 的比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set-union! (set 1 2 3) (set 2 3 4) (set 4 5)) => 修改后的 set，包含 1, 2, 3, 4, 5
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-2-3-4 (set 2 3 4))
 

@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-copy
 ;; 复制一个 set。
 ;;
@@ -25,15 +19,15 @@
 ;; ----
 ;; 返回的是新实例，与原 set 不是同一个对象。
 ;;
-;; 示例
-;; ----
-;; (set-copy (set 1 2)) => 新的 set，内容与原 set 相同
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果参数不是 set，抛出异常。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

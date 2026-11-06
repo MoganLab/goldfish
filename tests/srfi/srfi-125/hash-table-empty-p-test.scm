@@ -1,9 +1,3 @@
-(import (liii check) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-empty?
 ;; 判断哈希表是否为空。
 ;;
@@ -25,14 +19,14 @@
 ;; ----
 ;; 它本质上是对哈希表大小是否为 0 的判断。
 ;;
-;; 示例
-;; ----
-;; (hash-table-empty? (make-hash-table)) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (hash-table-empty? (make-hash-table)))
 

@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-count
 ;; 统计向量中满足谓词的元素数量。
 ;;
@@ -32,6 +26,10 @@
 ;; ----
 ;; type-error 当pred不是过程，或vec不是向量时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-count even? #()) => 0)
 (check (vector-count even? #(1 3 5 7 9)) => 0)

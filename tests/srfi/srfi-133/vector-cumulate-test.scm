@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-cumulate
 ;; 返回向量的累积计算结果。
 ;;
@@ -36,6 +30,10 @@
 ;; type-error 当vec不是向量时
 ;; type-error 当proc无法应用到对应参数时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-cumulate + 0 '#(1 2 3 4)) => #(1 3 6 10))
 (check (vector-cumulate - 0 '#(1 2 3 4)) => #(-1 -3 -6 -10))

@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-fold
 ;; 对 set 中的每个元素应用 proc，累积结果并返回。
 ;;
@@ -27,10 +21,11 @@
 ;; any
 ;; 返回最后一次调用的结果，若 set 为空则返回 nil。
 ;;
-;; 示例
-;; ----
-;; (set-fold (lambda (x acc) (+ x acc)) 0 (set 1 2 3)) => 6
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

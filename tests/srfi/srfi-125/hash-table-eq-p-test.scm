@@ -1,9 +1,3 @@
-(import (liii check) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table=?
 ;; 判断两个哈希表的结构和值是否相等。
 ;;
@@ -25,14 +19,14 @@
 ;; ----
 ;; 这里比较的是哈希表的内容，而不是对象是否同一。
 ;;
-;; 示例
-;; ----
-;; (hash-table=? ht1 ht2) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((empty-h1 (make-hash-table)) (empty-h2 (make-hash-table)))
   (check (hash-table=? empty-h1 empty-h2) => #t)

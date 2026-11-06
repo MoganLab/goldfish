@@ -1,9 +1,3 @@
-(import (liii check) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-ref
 ;; 按键读取哈希表中的值。
 ;;
@@ -28,14 +22,14 @@
 ;; ----
 ;; 如果键对应的值本身是 #f，则结果与未命中相同。
 ;;
-;; 示例
-;; ----
-;; (hash-table-ref ht 'key) => 'value
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'key 'value)

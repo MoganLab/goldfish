@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-intersection!
 ;; 就地更新 set1，使其成为多个 set 的交集。
 ;;
@@ -28,10 +20,13 @@
 ;; 此函数会修改 set1。
 ;; 所有 set 的比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set-intersection! (set 1 2 3 4) (set 2 3 4)) => 修改后的 set，包含 2, 3, 4
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-2-3-4 (set 2 3 4))
 

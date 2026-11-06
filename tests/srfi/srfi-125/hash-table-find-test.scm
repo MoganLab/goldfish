@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-find
 ;; 在哈希表中查找第一个满足条件的键值对，并返回对应的值。
 ;;
@@ -31,14 +25,14 @@
 ;; ----
 ;; 只返回值，不返回键。
 ;;
-;; 示例
-;; ----
-;; (hash-table-find (lambda (k v) (= v 2)) ht 'not-found) => 2
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入或 proc 不是过程时由底层实现报错。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'a 1)
@@ -48,10 +42,11 @@
   (check (hash-table-find (lambda (k v) (= v 4)) ht 'not-found) => 'not-found)
   (check (hash-table-find (lambda (k v) (eq? k 'b)) ht 'not-found) => 2)
   (check (hash-table-find (lambda (k v) (eq? k 'd)) ht 'not-found) => 'not-found)
-  (check (hash-table-find (lambda (k v) (and (symbol? k) (even? v)))
-           ht
-           (lambda () 'not-found)
-         ) ;hash-table-find
+  (check
+    (hash-table-find (lambda (k v) (and (symbol? k) (even? v)))
+      ht
+      (lambda () 'not-found)
+    ) ;hash-table-find
     =>
     2
   ) ;check
@@ -63,8 +58,12 @@
 ) ;let
 
 
-(check-catch 'type-error (hash-table-find "not-a-procedure" (make-hash-table) 'not-found))
-(check-catch 'type-error (hash-table-find (lambda (k v) #t) "not-a-table" 'not-found))
+(check-catch 'type-error
+  (hash-table-find "not-a-procedure" (make-hash-table) 'not-found)
+) ;check-catch
+(check-catch 'type-error
+  (hash-table-find (lambda (k v) #t) "not-a-table" 'not-found)
+) ;check-catch
 
 
 

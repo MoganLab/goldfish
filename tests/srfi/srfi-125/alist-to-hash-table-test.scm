@@ -1,9 +1,3 @@
-(import (liii check) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; alist->hash-table
 ;; 将交替出现的键值列表转换为哈希表。
 ;;
@@ -25,10 +19,6 @@
 ;; ----
 ;; 列表长度必须为偶数，否则会报错。
 ;;
-;; 示例
-;; ----
-;; (alist->hash-table '(k1 v1 k2 v2)) => 一个包含 k1->v1、k2->v2 的哈希表
-;;
 ;; 错误处理
 ;; ----
 ;; value-error
@@ -36,6 +26,10 @@
 ;; type-error
 ;; 当输入不是列表时抛出错误。
 
+(import (liii check) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (check (hash-table-ref (alist->hash-table (list 'k1 'v1)) 'k1) => 'v1)
 (check (hash-table-ref (alist->hash-table '(k1 v1 k2 v2)) 'k2) => 'v2)

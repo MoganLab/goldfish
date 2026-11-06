@@ -1,9 +1,3 @@
-(import (liii check) (liii comparator) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-hash-table
 ;; 创建一个新的哈希表，可选使用指定的比较器。
 ;;
@@ -26,15 +20,15 @@
 ;; ----
 ;; 传入比较器时，会使用比较器中的相等谓词和哈希函数初始化表。
 ;;
-;; 示例
-;; ----
-;; (make-hash-table) => 一个空哈希表
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当参数不是比较器时抛出错误。
 
+(import (liii check) (liii comparator) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'a 1)

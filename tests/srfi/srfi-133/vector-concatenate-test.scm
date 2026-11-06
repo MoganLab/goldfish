@@ -1,9 +1,3 @@
-(import (liii check) (liii vector) (liii error))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-concatenate
 ;; 连接一个列表中的多个向量并返回新向量。
 ;;
@@ -23,6 +17,10 @@
 ;; ----
 ;; 空列表返回空向量；列表中的空向量会被正确处理。
 
+(import (liii check) (liii vector) (liii error))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-concatenate '()) => #())
 (check (vector-concatenate '(#(1 2 3))) => #(1 2 3))

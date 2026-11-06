@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-fold
 ;; 从左到右折叠向量。
 ;;
@@ -35,6 +29,10 @@
 ;; ----
 ;; type-error 当vec不是向量，或proc不是过程时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-fold + 0 #(1 2 3 4)) => 10)
 (check (vector-fold * 1 #(1 2 3 4)) => 24)

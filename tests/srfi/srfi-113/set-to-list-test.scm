@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set->list
 ;; 将 set 转换为列表（顺序未指定）。
 ;;
@@ -25,12 +19,14 @@
 ;; ----
 ;; 元素顺序未指定。
 ;;
-;; 示例
-;; ----
-;; (set->list (set 1 2 3)) => 包含 1, 2, 3 的列表（顺序不定）
 
 
 ;; Test basic conversion
+
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-to-list (set 1 2 3))
 

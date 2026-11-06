@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-reverse!
 ;; 原地反转向量，可选指定子区间。
 ;;
@@ -38,6 +32,10 @@
 ;; type-error 当start/end类型不正确时
 ;; out-of-range 当start/end超出向量边界或start大于end时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((vec (vector 1 2 3 4)))
   (vector-reverse! vec)

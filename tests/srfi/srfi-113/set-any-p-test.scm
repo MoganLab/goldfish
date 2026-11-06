@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-any?
 ;; 检查 set 中是否有元素满足谓词。
 ;;
@@ -28,16 +22,15 @@
 ;; ----
 ;; 与 SRFI 1 的 any 函数不同，此函数不返回满足谓词的元素，只返回布尔值。
 ;;
-;; 示例
-;; ----
-;; (set-any? (lambda (x) (= x 1)) (set 1 2)) => #t
-;; (set-any? (lambda (x) (> x 10)) (set 1 2)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

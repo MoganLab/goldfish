@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-for-each
 ;; 对 set 中的每个元素应用 proc，忽略返回值。
 ;;
@@ -24,10 +18,11 @@
 ;; unspecified
 ;; 返回值未指定。
 ;;
-;; 示例
-;; ----
-;; (set-for-each (lambda (x) (display x)) (set 1 2 3))
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

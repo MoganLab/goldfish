@@ -1,9 +1,3 @@
-(import (liii check) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-delete!
 ;; 从 set 中移除指定的元素（可变操作）。
 ;;
@@ -28,10 +22,11 @@
 ;; ----
 ;; 此函数会修改原 set。
 ;;
-;; 示例
-;; ----
-;; (set-delete! (set 1 2 3) 1) => 修改后的 set，包含 2, 3
 
+(import (liii check) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-1-2-3 (set 1 2 3))
 

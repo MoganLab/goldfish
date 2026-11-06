@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-filter!
 ;; 可变筛选，返回仅包含满足 predicate 的元素的 set。
 ;;
@@ -28,10 +22,11 @@
 ;; ----
 ;; 此函数会修改原 set。
 ;;
-;; 示例
-;; ----
-;; (set-filter! odd? (set 1 2 3 4)) => 修改后的 set，仅包含 1, 3
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

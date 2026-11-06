@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-disjoint?
 ;; 检查两个 set 是否不相交（没有共同元素）。
 ;;
@@ -25,11 +19,6 @@
 ;; ----
 ;; 两个 set 的比较器必须相同，否则会抛出 value-error。
 ;;
-;; 示例
-;; ----
-;; (set-disjoint? (set 1 2 3) (set 4 5)) => #t
-;; (set-disjoint? (set 1 2 3) (set 2 3 4)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
@@ -37,6 +26,10 @@
 ;; value-error
 ;; 当两个 set 的比较器不同时抛出。
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

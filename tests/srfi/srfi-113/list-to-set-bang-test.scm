@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; list->set!
 ;; 将列表元素并入 set（可变操作）。
 ;;
@@ -24,10 +18,6 @@
 ;; set
 ;; 返回修改后的 set（与传入的 set 是同一个对象）。
 ;;
-;; 示例
-;; ----
-;; (list->set! (set 1 2) '(2 3 4)) => 修改后的 set，包含 1, 2, 3, 4
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
@@ -35,6 +25,11 @@
 
 
 ;; 测试 list->set! 基本行为
+
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-list-merge (set 1 2))
 

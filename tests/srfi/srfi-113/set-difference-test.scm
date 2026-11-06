@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-difference
 ;; 返回第一个 set 与其余 set 的差集。
 ;;
@@ -27,10 +19,13 @@
 ;; ----
 ;; 所有 set 的比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set-difference (set 1 2 3) (set 2 3 4)) => 包含 1 的 set
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

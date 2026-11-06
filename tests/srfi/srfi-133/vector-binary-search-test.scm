@@ -1,7 +1,3 @@
-(import (liii check) (liii vector))
-
-(check-set-mode! 'report-failed)
-
 ;; vector-binary-search
 ;; 在已排序向量中进行二分查找。
 ;;
@@ -42,6 +38,10 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当 cmp 不是过程时
+
+(import (liii check) (liii vector))
+
+(check-set-mode! 'report-failed)
 
 (define (cmp a b)
   (cond ((< a b) -1)

@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-filter
 ;; 返回一个新的 set，仅包含满足 predicate 的元素。
 ;;
@@ -28,10 +22,11 @@
 ;; ----
 ;; 原 set 不会被修改。
 ;;
-;; 示例
-;; ----
-;; (set-filter even? (set 1 2 3 4)) => 包含 2, 4 的 set
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

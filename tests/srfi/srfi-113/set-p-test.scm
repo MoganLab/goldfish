@@ -1,9 +1,3 @@
-(import (liii check) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set?
 ;; 检查对象是否为 set。
 ;;
@@ -21,15 +15,14 @@
 ;; boolean
 ;; 如果 obj 是 set，返回 #t；否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (set? (set)) => #t
-;; (set? "not a set") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无异常抛出
 
+(import (liii check) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

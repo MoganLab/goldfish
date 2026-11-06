@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-size
 ;; 获取 set 中元素的数量。
 ;;
@@ -21,16 +15,15 @@
 ;; exact-integer
 ;; 返回 set 中元素的数量（整数）。
 ;;
-;; 示例
-;; ----
-;; (set-size (set)) => 0
-;; (set-size (set 1 2 3)) => 3
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

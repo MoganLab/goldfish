@@ -1,9 +1,3 @@
-(import (liii check) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-copy
 ;; 复制一个哈希表，返回内容相同但可独立修改的新表。
 ;;
@@ -29,14 +23,14 @@
 ;; ----
 ;; 修改副本不会影响原表。
 ;;
-;; 示例
-;; ----
-;; (hash-table-copy ht) => 副本
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+(import (liii check) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'k1 'v1)

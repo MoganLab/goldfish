@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-adjoin!
 ;; 向 set 中添加一个或多个元素（可变操作）。
 ;;
@@ -28,10 +22,11 @@
 ;; ----
 ;; 此函数会修改原 set。
 ;;
-;; 示例
-;; ----
-;; (set-adjoin! (set) 1) => 修改后的 set，包含 1
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

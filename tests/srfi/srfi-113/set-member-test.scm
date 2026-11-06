@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-member
 ;; 查找 set 中与指定元素相等的元素。
 ;;
@@ -30,16 +22,17 @@
 ;; 如果 element 在 set 中，返回 set 中存储的那个元素（可能与 element 并不是同一个对象，但比较结果相等）。
 ;; 如果 element 不在 set 中，返回 default。
 ;;
-;; 示例
-;; ----
-;; (set-member (set 1) 1 'not-found) => 1
-;; (set-member (set 1) 2 'not-found) => 'not-found
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

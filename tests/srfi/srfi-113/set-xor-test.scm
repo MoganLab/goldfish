@@ -1,11 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-(import (liii ascii))
-(import (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-xor
 ;; 返回两个 set 的对称差集。
 ;;
@@ -28,10 +20,13 @@
 ;; 对称差集包含只在其中一个 set 中出现的元素。
 ;; 所有 set 的比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set-xor (set 1 2 3) (set 2 3 4)) => 包含 1, 4 的 set
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
+(import (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

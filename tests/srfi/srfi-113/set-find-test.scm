@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-find
 ;; 查找 set 中满足谓词的元素。
 ;;
@@ -31,16 +25,15 @@
 ;; ----
 ;; 如果有多个元素满足谓词，返回其中任意一个。
 ;;
-;; 示例
-;; ----
-;; (set-find (lambda (x) (= x 1)) (set 1 2) (lambda () 'not-found)) => 1
-;; (set-find (lambda (x) (> x 10)) (set 1 2) (lambda () 'not-found)) => 'not-found
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

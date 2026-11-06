@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-contains?
 ;; 检查 set 是否包含指定元素。
 ;;
@@ -24,16 +18,15 @@
 ;; boolean
 ;; 如果 set 包含 element，返回 #t；否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (set-contains? (set 1) 1) => #t
-;; (set-contains? (set 1) 2) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

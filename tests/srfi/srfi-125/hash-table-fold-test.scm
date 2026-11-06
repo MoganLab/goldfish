@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-fold
 ;; 以累积器的方式折叠哈希表中的所有键值对。
 ;;
@@ -31,14 +25,14 @@
 ;; ----
 ;; fold 的累积顺序由底层遍历顺序决定。
 ;;
-;; 示例
-;; ----
-;; (hash-table-fold (lambda (k v acc) (+ acc v)) 0 ht) => 6
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入或 proc 不是过程时由底层实现报错。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (hash-table 'a 1 'b 2 'c 3)))
   (check (hash-table-fold (lambda (k v acc) (+ acc v)) 0 ht) => 6)
@@ -48,8 +42,12 @@
 (check (hash-table-fold (lambda (k v acc) (+ acc v)) 10 (hash-table)) => 10)
 
 
-(check-catch 'type-error (hash-table-fold "not-a-procedure" 0 (make-hash-table)))
-(check-catch 'type-error (hash-table-fold (lambda (k v acc) acc) 0 "not-a-table"))
+(check-catch 'type-error
+  (hash-table-fold "not-a-procedure" 0 (make-hash-table))
+) ;check-catch
+(check-catch 'type-error
+  (hash-table-fold (lambda (k v acc) acc) 0 "not-a-table")
+) ;check-catch
 
 
 

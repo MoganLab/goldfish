@@ -1,9 +1,3 @@
-(import (liii check) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-delete-all
 ;; 返回一个新的 set，其中指定列表中的元素被移除。
 ;;
@@ -24,10 +18,11 @@
 ;; set
 ;; 返回一个新的 set。
 ;;
-;; 示例
-;; ----
-;; (set-delete-all (set 1 2 3) '(1 2)) => 包含 3 的 set
 
+(import (liii check) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-1-2-3 (set 1 2 3))
 

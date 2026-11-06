@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set) (srfi srfi-128))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set<=?
 ;; 检查一个 set 是否为另一个 set 的子集。
 ;;
@@ -26,11 +20,6 @@
 ;; 子集意味着 set1 的所有元素都在 set2 中。
 ;; 比较器必须相同。
 ;;
-;; 示例
-;; ----
-;; (set<=? (set) (set 1)) => #t
-;; (set<=? (set 1) (set 1 2)) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
@@ -38,6 +27,10 @@
 ;; value-error
 ;; 当 set 的比较器不同时抛出。
 
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

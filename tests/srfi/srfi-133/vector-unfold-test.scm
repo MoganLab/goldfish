@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-unfold
 ;; 基本向量构造器。创建长度为 length 的向量，在每个索引 k 上应用 f。
 ;;
@@ -28,6 +22,12 @@
 ;; 新构造的向量。
 ;;
 ;; 基本展开：递减序列
+
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
+
 (check (vector-unfold (lambda (i x) (values x (- x 1))) 10 0)
   =>
   #(0 -1 -2 -3 -4 -5 -6 -7 -8 -9)

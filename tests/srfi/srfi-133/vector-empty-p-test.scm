@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-empty?
 ;; 检查向量是否为空。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; type-error 当vec不是向量时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (vector-empty? (vector)))
 (check-false (vector-empty? (vector 1)))

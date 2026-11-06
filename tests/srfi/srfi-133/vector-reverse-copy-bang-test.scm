@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-reverse-copy!
 ;; 将源向量的指定区间反向复制到目标向量的指定位置。
 ;;
@@ -40,6 +34,10 @@
 ;; 源向量的区间 [start, end) 被反向后写入目标向量的 [at, at + end - start)。
 ;; 允许源和目标为同一向量，但重叠区间行为由底层 vector-copy! 决定。
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((to (vector 1 2 3 4 5)) (from (vector 20 30 40)))
   (vector-reverse-copy! to 1 from)

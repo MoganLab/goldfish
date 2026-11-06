@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-count
 ;; 计算 set 中满足谓词的元素个数。
 ;;
@@ -24,16 +18,15 @@
 ;; exact-integer
 ;; 返回满足 predicate 的元素个数（精确整数）。
 ;;
-;; 示例
-;; ----
-;; (set-count (lambda (x) (> x 0)) (set 1 2 3)) => 3
-;; (set-count (lambda (x) (> x 1)) (set 1 2 3)) => 2
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

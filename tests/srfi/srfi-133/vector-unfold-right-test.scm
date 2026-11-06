@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-unfold-right
 ;; 从右向左展开的向量构造器。
 ;;
@@ -28,6 +22,12 @@
 ;; 新构造的向量。
 ;;
 ;; 基本展开：索引与种子配对
+
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
+
 (check (vector-unfold-right (lambda (i x) (values (cons i x) (+ x 1))) 5 0)
   =>
   #((0 . 4) (1 . 3) (2 . 2) (3 . 1) (4 . 0))

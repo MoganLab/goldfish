@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-every
 ;; 判断向量中是否所有元素都满足谓词。
 ;;
@@ -32,6 +26,10 @@
 ;; ----
 ;; type-error 当pred不是过程，或vec不是向量时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-every odd? #()) => #t)
 (check (vector-every odd? #(1 3 5 7 9)) => #t)

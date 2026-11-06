@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set-partition
 ;; 将 set 划分为满足 predicate 与不满足 predicate 的两个新 set。
 ;;
@@ -28,10 +22,11 @@
 ;; ----
 ;; 原 set 不会被修改。
 ;;
-;; 示例
-;; ----
-;; (set-partition even? (set 1 2 3 4)) => 包含 2,4 的 set 和 包含 1,3 的 set
 
+(import (liii check) (liii error) (liii set))
+
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 

@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-update!/default
 ;; 使用默认值或当前值经由 updater 计算后，更新哈希表中的键。
 ;;
@@ -34,14 +28,14 @@
 ;; ----
 ;; 若键已存在，updater 会接收到当前值；否则接收到 default。
 ;;
-;; 示例
-;; ----
-;; (hash-table-update!/default ht 'count add1 0) => 通过副作用写入新值
-;;
 ;; 错误处理
 ;; ----
 ;; 非哈希表输入或 updater 不是过程时由底层实现报错。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-update!/default ht 'key1 (lambda (x) (+ x 1)) 10)
@@ -57,9 +51,15 @@
 ) ;let
 
 
-(check-catch 'type-error (hash-table-update!/default "not-a-table" 'key (lambda (x) x) 0))
-(check-catch 'type-error (hash-table-update!/default (make-hash-table) 'key "not-a-procedure" 0))
-(check-catch 'type-error (hash-table-update!/default (make-hash-table) 'key 123 0))
+(check-catch 'type-error
+  (hash-table-update!/default "not-a-table" 'key (lambda (x) x) 0)
+) ;check-catch
+(check-catch 'type-error
+  (hash-table-update!/default (make-hash-table) 'key "not-a-procedure" 0)
+) ;check-catch
+(check-catch 'type-error
+  (hash-table-update!/default (make-hash-table) 'key 123 0)
+) ;check-catch
 
 
 

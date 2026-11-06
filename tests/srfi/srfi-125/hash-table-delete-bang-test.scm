@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii hash-table))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; hash-table-delete!
 ;; 从哈希表中删除一个或多个键。
 ;;
@@ -28,15 +22,15 @@
 ;; ----
 ;; 不存在的键会被忽略，不计入返回值。
 ;;
-;; 示例
-;; ----
-;; (hash-table-delete! ht 'key) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 ht 不是哈希表时抛出错误。
 
+(import (liii check) (liii error) (liii hash-table))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'key 'value)

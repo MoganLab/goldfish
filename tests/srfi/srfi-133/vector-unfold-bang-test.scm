@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-unfold!
 ;; 将 `vector-unfold` 生成的元素写入已有向量的指定区间。
 ;;
@@ -34,6 +28,12 @@
 ;; unspecified
 ;;
 ;; 基本展开：填充整个向量
+
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
+
 (let ((v (make-vector 5)))
   (vector-unfold! (lambda (i x) (values x (+ x 1))) v 0 5 10)
   (check v => #(10 11 12 13 14))
