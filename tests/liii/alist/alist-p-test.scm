@@ -1,9 +1,3 @@
-(import (liii alist) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; alist?
 ;; 判断对象是否为关联列表。
 ;;
@@ -25,15 +19,16 @@
 ;; ----
 ;; 空列表`'()`也被视为合法的关联列表。
 ;;
-;; 示例
-;; ----
-;; (alist? '()) => #t
-;; (alist? '((a . 1))) => #t
-;; (alist? '(1 2 3)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii alist) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check (alist? '()) => #t)

@@ -1,9 +1,3 @@
-(import (liii alist) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; alist-ref/default
 ;; 在关联列表中按键查找值，找不到时返回默认值。
 ;;
@@ -35,13 +29,16 @@
 ;; ----
 ;; 这个接口不会抛出`key-error`，而是直接返回默认值。
 ;;
-;; 示例
-;; ----
-;; (alist-ref/default '((a . 1)) 'b 2) => 2
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii alist) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check (alist-ref/default '((a . 1)) 'b 2) => 2)
