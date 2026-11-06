@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time current-time))
-
-(check-set-mode! 'report-failed)
-
 ;; current-monotonic-seconds
 ;; 获取系统自开机以来的单调秒数，返回精确整数。
 ;;
@@ -10,13 +5,18 @@
 ;; ----
 ;; (current-monotonic-seconds)
 ;;
+;; 参数
+;; ----
+;; 无。
+;;
 ;; 返回值
 ;; ----
 ;; 精确整数 (exact? and integer?)
 ;;
-;; 示例
-;; ----
-;; (current-monotonic-seconds)
+
+(import (liii check) (liii date-time current-time))
+
+(check-set-mode! 'report-failed)
 
 (let ((sec (current-monotonic-seconds)))
   (check-true (number? sec))
