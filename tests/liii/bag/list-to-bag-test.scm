@@ -1,14 +1,5 @@
-(import (liii check) (liii bag) (liii error))
-
-(check-set-mode! 'report-failed)
-
-;; Data Setup
-
-(define b-empty (bag))
-
-(define comp (bag-comparator b-empty))
-
-;; list->bag 函数测试
+;; list->bag
+;; 返回包含列表中所有元素的 bag（使用默认比较器，重复元素保留）。
 ;;
 ;; 语法
 ;; ----
@@ -20,8 +11,19 @@
 ;; 要转换的列表。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; 返回包含列表中所有元素的 bag（使用默认比较器，重复元素保留）。
+
+(import (liii check) (liii bag) (liii error))
+
+(check-set-mode! 'report-failed)
+
+;; Data Setup
+
+(define b-empty (bag))
+
+(define comp (bag-comparator b-empty))
+
 
 (define b-list-1 (list->bag '(1 2 2 3)))
 (check-true (bag? b-list-1))

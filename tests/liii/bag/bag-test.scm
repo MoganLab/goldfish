@@ -1,14 +1,5 @@
-(import (liii check) (liii bag) (liii error))
-
-(check-set-mode! 'report-failed)
-
-;; Data Setup
-
-(define b-empty (bag))
-
-(define comp (bag-comparator b-empty))
-
-;; bag 函数测试
+;; bag
+;; 返回包含指定元素的 bag。
 ;;
 ;; 语法
 ;; ----
@@ -20,8 +11,19 @@
 ;; 初始元素。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; 返回包含指定元素的 bag。
+
+(import (liii check) (liii bag) (liii error))
+
+(check-set-mode! 'report-failed)
+
+;; Data Setup
+
+(define b-empty (bag))
+
+(define comp (bag-comparator b-empty))
+
 
 (define b-1-2 (bag 1 2 2))
 

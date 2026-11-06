@@ -53,14 +53,18 @@
     bag-delete-all! bag-search!
   ) ;export
 
-  (define comp (make-default-comparator))
+  (begin
 
-  (define (bag . elements)
-    (apply make-bag-with-comparator comp elements)
-  ) ;define
+    (define comp (make-default-comparator))
 
-  (define (list->bag elements)
-    (list->bag-with-comparator comp elements)
-  ) ;define
+    (define (bag . elements)
+      (apply make-bag-with-comparator comp elements)
+    ) ;define
+
+    (define (list->bag elements)
+      (list->bag-with-comparator comp elements)
+    ) ;define
+
+  ) ;begin
 
 ) ;define-library
