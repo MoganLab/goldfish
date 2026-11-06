@@ -44,10 +44,10 @@
   (check (path-name doc-path) => "plus-test.scm")
 ) ;let
 
-(let ((doc-path (function-doc-path "liii/flexvector" "flexvector-set!")))
+(let ((doc-path (function-doc-path "scheme/base" "vector-set!")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "flexvector-set-bang-test.scm")
+  (check (path-name doc-path) => "vector-set-bang-test.scm")
 ) ;let
 
 (let ((doc-path (function-doc-path "scheme/base" "truncate/")))
@@ -82,11 +82,9 @@
 ;; tests/srfi 分组，不在 gf doc 支持范围内，返回 #f
 (check (function-doc-path "liii/fxmapping" "alist->fxmapping") => #f)
 
-(let ((doc-path (function-doc-path "liii/flexvector" "flexvector-append-map/index")))
-  (check-true (string? doc-path))
-  (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "flexvector-append-map-index-test.scm")
-) ;let
+;; (liii flexvector) 仅重导出 (srfi srfi-214)，其叶子文档位于
+;; tests/srfi 分组，不在 gf doc 支持范围内，返回 #f
+(check (function-doc-path "liii/flexvector" "flexvector-set!") => #f)
 
 (check (function-doc-path "liii/string" "not-a-real-function") => #f)
 (check (function-doc-path "liii/not-a-real-library" "string-split") => #f)
