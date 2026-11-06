@@ -44,6 +44,12 @@ if has_config("http") and not is_plat("wasm") then
     -- 不能用系统 libcurl：cpr(ssl=true) 会同时链入 xmake 的静态 openssl，与系统
     -- libcurl 依赖的动态 OpenSSL 混链时 ABI 不匹配，HTTPS 直接段错误（mogan devel/2092.md）
     add_requires("libcurl", {system = false})
+    -- openssl3 默认会被 xmake 解析为系统包（macOS 上 pkg-config 命中 brew 的
+    -- openssl，Linux 上命中发行版的 libssl），gf 因此动态链接系统 libssl/libcrypto，
+    -- 系统 openssl 升级/卸载后（如 brew openssl@4 dylib 消失）直接启动崩溃。
+    -- 全平台强制源码静态构建，不依赖系统 openssl（同 mogan xmake/requires.lua）。
+    add_requireconfs("libcurl.openssl3", {system = false, override = true})
+    add_requireconfs("cpr.libcurl.openssl3", {system = false, override = true})
     -- cpr 默认 ssl=false，会导致 libcurl 完全无法发起 HTTPS 请求，必须显式开启 ssl
     add_requires("cpr", {system = false, configs = {ssl = true}})
 end
