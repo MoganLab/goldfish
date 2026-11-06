@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; identifier=?
 ;; 判定两个标识符在各自词法环境中是否指向同一绑定。
 ;;
@@ -35,6 +31,11 @@
 ;; ----
 ;; 这是 R7RS syntax-rules 模式匹配中字面量（literals）比对的底层原语，
 ;; 对应规范中 free-identifier=? 的语义。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 同一环境中的同名绑定：同一槽位，#t
 (let ((e (curlet)))

@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; syntactic-closure-rename
 ;; 取出句法闭包的重命名过程。
 ;;
@@ -23,6 +19,11 @@
 ;; 错误处理
 ;; --------
 ;; 参数不是句法闭包时抛出 type-error。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 新建闭包的 rename 槽为 #f
 (check (syntactic-closure-rename (make-syntactic-closure (curlet) '() 'x)) => #f)

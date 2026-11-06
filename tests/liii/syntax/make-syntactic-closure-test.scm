@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; make-syntactic-closure
 ;; 创建一个句法闭包（syntactic closure）对象。
 ;;
@@ -30,6 +26,11 @@
 ;; 句法闭包是 R7RS 卫生宏系统的底层机制：它将表达式与其定义时的词法环境
 ;; 绑定在一起，使宏展开后的标识符仍在定义点环境中解析，从而避免变量捕获。
 ;; (liii syntax) 中的实现基于 s7 的 C 扩展类型，由 src/s7_syntax_rules.c 提供。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 包装符号
 (let ((sc (make-syntactic-closure (curlet) '() 'x)))

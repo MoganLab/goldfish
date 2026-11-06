@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; unquote-form?
 ;; 判断一个对象是否为 unquote 形式。
 ;;
@@ -27,6 +23,11 @@
 ;; - (unquote-splicing x)：规范化后的 splicing 形式；
 ;; - 形式必须恰好带一个参数：cdr 为 pair 且 cddr 为空列表。
 ;; 该函数常用于遍历准引用（quasiquote）结构时识别插值点。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. (unquote x) 形式（car 为普通符号 unquote）
 (check (unquote-form? (list 'unquote 'x)) => #t)

@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; identifier?
 ;; 判断一个对象是否为标识符。
 ;;
@@ -23,6 +19,11 @@
 ;; ----
 ;; 在卫生宏系统中，标识符可以是裸符号，也可以是被句法闭包包装的符号；
 ;; identifier? 会自动穿透任意层数的句法闭包包装进行判定。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 裸符号是标识符
 (check-true (identifier? 'x))

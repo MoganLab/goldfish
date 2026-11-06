@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; syntactic-closure-free-vars
 ;; 取出句法闭包的自由变量列表。
 ;;
@@ -27,6 +23,11 @@
 ;; 错误处理
 ;; --------
 ;; 参数不是句法闭包时抛出 type-error。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 (check (syntactic-closure-free-vars (make-syntactic-closure (curlet) '() 'x)) => '())
 (check (syntactic-closure-free-vars (make-syntactic-closure (curlet) '(a) 'x)) => '(a))

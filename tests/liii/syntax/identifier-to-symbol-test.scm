@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; identifier->symbol
 ;; 将标识符还原为底层符号。
 ;;
@@ -22,6 +18,11 @@
 ;; 错误处理
 ;; --------
 ;; x 不是标识符（剥开后不是符号）时抛出 type-error。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 裸符号原样返回
 (check (identifier->symbol 'x) => 'x)

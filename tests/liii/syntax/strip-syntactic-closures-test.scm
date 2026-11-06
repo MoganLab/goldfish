@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; strip-syntactic-closures
 ;; 递归剥除表达式中的所有句法闭包包装。
 ;;
@@ -19,6 +15,11 @@
 ;; any
 ;; 剥除所有句法闭包后的表达式；对 pair 和 vector 会递归处理，
 ;; 常量和非闭包对象原样返回。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 非闭包对象原样返回
 (check (strip-syntactic-closures 'x) => 'x)

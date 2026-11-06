@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; syntactic-closure?
 ;; 判断一个对象是否为句法闭包。
 ;;
@@ -18,6 +14,11 @@
 ;; ------
 ;; boolean
 ;; 当 x 是由 make-syntactic-closure 创建的句法闭包时返回 #t，否则返回 #f。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 句法闭包返回 #t
 (check-true (syntactic-closure? (make-syntactic-closure (curlet) '() 'x)))
