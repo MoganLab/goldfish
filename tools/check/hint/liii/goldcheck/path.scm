@@ -47,6 +47,9 @@
     ;; relativize-path : (string? -> string?)
     (define hint-relativize-path '((string? -> string?)))
 
+    ;; filter-excluded-violations : (list? list? -> list?)
+    (define hint-filter-excluded-violations '((list? list? -> list?)))
+
     (define (hint-liii/goldcheck/path name)
       (case name
        ((normalize-sep) hint-normalize-sep)
@@ -57,6 +60,7 @@
        ((exclude-entry->path) hint-exclude-entry->path)
        ((file-excluded?) hint-file-excluded?)
        ((relativize-path) hint-relativize-path)
+       ((filter-excluded-violations) hint-filter-excluded-violations)
        (else #f)
       ) ;case
     ) ;define

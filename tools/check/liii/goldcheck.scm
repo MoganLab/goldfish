@@ -233,15 +233,21 @@
                (if (and (check-rule-enabled? cfg "unit-test")
                      (not (check-skip-unit-test-dirs? cfg))
                    ) ;and
-                 (let ((files
-                         (filter
-                           (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "unit-test"))))
-                           (vector->list file-vector)
-                         ) ;filter
-                       ) ;files
-                      ) ;
-                   (vector-append violations (list->vector (check-unit-test-dirs files)))
-                 ) ;let
+                 (let* ((excludes (check-rule-excludes cfg "unit-test"))
+                        (files
+                          (filter (lambda (f) (not (file-excluded? f excludes)))
+                            (vector->list file-vector)
+                          ) ;filter
+                        ) ;files
+                       ) ;
+                   ;; 目录级检查推导出的违规路径（缺失的 README.md、缺失的
+                   ;; 单测文件等）同样要受排除项约束，否则按目录排除的豁免
+                   ;; 配置对目录级检查无效
+                   (vector-append violations
+                     (list->vector (filter-excluded-violations (check-unit-test-dirs files) excludes)
+                     ) ;list->vector
+                   ) ;vector-append
+                 ) ;let*
                  violations
                ) ;if
              ) ;violations

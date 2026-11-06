@@ -17,6 +17,7 @@
 (define-library (liii goldcheck path)
   (import (scheme base)
     (liii base)
+    (liii list)
     (liii path)
     (liii string)
     (liii json)
@@ -25,6 +26,7 @@
   ) ;import
   (export normalize-sep has-wildcard? string-index-of glob-match?
     path-matches-exclude? exclude-entry->path file-excluded? relativize-path
+    filter-excluded-violations
   ) ;export
   (begin
 
@@ -174,6 +176,19 @@
           ) ;let
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; 过滤掉命中排除项的违规项。违规项形如 (rule path line ...)，其 path
+    ;; 既可能是被检查的文件，也可能是规则推导出的期望路径（如缺失的
+    ;; README.md、缺失的单测文件），因此排除项必须同时约束两类路径。
+    (define (filter-excluded-violations violations excludes)
+      (if (null? excludes)
+        violations
+        (filter
+          (lambda (v) (not (file-excluded? (cadr v) excludes)))
+          violations
+        ) ;filter
+      ) ;if
     ) ;define
 
   ) ;begin
