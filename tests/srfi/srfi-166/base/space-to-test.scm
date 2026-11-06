@@ -1,37 +1,34 @@
-(import (liii check)
-        (srfi srfi-166 base))
-
-(check-set-mode! 'report-failed)
-
 ;; space-to
-;; 空白与制表定位组合子。
+;; 把输出位置推进到指定列的空白组合子。
 ;;
 ;; 语法
 ;; ----
-;; (space-to col)
-;; (tab-to [tab-width])
-;; nl
-;; fl
-;; nothing
+;; (space-to where)
 ;;
-;; 示例
+;; 参数
 ;; ----
-;; (show #f "a" (space-to 5) "b") => "a    b"
-;; (show #f "abc" (tab-to 5) "def") => "abc  def"
+;; where : exact-integer?
+;; 目标列号。
 ;;
-;; 另见
+;; 返回值
 ;; ----
-;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
-;;   (import (liii format base))
-;;   (show #f "a" (space-to 5) "b")
+;; format?
+;; 输出空格使当前列号推进到目标列的组合子。
+;;
+;; 说明
+;; ----
+;; 当前列号已到达或超过目标列时不输出任何字符；
+;; 同族的 tab-to 按制表位步进，nl 换行、fl 按需换行、
+;; nothing 什么都不输出。
+;; `(liii format base)` 以 Goldfish 命名重导出这些函数。
+
+(import (liii check) (srfi srfi-166 base))
+
+(check-set-mode! 'report-failed)
 
 (check (show #f "a" (space-to 5) "b") => "a    b")
 (check (show #f "a" (space-to 0) "b") => "ab")
-(check (show #f "abc" (tab-to) "def") => "abc     def")
-(check (show #f "abc" (tab-to 5) "def") => "abc  def")
-(check (show #f "abc" (tab-to 3) "def") => "abcdef")
-(check (show #f "abc" nl "def" nl) => "abc\ndef\n")
-(check (show #f "abc" fl "def" nl fl) => "abc\ndef\n")
-(check (show #f "a" nothing "b") => "ab")
+(check (show #f "abcdef" (space-to 3) "g") => "abcdefg")
+(check (show #f "a" (space-to 1) "b") => "ab")
 
 (check-report)

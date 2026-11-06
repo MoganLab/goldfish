@@ -1,37 +1,42 @@
-(import (liii check)
-        (srfi srfi-166 base))
-
-(check-set-mode! 'report-failed)
-
 ;; show
-;; 组合子格式化的主运行函数，将一系列格式化组合子输出到目标端口或字符串。
+;; 组合子格式化的主运行函数，把格式化对象渲染到端口或字符串。
 ;;
 ;; 语法
 ;; ----
-;; (show out [args ...])
+;; (show out . args)
 ;;
 ;; 参数
 ;; ----
-;; out : output-port? 或 boolean?
-;; - #f : 格式化结果以字符串形式返回
-;; - #t : 格式化结果直接输出到当前标准输出端口 (current-output-port)
-;; - 端口 : 格式化结果输出到指定的输出端口
+;; out : output-port? | boolean?
+;; `#f` 表示把结果作为字符串返回；`#t` 表示输出到
+;; `(current-output-port)`；其他值必须是输出端口。
 ;;
-;; args : 组合子过程、字符串或其他对象
+;; args : any
+;; 零个或多个格式化对象：字符串、字符、数字，
+;; 或由本库组合子构造出的 computation。
 ;;
-;; 示例
+;; 返回值
 ;; ----
-;; (show #f "hi") => "hi"
-;; (show #f "hello " "world") => "hello world"
+;; string? | unspecified
+;; out 为 `#f` 时返回渲染出的字符串，否则返回未指定值。
 ;;
-;; 另见
+;; 说明
 ;; ----
-;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
-;;   (import (liii format base))
-;;   (show #f "hello " "world")
+;; show 是 SRFI-166 的唯一入口，所有组合子只有经 show
+;; 求值才会产生输出；show 同时负责维护行列位置等格式化状态。
+;; `(liii format base)` 以 Goldfish 命名重导出本函数。
+
+(import (liii check) (liii base) (srfi srfi-166 base))
+
+(check-set-mode! 'report-failed)
 
 (check (show #f "hi") => "hi")
 (check (show #f "hello " "world") => "hello world")
 (check (show #f "a" nothing "b") => "ab")
+
+(check (call-with-output-string (lambda (out) (show out "to-port")))
+  =>
+  "to-port"
+) ;check
 
 (check-report)

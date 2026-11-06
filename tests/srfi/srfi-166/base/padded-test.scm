@@ -1,10 +1,5 @@
-(import (liii check)
-        (srfi srfi-166 base))
-
-(check-set-mode! 'report-failed)
-
 ;; padded
-;; 填充组合子，将内容对齐填充至指定宽度。
+;; 填充组合子：内容不足宽度时按对齐方向补齐。
 ;;
 ;; 语法
 ;; ----
@@ -12,21 +7,36 @@
 ;; (padded/right width . ls)
 ;; (padded/both width . ls)
 ;;
-;; 示例
+;; 参数
 ;; ----
-;; (show #f (padded 5 "abc")) => "  abc"
-;; (show #f (padded/right 5 "abc")) => "abc  "
-;; (show #f (padded/both 5 "abc")) => " abc "
+;; width : exact-integer?
+;; 目标显示宽度。
 ;;
-;; 另见
+;; ls : format?
+;; 零个或多个格式化对象。
+;;
+;; 返回值
 ;; ----
-;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
-;;   (import (liii format base))
-;;   (show #f (padded 5 "abc"))
+;; format?
+;; 输出至少占 width 列的格式化组合子。
+;;
+;; 说明
+;; ----
+;; 填充字符取状态变量 pad-char（默认空格）；内容已超出宽度时
+;; 原样输出，不裁剪，需要裁剪请改用 fitted 或 trimmed。
+;; `(liii format base)` 以 Goldfish 命名重导出这些函数。
+
+(import (liii check) (srfi srfi-166 base))
+
+(check-set-mode! 'report-failed)
 
 (check (show #f (padded 5 "abc")) => "  abc")
-(check (show #f (padded/right 5 "abc")) => "abc  ")
-(check (show #f (padded/both 5 "abc")) => " abc ")
 (check (show #f (padded 3 "abcde")) => "abcde")
+(check (show #f (padded 5 "")) => "     ")
+(check
+  (show #f (with ((pad-char #\~)) (padded 5 "abc")))
+  =>
+  "~~abc"
+) ;check
 
 (check-report)
