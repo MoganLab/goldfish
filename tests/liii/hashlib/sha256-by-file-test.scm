@@ -1,9 +1,3 @@
-(import (liii check) (liii hashlib) (liii path))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; sha256-by-file
 ;; 计算文件的 SHA256 哈希值。
 ;;
@@ -27,22 +21,23 @@
 ;; 2. 适用于大文件，无需一次性将整个文件加载到内存
 ;; 3. 推荐用于文件完整性校验和安全敏感场景
 
+(import (liii check) (liii hashlib) (liii path))
+
+(check-set-mode! 'report-failed)
 
 ;; ; 基本功能测试：文件哈希与字符串哈希一致
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt") (content "hello"))
+(let ((tmp-file "tests/resources/hashlib-test-temp-sha256.txt") (content "hello"))
   (path-write-text tmp-file content)
   (check (sha256-by-file tmp-file) => (sha256 content))
   (delete-file tmp-file)
 ) ;let
 
-
 ;; ; 边界测试：空文件
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"))
+(let ((tmp-file "tests/resources/hashlib-test-temp-sha256.txt"))
   (path-write-text tmp-file "")
   (check (sha256-by-file tmp-file) => (sha256 ""))
   (delete-file tmp-file)
 ) ;let
-
 
 ;; ; 大文件测试：100MB 文件
 (let* ((large-file "tests/resources/hashlib-test-large-local.txt")

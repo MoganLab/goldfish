@@ -1,9 +1,3 @@
-(import (liii check) (liii hashlib) (liii path))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; sha1-by-file
 ;; 计算文件的 SHA1 哈希值。
 ;;
@@ -27,17 +21,19 @@
 ;; 2. 适用于大文件，无需一次性将整个文件加载到内存
 ;; 3. 常用于文件完整性校验
 
+(import (liii check) (liii hashlib) (liii path))
+
+(check-set-mode! 'report-failed)
 
 ;; ; 基本功能测试：文件哈希与字符串哈希一致
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt") (content "hello"))
+(let ((tmp-file "tests/resources/hashlib-test-temp-sha1.txt") (content "hello"))
   (path-write-text tmp-file content)
   (check (sha1-by-file tmp-file) => (sha1 content))
   (delete-file tmp-file)
 ) ;let
 
-
 ;; ; 边界测试：空文件
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"))
+(let ((tmp-file "tests/resources/hashlib-test-temp-sha1.txt"))
   (path-write-text tmp-file "")
   (check (sha1-by-file tmp-file) => (sha1 ""))
   (delete-file tmp-file)
