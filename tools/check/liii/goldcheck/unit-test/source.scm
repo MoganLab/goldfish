@@ -68,6 +68,9 @@
        ((string-starts-at? name index "<=") (cons "-le" 2))
        ((char=? (string-ref name index) #\?) (cons "-p" 1))
        ((char=? (string-ref name index) #\!) (cons "-bang" 1))
+       ((char=? (string-ref name index) #\:)
+        (cons (if (= (+ index 1) name-length) "-colon" "-colon-") 1)
+       ) ;
        ((char=? (string-ref name index) #\/)
         (cons (if (= (+ index 1) name-length) "-slash" "-slash-") 1)
        ) ;

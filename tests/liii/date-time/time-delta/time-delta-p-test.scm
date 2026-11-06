@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time time-delta))
-
-(check-set-mode! 'report-failed)
-
 ;; time-delta?
 ;; 判断给定对象是否为 time-delta 对象。
 ;;
@@ -17,10 +12,11 @@
 ;; 返回值
 ;; ----
 ;; boolean? 若为 time-delta 返回 #t，否则返回 #f。
-;;
-;; 示例
-;; ----
-;; (time-delta? (years-delta 1)) => #t
+
+(import (liii check) (liii date-time time-delta))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (time-delta? (years-delta 1)))
 (check-true (time-delta? (make-time-delta 0 0 0 0 0 0 0)))

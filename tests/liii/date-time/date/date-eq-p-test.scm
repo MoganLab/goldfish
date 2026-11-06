@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time date))
-
-(check-set-mode! 'report-failed)
-
 ;; date=?
 ;; 比较两个或多个日期对象是否相等。
 ;;
@@ -18,17 +13,18 @@
 ;; ----
 ;; boolean? 若所有日期均相等返回 #t，否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (date=? (make-date 2020 1 1) (make-date 2020 1 1)) => #t
-;; (date=? (make-date 2020 1 1) (make-date 2021 1 1)) => #f
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当任一参数不是日期对象时抛出错误。
 
+(import (liii check) (liii date-time date))
+
+(check-set-mode! 'report-failed)
+
+
 (check-true (date=? (make-date 2020 1 1) (make-date 2020 1 1)))
-(check-true (date=? (make-date 2020 1 1) (make-date 2020 1 1) (make-date 2020 1 1)))
+(check-true (date=? (make-date 2020 1 1) (make-date 2020 1 1) (make-date 2020 1 1))
+) ;check-true
 (check-false (date=? (make-date 2021 1 1) (make-date 2020 1 1)))
 (check-false (date=? (make-date 2020 2 1) (make-date 2020 1 1)))
 (check-false (date=? (make-date 2020 1 2) (make-date 2020 1 1)))

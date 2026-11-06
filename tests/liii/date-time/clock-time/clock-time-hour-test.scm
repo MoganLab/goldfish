@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time clock-time))
-
-(check-set-mode! 'report-failed)
-
 ;; clock-time-hour
 ;; 获取时钟时间对象的小时数。
 ;;
@@ -18,13 +13,14 @@
 ;; ----
 ;; integer? 小时（0-23）。
 ;;
-;; 示例
-;; ----
-;; (clock-time-hour (make-clock-time 23 1 2)) => 23
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是 clock-time 对象时抛出错误。
+
+(import (liii check) (liii date-time clock-time))
+
+(check-set-mode! 'report-failed)
+
 
 (check (clock-time-hour (make-clock-time 23 1 2)) => 23)
 (check (clock-time-hour (make-clock-time 0 59 59)) => 0)

@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time date))
-
-(check-set-mode! 'report-failed)
-
 ;; date-iso-weekday
 ;; 获取日期对象的 ISO 星期几（1-7，周一为 1，周日为 7）。
 ;;
@@ -18,14 +13,14 @@
 ;; ----
 ;; integer? 1 到 7 的整数。
 ;;
-;; 示例
-;; ----
-;; (date-iso-weekday (make-date 2025 10 12)) => 7
-;; (date-iso-weekday (make-date 2025 10 13)) => 1
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是日期对象时抛出错误。
+
+(import (liii check) (liii date-time date))
+
+(check-set-mode! 'report-failed)
+
 
 (check (date-iso-weekday (make-date 2025 10 12)) => 7)
 (check (date-iso-weekday (make-date 2025 10 13)) => 1)

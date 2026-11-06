@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time clock-time))
-
-(check-set-mode! 'report-failed)
-
 ;; clock-time>?
 ;; 比较 clock-time 是否严格单调递减（大于）。
 ;;
@@ -18,13 +13,14 @@
 ;; ----
 ;; boolean? 若严格单调递减返回 #t，否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (clock-time>? (make-clock-time 12 0 0) (make-clock-time 11 0 0)) => #t
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当任一参数不是 clock-time 对象时抛出错误。
+
+(import (liii check) (liii date-time clock-time))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (clock-time>? (make-clock-time 12 0 0) (make-clock-time 11 0 0)))
 (check-true (clock-time>? (make-clock-time 12 1 0) (make-clock-time 12 0 0)))

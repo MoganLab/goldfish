@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time gregorian))
-
-(check-set-mode! 'report-failed)
-
 ;; day-name->weekday
 ;; 将星期符号转换为 ISO 星期序号（1-7，周一为 1，周日为 7）。
 ;;
@@ -18,14 +13,14 @@
 ;; ----
 ;; integer? 1 到 7 的整数。
 ;;
-;; 示例
-;; ----
-;; (day-name->weekday 'monday) => 1
-;; (day-name->weekday 'sunday) => 7
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是有效星期符号时抛出错误。
+
+(import (liii check) (liii date-time gregorian))
+
+(check-set-mode! 'report-failed)
+
 
 (check (day-name->weekday 'monday) => 1)
 (check (day-name->weekday 'tuesday) => 2)

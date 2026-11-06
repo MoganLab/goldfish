@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time clock-time))
-
-(check-set-mode! 'report-failed)
-
 ;; make-clock-time
 ;; 创建一天内的时钟时间对象（clock-time）。
 ;;
@@ -20,14 +15,14 @@
 ;; ----
 ;; clock-time? 新创建的时钟时间对象。
 ;;
-;; 示例
-;; ----
-;; (make-clock-time 23 59 59)
-;; (make-clock-time 12 30 (+ 45 1/2))
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是精确数字或超出范围时抛出错误。
+
+(import (liii check) (liii date-time clock-time))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (clock-time? (make-clock-time 0 0 0)))
 (check-true (clock-time? (make-clock-time 23 59 59)))

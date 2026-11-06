@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time date))
-
-(check-set-mode! 'report-failed)
-
 ;; date-iso-week
 ;; 获取日期所在的 ISO 周数（1-53）。
 ;;
@@ -18,15 +13,14 @@
 ;; ----
 ;; integer? 周数（1 到 53）。
 ;;
-;; 示例
-;; ----
-;; (date-iso-week (make-date 2025 10 14)) => 42
-;; (date-iso-week (make-date 2008 12 29)) => 1
-;; (date-iso-week (make-date 2010 1 2)) => 53
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是日期对象时抛出错误。
+
+(import (liii check) (liii date-time date))
+
+(check-set-mode! 'report-failed)
+
 
 (check (date-iso-week (make-date 2025 10 14)) => 42)
 (check (date-iso-week (make-date 2008 12 29)) => 1)
@@ -66,41 +60,63 @@
 ;; 参考算法（Wikipedia ISO week date）：
 ;;   p = (ord - wd + 10) / 7，ord 为 1-based day-of-year，wd 为 1-7（周一=1）
 ;;   p = 0 时属上一年最后一周；p = 53 且 12-28 的 p < 53 时属下一年 W1
+
 (define (test-day-of-year d)
   (let-values (((y m day) (date-ymd d)))
-    (+ 1 (- (date->rata-die d) (date->rata-die (make-date y 1 1))))))
+    (+ 1 (- (date->rata-die d) (date->rata-die (make-date y 1 1))))
+  ) ;let-values
+) ;define
 
 (define (test-iso-ref-week d)
   (let* ((y (date-year d))
          (ord (test-day-of-year d))
          (wd (date-iso-weekday d))
-         (p (floor-quotient (+ (- ord wd) 10) 7)))
+         (p (floor-quotient (+ (- ord wd) 10) 7))
+        ) ;
     (cond
-      ((= p 0)
-       (let* ((dec31 (make-date (- y 1) 12 31))
-              (ord2 (test-day-of-year dec31))
-              (wd2 (date-iso-weekday dec31)))
-         (values (- y 1) (floor-quotient (+ (- ord2 wd2) 10) 7))))
-      ((and (= p 53)
-            (< (floor-quotient
-                 (+ (- (test-day-of-year (make-date y 12 28))
-                       (date-iso-weekday (make-date y 12 28)))
-                    10)
-                 7)
-               53))
-       (values (+ y 1) 1))
-      (else (values y p)))))
+     ((= p 0)
+      (let* ((dec31 (make-date (- y 1) 12 31))
+             (ord2 (test-day-of-year dec31))
+             (wd2 (date-iso-weekday dec31))
+            ) ;
+        (values (- y 1) (floor-quotient (+ (- ord2 wd2) 10) 7))
+      ) ;let*
+     ) ;
+     ((and (= p 53)
+        (<
+          (floor-quotient
+            (+ (- (test-day-of-year (make-date y 12 28))
+                 (date-iso-weekday (make-date y 12 28))
+               ) ;-
+              10
+            ) ;+
+            7
+          ) ;floor-quotient
+          53
+        ) ;<
+      ) ;and
+      (values (+ y 1) 1)
+     ) ;
+     (else (values y p))
+    ) ;cond
+  ) ;let*
+) ;define
 
-(let loop ((rd (date->rata-die (make-date 1970 1 1)))
-           (end (date->rata-die (make-date 2101 1 1))))
+(let loop
+  ((rd (date->rata-die (make-date 1970 1 1)))
+   (end (date->rata-die (make-date 2101 1 1)))
+  ) ;
   (unless (= rd end)
     (let ((d (rata-die->date rd)))
       (let-values (((ref-y ref-w) (test-iso-ref-week d)))
-        (unless (and (= (date-iso-week-year d) ref-y)
-                     (= (date-iso-week d) ref-w))
-          (error 'regression-failed
-            "date-iso-week mismatch" d ref-y ref-w))))
-    (loop (+ rd 1) end)))
+        (unless (and (= (date-iso-week-year d) ref-y) (= (date-iso-week d) ref-w))
+          (error 'regression-failed "date-iso-week mismatch" d ref-y ref-w)
+        ) ;unless
+      ) ;let-values
+    ) ;let
+    (loop (+ rd 1) end)
+  ) ;unless
+) ;let
 
 (check-catch 'type-error (date-iso-week "2025-10-14"))
 (check-catch 'type-error (date-iso-week 2025))
