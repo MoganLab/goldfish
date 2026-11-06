@@ -40,5 +40,27 @@
 (check-catch 'type-error (utf8->string))
 (check (utf8->string '()) => "")
 (check-catch 'value-error (utf8->string #u8(255)))
+;; 多字节序列解码
+(check (utf8->string #u8(195 164)) => "ä")
+(check (utf8->string #u8(228 184 173)) => "中")
+(check (utf8->string #u8(230 177 137)) => "汉")
+(check (utf8->string #u8(240 159 145 141)) => "👍")
+(check (utf8->string #u8(240 159 154 128)) => "🚀")
+(check (utf8->string #u8(240 159 145 141 240 159 154 128)) => "👍🚀")
+;; 起始与结束索引
+(check (utf8->string #u8(72 101)) => "He")
+(check (utf8->string #u8(72 101 108 108 111 32 240 159 154 128 32 87 111 114 108 100))
+  =>
+  "Hello 🚀 World"
+) ;check
+;; 无效序列报错
+(check-catch 'value-error (utf8->string (bytevector 255 101 108 108 111)))
+(check-catch 'value-error (utf8->string (bytevector 128)))
+(check-catch 'value-error (utf8->string (bytevector 248 128 128 128 128)))
+(check-catch 'value-error (utf8->string (bytevector 252 128 128 128 128 128)))
+;; 与 string->utf8 的往返转换
+(check (utf8->string (string->utf8 "")) => "")
+(check (utf8->string (string->utf8 "汉字书写")) => "汉字书写")
+(check (utf8->string (string->utf8 "Hello 你好 👍")) => "Hello 你好 👍")
 
 (check-report)

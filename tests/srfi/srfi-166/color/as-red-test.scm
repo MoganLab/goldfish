@@ -1,41 +1,28 @@
-(import (liii check)
-        (srfi srfi-166 base)
-        (srfi srfi-166 color))
-
-(check-set-mode! 'report-failed)
-
 ;; as-red
-;; 终端前景色格式化组合子。将输出内容包裹在 ANSI 前景颜色控制序列中，并在结束时恢复之前的颜色。
+;; 终端前景色格式化组合子。将输出内容包裹在 ANSI 前景色 31 控制序列中，并在结束时恢复之前的颜色。
 ;;
 ;; 语法
 ;; ----
 ;; (as-red fmt ...)
-;; (as-blue fmt ...)
-;; (as-green fmt ...)
-;; (as-cyan fmt ...)
-;; (as-yellow fmt ...)
-;; (as-magenta fmt ...)
-;; (as-white fmt ...)
-;; (as-black fmt ...)
 ;;
-;; 示例
+;; 参数
 ;; ----
-;; (show #f (as-red "red")) => "\x1b[31mred\x1b[39m"
+;; fmt : format?
+;; 零个或多个格式化对象（字符串或其他格式化组合子）。
 ;;
-;; 另见
+;; 返回值
 ;; ----
-;; (liii format color) 同名再导出本函数，日常使用更推荐导入该库：
-;;   (import (liii format color))
-;;   (show #f (as-red "red"))
+;; format?
+;; 包裹了 ANSI 前景色 31（红色）控制序列的格式化组合子。
 
-(check (show #f (as-red "red")) => "\x1b[31mred\x1b[39m")
+(import (liii check) (srfi srfi-166 base) (srfi srfi-166 color))
+
+(check-set-mode! 'report-failed)
+
+(check (show #f (as-red "red")) => "\x1b;[31mred\x1b;[39m")
 (check (show #f (as-red "red" (as-blue "blue") "red"))
-       => "\x1b[31mred\x1b[34mblue\x1b[31mred\x1b[39m")
-(check (show #f (as-green "green")) => "\x1b[32mgreen\x1b[39m")
-(check (show #f (as-yellow "yellow")) => "\x1b[33myellow\x1b[39m")
-(check (show #f (as-cyan "cyan")) => "\x1b[36mcyan\x1b[39m")
-(check (show #f (as-magenta "magenta")) => "\x1b[35mmagenta\x1b[39m")
-(check (show #f (as-white "white")) => "\x1b[37mwhite\x1b[39m")
-(check (show #f (as-black "black")) => "\x1b[30mblack\x1b[39m")
+  =>
+  "\x1b;[31mred\x1b;[34mblue\x1b;[31mred\x1b;[39m"
+) ;check
 
 (check-report)

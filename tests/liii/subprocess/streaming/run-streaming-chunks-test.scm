@@ -1,13 +1,3 @@
-(import (liii check) (liii subprocess) (liii string) (liii go) (liii time) (scheme time))
-
-(check-set-mode! 'report-failed)
-
-;; Windows 上子进程 stdout 为文本模式时按 CRLF 输出，规范化后再比较。
-
-(define (norm-chunk-text s)
-  (string-replace s "\r\n" "\n")
-) ;define
-
 ;; run-streaming-chunks
 ;; 以块级流式回调方式执行命令，stdout/stderr 合并到同一管道，
 ;; 按原始字节块回调，保留两个流的写入顺序。
@@ -32,6 +22,22 @@
 ;; ----
 ;; integer 或 #f
 ;; 子进程退出码，0 表示正常退出；超时强杀时返回 #f。
+
+(import (liii check)
+  (liii subprocess)
+  (liii string)
+  (liii go)
+  (liii time)
+  (scheme time)
+) ;import
+
+(check-set-mode! 'report-failed)
+
+;; Windows 上子进程 stdout 为文本模式时按 CRLF 输出，规范化后再比较。
+
+(define (norm-chunk-text s)
+  (string-replace s "\r\n" "\n")
+) ;define
 
 ;; 基本用法：收集全部输出块
 (let* ((chunks '())
@@ -94,11 +100,10 @@
 (let* ((sig (make-chan 1))
        (t (go-call (lambda (ch) (sleep 0.3) (chan-send! ch 'abort 0)) sig))
        (start (current-jiffy))
-       (ret
-         (run-streaming-chunks '("python3" "-c" "import time; time.sleep(5)")
-           :should-abort? (lambda () (chan-try-recv! sig #f))
-           :timeout      30
-         ) ;run-streaming-chunks
+       (ret (run-streaming-chunks '("python3" "-c" "import time; time.sleep(5)")
+              :should-abort? (lambda () (chan-try-recv! sig #f))
+              :timeout       30
+            ) ;run-streaming-chunks
        ) ;ret
        (elapsed (/ (- (current-jiffy) start) (jiffies-per-second)))
       ) ;
@@ -111,8 +116,9 @@
        (sig (make-chan 1))
        (t (go-call (lambda (ch) (sleep 0.3) (chan-send! ch 'abort 0)) sig))
        (ret
-         (run-streaming-chunks
-           '("python3" "-c" "import time; print('first', flush=True); time.sleep(5)")
+         (run-streaming-chunks '("python3"
+                                 "-c"
+                                 "import time; print('first', flush=True); time.sleep(5)")
            :on-chunk      (lambda (c) (set! chunks (cons c chunks)))
            :should-abort? (lambda () (chan-try-recv! sig #f))
          ) ;run-streaming-chunks
@@ -124,10 +130,9 @@
 
 ;; 全程不触发中止时行为不变：正常返回退出码
 (let* ((sig (make-chan 1))
-       (ret
-         (run-streaming-chunks '("python3" "-c" "print('ok')")
-           :should-abort? (lambda () (chan-try-recv! sig #f))
-         ) ;run-streaming-chunks
+       (ret (run-streaming-chunks '("python3" "-c" "print('ok')")
+              :should-abort? (lambda () (chan-try-recv! sig #f))
+            ) ;run-streaming-chunks
        ) ;ret
       ) ;
   (check ret => 0)

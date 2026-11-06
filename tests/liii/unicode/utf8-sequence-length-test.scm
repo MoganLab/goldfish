@@ -1,7 +1,3 @@
-(import (liii check) (liii unicode))
-
-(check-set-mode! 'report-failed)
-
 ;; utf8-sequence-length
 ;; 由 UTF-8 前导字节推断该字符序列的字节数。
 ;;
@@ -30,11 +26,12 @@
 ;;
 ;; 0x80-0xBF 是连续字节，不能作为序列首字节；0xF5-0xFF 超出 Unicode 编码范围。
 ;; 读取多字节字符时，可先用本函数确定还需读取多少个连续字节。
-;;
-;; 相关函数
-;; ----
-;; (liii unicode) utf8->codepoint — 由完整字节序列解码出码点。
-;; (liii unicode) utf8-substring — 按 Unicode 字符位置提取子字符串。
+;; 由完整字节序列解码出码点可使用同库的 utf8->codepoint，
+;; 按 Unicode 字符位置提取子字符串可使用同库的 utf8-substring。
+
+(import (liii check) (liii unicode))
+
+(check-set-mode! 'report-failed)
 
 ;; 单字节字符
 (check (utf8-sequence-length 0) => 1)

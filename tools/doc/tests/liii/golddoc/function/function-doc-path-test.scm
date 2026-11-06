@@ -74,11 +74,9 @@
   (check (path-name doc-path) => "option-eq-p-test.scm")
 ) ;let
 
-(let ((doc-path (function-doc-path "liii/fxmapping" "alist->fxmapping")))
-  (check-true (string? doc-path))
-  (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "alist-fxmapping-test.scm")
-) ;let
+;; (liii fxmapping) 仅重导出 (srfi srfi-224)，其叶子文档位于
+;; tests/srfi 分组，不在 gf doc 支持范围内，返回 #f
+(check (function-doc-path "liii/fxmapping" "alist->fxmapping") => #f)
 
 (let ((doc-path (function-doc-path "liii/flexvector" "flexvector-append-map/index")))
   (check-true (string? doc-path))

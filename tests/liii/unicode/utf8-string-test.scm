@@ -1,9 +1,3 @@
-(import (liii check) (liii unicode) (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; utf8-string
 ;; 将给定字符按 UTF-8 编码后拼接成字符串。
 ;;
@@ -25,33 +19,31 @@
 ;; ----
 ;; type-error 当参数不是字符时。
 
+(import (liii check) (liii unicode) (liii base))
+
+(check-set-mode! 'report-failed)
 
 ;; 基本测试
 (check (utf8-string) => "")
 (check (utf8-string #\a) => "a")
 (check (utf8-string #\a #\b #\c) => "abc")
 
-
 ;; Unicode 字符测试
 (check (utf8-string #\中) => "中")
 (check (utf8-string #\中 #\文) => "中文")
 (check (utf8-string #\🐟 #\中 #\文) => "🐟中文")
-
 
 ;; 字节长度测试
 (check (string-length (utf8-string #\中)) => 3)
 (check (string-length (utf8-string #\中 #\文)) => 6)
 (check (string-length (utf8-string #\a #\中 #\文)) => 7)
 
-
 ;; 兼容性测试
 (check (string->utf8 (utf8-string #\中 #\文)) => #u8(228 184 173 230 150 135))
 (check (utf8-string #\H #\e #\l #\l #\o #\space #\🐟) => "Hello 🐟")
 
-
 ;; 错误处理测试
 (check-catch 'type-error (utf8-string 1))
 (check-catch 'type-error (utf8-string #\a "b"))
-
 
 (check-report)

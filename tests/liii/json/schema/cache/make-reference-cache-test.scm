@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema cache))
-
-(check-set-mode! 'report-failed)
-
 ;; make-reference-cache
 ;; 创建引用解析缓存。
 ;;
@@ -23,13 +19,13 @@
 ;; 缓存按“引用 + 根资源 + 动态作用域”三元组命中，
 ;; 因此不同资源的同名引用不会互相污染。
 ;;
-;; 示例
-;; ----
-;; (reference-cache-lookup (make-reference-cache) "child.json" #t '()) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema cache))
+
+(check-set-mode! 'report-failed)
 
 (define cache (make-reference-cache))
 
