@@ -176,8 +176,8 @@
   (set-current-input-port orig)
 ) ;let
 
-(import (liii subprocess) (liii either) (liii string))
-(let* ((res (run-either (list "bin/gf"
+(import (liii subprocess) (liii either) (liii string) (liii sys))
+(let* ((res (run-either (list (executable)
                           "-e"
                           "(import (liii sse))\n(let loop () (let ((ev (read-sse-event))) (unless (eof-object? ev) (write (sse-event-data ev)) (newline) (loop))))"
                         ) ;list

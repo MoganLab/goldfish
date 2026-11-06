@@ -1,13 +1,14 @@
-(import (liii check) (liii time))
-
-(check-set-mode! 'report-failed)
-
 ;; process-time-ns
 ;; 返回当前进程累计消耗的 CPU 时间，单位为纳秒。
 ;;
 ;; 语法
 ;; ----
 ;; (process-time-ns)
+;;
+;; 参数
+;; ----
+;; 无
+;; 该函数不接受任何参数。
 ;;
 ;; 返回值
 ;; ----
@@ -21,16 +22,20 @@
 ;; 3. 实际精度由操作系统决定，不代表每次调用都增加一纳秒
 ;; 4. 系统接口失败或平台不支持时抛出 os-error
 
+(import (liii check) (liii time))
+
+(check-set-mode! 'report-failed)
+
 (let ((nanoseconds (process-time-ns)))
   (check (integer? nanoseconds) => #t)
   (check (exact? nanoseconds) => #t)
-  (check (>= nanoseconds 0) => #t))
+  (check (>= nanoseconds 0) => #t)) ;let
 
 (let ((start (process-time-ns)))
   (do ((i 0 (+ i 1))
        (n 0 (+ n i)))
       ((= i 10000)
        (check (>= n 0) => #t)
-       (check (>= (- (process-time-ns) start) 0) => #t))))
+       (check (>= (- (process-time-ns) start) 0) => #t)))) ;do
 
 (check-report)

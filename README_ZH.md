@@ -22,7 +22,7 @@
 | ------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------ |
 | [(liii base)](goldfish/liii/base.scm)             | 基础库                          | `and-let*`, `receive`, `eval-string`                               |
 | [(liii error)](goldfish/liii/error.scm)           | 提供类似Python的错误函数        | `os-error`函数抛出`'os-error`，类似Python的OSError                 |
-| [(liii check)](goldfish/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
+| [(liii check)](library/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
 | [(liii match)](goldfish/liii/match.scm)           | 模式匹配                        | `match`, `match-lambda`                                           |
 | [(liii list)](goldfish/liii/list.scm)             | 列表函数库                      | `first`, `filter`, `fold`                                          |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | 位运算函数库                    | `bitwise-and`, `bitwise-or`                                        |
@@ -47,7 +47,7 @@
 | [(liii hashlib)](library/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 编码转换           | `utf8->utf16le`, `utf16be->utf8`                                    |
 | [(liii sort)](goldfish/liii/sort.scm)             | 排序函数库                      | `list-sort`, `list-stable-sort`, `vector-sort`                      |
-| [(liii time)](goldfish/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
+| [(liii time)](library/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
 | [(liii argparse)](library/liii/argparse.scm)     | 命令行参数解析                  | `make-argument-parser`                                              |
 | [(liii config-parser)](library/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
 | [(liii go)](goldfish/liii/go.scm)                 | Go 风格并发库                   | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |

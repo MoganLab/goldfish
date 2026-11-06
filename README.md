@@ -22,7 +22,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | ------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------- |
 | [(liii base)](goldfish/liii/base.scm)             | Basic routines                       | `and-let*`, `receive`, `eval-string`                              |
 | [(liii error)](goldfish/liii/error.scm)           | Python like Errors                   | `os-error` to raise `'os-error` just like OSError in Python      |
-| [(liii check)](goldfish/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
+| [(liii check)](library/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
 | [(liii match)](goldfish/liii/match.scm)           | Pattern matching                     | `match`, `match-lambda`                                           |
 | [(liii list)](goldfish/liii/list.scm)             | List Library                         | `first`, `filter`, `fold`                                         |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | Bitwise Library                      | `bitwise-and`, `bitwise-or`                                      |
@@ -47,7 +47,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii hashlib)](library/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 encoding conversion     | `utf8->utf16le`, `utf16be->utf8`                                  |
 | [(liii sort)](goldfish/liii/sort.scm)             | Sorting Library                      | `list-sort`, `list-stable-sort`, `vector-sort`                    |
-| [(liii time)](goldfish/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
+| [(liii time)](library/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
 | [(liii argparse)](library/liii/argparse.scm)     | Command line argument parsing        | `make-argument-parser`                                            |
 | [(liii config-parser)](library/liii/config-parser.scm) | INI configuration parser      | `config-read-string`, `config-get`, `config-write`               |
 | [(liii go)](goldfish/liii/go.scm)                 | Go-style concurrency library         | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |

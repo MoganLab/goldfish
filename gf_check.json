@@ -124,7 +124,15 @@
         "reason": "官方标准规范实现优先保证完整性与对照性"
       },
       {
+        "path": "library/srfi/",
+        "reason": "官方标准规范实现优先保证完整性与对照性"
+      },
+      {
         "path": "tests/srfi/",
+        "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
+      },
+      {
+        "path": "library/tests/srfi/",
         "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
       },
       {
@@ -199,6 +207,10 @@
     "max-tree-depth": [
       {
         "path": "goldfish/srfi/",
+        "reason": "官方标准规范实现优先保证完整性与对照性"
+      },
+      {
+        "path": "library/srfi/",
         "reason": "官方标准规范实现优先保证完整性与对照性"
       },
       {
