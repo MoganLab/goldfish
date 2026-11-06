@@ -1,10 +1,3 @@
-(import (liii check) (liii uri) (liii uri compare) (liii uri convert)
-  (liii uri transform))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-normalize
 ;; 按 RFC 3986 6.2.3 节做基于协议的语法归一化：
 ;; - 网络协议（http/https 等有默认端口）的空 path 归一化为 "/"
@@ -14,11 +7,20 @@
 ;; ----
 ;; (uri-normalize uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要归一化的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回归一化后的新 URI，原 URI 不变。
 
+(import (liii check) (liii uri) (liii uri compare) (liii uri convert)
+  (liii uri transform))
+
+(check-set-mode! 'report-failed)
 
 ;; 空 path 归一化为 "/"
 

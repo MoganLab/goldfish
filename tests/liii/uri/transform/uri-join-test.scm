@@ -1,9 +1,3 @@
-(import (liii check) (liii uri))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-join
 ;; 合并两个 URI（RFC 3986）
 ;;
@@ -11,11 +5,21 @@
 ;; ----
 ;; (uri-join base-uri ref-uri)
 ;;
+;; 参数
+;; ----
+;; base-uri : uri?
+;;   作为合并基准的 URI。
+;; ref-uri : uri?
+;;   要合并到基准 URI 的引用。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回新的 URI 记录。
 
+(import (liii check) (liii uri))
+
+(check-set-mode! 'report-failed)
 
 ;; 合并相对路径引用
 
