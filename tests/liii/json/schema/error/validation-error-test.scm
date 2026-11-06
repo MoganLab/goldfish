@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema error) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; validation-error
 ;; 创建实例校验失败错误。
 ;;
@@ -38,13 +34,14 @@
 ;; 错误类别固定为 'validation。
 ;; 关键字存在时，Schema 路径会自动追加该关键字。
 ;;
-;; 示例
-;; ----
-;; (json-schema-error-kind (validation-error "msg" "type" "integer" 1 #t '() '() '() #f)) => 'validation
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema error) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (define error
   (validation-error "msg" "type" "integer" 1 #t '("x") '("properties") '() #f)

@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; budget-steps
 ;; 读取资源预算当前已评估的 Schema 节点数。
 ;;
@@ -23,13 +19,14 @@
 ;; ----
 ;; 步数由 count-budget-step! 累加，每次校验运行前复位。
 ;;
-;; 示例
-;; ----
-;; (budget-steps (make-resource-budget 10 100 1000)) => 0
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 10 100 1000))
 

@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii json schema)
-  (liii json schema error)
-  (liii json schema data)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-error-json-path
 ;; 读取 JSONPath 风格的错误路径。
 ;;
@@ -27,13 +19,18 @@
 ;; 形如 $.rows[0].name 的路径字符串。
 ;; 标识符形式的键用点号连接，其他键用 ['...'] 形式并转义引号与反斜杠。
 ;;
-;; 示例
-;; ----
-;; (json-schema-error-json-path (car (json-schema-errors 1 '(("type" . "integer"))))) => "$"
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check)
+  (liii json schema)
+  (liii json schema error)
+  (liii json schema data)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define err (car (json-schema-errors "x" '(("type" . "integer")))))
 (check (json-schema-error-json-path err) => "$")

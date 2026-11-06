@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; collect-for-each
 ;; 遍历序列并收集每个元素经过处理后得到的列表。
 ;;
@@ -26,13 +22,14 @@
 ;; ----
 ;; 处理过程返回的列表会被拼接进结果，因此一个元素可以产出多个结果。
 ;;
-;; 示例
-;; ----
-;; (collect-for-each (lambda (x) (list x (* x 2))) '(1 2)) => '(1 2 2 4)
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check
   (collect-for-each (lambda (x) (list x (* x 2))) '(1 2))

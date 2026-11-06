@@ -1,3 +1,35 @@
+;; json-schema 未求值成员回归测试
+;; 校验 unevaluatedProperties 与 unevaluatedItems 的注解计算。
+;;
+;; 语法
+;; ----
+;; (json-schema-validate instance schema . options)
+;;
+;; 参数
+;; ----
+;; instance : any?
+;; 待校验的实例。
+;;
+;; schema : any?
+;; 校验使用的根 Schema。
+;;
+;; options : any?
+;; 可选的校验选项 alist。
+;;
+;; 返回值
+;; ----
+;; list
+;; 错误列表；校验通过时为空列表。
+;;
+;; 注意
+;; ----
+;; 回归用例直接驱动求值注解计算，
+;; 覆盖属性与元素两类未求值成员。
+;;
+;; 错误处理
+;; ----
+;; 无。
+
 (import (liii json schema)
   (liii json schema core)
   (liii json schema evaluated)

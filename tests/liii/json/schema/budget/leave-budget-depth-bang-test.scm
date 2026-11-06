@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; leave-budget-depth!
 ;; 退出一层求值深度并返回新的深度。
 ;;
@@ -23,13 +19,14 @@
 ;; ----
 ;; 深度不会小于 0，多余的退出调用会被忽略。
 ;;
-;; 示例
-;; ----
-;; (leave-budget-depth! budget) => 0
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 10 100 1000))
 

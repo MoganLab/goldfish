@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii json schema)
-  (liii json schema error)
-  (liii json schema data)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-error-cause
 ;; 读取错误的底层原因。
 ;;
@@ -27,13 +19,18 @@
 ;; 底层原因；没有时为 #f。
 ;; 原因用于串联内部错误与对外报告的错误。
 ;;
-;; 示例
-;; ----
-;; (json-schema-error-cause (car (json-schema-errors 1 '(("type" . "integer"))))) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check)
+  (liii json schema)
+  (liii json schema error)
+  (liii json schema data)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define err (car (json-schema-errors "x" '(("type" . "integer")))))
 (check-false (json-schema-error-cause err))

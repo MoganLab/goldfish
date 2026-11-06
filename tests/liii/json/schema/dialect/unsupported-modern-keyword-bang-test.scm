@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema dialect))
-
-(check-set-mode! 'report-failed)
-
 ;; unsupported-modern-keyword!
 ;; 检查 Schema 是否使用了尚未支持的新版关键字。
 ;;
@@ -24,13 +20,14 @@
 ;; 目前库只实现 2020-12 语义，尚未支持的关键字会被静默忽略，
 ;; 该函数为后续版本预留了拒绝入口。
 ;;
-;; 示例
-;; ----
-;; (unsupported-modern-keyword! '(("type" . "integer"))) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema dialect))
+
+(check-set-mode! 'report-failed)
+
 
 (check-false (unsupported-modern-keyword! #t))
 (check-false (unsupported-modern-keyword! #f))

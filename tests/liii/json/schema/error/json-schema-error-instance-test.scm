@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii json schema)
-  (liii json schema error)
-  (liii json schema data)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-error-instance
 ;; 读取触发错误位置的实例值。
 ;;
@@ -27,13 +19,18 @@
 ;; 触发错误位置的实例值。
 ;; 实例值是 JSON 数据本身，不是 Schema。
 ;;
-;; 示例
-;; ----
-;; (json-schema-error-instance (car (json-schema-errors 1 '(("type" . "integer"))))) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check)
+  (liii json schema)
+  (liii json schema error)
+  (liii json schema data)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define err (car (json-schema-errors "x" '(("type" . "integer")))))
 (check (json-schema-error-instance err) => "x")

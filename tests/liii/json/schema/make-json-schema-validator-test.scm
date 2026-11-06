@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; make-json-schema-validator
 ;; 创建可复用的 JSON Schema 校验器。
 ;;
@@ -36,15 +32,15 @@
 ;; ----
 ;; 复用校验器不会重复执行元 Schema 检查，引用根、元资源注册表与引用缓存会被保留。
 ;;
-;; 示例
-;; ----
-;; (define v (make-json-schema-validator '(("type" . "integer"))))
-;; (json-schema-validator-valid? v 1) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-options-error 当选项非法时。
 ;; json-schema-schema-error 当 Schema 非法时。
+
+(import (liii check) (liii json schema) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define validator (make-json-schema-validator '(("type" . "integer"))))
 (check-true (json-schema-validator? validator))

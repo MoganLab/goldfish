@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json schema core) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-descend-errors
 ;; 以指定的根资源校验单个 Schema 节点，返回错误列表。
 ;;
@@ -39,14 +35,14 @@
 ;; 该函数用于在组合关键字内部继续下钻到子 Schema，
 ;; 并把当前位置的实例路径与 Schema 路径带入错误对象。
 ;;
-;; 示例
-;; ----
-;; (json-schema-descend-errors validator 1 '(("type" . "integer")) '() '() #t)
-;; => '()
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-schema-error 当 Schema 非法时。
+
+(import (liii check) (liii json schema) (liii json schema core) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define validator (make-json-schema-validator #t))
 

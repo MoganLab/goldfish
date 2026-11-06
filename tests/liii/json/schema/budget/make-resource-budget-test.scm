@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; make-resource-budget
 ;; 创建资源预算。
 ;;
@@ -29,13 +25,14 @@
 ;; ----
 ;; 计数器初始为 0，每次校验运行前会复位，上限保持不变。
 ;;
-;; 示例
-;; ----
-;; (budget-max-depth (make-resource-budget 10 100 1000)) => 10
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 10 100 1000))
 

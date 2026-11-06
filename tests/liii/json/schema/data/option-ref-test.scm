@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; option-ref
 ;; 读取选项表中与给定键匹配的值。
 ;;
@@ -29,13 +25,14 @@
 ;; ----
 ;; 选项值为 #f 时返回 #f 而不是 default。
 ;;
-;; 示例
-;; ----
-;; (option-ref '((max-errors . 2)) 'max-errors #f) => 2
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (define options '((formats . #f) (max-errors . 2)))
 

@@ -1,10 +1,36 @@
-;; 嵌套应用关键字的回归测试（独立成文件：json-schema-valid-p-test.scm
-;; 聚合后超过 gf check 的 400 行上限）。
+;; json-schema 嵌套应用关键字回归测试
+;; 校验嵌套应用关键字在重复进入同一遍历过程时返回正确结果。
 ;;
+;; 语法
+;; ----
+;; (json-schema-validate instance schema . options)
+;;
+;; 参数
+;; ----
+;; instance : any?
+;; 待校验的实例。
+;;
+;; schema : any?
+;; 校验使用的根 Schema。
+;;
+;; options : any?
+;; 可选的校验选项 alist。
+;;
+;; 返回值
+;; ----
+;; list
+;; 错误列表；校验通过时为空列表。
+;;
+;; 注意
+;; ----
 ;; Goldfish 18.11.46 复用尾位置命名 let 循环的栈帧时，不会恢复外层过程
 ;; 的参数，导致嵌套遍历返回错误的值、路径与 Schema。
 ;;
 ;; 上游报告：https://github.com/MoganLab/goldfish/issues/1337
+;;
+;; 错误处理
+;; ----
+;; 无。
 
 (import (liii json schema) (liii json) (liii check) (scheme base))
 

@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii json schema)
-  (liii json schema error)
-  (liii json schema data)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-error-kind
 ;; 读取错误类别。
 ;;
@@ -27,13 +19,18 @@
 ;; 常见取值是 validation（实例校验失败）与 schema（Schema 非法）。
 ;; 错误类别用于区分失败原因。
 ;;
-;; 示例
-;; ----
-;; (json-schema-error-kind (car (json-schema-errors 1 '(("type" . "integer"))))) => 'validation
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check)
+  (liii json schema)
+  (liii json schema error)
+  (liii json schema data)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define err (car (json-schema-errors "x" '(("type" . "integer")))))
 (check (json-schema-error-kind err) => 'validation)

@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; key->string
 ;; 把 JSON 对象的键转换为字符串。
 ;;
@@ -24,14 +20,14 @@
 ;; 字符串键原样返回，符号键取符号名；
 ;; 字符串键与同名符号键在查找时等价。
 ;;
-;; 示例
-;; ----
-;; (key->string "name") => "name"
-;; (key->string 'name) => "name"
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当键既不是字符串也不是符号时。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check (key->string "name") => "name")
 (check (key->string 'name) => "name")

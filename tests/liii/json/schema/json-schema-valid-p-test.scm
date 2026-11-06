@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-valid?
 ;; 判断实例是否满足 JSON Schema。
 ;;
@@ -30,16 +26,17 @@
 ;; 便捷入口默认先按 2020-12 元 Schema 检查 Schema 本身。
 ;; 需要复用校验器或关闭元 Schema 检查时请使用 make-json-schema-validator。
 ;;
-;; 示例
-;; ----
-;; (json-schema-valid? '(("name" . "Alice")) '(("type" . "object"))) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-options-error 当选项非法时。
 ;; json-schema-schema-error 当 Schema 非法时。
 ;; json-schema-unknown-dialect 当 $schema 不是 2020-12 时。
 ;; json-schema-unresolvable 当引用无法解析时。
+
+(import (liii check) (liii json schema) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define schema
   '(("type" . "object")

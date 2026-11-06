@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; validate-budget-options!
 ;; 校验资源预算相关的选项取值。
 ;;
@@ -23,15 +19,16 @@
 ;; ----
 ;; 三个预算选项都必须是 #f 或正整数，缺省时按 #f 处理。
 ;;
-;; 示例
-;; ----
-;; (validate-budget-options! '((max-depth . 10)))
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-options-error 当预算选项不是 #f 或正整数时。
 
 ;; 缺省或合法取值都通过
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 (validate-budget-options! '())
 (validate-budget-options! '((max-depth . 10)
                             (max-steps . 100)

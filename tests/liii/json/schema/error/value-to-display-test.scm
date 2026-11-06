@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema error) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; value->display
 ;; 把值转换为显示文本。
 ;;
@@ -23,13 +19,14 @@
 ;; 值的外部表示文本。
 ;; 用于错误消息中的值渲染。
 ;;
-;; 示例
-;; ----
-;; (value->display 1) => "1"
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema error) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check (value->display 1) => "1")
 (check (value->display "x") => "\"x\"")

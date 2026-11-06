@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; json-false?
 ;; 判断值是否为 JSON 布尔假值。
 ;;
@@ -23,15 +19,14 @@
 ;; ----
 ;; 空列表与 null 都不是 JSON 布尔假值。
 ;;
-;; 示例
-;; ----
-;; (json-false? #f) => #t
-;; (json-false? 'false) => #t
-;; (json-false? #t) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (json-false? #f))
 (check-true (json-false? 'false))
