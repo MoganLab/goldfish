@@ -1,0 +1,57 @@
+;; integer-length
+;; 计算整数二进制表示的最小位数。
+;;
+;; 语法
+;; ----
+;; (integer-length i)
+;;
+;; 参数
+;; ----
+;; i : integer?
+;; 整数，要计算最小位数的整数。
+;;
+;; 返回值
+;; ----
+;; integer?
+;; 返回整数 i 二进制表示的最小位数。
+;;
+;; 说明
+;; ----
+;; 1. 计算整数二进制表示所需的最小位数
+;; 2. 对于非负整数，返回值为1的最高位的位置加1
+;; 3. 对于负整数，返回值为0的最高位的位置加1
+;; 4. 对于0，返回0
+;; 5. 常用于确定存储整数所需的最小位数
+;;
+;; 注意
+;; ----
+;; - integer-length 是 SRFI 151 标准定义的函数，提供标准化的位运算接口
+;; - 计算整数二进制表示所需的最小位数
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; 当参数不是整数时抛出错误。
+
+(import (liii check) (liii bitwise))
+
+
+(check-set-mode! 'report-failed)
+
+(check (integer-length 0) => 0)
+(check (integer-length 1) => 1)
+(check (integer-length 3) => 2)
+(check (integer-length 4) => 3)
+(check (integer-length -5) => 3)
+(check (integer-length 65535) => 16)
+
+
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (integer-length "string"))
+(check-catch 'type-error (integer-length 'symbol))
+(check-catch 'type-error (integer-length 3.14))
+(check-catch 'type-error (integer-length #\a))
+(check-catch 'type-error (integer-length '(1 2)))
+
+
+(check-report)
