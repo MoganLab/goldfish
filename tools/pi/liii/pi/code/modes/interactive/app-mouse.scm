@@ -5,21 +5,46 @@
 ;;
 
 ;; 鼠标事件接入：
-;; 1. 选区状态机：对 press, drag, release 进行分流，管理全屏视口选区
+;; 1. 选区状态机：对 press, drag, release 进行分流，管理全屏视口选区，
+;;    并在 release 时自动复制选区（copy-on-select，对齐上游 copyOnSelect）
 ;; 2. 卡片点击派发：把屏幕坐标的鼠标事件换算为 doc 逻辑行后派发给 doc 组件树，
 ;;    由各卡片自带的 mouse-region 回调完成点击切换展开（对齐上游 pi
 ;;    tool-execution.ts 的 createResultRegion：click + left 且已完成时翻转）。
 
 (define-library (liii pi code modes interactive app-mouse)
-  (export pi-app-dispatch-mouse! pi-app-handle-selection-mouse!)
+  (export pi-app-dispatch-mouse!
+    pi-app-handle-selection-mouse!
+    pi-app-copy-selection!
+  ) ;export
   (import (scheme base)
     (liii tui)
+    (liii tui clipboard)
     (liii tui mouse)
     (liii tui scroll-view)
     (liii pi code modes interactive state)
     (liii pi code modes interactive selection)
+    (liii pi code modes interactive render)
   ) ;import
   (begin
+
+    ;; 把当前选区的屏幕文本复制到剪贴板（OSC 52 + 原生剪贴板）并闪烁 Copied!。
+    ;; 返回 #t 表示发生了复制，需要重绘。
+    (define (pi-app-copy-selection! app)
+      (and (pi-app-selection-active? app)
+        (let-values (((frame _) (pi-app-frame-lines app)))
+          (let ((text (selection-extract-text frame (pi-app-selection app))))
+            (and (string? text)
+              (> (string-length text) 0)
+              (begin
+                (clipboard-copy! (pi-app-term app) text)
+                (pi-app-flash! app "Copied!")
+                #t
+              ) ;begin
+            ) ;and
+          ) ;let
+        ) ;let-values
+      ) ;and
+    ) ;define
 
     ;; 处理选区相关的鼠标事件流：
     ;; - press: 记录起始锚点
@@ -68,7 +93,17 @@
             ) ;
             ((release)
              (let ((sel (pi-app-selection app)))
-               (if (and sel (selection-active? sel)) #t #f)
+               (if (and sel (selection-active? sel))
+                 ;; copy-on-select：松开鼠标即自动复制选区（对齐上游
+                 ;; tui-alt-screen.ts 的 copyOnSelect，默认开启）。
+                 ;; macOS 终端拦截 Command 键，Command+C 不会作为任何字节
+                 ;; 序列上报给程序，因此释放即复制才是主复制路径。
+                 (begin
+                   (pi-app-copy-selection! app)
+                   #t
+                 ) ;begin
+                 #f
+               ) ;if
              ) ;let
             ) ;
             ((click)

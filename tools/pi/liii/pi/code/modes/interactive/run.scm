@@ -21,6 +21,7 @@
     (liii pi code modes interactive selection)
     (liii pi code modes interactive app)
     (liii pi code modes interactive render)
+    (liii pi code modes interactive app-mouse)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive app-thinking)
     (liii pi code modes interactive common)
@@ -108,23 +109,6 @@
         ) ;if
       ) ;let
     ) ;define*
-
-    (define (pi-app-copy-selection! app)
-      (and (pi-app-selection-active? app)
-        (let-values (((frame _) (pi-app-frame-lines app)))
-          (let ((text (selection-extract-text frame (pi-app-selection app))))
-            (and (string? text)
-              (> (string-length text) 0)
-              (begin
-                (clipboard-copy! (pi-app-term app) text)
-                (pi-app-flash! app "Copied!")
-                #t
-              ) ;begin
-            ) ;and
-          ) ;let
-        ) ;let-values
-      ) ;and
-    ) ;define
 
     ;; force-exit：宽限期后仍未结算时的强制退出钩子。
     ;; 默认 emergency-exit（s7 的 _exit）：跳过 go 线程池 join 与 C++ 静态析构，
@@ -333,8 +317,10 @@
                   ) ;
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
                   ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
-                  ;; 复制选区：Ctrl+Shift+C 快捷键响应
-                  ((or (eq? k 'shift-ctrl-c) (eq? k 'ctrl-shift-c) (eq? k 'shift-ctrl-C))
+                  ;; 复制选区：Ctrl+Shift+C；alt-c 来自 Option+C（终端把 Option 配置为 Meta/Esc+ 时）。
+                  ;; 注意：macOS 的 Command 键由终端拦截，Command+C 不会到达这里，
+                  ;; 该场景由上方鼠标释放时的 copy-on-select 覆盖。
+                  ((memq k '(shift-ctrl-c ctrl-shift-c shift-ctrl-C alt-c alt-C))
                    (when (pi-app-copy-selection! app)
                      (pi-app-render! app)
                    ) ;when
