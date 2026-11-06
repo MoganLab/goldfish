@@ -40,9 +40,11 @@
 (check-true (uri-reference? ""))
 (check-true (uri-reference? "#fragment"))
 (check-true (uri-reference? "?query=1"))
+(check-true (uri-reference? "//foo.bar/?baz=qux#quux"))
 
 ;; 非法字符。
 
 (check-false (uri-reference? "http://example.com/a b"))
+(check-false (uri-reference? "#frag ment"))
 
 (check-report)

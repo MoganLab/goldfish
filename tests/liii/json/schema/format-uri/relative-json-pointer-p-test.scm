@@ -37,6 +37,8 @@
 (check-true (relative-json-pointer? "1/foo"))
 (check-true (relative-json-pointer? "2#/"))
 (check-true (relative-json-pointer? "0/a~1b"))
+(check-true (relative-json-pointer? "0/foo/bar"))
+(check-true (relative-json-pointer? "120/foo/bar"))
 
 ;; 必须以数字开头。
 
@@ -50,5 +52,7 @@
 ;; 不允许负数下标。
 
 (check-false (relative-json-pointer? "-1"))
+(check-false (relative-json-pointer? "/foo/bar"))
+(check-false (relative-json-pointer? "0##"))
 
 (check-report)

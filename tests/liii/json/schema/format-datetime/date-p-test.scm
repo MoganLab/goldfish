@@ -35,11 +35,15 @@
 (check-true (date? "2020-02-29"))
 (check-true (date? "2000-02-29"))
 (check-true (date? "1999-12-31"))
+(check-true (date? "0400-02-29"))
+(check-true (date? "0001-01-01"))
 
 ;; 闰年规则。
 
 (check-false (date? "2021-02-29"))
 (check-false (date? "1900-02-29"))
+(check-false (date? "0100-02-29"))
+(check-false (date? "2100-02-29"))
 (check-false (date? "2020-02-30"))
 
 ;; 月份与日期越界。

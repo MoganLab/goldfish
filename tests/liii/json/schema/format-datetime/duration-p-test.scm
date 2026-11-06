@@ -37,6 +37,10 @@
 (check-true (duration? "P1M"))
 (check-true (duration? "PT1M"))
 (check-true (duration? "PT0S"))
+(check-true (duration? "P4DT12H30M5S"))
+(check-true (duration? "P4Y"))
+(check-true (duration? "PT36H"))
+(check-true (duration? "P2W"))
 
 ;; 缺少 P 前缀。
 
@@ -51,5 +55,13 @@
 ;; T 之后缺少时间部分。
 
 (check-false (duration? "P1DT"))
+(check-false (duration? "PT1D"))
+(check-false (duration? "P2D1Y"))
+(check-false (duration? "P1D2H"))
+(check-false (duration? "P1Y2W"))
+(check-false (duration? "P1Y2D"))
+(check-false (duration? "PT1H2S"))
+(check-false (duration? "PT0.5S"))
+(check-false (duration? " P1D"))
 
 (check-report)

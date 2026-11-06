@@ -35,6 +35,14 @@
 (check-true (uri? "urn:example:resource"))
 (check-true (uri? "mailto:user@example.com"))
 (check-true (uri? "a+b-c.d:e"))
+(check-true (uri? "http://foo.bar/?baz=qux#quux"))
+(check-true (uri? "http://foo.com/blah_(wikipedia)_blah#cite-1"))
+(check-true (uri? "http://foo.bar/?q=Test%20URL-encoded%20stuff"))
+(check-true (uri? "http://223.255.255.254"))
+(check-true (uri? "ftp://ftp.is.co.za/rfc/rfc1808.txt"))
+(check-true (uri? "ldap://[2001:db8::7]/c=GB?objectClass?one"))
+(check-true (uri? "mailto:John.Doe@example.com"))
+(check-true (uri? "urn:oasis:names:specification:docbook:dtd:xml:4.1.2"))
 
 ;; 相对引用不带 scheme。
 
@@ -46,5 +54,17 @@
 
 (check-false (uri? "://x"))
 (check-false (uri? "1http://example.com"))
+(check-false (uri? "//foo.bar/?baz=qux#quux"))
+(check-false (uri? "/abc"))
+(check-false (uri? "abc"))
+(check-false (uri? "http:// shouldfail.com"))
+(check-false (uri? ":// should fail"))
+(check-false (uri? "bar,baz:foo"))
+(check-false (uri? "https://[@example.org/test.txt"))
+(check-false (uri? "https://example.org/foo bar.txt"))
+(check-false (uri? "http://example.com/%6G"))
+(check-false (uri? "http://example.com/%"))
+(check-false (uri? "ht_tp://example.com"))
+(check-false (uri? "http://example.com:abc/path"))
 
 (check-report)

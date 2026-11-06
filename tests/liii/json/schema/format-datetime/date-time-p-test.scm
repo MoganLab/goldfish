@@ -34,6 +34,9 @@
 (check-true (date-time? "2020-01-01t12:00:00Z"))
 (check-true (date-time? "2020-12-31T23:59:59+01:00"))
 (check-true (date-time? "2020-02-29T00:00:00.123Z"))
+(check-true (date-time? "1963-06-19T08:30:06.283185Z"))
+(check-true (date-time? "1937-01-01T12:00:27.87+00:20"))
+(check-true (date-time? "1998-12-31T23:59:60Z"))
 
 ;; 分隔符必须是 T 或 t。
 
@@ -47,5 +50,8 @@
 
 (check-false (date-time? "2020-13-01T12:00:00Z"))
 (check-false (date-time? "2020-01-01T25:00:00Z"))
+(check-false (date-time? "1990-02-31T15:59:59.123-08:00"))
+(check-false (date-time? "1963-6-19T08:30:06.283185Z"))
+(check-false (date-time? "1990-12-31T15:59:59-24:00"))
 
 (check-report)

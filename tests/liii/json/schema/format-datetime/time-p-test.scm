@@ -38,6 +38,18 @@
 (check-true (time? "12:00:00+01:00"))
 (check-true (time? "12:00:00-05:30"))
 (check-true (time? "12:00:00.123Z"))
+(check-true (time? "23:20:50.52Z"))
+
+;; 闰秒只在 UTC 23:59 时合法。
+
+(check-true (time? "23:59:60Z"))
+(check-true (time? "23:59:60+00:00"))
+(check-true (time? "01:29:60+01:30"))
+(check-true (time? "15:59:60-08:00"))
+(check-false (time? "22:59:60Z"))
+(check-false (time? "23:58:60Z"))
+(check-false (time? "23:59:60+01:00"))
+(check-false (time? "23:59:60-01:00"))
 
 ;; 缺少时区不被接受。
 

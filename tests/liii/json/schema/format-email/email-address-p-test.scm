@@ -38,6 +38,8 @@
 (check-true (email-address? "user@localhost"))
 (check-true (email-address? "\"quoted local\"@example.com"))
 (check-true (email-address? "user@[127.0.0.1]"))
+(check-true (email-address? "joe.bloggs@[127.0.0.1]"))
+(check-true (email-address? "joe.bloggs@[IPv6:::1]"))
 
 ;; 缺少 @ 或存在多个 @。
 
@@ -57,6 +59,10 @@
 
 (check-false (email-address? "user@example..com"))
 (check-false (email-address? "user@-example.com"))
+(check-false (email-address? "joe.bloggs@invalid=domain.com"))
+(check-false (email-address? "joe.bloggs@[127.0.0.300]"))
+(check-false (email-address? "joe.bloggs@"))
+(check-false (email-address? "@example.com"))
 
 ;; 非 ASCII 字符不被接受。
 

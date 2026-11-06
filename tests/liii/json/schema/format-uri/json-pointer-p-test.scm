@@ -37,6 +37,8 @@
 (check-true (json-pointer? "/foo/bar/baz"))
 (check-true (json-pointer? "/a~1b"))
 (check-true (json-pointer? "/a~0b"))
+(check-true (json-pointer? "/foo/bar~0/baz~1/%a"))
+(check-true (json-pointer? "/foo//bar"))
 
 ;; 必须以 / 开头。
 
@@ -47,5 +49,6 @@
 
 (check-false (json-pointer? "/a~2b"))
 (check-false (json-pointer? "/foo~"))
+(check-false (json-pointer? "/foo/bar~"))
 
 (check-report)
