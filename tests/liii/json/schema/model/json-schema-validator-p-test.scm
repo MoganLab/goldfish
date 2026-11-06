@@ -23,7 +23,7 @@
 ;; ----
 ;; 无。
 
-(import (liii check) (liii json schema model))
+(import (liii check) (liii json schema) (liii json schema model))
 
 (check-set-mode! 'report-failed)
 
@@ -37,5 +37,29 @@
 (check-false (json-schema-validator? '()))
 (check-false (json-schema-validator? #t))
 (check-false (json-schema-validator? "validator"))
+(check-false (json-schema-validator? 'not-a-validator))
+
+;; 公共入口 make-json-schema-validator 产生的记录也是校验器。
+
+(define person-schema
+  '(("type" . "object")
+    ("properties"
+     ("name" ("type" . "string"))
+     ("age" ("type" . "integer") ("minimum" . 0)))
+    ("required" . #("name" "age"))
+    ("additionalProperties" . #f))
+) ;define
+
+(check-true (json-schema-validator? (make-json-schema-validator #t)))
+(check-true
+  (json-schema-validator? (make-json-schema-validator '(("type" . "integer")) '((check-schema?
+                                                                                  . #f)))
+  ) ;json-schema-validator?
+) ;check-true
+(check-true
+  (json-schema-validator? (make-json-schema-validator person-schema '((check-schema?
+                                                                        . #t)))
+  ) ;json-schema-validator?
+) ;check-true
 
 (check-report)

@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json schema error) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-errors
 ;; 收集实例不满足 Schema 时的全部错误。
 ;;
@@ -30,14 +26,15 @@
 ;; 错误对象是 <json-schema-error> 记录，访问器见 json-schema-error-kind。
 ;; max-errors 选项可以限制收集的错误数量。
 ;;
-;; 示例
-;; ----
-;; (length (json-schema-errors '(("name" . 1)) schema)) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-options-error 当选项非法时。
 ;; json-schema-schema-error 当 Schema 非法时。
+
+(import (liii check) (liii json schema) (liii json schema error) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define schema
   '(("type" . "object")

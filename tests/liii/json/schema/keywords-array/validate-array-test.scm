@@ -175,20 +175,30 @@
 
 ;; contains 的 minContains 与 maxContains 约束匹配元素个数。
 
-(check (count-errors "contains" 1 #()
-              '(("contains" . (("type" . "integer"))) ("minContains" . 0)
-                ("maxContains" . 0)))
+(check
+  (count-errors "contains"
+    1
+    #()
+    '(("contains" ("type" . "integer")) ("minContains" . 0) ("maxContains" . 0))
+  ) ;count-errors
   =>
   0
 ) ;check
-(check (count-errors "contains" 1 #(1)
-              '(("contains" . (("type" . "integer"))) ("minContains" . 0)
-                ("maxContains" . 0)))
+(check
+  (count-errors "contains"
+    1
+    #(1)
+    '(("contains" ("type" . "integer")) ("minContains" . 0) ("maxContains" . 0))
+  ) ;count-errors
   =>
   1
 ) ;check
-(check (count-errors "contains" 1 #(1 2)
-              '(("contains" . (("type" . "integer"))) ("minContains" . 0)))
+(check
+  (count-errors "contains"
+    1
+    #(1 2)
+    '(("contains" ("type" . "integer")) ("minContains" . 0))
+  ) ;count-errors
   =>
   0
 ) ;check

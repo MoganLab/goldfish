@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-validator-validate
 ;; 用校验器校验实例，校验失败时抛出异常。
 ;;
@@ -26,14 +22,15 @@
 ;; ----
 ;; 与 json-schema-validator-valid? 相同，但校验失败时抛出异常而不是返回 #f。
 ;;
-;; 示例
-;; ----
-;; (json-schema-validator-validate validator 1) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-validation-error 当实例不满足 Schema 时。
 ;; type-error 当 validator 不是校验器时。
+
+(import (liii check) (liii json schema) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define validator
   (make-json-schema-validator

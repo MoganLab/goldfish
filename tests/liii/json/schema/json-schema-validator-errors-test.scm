@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-validator-errors
 ;; 用校验器收集实例不满足 Schema 时的全部错误。
 ;;
@@ -27,13 +23,14 @@
 ;; 与 json-schema-errors 相同，但复用校验器已初始化的引用根与缓存。
 ;; 错误上限由 make-json-schema-validator 的 max-errors 选项决定。
 ;;
-;; 示例
-;; ----
-;; (length (json-schema-validator-errors validator '(("name" . 1)))) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 validator 不是校验器时。
+
+(import (liii check) (liii json schema) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define validator
   (make-json-schema-validator

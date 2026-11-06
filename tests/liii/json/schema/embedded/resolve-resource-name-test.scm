@@ -76,7 +76,8 @@
 
 ;; 目录型合并结果可以作为后续合并的 base，不替换目录段。
 
-(check (resolve-resource-name "file.json" '(("$id" . "http://h/draft/baseUriChange/")))
+(check (resolve-resource-name "file.json" '(("$id"
+                                             . "http://h/draft/baseUriChange/")))
   =>
   "http://h/draft/baseUriChange/file.json"
 ) ;check

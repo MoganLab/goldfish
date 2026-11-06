@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-validate
 ;; 校验实例并在通过时返回实例本身。
 ;;
@@ -29,16 +25,16 @@
 ;; ----
 ;; 与 json-schema-valid? 相同，但校验失败时抛出异常而不是返回 #f。
 ;;
-;; 示例
-;; ----
-;; (json-schema-validate '(("name" . "Alice")) '(("type" . "object")))
-;; => '(("name" . "Alice"))
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-validation-error 当实例不满足 Schema 时。
 ;; json-schema-options-error 当选项非法时。
 ;; json-schema-schema-error 当 Schema 非法时。
+
+(import (liii check) (liii json schema) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define schema
   '(("type" . "object")

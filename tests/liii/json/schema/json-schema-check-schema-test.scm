@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-check-schema
 ;; 检查 Schema 本身是否符合 JSON Schema 2020-12 元 Schema。
 ;;
@@ -27,10 +23,6 @@
 ;; 元 Schema 与其词汇表均内嵌在库中，检查过程不做任何 I/O。
 ;; 该函数不会校验实例，只校验 Schema。
 ;;
-;; 示例
-;; ----
-;; (json-schema-check-schema '(("type" . "integer"))) => '(("type" . "integer"))
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-schema-error 当 Schema 不符合元 Schema 时。
@@ -38,6 +30,11 @@
 ;; json-schema-options-error 当选项非法时。
 
 ;; 布尔 Schema 总是合法
+
+(import (liii check) (liii json schema) (liii json))
+
+(check-set-mode! 'report-failed)
+
 (check (json-schema-check-schema #t) => #t)
 (check (json-schema-check-schema #f) => #f)
 

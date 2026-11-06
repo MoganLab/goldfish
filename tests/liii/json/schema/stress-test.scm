@@ -1,3 +1,34 @@
+;; json-schema 校验确定性回归测试
+;; 校验同一个校验器对同一个实例始终给出相同的错误列表。
+;;
+;; 语法
+;; ----
+;; (json-schema-validate instance schema . options)
+;;
+;; 参数
+;; ----
+;; instance : any?
+;; 待校验的实例。
+;;
+;; schema : any?
+;; 校验使用的根 Schema。
+;;
+;; options : any?
+;; 可选的校验选项 alist。
+;;
+;; 返回值
+;; ----
+;; list
+;; 错误列表；校验通过时为空列表。
+;;
+;; 注意
+;; ----
+;; 回归用例关注错误顺序与内容在重复校验之间保持稳定。
+;;
+;; 错误处理
+;; ----
+;; 无。
+
 (import (liii json schema)
   (liii json schema budget)
   (liii check)
