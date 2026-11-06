@@ -79,4 +79,8 @@
   other-root
 ) ;check
 
+;; 嵌套调用结束后恢复原设置。
+
+(check-false (meta-validation-root))
+
 (check-report)

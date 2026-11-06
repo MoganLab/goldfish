@@ -79761,7 +79761,12 @@ in the file, or by the function."
   set_maybe_safe(global_value(sc->for_each_symbol));
   set_scope_safe(global_value(sc->map_symbol));
   set_maybe_safe(global_value(sc->map_symbol));
-  set_scope_safe(global_value(sc->dynamic_wind_symbol));
+  /* dynamic-wind is not scope-safe: an enclosing let could otherwise be
+   * optimized into reusing a semipermanent let (OP_LET_*_OLD). If dynamic-wind
+   * is called nestedly / re-entrantly, the inner invocation overwrites the
+   * semipermanent let's slots in-place, causing the outer after-thunk to
+   * observe the inner values rather than its own captured values (#1514).
+   */
   set_scope_safe(global_value(sc->catch_symbol));
   set_scope_safe(global_value(sc->throw_symbol));
   set_scope_safe(global_value(sc->error_symbol));

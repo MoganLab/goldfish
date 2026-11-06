@@ -76,6 +76,19 @@
   '(("$dynamicAnchor" . "node") ("const" . 2))
 ) ;check
 
+(check
+  (call-with-dynamic-scope local-root
+    (lambda ()
+      (call-with-dynamic-scope scoped-root
+        (lambda () (resolve-dynamic-reference validator local-root "#node"))
+      ) ;call-with-dynamic-scope
+      (resolve-dynamic-reference validator local-root "#node")
+    ) ;lambda
+  ) ;call-with-dynamic-scope
+  =>
+  '(("$dynamicAnchor" . "node") ("const" . 1))
+) ;check
+
 (check (resolve-dynamic-reference validator local-root "#node")
   =>
   '(("$dynamicAnchor" . "node") ("const" . 1))
