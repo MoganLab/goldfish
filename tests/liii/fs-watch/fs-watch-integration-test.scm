@@ -1,3 +1,37 @@
+;; fs-watch-integration
+;; (liii fs-watch) 集成测试：真实 watcher + go worker 全链路验证。
+;;
+;; 语法
+;; ----
+;; (bin/gf test tests/liii/fs-watch/fs-watch-integration-test.scm)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 说明
+;; ----
+;; 各公开函数的文档与单元用例见同目录按函数拆分的测试文件：
+;;   make-fs-event-test.scm / fs-event-p-test.scm / fs-event-type-test.scm /
+;;   fs-event-path-test.scm / fs-event-dest-path-test.scm /
+;;   make-fs-event-handler-test.scm / fs-event-handler-p-test.scm /
+;;   fs-handler-on-modified-test.scm / fs-handler-on-created-test.scm /
+;;   fs-handler-on-deleted-test.scm / fs-handler-on-moved-test.scm /
+;;   make-fs-observer-test.scm / fs-observer-p-test.scm /
+;;   fs-observer-schedule-bang-test.scm / fs-observer-start-bang-test.scm /
+;;   fs-observer-stop-bang-test.scm / fs-watch-dispatch-bang-test.scm /
+;;   fs-watch-handler-to-src-list-test.scm / fs-watch-make-dispatcher-test.scm /
+;;   fs-watch-pump-test.scm / fs-watch-start%-test.scm /
+;;   %fs-event-from-alist-test.scm
+;; 平台差异：Windows/Linux 提供具体文件事件（created/modified/deleted/moved）；
+;; macOS kqueue 后端只报目录级 'modified（path 为监听目录本身）。
+;; TODO(macOS): kqueue 事件路径在 macOS CI 上尚未调通（exit 255 待排查），
+;; 依赖真实事件的用例暂在 macOS 跳过。
+
 (import (scheme base)
   (scheme file)
   (scheme time)
@@ -14,15 +48,6 @@
 
 (check-set-mode! 'report-failed)
 
-;; (liii fs-watch) 集成测试：真实 watcher + go worker 全链路验证。
-;; 各公开函数的文档与单元用例见同目录按函数拆分的测试文件：
-;;   make-fs-event-handler-test.scm / fs-event-p-test.scm /
-;;   fs-watch-dispatch-bang-test.scm / fs-watch-handler-to-src-list-test.scm /
-;;   fs-watch-start-percent-test.scm / observer-test.scm
-;; 平台差异：Windows/Linux 提供具体文件事件（created/modified/deleted/moved）；
-;; macOS kqueue 后端只报目录级 'modified（path 为监听目录本身）。
-;; TODO(macOS): kqueue 事件路径在 macOS CI 上尚未调通（exit 255 待排查），
-;; 依赖真实事件的用例暂在 macOS 跳过。
 
 (define %mac? (os-macos?))
 

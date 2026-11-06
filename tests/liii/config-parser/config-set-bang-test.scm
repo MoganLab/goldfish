@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-set!
 ;; 在指定 section 中设置 option 的值。
 ;;
@@ -31,6 +27,11 @@
 ;; ----
 ;; config-error
 ;; section 不存在时抛出。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((config (make-config-parser)))
   (config-read-string config "[database]\nhost=localhost\nport=5432\n")

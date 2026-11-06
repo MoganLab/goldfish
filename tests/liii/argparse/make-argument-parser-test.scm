@@ -1,46 +1,53 @@
-;; (liii argparse) 模块测试文件
+;; make-argument-parser
+;; 创建命令行参数解析器（支持长选项 --name、短选项 -n、默认值与多种动作）。
 ;;
-;; argparse 用于解析命令行参数，支持长选项（--name）、短选项（-n）和默认值。
+;; 语法
+;; ----
+;; (make-argument-parser)
+;; (make-argument-parser options)
 ;;
-;; 注意：argparse 库的函数需要搭配使用（先创建解析器、添加参数、解析参数、获取值），
-;; 因此整个库的所有函数测试都在本文件中，而不是每个函数单独一个测试文件。
-
-
-;; ==== 函数分类索引 ====
-
-
-;; 一、解析器创建
-;; 用于创建命令行参数解析器的函数
-;;   make-argument-parser  - 创建一个新的参数解析器实例
-
-
-;; 二、参数定义
-;; 用于向解析器添加参数选项
-;;   :add-argument         - 添加一个参数定义（也可用 :add）
-;;                         - 参数: '((name . "argname") (type . string/number) (short . "s") (default . value))
-
-
-;; 三、参数解析
-;; 用于解析命令行参数
-;;   :parse-args           - 解析参数列表（也可用 :parse）
-;;                         - 不传参数时默认使用 (cddr (argv))
-
-
-;; 四、参数获取
-;; 用于获取解析后的参数值
-;;   :get-argument         - 按名称获取参数值（也可用 :get）
-;;   直接调用语法         - (parser 'argname) 快捷获取参数值
-
-
-;; ==== 单元测试 ====
-
+;; 参数
+;; ----
+;; options : alist (可选，默认 '())
+;; 解析器级配置项：
+;;   (command . "fmt")              子命令名，解析时该参数被跳过
+;;   (skip-value-options "-m" ...)  跳过且消费其后取值的选项
+;;   (skip-prefix-options "-m=" ...)  按前缀跳过的选项
+;;   (unknown-options . error)      未知选项处理：error / ignore / positional
+;;
+;; 返回值
+;; ----
+;; procedure
+;; 解析器过程，接收命令符号与可选参数，返回对应结果。
+;; 支持的命令：
+;;   (parser :add-argument '((name . "n") (type . string) ...))  添加参数定义
+;;   (parser :parse-args '("--name" "v"))                        解析参数列表
+;;   (parser :parse-argv '("bin/gf" "fmt"))                      解析完整命令行
+;;   (parser :get-argument "name")                               按名称取值
+;;   (parser :positionals)                                       取位置参数
+;;   (parser 'name)                                              按名称取值的快捷写法
+;;
+;; 说明
+;; ----
+;; 1. 参数定义支持 (name . "...")、(type . string|number)、(short . "...")、
+;;    (default . value)、(action . store|store-true|store-false)。
+;; 2. store-true / store-false 为布尔开关，不接受行内取值。
+;; 3. 未注册参数默认抛出错误，可用 unknown-options 配置忽略或降级为位置参数。
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; name / short 非字符串，或 type / action 非符号时抛出。
+;;
+;; value-error
+;; type 不是 string/number、action 不是 store/store-true/store-false、
+;; 缺少 name、遇到未知选项时抛出。
 
 (import (liii check) (liii argparse) (liii base))
 
-
 (check-set-mode! 'report-failed)
 
-
+;; 基本用法：默认值与长选项解析
 (let ((parser (make-argument-parser)))
   (parser :add-argument
     '((name . "name") (type . string) (short . "n") (default . "anonymous"))
@@ -50,7 +57,7 @@
   (check (parser 'name) => "john")
 ) ;let
 
-
+;; 数值类型参数：长选项、短选项与取值转换
 (let ((parser (make-argument-parser)))
   (parser :add-argument
     '((name . "width") (type . number) (short . "width") (default . 80))
@@ -66,14 +73,14 @@
   (check (parser 'width) => 60)
 ) ;let
 
-
+;; 无 short 名称的参数
 (let ((parser (make-argument-parser)))
   (parser :add-argument '((name . "height") (type . number) (default . 60)))
   (parser :parse-args '("--height" "120"))
   (check (parser :get-argument "height") => 120)
 ) ;let
 
-
+;; 多个参数共存
 (let ((parser (make-argument-parser)))
   (parser :add-argument
     '((name . "width") (type . number) (short . "w") (default . 80))
@@ -86,13 +93,13 @@
   (check (parser :get-argument "title") => "My Document")
 ) ;let
 
-
+;; 参数定义校验
 (let ((parser (make-argument-parser)))
   (check-catch 'type-error (parser :add-argument '((name name))))
   (check-catch 'value-error (parser :add-argument '()))
 ) ;let
 
-
+;; store-true / store-false 布尔开关
 (let ((parser (make-argument-parser)))
   (parser :add-argument '((name . "verbose")
                           (short . "v")
@@ -105,7 +112,7 @@
   (check (parser 'cache) => #f)
 ) ;let
 
-
+;; 行内取值（--width=100、-t=Doc）与位置参数
 (let ((parser (make-argument-parser)))
   (parser :add-argument
     '((name . "width") (type . number) (short . "w") (default . 80))
@@ -119,7 +126,7 @@
   (check (parser :positionals) => '("input.scm" "output.scm"))
 ) ;let
 
-
+;; 子命令、跳过取值选项与未知选项忽略
 (let ((parser (make-argument-parser '((command . "fmt")
                                       (skip-value-options "-m"
                                         "--mode"
@@ -136,7 +143,7 @@
   (check (parser :get-positionals) => '("file.scm"))
 ) ;let
 
-
+;; 未知选项降级为位置参数
 (let ((parser (make-argument-parser '((command . "fmt")
                                       (skip-value-options "-m"
                                         "--mode"
@@ -153,23 +160,21 @@
   (check (parser :positionals) => '("--dryrun" "file.scm"))
 ) ;let
 
-
+;; 未知选项默认报错
 (let ((parser (make-argument-parser)))
   (check-catch 'value-error (parser :parse-args '("--bad")))
 ) ;let
 
-
+;; unknown-options 为 ignore 时未知选项被丢弃
 (let ((parser (make-argument-parser '((unknown-options . ignore)))))
   (parser :parse-args '("--bad" "file.scm"))
   (check (parser :positionals) => '("file.scm"))
 ) ;let
 
-
+;; unknown-options 为 positional 时未知选项进入位置参数
 (let ((parser (make-argument-parser '((unknown-options . positional)))))
   (parser :parse-args '("--bad" "file.scm"))
   (check (parser :positionals) => '("--bad" "file.scm"))
 ) ;let
-
-
 
 (check-report)

@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-sections
 ;; 返回配置解析器中所有 section 名列表（不含 DEFAULT）。
 ;;
@@ -18,6 +14,11 @@
 ;; ----
 ;; list of string
 ;; 所有 section 名称列表，不包含 DEFAULT section。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (define test-ini
   (&- #""

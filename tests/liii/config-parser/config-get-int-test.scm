@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-get-int
 ;; 从配置解析器中获取指定 option 的整数值。
 ;;
@@ -29,6 +25,11 @@
 ;; ----
 ;; 内部调用 `config-get` 获取字符串后使用 `string->number` 转换。
 ;; 支持 DEFAULT section 继承。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (define test-ini
   (&- #""

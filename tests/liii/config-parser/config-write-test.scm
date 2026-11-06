@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii config-parser)
-  (liii raw-string)
-  (liii string)
-  (scheme base)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; config-write
 ;; 将配置解析器的内容写出到端口。
 ;;
@@ -30,6 +21,16 @@
 ;; ----
 ;; 输出格式为标准 INI 格式，使用 `key = value` 形式。
 ;; DEFAULT section（如果存在）会首先输出。
+
+(import (liii check)
+  (liii config-parser)
+  (liii raw-string)
+  (liii string)
+  (scheme base)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (let* ((config (make-config-parser))
        (_ (config-read-string config "[database]\nhost=localhost\nport=5432\n"))
