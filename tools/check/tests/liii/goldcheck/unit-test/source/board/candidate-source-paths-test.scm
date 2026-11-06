@@ -23,13 +23,16 @@
   (liii check)
   (liii path)
   (liii string)
+  (liii tempfile)
   (liii goldcheck unit-test source board)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(define (path-strings paths)
-  (map (lambda (p) (path->string (path p))) paths)
+;; 夹具工程根：用 path-join 构造期望路径，避免依赖平台路径分隔符
+
+(define (fixture-path root board)
+  (path->string (path-join root board "scheme/base.scm"))
 ) ;define
 
 (define (contains? needle xs)
@@ -47,33 +50,25 @@
 ) ;define
 
 ;; 1. 候选路径覆盖各板块，且工程根与仓库根各给出三个板块
-(let ((paths (path-strings
-               (candidate-source-paths "/tmp/gf-board-fixture" '(scheme base))
-             ) ;path-strings
-      )
-     ) ;
-  (check (length paths) => 6)
-  (check-true (contains? "/tmp/gf-board-fixture/goldfish/scheme/base.scm" paths))
-  (check-true (contains? "/tmp/gf-board-fixture/r7rs/scheme/base.scm" paths))
-  (check-true (contains? "/tmp/gf-board-fixture/library/scheme/base.scm" paths))
-) ;let
-
 ;; 2. 候选顺序：工程根的三个板块先于仓库根的三个板块
-(let ((paths (path-strings
-               (candidate-source-paths "/tmp/gf-board-fixture" '(scheme base))
-             ) ;path-strings
-      )
-     ) ;
-  (check-true
-    (< (index-of "/tmp/gf-board-fixture/goldfish/scheme/base.scm" paths)
-      (index-of "/tmp/gf-board-fixture/r7rs/scheme/base.scm" paths)
-    )
-  ) ;check-true
-  (check-true
-    (< (index-of "/tmp/gf-board-fixture/r7rs/scheme/base.scm" paths)
-      (index-of "/tmp/gf-board-fixture/library/scheme/base.scm" paths)
-    )
-  ) ;check-true
-) ;let
+(with-temp-dir
+  (lambda (root)
+    (let ((paths (candidate-source-paths root '(scheme base))))
+      (check (length paths) => 6)
+      (check-true (contains? (fixture-path root "goldfish") paths))
+      (check-true (contains? (fixture-path root "r7rs") paths))
+      (check-true (contains? (fixture-path root "library") paths))
+      (check-true (< (index-of (fixture-path root "goldfish") paths)
+                    (index-of (fixture-path root "r7rs") paths)
+                  ) ;<
+      ) ;check-true
+      (check-true (< (index-of (fixture-path root "r7rs") paths)
+                    (index-of (fixture-path root "library") paths)
+                  ) ;<
+      ) ;check-true
+    ) ;let
+  ) ;lambda
+  "gf-board-"
+) ;with-temp-dir
 
 (check-report)
