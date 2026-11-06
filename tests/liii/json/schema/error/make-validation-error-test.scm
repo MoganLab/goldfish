@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema error) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; make-validation-error
 ;; 创建错误对象。
 ;;
@@ -40,13 +36,14 @@
 ;; 字段顺序固定，路径与 Schema 路径按从根到当前位置排列。
 ;; 记录字段可通过 json-schema-error-kind 等访问器读取。
 ;;
-;; 示例
-;; ----
-;; (make-validation-error 'validation "msg" "type" "integer" 1 #t '() '() '() #f)
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema error) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (define error
   (make-validation-error 'validation

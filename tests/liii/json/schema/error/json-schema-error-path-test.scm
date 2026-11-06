@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii json schema)
-  (liii json schema error)
-  (liii json schema data)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-error-path
 ;; 读取实例路径。
 ;;
@@ -27,13 +19,18 @@
 ;; 实例路径的元素按从根到当前位置的顺序排列，数组下标是整数。
 ;; 路径用于定位实例中的具体位置。
 ;;
-;; 示例
-;; ----
-;; (json-schema-error-path (car (json-schema-errors 1 '(("type" . "integer"))))) => '()
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check)
+  (liii json schema)
+  (liii json schema error)
+  (liii json schema data)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define err (car (json-schema-errors "x" '(("type" . "integer")))))
 (check (json-schema-error-path err) => '())

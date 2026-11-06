@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii json schema)
-  (liii json schema error)
-  (liii json schema data)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-error-context
 ;; 读取组合关键字的子错误上下文。
 ;;
@@ -27,13 +19,18 @@
 ;; 组合关键字（如 anyOf、oneOf）失败时给出各分支的子错误列表；其他情况为空列表。
 ;; 上下文用于区分“分支本身失败”与“组合关键字失败”。
 ;;
-;; 示例
-;; ----
-;; (json-schema-error-context (car (json-schema-errors 1 '(("type" . "integer"))))) => '()
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check)
+  (liii json schema)
+  (liii json schema error)
+  (liii json schema data)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define err (car (json-schema-errors "x" '(("type" . "integer")))))
 (check (json-schema-error-context err) => '())
