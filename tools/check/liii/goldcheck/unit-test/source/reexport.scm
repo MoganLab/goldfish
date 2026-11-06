@@ -23,37 +23,37 @@
     (liii list)
     (liii gfproject config)
     (liii goldcheck path)
+    (liii goldcheck unit-test source board)
     (liii goldcheck unit-test source parse)
   ) ;import
-  (export find-base-for-source-path find-defining-library-test-dir
-    find-imported-export-for-stem check-reexported-tests
-    check-reexported-test-file set-exported-name-to-test-stem-fn!
-    set-find-library-source-fn!
+  (export find-defining-library-test-dir find-imported-export-for-stem
+    check-reexported-tests check-reexported-test-file
+    set-exported-name-to-test-stem-fn! set-find-library-source-fn!
+    set-find-test-dir-fn!
   ) ;export
   (begin
 
-    (define (find-base-for-source-path source-path)
-      (let* ((actual (resolve-repo-file source-path)) (norm (normalize-sep actual)))
-        (let loop
-          ((pos 0) (last-found #f))
-          (let ((idx (string-index-of norm "/goldfish/" pos)))
-            (if idx
-              (loop (+ idx 1) idx)
-              (if last-found
-                (substring norm 0 last-found)
-                (let ((repo (gfproject-root)))
-                  (if repo repo "")
-                ) ;let
-              ) ;if
-            ) ;if
+    (define (defining-library-test-dir-relative cand-path spec)
+      ;; 符号定义库对应的测试目录（相对仓库根）；无法定位时退回按库标识符拼接。
+      (let* ((fallback (string-append "tests/" (string-join (map symbol->string spec) "/")))
+             (dir (find-test-dir-for-source cand-path))
+            ) ;
+        (if (not dir)
+          fallback
+          (let ((rel (normalize-sep (relativize-path dir))))
+            (if (path-absolute? (path rel)) fallback rel)
           ) ;let
-        ) ;let
+        ) ;if
       ) ;let*
     ) ;define
 
-    (define (candidate-source-path base-dir spec)
-      (let ((rel-scm (lib-spec->relative-source-path spec)))
-        (if (string=? base-dir "") rel-scm (path->string (path-join base-dir rel-scm)))
+    (define (find-existing-source-path candidates)
+      (let loop
+        ((rem candidates))
+        (if (null? rem)
+          #f
+          (if (path-file? (path (car rem))) (car rem) (loop (cdr rem)))
+        ) ;if
       ) ;let
     ) ;define
 
@@ -80,9 +80,11 @@
               ((rem imports))
               (if (null? rem)
                 #f
-                (let* ((spec (car rem)) (cand-path (candidate-source-path base-dir spec)))
-                  (if (check-spec-defines-name? cand-path int-name)
-                    (string-append "tests/" (string-join (map symbol->string spec) "/"))
+                (let* ((spec (car rem))
+                       (cand-path (find-existing-source-path (candidate-source-paths base-dir spec)))
+                      ) ;
+                  (if (and cand-path (check-spec-defines-name? cand-path int-name))
+                    (defining-library-test-dir-relative cand-path spec)
                     (loop (cdr rem))
                   ) ;if
                 ) ;let*
@@ -108,15 +110,15 @@
         ((rem imports))
         (if (null? rem)
           #f
-          (let* ((spec (car rem)) (cand-path (candidate-source-path base-dir spec)))
-            (if (path-file? (path cand-path))
+          (let* ((spec (car rem))
+                 (cand-path (find-existing-source-path (candidate-source-paths base-dir spec)))
+                ) ;
+            (if cand-path
               (let* ((exports (extract-library-exports cand-path))
                      (found (find-stem-in-exports exports stem))
                     ) ;
                 (if found
-                  (cons found
-                    (string-append "tests/" (string-join (map symbol->string spec) "/"))
-                  ) ;cons
+                  (cons found (defining-library-test-dir-relative cand-path spec))
                   (loop (cdr rem))
                 ) ;if
               ) ;let*
@@ -125,6 +127,17 @@
           ) ;let*
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; 延迟绑定 find-test-dir-for-library-source 避免循环依赖
+    (define *find-test-dir-ref* #f)
+
+    (define (set-find-test-dir-fn! fn)
+      (set! *find-test-dir-ref* fn)
+    ) ;define
+
+    (define (find-test-dir-for-source src-path)
+      (if *find-test-dir-ref* (*find-test-dir-ref* src-path) #f)
     ) ;define
 
     ;; 延迟绑定 exported-name->test-stem 避免循环依赖

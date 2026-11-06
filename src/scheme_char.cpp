@@ -15,7 +15,7 @@
 //
 
 // (scheme char) 中超长哈希表函数的 C++ 实现
-// 表数据由 tools/parse_char_tables.py 从 goldfish/scheme/char.scm 机械生成，
+// 表数据由 tools/parse_char_tables.py 从 r7rs/scheme/char.scm 机械生成，
 // 连续码点合并为区间，二分查找
 
 #include "s7.h"

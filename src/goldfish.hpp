@@ -1210,6 +1210,16 @@ void
 add_goldfish_load_paths (s7_scheme* sc, const char* gf_lib) {
   s7_add_to_load_path (sc, ".");
   s7_add_to_load_path (sc, gf_lib);
+  // R7RS 板块（r7rs/）：维护 Scheme 语言标准 R7RS-small 定义的 (scheme ...) 库，
+  // 位于标准库（library/）之下、语言层（goldfish/）之上。
+  fs::path installed_r7rs= fs::path (gf_lib) / "r7rs";
+  fs::path source_r7rs   = fs::path (gf_lib).parent_path () / "r7rs";
+  if (fs::is_directory (installed_r7rs)) {
+    s7_add_to_load_path (sc, installed_r7rs.string ().c_str ());
+  }
+  else if (fs::is_directory (source_r7rs)) {
+    s7_add_to_load_path (sc, source_r7rs.string ().c_str ());
+  }
   fs::path installed_library= fs::path (gf_lib) / "library";
   fs::path source_library   = fs::path (gf_lib).parent_path () / "library";
   if (fs::is_directory (installed_library)) {
@@ -1289,8 +1299,18 @@ find_goldfish_library () {
 
 string
 find_goldfish_boot (const char* gf_lib) {
+  // boot.scm 位于 R7RS 板块（r7rs/scheme/）：安装布局为 <gf_lib>/r7rs/，
+  // 源码布局为 <gf_lib>/../r7rs/。
   tb_char_t        data_boot[TB_PATH_MAXN]= {0};
-  tb_char_t const* gf_boot= tb_path_absolute_to (gf_lib, "scheme/boot.scm", data_boot, sizeof (data_boot));
+  tb_char_t const* gf_boot= tb_path_absolute_to (gf_lib, "r7rs/scheme/boot.scm", data_boot, sizeof (data_boot));
+
+  if (!tb_file_access (gf_boot, TB_FILE_MODE_RO)) {
+    tb_char_t        data_src[TB_PATH_MAXN]= {0};
+    tb_char_t const* src_boot= tb_path_absolute_to (gf_lib, "../r7rs/scheme/boot.scm", data_src, sizeof (data_src));
+    if (tb_file_access (src_boot, TB_FILE_MODE_RO)) {
+      gf_boot= src_boot;
+    }
+  }
 
   if (!tb_file_access (gf_boot, TB_FILE_MODE_RO)) {
     cerr << "The boot.scm for Goldfish Scheme does not exist" << endl;

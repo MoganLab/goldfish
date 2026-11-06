@@ -52,9 +52,11 @@ eval_string (const char* code) {
     std::string gf_lib_dir= goldfish::find_goldfish_library ();
     const char* gf_lib    = gf_lib_dir.c_str ();
     wasm_sc               = goldfish::init_goldfish_scheme (gf_lib);
-    // 自动加载所有 goldfish/scheme/*.scm
-    s7_eval_c_string (wasm_sc, "(load \"scheme/base.scm\")");
+    // 自动加载 R7RS 板块（r7rs/scheme/*.scm）
+    // boot.scm 必须最先加载：它提供 syntax-rules 等宏设施，
+    // 后续 (scheme ...) 库的定义依赖它们。
     s7_eval_c_string (wasm_sc, "(load \"scheme/boot.scm\")");
+    s7_eval_c_string (wasm_sc, "(load \"scheme/base.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"scheme/case-lambda.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"scheme/char.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"scheme/file.scm\")");

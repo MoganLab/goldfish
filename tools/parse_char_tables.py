@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
-"""Parse the 5 large char hash tables in goldfish/scheme/char.scm.
+"""Parse the large char hash tables in r7rs/scheme/char.scm.
 
 Usage:
   python3 tools/parse_char_tables.py dump     # entry counts per table
   python3 tools/parse_char_tables.py cover    # diff table keys vs tested codepoints
-  python3 tools/parse_char_tables.py ranges   # print range-built structure
 """
 import re
 import sys
 
-CHAR_SCM = "goldfish/scheme/char.scm"
+CHAR_SCM = "r7rs/scheme/char.scm"
 
 TABLES = {
-    "*char-upcase-ht*": "tests/scheme/char/char-upcase-test.scm",
-    "*char-downcase-ht*": "tests/scheme/char/char-downcase-test.scm",
-    "*char-non-alphabetic-ht*": "tests/scheme/char/char-alphabetic-p-test.scm",
-    "*char-upper-ht*": "tests/scheme/char/char-upper-case-p-test.scm",
-    "*char-lower-ht*": "tests/scheme/char/char-lower-case-p-test.scm",
+    "*char-foldcase-ht*": "r7rs/tests/scheme/char/char-foldcase-test.scm",
+    "*char-numeric-ht*": "r7rs/tests/scheme/char/char-numeric-p-test.scm",
+    "*char-whitespace-ht*": "r7rs/tests/scheme/char/char-whitespace-p-test.scm",
 }
 
 # (s7-hash-table-set! *TABLE* CP VAL)  VAL := NUM | #t | (+ NUM NUM)

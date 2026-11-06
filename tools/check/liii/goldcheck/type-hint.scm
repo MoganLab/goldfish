@@ -41,16 +41,22 @@
   ) ;export
   (begin
 
-    ;; 仓库根下的 goldfish/hint 目录；gfproject-root 带尾斜杠时不再补
-    (define (hint-dir)
+    ;; hint 库目录：R7RS 板块 r7rs/hint/、语言层 goldfish/hint/ 与工具 hint 目录；
+    ;; gfproject-root 带尾斜杠时不再补
+    (define (hint-dirs)
       (let ((root (gfproject-root)))
-        (if (and root (string? root) (not (string=? root "")))
-          (if (string-ends? root "/")
-            (string-append root "goldfish/hint")
-            (string-append root "/goldfish/hint")
-          ) ;if
-          "goldfish/hint"
-        ) ;if
+        (let ((prefix
+                (if (and root (string? root) (not (string=? root "")))
+                  (if (string-ends? root "/") root (string-append root "/"))
+                  ""
+                ) ;if
+              ) ;prefix
+             ) ;
+          (list (string-append prefix "r7rs/hint")
+            (string-append prefix "goldfish/hint")
+            "tools/check/hint"
+          ) ;list
+        ) ;let
       ) ;let
     ) ;define
 
@@ -87,8 +93,11 @@
     ) ;define
 
     (define (scan-hint-libs)
-      "扫描 goldfish/hint/ 下所有 .scm，返回存在 hint 的库文件相对路径列表"
-      (append (scan-scm-dir (hint-dir)) (scan-scm-dir "tools/check/hint"))
+      "扫描各 hint 目录下所有 .scm，返回存在 hint 的库文件相对路径列表"
+      (let loop
+        ((dirs (hint-dirs)) (acc '()))
+        (if (null? dirs) acc (loop (cdr dirs) (append (scan-scm-dir (car dirs)) acc)))
+      ) ;let
     ) ;define
 
     (define (check-type-hint hint-file)

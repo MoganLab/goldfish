@@ -36,9 +36,9 @@
   ) ;export
   (begin
 
-    ;; 库实现所在的源码根：语言层 goldfish/ 与标准库层 library/。
-    ;; hint 库统一存放在 goldfish/hint/ 下，其对应的原库可能位于任一源码根。
-    (define library-source-roots '("goldfish" "library"))
+    ;; 库实现所在的源码根：R7RS 板块 r7rs/ 、语言层 goldfish/ 与标准库层 library/。
+    ;; hint 库按板块存放（r7rs/hint/ goldfish/hint/），其对应的原库可能位于任一源码根。
+    (define library-source-roots '("r7rs" "goldfish" "library"))
 
     ;; s7 的 read 对 'X 产生 #_quote 标记，用 object->string 识别
     (define (quote-marker? x)

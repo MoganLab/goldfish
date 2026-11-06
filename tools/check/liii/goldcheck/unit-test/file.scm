@@ -103,8 +103,17 @@
     ) ;define
 
     (define (parent->lib-name rel-parent)
+      ;; 测试目录相对路径 -> 库名。板块测试目录形如 <板块>/tests/<子路径>，
+      ;; 语言层测试目录形如 tests/<子路径>，均去掉测试目录前缀后再拼接。
       (let* ((norm (normalize-sep rel-parent))
-             (clean (if (string-starts? norm "tests/") (substring norm 6 (string-length norm)) norm)
+             (clean
+               (cond ((string-starts? norm "r7rs/tests/") (substring norm 11 (string-length norm)))
+                     ((string-starts? norm "library/tests/")
+                      (substring norm 14 (string-length norm))
+                     ) ;
+                     ((string-starts? norm "tests/") (substring norm 6 (string-length norm)))
+                     (else norm)
+               ) ;cond
              ) ;clean
             ) ;
         (string-append "(" (string-join (string-split clean "/") " ") ")")
@@ -174,6 +183,7 @@
         (and (string-ends? norm "-test.scm")
           (not (string-starts? norm "goldfish/"))
           (not (string-contains? norm "/goldfish/"))
+          (not (hint-source-path? norm))
           (not (and (or (string-starts? norm "tools/") (string-contains? norm "/tools/"))
                  (not (string-contains? norm "/tests/"))
                ) ;and

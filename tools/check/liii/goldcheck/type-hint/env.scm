@@ -43,26 +43,56 @@
       ) ;let
     ) ;define
 
-    ;; tools/<name>/hint 与同级的 goldfish/hint 对应。
-    (define (tool-goldfish-hint-root hint-file)
+    ;; 全局 hint 根：R7RS 板块 r7rs/hint/ 与语言层 goldfish/hint/。
+    ;; hint 库按板块存放，推断时需要跨板块查找对应库的 hint 与原库。
+    (define global-hint-roots '("r7rs/hint" "goldfish/hint"))
+
+    (define (board-hint-roots prefix)
+      (map
+        (lambda (g) (join-strings (append prefix (split-slash g)) "/"))
+        global-hint-roots
+      ) ;map
+    ) ;define
+
+    ;; hint 文件关联的全局 hint 根：
+    ;; 工具 hint 根（tools/<name>/hint）取 tools 段之前的路径为前缀，
+    ;; 板块 hint 根（<板块>/hint）取板块目录的同级为前缀。
+    (define (global-hint-roots-of hint-file)
       (let loop
         ((pre '()) (rest (split-slash (normalize-sep hint-file))))
-        (cond ((null? rest) #f)
+        (cond ((null? rest) '())
               ((and (string=? (car rest) "tools")
                  (pair? (cdr rest))
                  (pair? (cddr rest))
                  (string=? (caddr rest) "hint")
                ) ;and
-               (join-strings (append (reverse pre) '("goldfish" "hint")) "/")
+               (board-hint-roots (reverse pre))
               ) ;
+              ((string=? (car rest) "hint") (board-hint-roots (reverse (cdr (reverse pre)))))
               (else (loop (cons (car rest) pre) (cdr rest)))
         ) ;cond
       ) ;let
     ) ;define
 
+    (define (dedup-strings xs)
+      (let loop
+        ((rest xs) (acc '()))
+        (if (null? rest)
+          (reverse acc)
+          (if (member (car rest) acc string=?)
+            (loop (cdr rest) acc)
+            (loop (cdr rest) (cons (car rest) acc))
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (hint-roots-of hint-file)
-      (let ((local (hint-root-of hint-file)) (global (tool-goldfish-hint-root hint-file)))
-        (append (if local (list local) '()) (if global (list global) '()))
+      (let ((local (hint-root-of hint-file)))
+        (if (not local)
+          '()
+          (dedup-strings (cons local (global-hint-roots-of hint-file)))
+        ) ;if
       ) ;let
     ) ;define
 
@@ -155,18 +185,6 @@
       ) ;let*
     ) ;define
 
-    (define (source-root-of hint-root)
-      (let ((comps (split-slash (normalize-sep hint-root))))
-        (if
-          (and (pair? comps) (string=? (car (reverse comps)) "hint"))
-          (let ((source (reverse (cdr (reverse comps)))))
-            (if (null? source) "." (join-strings source "/"))
-          ) ;let
-          hint-root
-        ) ;if
-      ) ;let
-    ) ;define
-
     (define (import-library-name clause)
       (if (and (pair? clause)
             (memq (car clause) '(except only prefix rename for library))
@@ -176,15 +194,53 @@
       ) ;if
     ) ;define
 
+    (define (source-roots-of hint-root)
+      ;; hint 根 -> 原库源码根列表。
+      ;; 板块 hint 根（r7rs/hint、goldfish/hint）下登记的 hint 可能对应任一
+      ;; 板块的库，因此依次尝试 r7rs/ goldfish/ library/；工具 hint 根
+      ;; （tools/<tool>/hint）的原库位于同层工具目录。
+      (let* ((comps (split-slash (normalize-sep hint-root)))
+             (source
+               (if
+                 (and (pair? comps) (string=? (car (reverse comps)) "hint"))
+                 (reverse (cdr (reverse comps)))
+                 #f
+               ) ;if
+             ) ;source
+            ) ;
+        (cond ((not source) (list hint-root))
+              ((null? source) (list "."))
+              ((and (= (length source) 1) (member (car source) '("r7rs"
+                                                                 "goldfish")))
+               '("r7rs" "goldfish" "library")
+              ) ;
+              (else (list (join-strings source "/")))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (library-file-in-root root lib-syms)
+      (let ((path (string-append root "/" (join-strings (map symbol->string lib-syms) "/") ".scm")
+            ) ;path
+           ) ;
+        (if (file-exists? path) path #f)
+      ) ;let
+    ) ;define
+
     (define (library-file roots lib-syms source?)
       (if (null? roots)
         #f
-        (let* ((root (if source? (source-root-of (car roots)) (car roots)))
-               (path (string-append root "/" (join-strings (map symbol->string lib-syms) "/") ".scm")
-               ) ;path
-              ) ;
-          (if (file-exists? path) path (library-file (cdr roots) lib-syms source?))
-        ) ;let*
+        (let ((cands (if source? (source-roots-of (car roots)) (list (car roots)))))
+          (let loop
+            ((cs cands))
+            (if (null? cs)
+              (library-file (cdr roots) lib-syms source?)
+              (let ((hit (library-file-in-root (car cs) lib-syms)))
+                (if hit hit (loop (cdr cs)))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;let
       ) ;if
     ) ;define
 

@@ -116,10 +116,10 @@
 (for-each
   (lambda (f) (check (check-type-hint (repo-file f)) => '()))
   '("goldfish/hint/liii/alist.scm" "goldfish/hint/liii/error.scm"
-    "goldfish/hint/liii/gfproject/config.scm" "goldfish/hint/scheme/base.scm"
+    "goldfish/hint/liii/gfproject/config.scm" "r7rs/hint/scheme/base.scm"
     "goldfish/hint/srfi/srfi-1.scm"
     "tools/check/hint/liii/goldcheck/no-glue.scm"
-    "goldfish/hint/scheme/file.scm" "tools/check/hint/liii/goldcheck/path.scm"
+    "r7rs/hint/scheme/file.scm" "tools/check/hint/liii/goldcheck/path.scm"
     "goldfish/hint/liii/string.scm" "goldfish/hint/liii/path.scm"
     "goldfish/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
     "goldfish/hint/liii/goldfmt/format.scm"

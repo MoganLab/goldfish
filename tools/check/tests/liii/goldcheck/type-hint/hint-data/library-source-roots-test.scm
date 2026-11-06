@@ -1,5 +1,5 @@
 ;; library-source-roots
-;; 返回库实现所在的源码根列表，用于跨语言层与标准库层解析 hint 对应的原库路径。
+;; 返回库实现所在的源码根列表，用于跨板块解析 hint 对应的原库路径。
 ;;
 ;; 语法
 ;; ----
@@ -12,7 +12,7 @@
 ;; 返回值
 ;; ------
 ;; list of string
-;; 源码根相对路径列表，依次为语言层 `goldfish` 与标准库层 `library`。
+;; 源码根相对路径列表，依次为 R7RS 板块 `r7rs`、语言层 `goldfish` 与标准库层 `library`。
 
 (import (scheme base)
   (liii check)
@@ -24,7 +24,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 源码根按解析优先级排列
-(check library-source-roots => '("goldfish" "library"))
+(check library-source-roots => '("r7rs" "goldfish" "library"))
 
 ;; 2. 源码根为不含结尾斜杠的相对路径
 (check-true

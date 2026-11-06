@@ -19,7 +19,9 @@
 ;; ----
 ;; 匹配规则：
 ;; 1. 工具测试目录：tools/<tool>/tests/<subpath> -> tools/<tool>/<subpath>.scm
-;; 2. 核心测试目录：tests/<subpath> -> goldfish/<subpath>.scm
+;; 2. 板块测试目录：r7rs/tests/<subpath> -> r7rs/<subpath>.scm
+;;               library/tests/<subpath> -> library/<subpath>.scm
+;;               tests/<subpath> -> goldfish/<subpath>.scm
 ;; 3. 测试夹具目录：<prefix>/tests/<subpath> -> <prefix>/goldfish/<subpath>.scm
 
 (import (scheme base)
@@ -31,10 +33,10 @@
 
 (check-set-mode! 'report-failed)
 
-;; 1. 核心库测试目录反推源码
-(let ((src (find-library-source-for-test-dir "tests/scheme/case-lambda")))
+;; 1. R7RS 板块库测试目录反推源码
+(let ((src (find-library-source-for-test-dir "r7rs/tests/scheme/case-lambda")))
   (check-true (string? src))
-  (check-true (string-ends? (normalize-sep src) "goldfish/scheme/case-lambda.scm")
+  (check-true (string-ends? (normalize-sep src) "r7rs/scheme/case-lambda.scm")
   ) ;check-true
 ) ;let
 

@@ -385,7 +385,9 @@
     ) ;define
 
     (define (lib-spec->relative-source-path spec)
-      (string-append "goldfish/" (string-join (map symbol->string spec) "/") ".scm")
+      ;; 库标识符 -> 板块内相对源码路径（如 (scheme base) -> "scheme/base.scm"）。
+      ;; 板块根目录由调用方按 r7rs/ goldfish/ library/ 依次尝试。
+      (string-append (string-join (map symbol->string spec) "/") ".scm")
     ) ;define
 
   ) ;begin

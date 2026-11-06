@@ -35,7 +35,7 @@
   ) ;let
 ) ;define
 
-;; 旧 Scheme 实现（从 goldfish/scheme/base.scm 原样保留，用于性能对比）
+;; 旧 Scheme 实现（从 r7rs/scheme/base.scm 原样保留，用于性能对比）
 (define-macro (define-record-type-old type make ? . fields)
   (let ((obj (gensym))
         (typ (gensym))
