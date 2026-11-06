@@ -1,3 +1,25 @@
+;; chan-send!
+;; 环形与共享结构的通道传输回归测试：自引用 cons cell、多节点循环列表、
+;; 自引用 vector、共享 bytevector、共享与自引用 let、深层嵌套列表与
+;; vector 的序列化往返。
+;;
+;; 语法
+;; ----
+;; (chan-send! ch val)
+;; (chan-recv! ch)
+;;
+;; 参数
+;; ----
+;; ch : channel
+;; 收发送消息的通道。
+;; val : any
+;; 待传输的消息，必须为可序列化且允许环形引用的数据结构。
+;;
+;; 返回值
+;; ----
+;; any
+;; chan-recv! 返回反序列化后的消息，环形与共享引用结构保持不变。
+
 (import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
@@ -17,7 +39,7 @@
 (check (car recv1) => 42)
 (check (eq? (cdr recv1) recv1) => #t)
 
-;; 2. 测试三节点循环列表 (1 -> 2 -> 3 -> 1)
+;; 1. 测试三节点循环列表 (1 -> 2 -> 3 -> 1)
 
 (define ch2 (make-chan 1))
 
@@ -34,7 +56,7 @@
 (check (eq? (cdddr recv2) recv2) => #t)
 (check (car (cdddr recv2)) => 1)
 
-;; 3. 测试包含自引用的 Vector
+;; 2. 测试包含自引用的 Vector
 
 (define ch3 (make-chan 1))
 
@@ -50,7 +72,7 @@
 (check (vector-ref recv3 1) => 200)
 (check (eq? (vector-ref recv3 2) recv3) => #t)
 
-;; 4. 测试大块 Bytevector (1MB) 的高效传输
+;; 3. 测试大块 Bytevector (1MB) 的高效传输
 
 (define ch4 (make-chan 1))
 
@@ -68,7 +90,7 @@
 (check (bytevector-u8-ref recv4 500000) => 170)
 (check (bytevector-u8-ref recv4 1048575) => 255)
 
-;; 5. 回归测试：同一个 Bytevector 在复合结构中被共享引用，反序列化后不能退化为 nil
+;; 4. 回归测试：同一个 Bytevector 在复合结构中被共享引用，反序列化后不能退化为 nil
 
 (define ch5 (make-chan 1))
 
@@ -82,7 +104,7 @@
 (check (eq? (car recv5) (cadr recv5)) => #t)
 (check (bytevector-u8-ref (cadr recv5) 0) => 7)
 
-;; 6. 回归测试：共享 let 的 DAG 传输，两个引用必须指向同一对象
+;; 5. 回归测试：共享 let 的 DAG 传输，两个引用必须指向同一对象
 
 (define ch6 (make-chan 1))
 
@@ -96,7 +118,7 @@
 (check ((car recv6) 'x) => 42)
 (check (eq? (car recv6) (cadr recv6)) => #t)
 
-;; 7. 回归测试：自引用 let（环），self 槽必须指回 let 自身
+;; 6. 回归测试：自引用 let（环），self 槽必须指回 let 自身
 
 (define ch7 (make-chan 1))
 
@@ -110,7 +132,7 @@
 (check (recv7 'name) => "cyc")
 (check (eq? (recv7 'self) recv7) => #t)
 
-;; 8. 回归测试：10 万层深列表传输（曾导致 C++ 递归序列化栈溢出段错误）
+;; 7. 回归测试：10 万层深列表传输（曾导致 C++ 递归序列化栈溢出段错误）
 
 (define deep-list
   (let loop
@@ -126,7 +148,7 @@
 (check (length recv8) => 100000)
 (check (car recv8) => 99999)
 
-;; 9. 回归测试：深层嵌套 vector
+;; 8. 回归测试：深层嵌套 vector
 ;; 注：深度受 s7 自身 GC 标记对嵌套 vector 的递归限制（小栈平台），5000 层足以验证迭代式序列化
 
 (define deep-vec

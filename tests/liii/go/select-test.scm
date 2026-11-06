@@ -1,7 +1,3 @@
-(import (liii check) (liii go) (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; select
 ;; 多路复用：等待多个通道操作中第一个就绪者（Go select 语义）。
 ;;
@@ -14,13 +10,21 @@
 ;;   (timeout ms body ...)
 ;;   (else body ...))
 ;;
-;; 子句
+;; 参数
 ;; ----
-;; ((chan-recv! ch) => proc) : 通道可读时，将接收到的值传给单参过程 proc
-;; ((chan-recv! ch var) body ...) : 通道可读时，将值绑定到 var 并执行 body
-;; ((chan-send! ch expr) body ...) : 通道可写时，发送 expr 并执行 body
-;; (timeout ms body ...) : 超过 ms 毫秒仍无就绪分支时执行 body
-;; (else body ...) : 无阻塞立即执行（与 timeout 互斥）
+;; clause : (form ...)
+;; 子句集合，支持以下形式：
+;;   ((chan-recv! ch) => proc) : 通道可读时，将接收到的值传给单参过程 proc
+;;   ((chan-recv! ch var) body ...) : 通道可读时，将值绑定到 var 并执行 body
+;;   ((chan-send! ch expr) body ...) : 通道可写时，发送 expr 并执行 body
+;;   (timeout ms body ...) : 超过 ms 毫秒仍无就绪分支时执行 body
+;;   (else body ...) : 无阻塞立即执行（与 timeout 互斥）
+;;
+;; 返回值
+;; ----
+;; any
+;; 命中分支的求值结果：recv 分支为接收到的值（=> 形式为 proc 的返回值），
+;; send 分支为发送表达式的值，timeout 分支为 body 的结果。
 ;;
 ;; 说明
 ;; ----
@@ -31,6 +35,10 @@
 ;; 错误处理
 ;; ----
 ;; else 与 timeout 同时出现、或同一类子句重复出现时抛出 syntax-error。
+
+(import (liii check) (liii go) (scheme time))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 测试 else 非阻塞分支：通道为空时立即走 else
 

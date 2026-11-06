@@ -1,6 +1,28 @@
-(import (liii check) (liii go))
-
-;; 复现 issue #1224：多 s7 会话并发时 gen 符号被错误回收
+;; go-apply/source
+;; 复现 issue #1224 的回归测试：多 s7 会话并发时 gensym 符号被错误回收。
+;;
+;; 语法
+;; ----
+;; (go-apply/source src env args ch)
+;;
+;; 参数
+;; ----
+;; src : list | symbol
+;; 过程源码表达式（lambda 列表），或解析为过程的全局符号。
+;; env : let
+;; 自由变量的捕获环境（通常是定义点的 funclet 或其派生 inlet）。
+;; args : list
+;; 传给该过程的参数列表，元素须为可序列化的数据。
+;; ch : channel
+;; 结果 channel，任务结束后收到恰好一个结果对象。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 说明
+;; ----
+;; 复现 issue #1224：多 s7 会话并发时 gen 符号被错误回收。
 ;;
 ;; 根因：s7.c 的 mark_function[] 是进程级全局数组，所有会话共享。
 ;; mark_function[T_SYMBOL] 随各会话 gensym 表的变化全局抖动：
@@ -22,6 +44,10 @@
 ;; 期望：修复前探测到 *live-gs* 变 #f（gen 符号被跨会话回收）；
 ;;       修复后始终 #t，探测超时返回 'alive-after-timeout。
 ;; 本地复现可用 GOLDFISH_GO_WORKERS=64 放大并发 boot 窗口。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define *probe-seconds* 15)
 

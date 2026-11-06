@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; go-apply
 ;; 将 (apply f args) 投递到后台 worker 线程执行，结果按 go-result 协议
 ;; 送入指定 channel：(ok value) | (error tag args)。
@@ -25,6 +21,10 @@
 ;; 返回值
 ;; ----
 ;; unspecified
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基本调用：结果送入 channel
 

@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; go-apply/source
 ;; go-apply 的源码级变体：直接以过程源码表达式（而非过程对象）投递任务，
 ;; 自由变量在调用方给定的捕获环境中解析。供需要把多个过程的来源组合成
@@ -29,6 +25,10 @@
 ;; 返回值
 ;; ----
 ;; unspecified
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基本调用：lambda 源码直接在 worker 执行
 

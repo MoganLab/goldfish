@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; fiber-recv!
 ;; 从 fiber 通道接收一个值；无数据时挂起当前协程（不占用物理线程）。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; any
 ;; 通道中的下一个值。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 ;; 消费者先挂起，生产者后唤醒
 

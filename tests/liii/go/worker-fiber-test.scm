@@ -1,10 +1,30 @@
+;; go
+;; go 任务 fiber 化（方案 C）的验收测试：任务级阻塞、跨调度周期唤醒、
+;; 真死锁报错、异常隔离与无限等待形态挂起。
+;;
+;; 语法
+;; ----
+;; (go (fn arg ...))
+;;
+;; 参数
+;; ----
+;; fn : procedure
+;; 顶层命名的函数，源码被运输到后台 worker 会话执行。
+;; arg ... : any
+;; 传递给 fn 的参数，必须为可序列化的数据类型。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 说明
+;; ----
+;; 跑法：GOLDFISH_GO_WORKERS=1 bin/gf tests/liii/go/worker-fiber-test.scm
+;; （强制单 worker，保证任务落在同一 worker 会话）
+
 (import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
-
-;; go 任务 fiber 化（方案 C）验收测试：任务级阻塞。
-;; 跑法：GOLDFISH_GO_WORKERS=1 bin/gf tests/liii/go/worker-fiber-test.scm
-;; （强制单 worker，保证任务落在同一 worker 会话）
 
 ;; 1. 跨调度周期唤醒：任务1挂在空通道上 → 调度器返回、worker 执行任务2 →
 ;;    任务2 送数触发 gate fire → 任务1 被唤醒并回传结果

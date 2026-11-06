@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; make-timeout-context
 ;; 创建一个带超时的上下文，到期自动取消。
 ;;
@@ -22,6 +18,10 @@
 ;; 说明
 ;; ----
 ;; 超时由 C++ 层独立定时线程驱动，不占用 worker 线程池。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ctx (make-timeout-context 50))
 (check (context-done? ctx) => #f)

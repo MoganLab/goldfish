@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; go
 ;; 将函数调用调度到后台 worker 线程并发执行（每个 worker 独占一个独立 s7 会话）。
 ;;
@@ -31,7 +27,7 @@
 ;; 3. 仅支持 (go (fn arg ...)) 直接调用语法，旧语法 (go (vars ...) body ...) 已取缔，
 ;;    传入非直接调用语法将抛 syntax-error。
 ;;
-;; 使用限制
+;; 注意
 ;; ----
 ;; 1. 不递归 ship 外部辅助函数：
 ;;    (go (fn arg ...)) 仅 ship 目标函数 fn 自身的源码，不递归 ship fn 外部引用的
@@ -42,6 +38,10 @@
 ;; 3. 不支持捕获外部环境的词法自由变量：
 ;;    如 (let ((x 10)) (define (f ch) ... x ...) (go (f ch)))，闭包中的 x 无法被自动运输。
 ;;    所有外部变量必须作为实参显式传入：(go (f ch x))。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基本 go 任务启动与通道通信
 
@@ -98,8 +98,6 @@
 ;; 3. go-spawn 参数错误路径（覆盖携带 RAII 对象的 raise 路径，Windows 回归）
 (check-catch 'value-error (g_go-spawn '(a) '() '(begin)))
 (check-catch 'type-error (g_go-spawn '(a) '(1) (lambda (x) x)))
-(check-catch 'value-error (%go-spawn '(a) '() '(begin)))
-(check-catch 'type-error (%go-spawn '(a) '(1) (lambda (x) x)))
 
 ;; 4. 函数直接调用形式：(go (fn arg ...))
 
@@ -145,5 +143,16 @@
 (check-catch 'syntax-error (eval '(go (a b) (display a))))
 (check-catch 'syntax-error (eval '(go 123)))
 (check-catch 'syntax-error (eval '(go)))
+
+;; 6. 库级冒烟测试：未导出的内部符号不向外部泄漏
+
+(define smoke-ch (make-chan 1))
+(chan-send! smoke-ch 42)
+(check (chan-recv! smoke-ch) => 42)
+
+(check-catch 'unbound-variable %go-call)
+(check-catch 'unbound-variable %go-result-spawn)
+(check-catch 'unbound-variable %go-current-jiffy)
+(check-catch 'unbound-variable %go-elapsed-ms)
 
 (check-report)

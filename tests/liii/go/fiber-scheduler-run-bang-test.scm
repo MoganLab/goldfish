@@ -1,13 +1,13 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; fiber-scheduler-run!
 ;; 启动协程调度器，运行直到所有就绪 fiber 执行完毕。
 ;;
 ;; 语法
 ;; ----
 ;; (fiber-scheduler-run!)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ----
@@ -17,6 +17,10 @@
 ;; ----
 ;; 所有 fiber 都阻塞在通道上（死锁）时抛出 deadlock 错误，
 ;; 报错后调度器状态复位，可再次运行。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 ;; 大规模协程压测：1 万个协程
 

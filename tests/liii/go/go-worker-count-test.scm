@@ -1,13 +1,13 @@
-(import (liii check) (liii go) (liii time))
-
-(check-set-mode! 'report-failed)
-
 ;; go-worker-count
 ;; 返回后台 worker 线程池的配置上限。
 ;;
 ;; 语法
 ;; ----
 ;; (go-worker-count)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ----
@@ -17,6 +17,10 @@
 ;; 说明
 ;; ----
 ;; 该调用不会触发线程池的创建，只返回配置值。
+
+(import (liii check) (liii go) (liii time))
+
+(check-set-mode! 'report-failed)
 
 (define n (go-worker-count))
 (check (integer? n) => #t)

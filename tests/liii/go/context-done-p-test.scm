@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; context-done?
 ;; 判断 context 是否已完成（被取消或超时）。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; boolean
 ;; 已完成返回 #t，否则返回 #f。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ctx (make-context))
 (check (context-done? ctx) => #f)

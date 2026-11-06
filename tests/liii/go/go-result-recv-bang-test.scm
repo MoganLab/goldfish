@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; go-result-recv!
 ;; 从 go-result 返回的结果 channel 接收并拆包：任务正常时直接返回 body 的值；
 ;; 任务抛异常时在接收端重新抛出原异常（保留原错误 tag，可用 check-catch 捕获）。
@@ -23,11 +19,15 @@
 ;; ----
 ;; 任务 body 的返回值。
 ;;
-;; 异常
+;; 错误处理
 ;; ----
 ;; 1. 任务出错时重抛原异常（原 tag 与原参数）。
 ;; 2. 超时抛出 'timeout-error。
 ;; 3. 收到非法结果对象时抛出 'type-error。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 正常路径直接取值
 (check (go-result-recv! (go-result () (+ 20 22))) => 42)

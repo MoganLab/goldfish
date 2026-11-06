@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; context-channel
 ;; 返回 context 内部的完成通知 channel。
 ;;
@@ -23,6 +19,10 @@
 ;; ----
 ;; 对该通道 recv：context 未完成时阻塞，完成后返回 eof-object。
 ;; 可直接用于 select 的取消分支。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ctx (make-context))
 

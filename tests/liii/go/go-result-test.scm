@@ -1,7 +1,3 @@
-(import (liii check) (liii go) (liii base64))
-
-(check-set-mode! 'report-failed)
-
 ;; go-result
 ;; 将代码调度到后台 worker 线程执行，并返回一个结果 channel：任务结束（无论正常
 ;; 返回还是抛出异常）后都会向该 channel 送入恰好一个结果对象，接收端不会因任务
@@ -31,6 +27,10 @@
 ;; 1. 结果 channel 缓冲为 1，即使无人接收，worker 也不会被阻塞。
 ;; 2. body 的返回值与 error 参数必须是可序列化类型；序列化失败时错误输出到 stderr。
 ;; 3. 可配合 go-result-recv! 直接取值，并在任务出错时于接收端重抛原异常。
+
+(import (liii check) (liii go) (liii base64))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 正常返回：结果 channel 收到 (ok value)
 

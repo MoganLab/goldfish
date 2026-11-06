@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; chan-try-recv!
 ;; 非阻塞地从通道接收一个值。
 ;;
@@ -23,6 +19,10 @@
 ;; any
 ;; 通道非空时返回下一个值；为空时立即返回 default；
 ;; 通道已关闭且读空时返回 eof-object。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ch (make-chan 2))
 (check (chan-try-recv! ch) => #f)

@@ -1,8 +1,27 @@
+;; go
+;; worker 任务异常隔离的回归测试：任务内的运行时错误不会使线程池崩溃，
+;; 失败任务不会向通道写入垃圾数据，后续任务照常执行。
+;;
+;; 语法
+;; ----
+;; (go (fn arg ...))
+;;
+;; 参数
+;; ----
+;; fn : procedure
+;; 顶层命名的函数，源码被运输到后台 worker 会话执行。
+;; arg ... : any
+;; 传递给 fn 的参数，必须为可序列化的数据类型。
+;;
+;; 返回值
+;; ----
+;; unspecified
+
 (import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
-;; 1. 测试 Worker 内部发生运行时错误时不崩溃，且能继续执行后续任务
+;; 1. 派发一个会报错的任务（除以零）
 
 (define (div-zero-task ch)
   (/ 1 0)
@@ -28,7 +47,7 @@
 
 (check (chan-recv! ch-healthy 2000) => "healthy-result")
 
-;; 2. 测试任务内部自定义 error 抛出时 Worker 正常容错
+;; 1. 测试任务内部自定义 error 抛出时 Worker 正常容错
 
 (define (crash-task)
   (error 'test-error "simulated task crash")
