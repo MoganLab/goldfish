@@ -42,7 +42,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii http common)](library/liii/http/common.scm) | Shared helpers for http modules   | `http-ok?`                                                       |
 | [(liii json)](library/liii/json.scm)             | JSON parsing and manipulation        | `string->json`, `json->string`                                   |
 | [(liii json schema)](library/liii/json/schema.scm) | JSON Schema 2020-12 validation     | `json-schema-valid?`, `json-schema-errors`                       |
-| [(liii subprocess)](goldfish/liii/subprocess.scm) | Subprocess management                | `run`, `run-pipe`, `run-sequence`                                 |
+| [(liii subprocess)](library/liii/subprocess.scm) | Subprocess management                | `run`, `run-pipe`, `run-sequence`                                 |
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |
 | [(liii hashlib)](goldfish/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 encoding conversion     | `utf8->utf16le`, `utf16be->utf8`                                  |
