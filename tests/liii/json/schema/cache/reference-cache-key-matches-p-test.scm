@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema cache))
-
-(check-set-mode! 'report-failed)
-
 ;; reference-cache-key-matches?
 ;; 判断缓存条目是否与给定的引用、根资源与作用域匹配。
 ;;
@@ -33,13 +29,13 @@
 ;; 根资源与作用域按标识比较，不同资源不会共享同一条目；
 ;; 条目结构异常时返回 #f，不会中断校验。
 ;;
-;; 示例
-;; ----
-;; (reference-cache-key-matches? '("a" #t '() #f) "a" #t '()) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema cache))
+
+(check-set-mode! 'report-failed)
 
 (define root-a '(("$id" . "https://example.com/a/root")))
 

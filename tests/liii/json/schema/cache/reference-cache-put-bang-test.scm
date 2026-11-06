@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema cache))
-
-(check-set-mode! 'report-failed)
-
 ;; reference-cache-put!
 ;; 写入一条引用解析缓存。
 ;;
@@ -35,13 +31,13 @@
 ;; ----
 ;; 新条目插在最前面，查找时优先命中最近写入的条目。
 ;;
-;; 示例
-;; ----
-;; (reference-cache-put! cache "child.json" root-a '() 'VALUE) => 'VALUE
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema cache))
+
+(check-set-mode! 'report-failed)
 
 (define root-a '(("$id" . "https://example.com/a/root")))
 
