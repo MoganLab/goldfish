@@ -94,4 +94,9 @@ jobs:
       - name: Run gf check unit-test
         run: |
           git fetch origin main
-          bin/gf check --only unit-test --changed-since=origin/main
+          # 必须以合并基点（merge-base）为比较基准：pull_request 检出的
+          # HEAD 是基于检出时刻的 main 生成的合并提交，若直接用 origin/main
+          # 比较，而 main 在作业运行期间又前进了，差异里会混入 main 的新提交，
+          # 导致 unit-test 规则去检查与本次 PR 无关的旧测试文件而误报。
+          BASE=$(git merge-base HEAD origin/main)
+          bin/gf check --only unit-test --changed-since="$BASE"
