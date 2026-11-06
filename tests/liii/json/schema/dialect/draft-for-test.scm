@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema dialect))
-
-(check-set-mode! 'report-failed)
-
 ;; draft-for
 ;; 返回 Schema 使用的 JSON Schema 方言。
 ;;
@@ -24,14 +20,15 @@
 ;; 未声明 $schema 时默认按 2020-12 处理；
 ;; $schema 声明了其他草稿时抛出 json-schema-unknown-dialect。
 ;;
-;; 示例
-;; ----
-;; (draft-for '(("type" . "integer"))) => 'draft2020-12
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-unknown-dialect 当 $schema 不是 2020-12 时。
 ;; json-schema-schema-error 当 $schema 不是字符串时。
+
+(import (liii check) (liii json schema dialect))
+
+(check-set-mode! 'report-failed)
+
 
 (check (draft-for #t) => 'draft2020-12)
 (check (draft-for '(())) => 'draft2020-12)

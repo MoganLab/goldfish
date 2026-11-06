@@ -1,13 +1,3 @@
-(import (liii check) (liii json schema dialect))
-
-(check-set-mode! 'report-failed)
-
-;; 返回值是 member 的结果（真值但不严格等于 #t），这里归一化为布尔。
-
-(define (truthy? value)
-  (not (eq? value #f))
-) ;define
-
 ;; known-keyword?
 ;; 判断关键字是否为 2020-12 的已知关键字。
 ;;
@@ -30,14 +20,20 @@
 ;; ----
 ;; 未知关键字会被忽略，但注解类关键字（如 title）不参与校验。
 ;;
-;; 示例
-;; ----
-;; (known-keyword? "type") => #t
-;; (known-keyword? "x-unknown") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema dialect))
+
+(check-set-mode! 'report-failed)
+
+;; 返回值是 member 的结果（真值但不严格等于 #t），这里归一化为布尔。
+
+(define (truthy? value)
+  (not (eq? value #f))
+) ;define
+
 
 (check-true (truthy? (known-keyword? "type")))
 (check-true (truthy? (known-keyword? "const")))

@@ -1,13 +1,3 @@
-(import (liii check) (liii json schema dialect))
-
-(check-set-mode! 'report-failed)
-
-;; 返回值是 member 的结果（真值但不严格等于 #t），这里归一化为布尔。
-
-(define (truthy? value)
-  (not (eq? value #f))
-) ;define
-
 ;; schema-map-keyword?
 ;; 判断关键字的值是否是“名称到 Schema”的映射。
 ;;
@@ -30,14 +20,20 @@
 ;; ----
 ;; 映射自身的键是属性名，不是 Schema 关键字。
 ;;
-;; 示例
-;; ----
-;; (schema-map-keyword? "properties") => #t
-;; (schema-map-keyword? "items") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema dialect))
+
+(check-set-mode! 'report-failed)
+
+;; 返回值是 member 的结果（真值但不严格等于 #t），这里归一化为布尔。
+
+(define (truthy? value)
+  (not (eq? value #f))
+) ;define
+
 
 (check-true (truthy? (schema-map-keyword? "properties")))
 (check-true (truthy? (schema-map-keyword? "patternProperties")))

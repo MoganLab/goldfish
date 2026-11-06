@@ -1,13 +1,3 @@
-(import (liii check) (liii json schema dialect))
-
-(check-set-mode! 'report-failed)
-
-;; 返回值是 member 的结果（真值但不严格等于 #t），这里归一化为布尔。
-
-(define (truthy? value)
-  (not (eq? value #f))
-) ;define
-
 ;; subschema-location?
 ;; 判断关键字的值是否存放子 Schema。
 ;;
@@ -31,14 +21,20 @@
 ;; 内嵌 $id、$anchor 与 $dynamicAnchor 的发现只跟随这些位置，
 ;; enum、const、examples、default 等位置里的 $id 不建立新的基 URI。
 ;;
-;; 示例
-;; ----
-;; (subschema-location? "properties") => #t
-;; (subschema-location? "enum") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema dialect))
+
+(check-set-mode! 'report-failed)
+
+;; 返回值是 member 的结果（真值但不严格等于 #t），这里归一化为布尔。
+
+(define (truthy? value)
+  (not (eq? value #f))
+) ;define
+
 
 (check-true (truthy? (subschema-location? "properties")))
 (check-true (truthy? (subschema-location? "patternProperties")))
