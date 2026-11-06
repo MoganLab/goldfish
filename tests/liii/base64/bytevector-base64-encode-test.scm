@@ -1,7 +1,3 @@
-(import (liii base64) (liii check))
-
-(check-set-mode! 'report-failed)
-
 ;; bytevector-base64-encode
 ;; 将原始字节向量编码为 Base64 字节向量。
 ;;
@@ -31,6 +27,10 @@
 ;; 错误处理
 ;; ----
 ;; - 输入非 bytevector -> type-error
+
+(import (liii base64) (liii check))
+
+(check-set-mode! 'report-failed)
 
 ;; 空输入
 (check (bytevector-base64-encode #u8()) => #u8())
