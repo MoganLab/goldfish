@@ -1,7 +1,3 @@
-(import (liii check) (liii semver))
-
-(check-set-mode! 'report-failed)
-
 ;; semver-clean
 ;; 去除版本字符串的首尾空白与前导 v/V 前缀。
 ;;
@@ -23,10 +19,11 @@
 ;; ----
 ;; 非字符串输入不抛错，返回空字符串 ""。
 ;;
-;; 示例
-;; ----
-;; (semver-clean "  v1.0.0-rc.1\r\n") => "1.0.0-rc.1"
-;; (semver-clean "valid") => "valid"
+
+(import (liii check) (liii semver))
+
+(check-set-mode! 'report-failed)
+
 
 (check (semver-clean "2026.3.5") => "2026.3.5")
 (check (semver-clean "v2026.3.5") => "2026.3.5")

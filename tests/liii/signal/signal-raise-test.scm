@@ -1,7 +1,3 @@
-(import (liii check) (liii signal))
-
-(check-set-mode! 'report-failed)
-
 ;; signal-raise
 ;; 向当前进程主动发送指定系统信号。
 ;;
@@ -18,7 +14,7 @@
 ;; -----
 ;; unspecified
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 sig 不是符号时抛出。
@@ -30,6 +26,11 @@
 ;; ----
 ;; 向当前进程发送指定信号。若已注册自定义处理过程，将在安全点被调度执行；
 ;; 若自定义处理过程自身抛出错误，错误将被重抛给调用者。
+
+(import (liii check) (liii signal))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 基本功能测试：自身触发信号并被自定义过程捕获
 (let ((handled #f))

@@ -1,7 +1,3 @@
-(import (liii check) (liii semver))
-
-(check-set-mode! 'report-failed)
-
 ;; semver=?
 ;; 判断两个版本是否相等（SemVer 2.0.0 优先级，忽略构建元数据）。
 ;;
@@ -28,10 +24,11 @@
 ;; ----
 ;; 任一版本非法时不抛错，返回 #f。
 ;;
-;; 示例
-;; ----
-;; (semver=? "v2026.3.5" "2026.3.5") => #t
-;; (semver=? "1.0.0+build.1" "1.0.0+build.2") => #t
+
+(import (liii check) (liii semver))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 构建元数据在比对时不影响优先级
 (check (semver=? "1.0.0+20130313144700" "1.0.0+exp.sha.5114f85") => #t)

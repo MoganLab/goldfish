@@ -1,7 +1,3 @@
-(import (liii check) (liii semver))
-
-(check-set-mode! 'report-failed)
-
 ;; semver-parse
 ;; 将语义化版本字符串解析为 (semver core-nums pre-list) 结构。
 ;;
@@ -25,10 +21,11 @@
 ;; ----
 ;; 非法格式（空串、前导零、空预发布段、核心段超三段等）不抛错，返回 #f。
 ;;
-;; 示例
-;; ----
-;; (semver-parse "1.0.0-rc.1") => (semver (1 0 0) ((str . "rc") (num . 1)))
-;; (semver-parse "01.2.3") => #f
+
+(import (liii check) (liii semver))
+
+(check-set-mode! 'report-failed)
+
 
 (check (semver-parse "1.2.3") => '(semver (1 2 3) ()))
 (check (semver-parse "1.0") => '(semver (1 0) ()))

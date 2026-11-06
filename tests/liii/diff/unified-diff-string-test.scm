@@ -1,7 +1,3 @@
-(import (liii check) (liii diff) (srfi srfi-13))
-
-(check-set-mode! 'report-failed)
-
 ;; unified-diff-string
 ;; 接收两个多行文本字符串，比对差异并返回拼接后的标准统一差异补丁字符串。
 ;;
@@ -31,6 +27,11 @@
 ;; --------
 ;; type-error 当 from-text 或 to-text 不是字符串、文件名不是字符串、或 n 不是精确整数时。
 ;; value-error 当 n 为负数时。
+
+(import (liii check) (liii diff) (srfi srfi-13))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试项1：基础多行字符串差异比对
 (let* ((old-text "foo\nbar\nbaz\n")

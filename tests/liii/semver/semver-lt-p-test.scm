@@ -1,7 +1,3 @@
-(import (liii check) (liii semver))
-
-(check-set-mode! 'report-failed)
-
 ;; semver<?
 ;; 判断版本 s1 是否严格小于版本 s2（SemVer 2.0.0 优先级）。
 ;;
@@ -27,10 +23,11 @@
 ;; ----
 ;; 任一版本非法时不抛错，返回 #f。
 ;;
-;; 示例
-;; ----
-;; (semver<? "2026.3.2-rc.1" "2026.3.5") => #t
-;; (semver<? "2.0.0" "10.0.0") => #t
+
+(import (liii check) (liii semver))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 经典用户场景：2026.3.2-rc.1 vs 2026.3.5
 (check (semver<? "2026.3.2-rc.1" "2026.3.5") => #t)

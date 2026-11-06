@@ -1,7 +1,3 @@
-(import (liii check) (liii diff))
-
-(check-set-mode! 'report-failed)
-
 ;; diff-ratio
 ;; 计算两个序列（字符串、列表或向量）的相似度得分（对标 Python difflib SequenceMatcher.ratio）。
 ;;
@@ -24,6 +20,11 @@
 ;; 错误处理
 ;; --------
 ;; type-error 当 seq1 或 seq2 不是字符串、列表或向量时。
+
+(import (liii check) (liii diff))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试项1：相同序列相似度为 1.0
 (check (diff-ratio "" "") => 1.0)

@@ -1,14 +1,3 @@
-(import (scheme base)
-        (scheme file)
-        (liii check)
-        (liii os)
-        (liii path)
-        (liii string)
-        (liii string-cursor)
-        (liii tempfile))
-
-(check-set-mode! 'report-failed)
-
 ;; make-temp-dir
 ;; 原子独占创建临时目录，返回目录绝对路径。
 ;;
@@ -35,6 +24,18 @@
 ;; type-error 当 prefix 非 string、suffix 非 string、dir 非 string 且非 #f 时。
 ;; file-not-found-error 当显式指定的 dir 不存在时。
 ;; permission-denied-error 当显式指定的 dir 无写权限时。
+
+(import (scheme base)
+        (scheme file)
+        (liii check)
+        (liii os)
+        (liii path)
+        (liii string)
+        (liii string-cursor)
+        (liii tempfile))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试项1：默认参数原子创建临时目录
 (let ((dir (make-temp-dir)))

@@ -1,7 +1,3 @@
-(import (liii check) (liii semver))
-
-(check-set-mode! 'report-failed)
-
 ;; semver-compare
 ;; 按 SemVer 2.0.0 规范比较两个版本字符串的优先级。
 ;;
@@ -28,10 +24,11 @@
 ;; ----
 ;; 任一版本非法时不抛错，返回 #f。
 ;;
-;; 示例
-;; ----
-;; (semver-compare "1.0.0-alpha" "1.0.0") => -1
-;; (semver-compare "1.0" "1.0.0") => 0
+
+(import (liii check) (liii semver))
+
+(check-set-mode! 'report-failed)
+
 
 (check (semver-compare "1.0.0" "2.0.0") => -1)
 (check (semver-compare "2.0.0" "1.0.0") => 1)
