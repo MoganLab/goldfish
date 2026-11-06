@@ -1,7 +1,3 @@
-(import (liii check) (liii date-time timezone) (liii date-time timestamp))
-
-(check-set-mode! 'report-failed)
-
 ;; iso-8601->timestamp
 ;; 解析 ISO-8601 时间戳字符串为 timestamp 对象。
 ;;
@@ -17,9 +13,10 @@
 ;; ----
 ;; timestamp?
 ;;
-;; 示例
-;; ----
-;; (iso-8601->timestamp "2026-01-02T03:04:05Z")
+
+(import (liii check) (liii date-time timezone) (liii date-time timestamp))
+
+(check-set-mode! 'report-failed)
 
 (let ((ts (iso-8601->timestamp "2026-01-02T03:04:05Z")))
   (check-true (timestamp? ts))
@@ -49,4 +46,5 @@
   =>
   1792483202
 ) ;check
+
 (check-report)
