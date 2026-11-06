@@ -155,6 +155,21 @@
   (check (= (length (string-split title "\x1b;[0m")) 2) => #t)
 ) ;let*
 
+;; issue #1484：超宽标题折行后仍保持分段着色，超时提示仍为 muted，
+;; 行内不出现 \x1b[0m 全重置（只有 apply-card-bg 行尾收尾的一个）
+(let* ((card (make-tool-card "bash"
+               `(("command" . ,(string-append "echo " (make-string 30 #\x))) ("timeout" . 30))
+               'pending
+             ) ;make-tool-card
+       ) ;card
+       (rendered (component-render card 44))
+       (title2 (caddr rendered))
+      ) ;
+  (check (string-contains? title2 "\x1b;[38;2;157;165;169m(timeout 30s)") => #t)
+  (check (= (length (string-split (cadr rendered) "\x1b;[0m")) 2) => #t)
+  (check (= (length (string-split title2 "\x1b;[0m")) 2) => #t)
+) ;let*
+
 ;; 无 timeout 参数时标题只有命令段，不出现 muted 提示
 (let* ((card (make-tool-card "bash" '(("command" . "ls -la")) 'pending))
        (title (cadr (component-render card 60)))

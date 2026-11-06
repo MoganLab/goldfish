@@ -161,23 +161,17 @@
              (content-width (max 1 (- width 2)))
              (title-segs (format-tool-call-segments (%tool-card-name st) (%tool-card-args st))
              ) ;title-segs
-             (title-text (apply string-append (map cdr title-segs)))
-             (title-lines (wrap-text title-text content-width))
+             ;; 先按分段着色再折行：wrap-text 是 ANSI 感知的，行尾只发选择性复位
+             ;; （\x1b[39m/\x1b[22m 等），不会用 \x1b[0m 全重置清掉卡片背景色，
+             ;; 超宽折行也能保持命令粗体标题色与超时提示 muted 的分段样式
+             (title-lines (wrap-text (%style-segments title-segs) content-width))
              (result (%tool-card-result st))
              (result-lines (%cached-bash-result-lines st result content-width))
              (timer (%tool-timer-text st))
              (title-rows
-               (if (and (= 1 (length title-lines)) (<= (display-width title-text) content-width))
-                 ;; 单行放得下：按分段着色，命令为粗体标题色，
-                 ;; 超时提示为 muted 且不加粗（对齐上游 pi renderCall）
-                 (list (apply-card-bg (string-append " " (%style-segments title-segs)) width bg "")
-                 ) ;list
-                 ;; 超宽折行：整行按标题色着色（wrap-text 收尾会输出 \x1b[0m
-                 ;; 全重置，分段着色会清掉卡片背景色）
-                 (map (lambda (line) (apply-card-bg (string-append " " line) width bg %fg-title))
-                   title-lines
-                 ) ;map
-               ) ;if
+               (map (lambda (line) (apply-card-bg (string-append " " line) width bg ""))
+                 title-lines
+               ) ;map
              ) ;title-rows
              (rest-body (append (if (null? result-lines) '() (cons "" result-lines))
                           (if timer (list "" timer) '())
@@ -211,21 +205,17 @@
     ;; 对齐 pi ToolExecutionComponent 的 Box(paddingX=1, paddingY=1)：
     ;; 无状态徽标；标题 = 粗体工具名 + accent 路径；输出 = muted、缩进 1；
     ;; 上下各一行背景空行；pending/绿/红背景把命令与输出整个包住；
-    ;; 标题超宽时降级为纯文本 wrap 后按 toolTitle 着色；
+    ;; 标题先分段着色再折行，超宽时保持分段样式（issue #1484）；
     ;; 展开态不受预览行数限制，折叠态按工具取预览行数（Ctrl+O 全局切换）
     (define (render-tool-card-lines tool-name args status result width . maybe-expanded?)
       (let* ((expanded? (if (pair? maybe-expanded?) (car maybe-expanded?) #f))
              (bg (%tool-bg status))
              (content-width (max 1 (- width 2)))
              (segs (format-tool-call-segments tool-name args))
-             (plain (apply string-append (map cdr segs)))
              (title-rows
-               (if (<= (display-width plain) content-width)
-                 (list (apply-card-bg (string-append " " (%style-segments segs)) width bg ""))
-                 (map (lambda (line) (apply-card-bg (string-append " " %fg-title line) width bg ""))
-                   (wrap-text plain content-width)
-                 ) ;map
-               ) ;if
+               (map (lambda (line) (apply-card-bg (string-append " " line) width bg ""))
+                 (wrap-text (%style-segments segs) content-width)
+               ) ;map
              ) ;title-rows
              (res-lines (if result
                           (format-tool-result-lines tool-name
