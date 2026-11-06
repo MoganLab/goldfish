@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; float-vector-ref
 ;; 返回浮点数向量中指定位置的元素。
 ;;
@@ -33,6 +27,10 @@
 ;; type-error 当vec不是float-vector时
 ;; out-of-range 当索引越界时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((v (float-vector 10.0 20.0 30.0 40.0 50.0)))
   (check (float-vector-ref v 0) => 10.0)

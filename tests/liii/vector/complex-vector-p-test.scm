@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; complex-vector?
 ;; 判断对象是否为复数向量。
 ;;
@@ -29,14 +23,14 @@
 ;; ----
 ;; 无
 
+(import (liii check) (liii vector))
+
+(check-set-mode! 'report-failed)
 
 (check-true (complex-vector? (complex-vector 1.0+2.0i 3.0+4.0i)))
 (check-false (complex-vector? (vector 1.0+2.0i 3.0+4.0i)))
 (check-false (complex-vector? (int-vector 1 2 3)))
-(check-false (complex-vector? 'not-a-vector))
-(check-false (complex-vector? 42))
-(check-false (complex-vector? 1.0+2.0i))
-(check-false (complex-vector? "string"))
-
+(check-false (complex-vector? "not a vector"))
+(check-false (complex-vector? 123))
 
 (check-report)

@@ -1,3 +1,21 @@
+;; vector-typer
+;; 获取或设置向量的元素类型判断函数（typer）。
+;;
+;; 语法
+;; ----
+;; (vector-typer vec)
+;; (set! (vector-typer vec) type-pred)
+;;
+;; 参数
+;; ----
+;; vec : vector?
+;; 目标向量。
+;;
+;; 返回值
+;; ----
+;; any
+;; 向量的类型判断函数，若无类型限制则返回 #f。
+
 (import (liii check) (liii vector))
 
 (check-set-mode! 'report-failed)

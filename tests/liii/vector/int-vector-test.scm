@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; int-vector
 ;; 创建只包含整数元素的专用向量。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; type-error 当任一参数不是整数时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (vector? (int-vector 1 2 3)))
 (check-catch 'type-error (int-vector 1 2 'a))

@@ -1,7 +1,3 @@
-(import (liii check) (liii vector))
-
-(check-set-mode! 'report-failed)
-
 ;; subvector
 ;; 创建与原向量共享数据存储的子向量（切片）。
 ;;
@@ -40,6 +36,11 @@
 ;; value-error: dimensions 各维度乘积与切片区间长度不一致时抛出
 
 ;; 基本功能与默认参数
+
+(import (liii check) (liii vector))
+
+(check-set-mode! 'report-failed)
+
 (let ((v #(1 2 3 4 5 6)))
   (check (subvector? (subvector v 0 3)) => #t)
   (check (subvector-position (subvector v 2 4)) => 2)

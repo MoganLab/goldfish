@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; int-vector-set!
 ;; 设置整数向量中指定位置的元素。
 ;;
@@ -37,6 +31,10 @@
 ;; type-error 当value不是整数时
 ;; out-of-range 当索引越界时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((v (int-vector 1 2 3)))
   (int-vector-set! v 0 100)

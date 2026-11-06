@@ -1,9 +1,3 @@
-(import (liii check) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; set
 ;; 创建一个新的 set。
 ;;
@@ -21,17 +15,15 @@
 ;; set
 ;; 返回包含指定元素的 set。
 ;;
-;; 示例
-;; ----
-;; (set 1 2 3) => 包含 1, 2, 3 的 set
-;;
 ;; 错误处理
 ;; ----
 ;; 无异常抛出
 
+(import (liii check) (liii set))
+
+(check-set-mode! 'report-failed)
 
 (check-true (set? (set 1 2 3)))
 (check-true (set-contains? (set 1) 1))
-
 
 (check-report)

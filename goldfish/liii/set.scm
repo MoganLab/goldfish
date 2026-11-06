@@ -16,14 +16,18 @@
     set-delete-all!
   ) ;export
 
-  (define comp (make-default-comparator))
+  (begin
 
-  (define (set . elements)
-    (apply make-set-with-comparator comp elements)
-  ) ;define
+    (define comp (make-default-comparator))
 
-  (define (list->set elements)
-    (list->set-with-comparator comp elements)
-  ) ;define
+    (define (set . elements)
+      (apply make-set-with-comparator comp elements)
+    ) ;define
+
+    (define (list->set elements)
+      (list->set-with-comparator comp elements)
+    ) ;define
+
+  ) ;begin
 
 ) ;define-library

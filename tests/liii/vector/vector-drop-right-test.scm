@@ -1,9 +1,3 @@
-(import (liii check) (liii error) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-drop-right
 ;; 从右侧丢弃指定数量元素，对越界情况容忍。
 ;;
@@ -32,6 +26,10 @@
 ;; ----
 ;; type-error 当vec不是向量，或n不是整数时
 
+(import (liii check) (liii error) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-drop-right #(1 2 3 4 5) 3) => #(1 2))
 (check (vector-drop-right #(1 2 3 4 5) 0) => #(1 2 3 4 5))

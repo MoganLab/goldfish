@@ -1,6 +1,20 @@
-(import (liii check)
-        (liii os)
-        (liii vector))
+;; multivector
+;; 多维向量字面量求值与多维索引访问。
+;;
+;; 语法
+;; ----
+;; #nd(...)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; vector?
+;; 构造的多维向量。
+
+(import (liii check) (liii os) (liii vector))
 
 (check-set-mode! 'report-failed)
 
@@ -52,10 +66,13 @@
   (if (os-windows?)
     (begin
       (check-true (number? (complex-vector-ref m 0 0)))
-      (check-true (number? (complex-vector-ref m 1 1))))
+      (check-true (number? (complex-vector-ref m 1 1)))
+    ) ;begin
     (begin
       (check (complex-vector-ref m 0 0) => 1.0+2.0i)
-      (check (complex-vector-ref m 1 1) => 7.0+8.0i)))
+      (check (complex-vector-ref m 1 1) => 7.0+8.0i)
+    ) ;begin
+  ) ;if
 ) ;let
 
 (check-report)

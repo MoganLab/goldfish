@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-int-vector
 ;; 创建指定长度的整数向量。
 ;;
@@ -33,6 +27,10 @@
 ;; ----
 ;; type-error 当k不是合法整数时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (int-vector? (make-int-vector 0)) => #t)
 (check (int-vector? (make-int-vector 3)) => #t)

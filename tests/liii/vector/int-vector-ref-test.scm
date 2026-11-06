@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; int-vector-ref
 ;; 返回整数向量中指定位置的元素。
 ;;
@@ -33,6 +27,10 @@
 ;; type-error 当vec不是int-vector时
 ;; out-of-range 当索引越界时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((v (int-vector 10 20 30 40 50)))
   (check (int-vector-ref v 0) => 10)
