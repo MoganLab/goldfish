@@ -1,7 +1,3 @@
-(import (liii check) (liii signal))
-
-(check-set-mode! 'report-failed)
-
 ;; signal-get
 ;; 获取指定系统信号当前绑定的处理动作。
 ;;
@@ -19,7 +15,7 @@
 ;; procedure? | 'default | 'ignore
 ;; 当前绑定的处理动作。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 sig 不是符号时抛出。
@@ -30,6 +26,11 @@
 ;; 说明
 ;; ----
 ;; 查询当前绑定的信号处理程序。若未显式注册，默认为 'default。
+
+(import (liii check) (liii signal))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 基本功能测试：默认动作与状态同步
 (check (signal-get 'SIGINT) => 'default)

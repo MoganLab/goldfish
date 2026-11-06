@@ -1,7 +1,3 @@
-(import (liii check) (liii diff) (srfi srfi-13))
-
-(check-set-mode! 'report-failed)
-
 ;; unified-diff
 ;; 生成修改前后的文本行列表的标准统一差异（Unified Diff）行列表。
 ;;
@@ -35,6 +31,11 @@
 ;; --------
 ;; type-error 当 from-lines 或 to-lines 不是字符串列表、文件名/时间不是字符串、或 n 不是精确整数时。
 ;; value-error 当 n 为负数时。
+
+(import (liii check) (liii diff) (srfi srfi-13))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试项1：行差异比对生成标准 Unified Diff 补丁
 (let* ((a '("def hello():" "    print('hello')"))

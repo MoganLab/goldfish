@@ -1,7 +1,3 @@
-(import (liii check) (liii signal))
-
-(check-set-mode! 'report-failed)
-
 ;; signal-trap
 ;; 为指定系统信号注册处理动作。
 ;;
@@ -25,7 +21,7 @@
 ;; procedure? | 'default | 'ignore
 ;; 此前绑定的 handler。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 sig 不是符号，或者 handler 既不是过程也不是 'default 或 'ignore 时抛出。
@@ -37,6 +33,11 @@
 ;; ----
 ;; 注册的信号处理过程保证异步信号安全（Async-Signal-Safe），
 ;; 不在原生中断上下文中直接求值，而是在安全点受控调度执行。
+
+(import (liii check) (liii signal))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 基本功能测试：注册自定义过程、忽略与恢复默认
 (let* ((orig (signal-get 'SIGINT))

@@ -1,14 +1,3 @@
-(import (scheme base)
-        (scheme file)
-        (liii check)
-        (liii os)
-        (liii path)
-        (liii string)
-        (liii string-cursor)
-        (liii tempfile))
-
-(check-set-mode! 'report-failed)
-
 ;; with-temp-file
 ;; 作用域安全临时文件执行，退出作用域时自动物理删除临时文件。
 ;;
@@ -37,6 +26,18 @@
 ;; type-error 当 proc 非 procedure、prefix 非 string、suffix 非 string、dir 非 string 且非 #f 时。
 ;; file-not-found-error 当显式指定的 dir 不存在时。
 ;; permission-denied-error 当显式指定的 dir 无写权限时。
+
+(import (scheme base)
+        (scheme file)
+        (liii check)
+        (liii os)
+        (liii path)
+        (liii string)
+        (liii string-cursor)
+        (liii tempfile))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试项1：正常生命周期与自动清理
 (let ((saved-path #f))

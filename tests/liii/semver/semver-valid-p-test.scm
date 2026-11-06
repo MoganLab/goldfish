@@ -1,7 +1,3 @@
-(import (liii check) (liii semver))
-
-(check-set-mode! 'report-failed)
-
 ;; semver-valid?
 ;; 判断字符串是否为合法的语义化版本（SemVer 2.0.0）。
 ;;
@@ -25,10 +21,11 @@
 ;; ----
 ;; 非法格式不抛错，返回 #f。
 ;;
-;; 示例
-;; ----
-;; (semver-valid? "1.0.0-rc.1+build.123") => #t
-;; (semver-valid? "1.0.0-rc.01") => #f
+
+(import (liii check) (liii semver))
+
+(check-set-mode! 'report-failed)
+
 
 (check (semver-valid? "2026.3.5") => #t)
 (check (semver-valid? "v2026.3.5") => #t)
