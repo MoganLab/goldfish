@@ -74,4 +74,43 @@
   (check (reverse log) => '(before body again after before again after))
 ) ;let
 
+;; 嵌套 dynamic-wind 的外层 after 过程恢复自身捕获的值 (#1514)
+(let ()
+  (define state 'init)
+  (define (with-state value thunk)
+    (let ((saved state))
+      (dynamic-wind (lambda () (set! state value))
+        thunk
+        (lambda () (set! state saved))
+      ) ;dynamic-wind
+    ) ;let
+  ) ;define
+
+  ;; 第一次调用：单层 dynamic-wind，正常执行后触发优化
+  (with-state 'a (lambda () state))
+  (check state => 'init)
+
+  ;; 第二次调用：嵌套 dynamic-wind，外层 after 必须恢复自身捕获的值
+  (with-state 'outer (lambda () (with-state 'inner (lambda () state))))
+  (check state => 'init)
+) ;let
+
+(let ()
+  (define state 'init)
+  (define log '())
+  (define (with-state value thunk)
+    (let ((saved state))
+      (dynamic-wind (lambda () (set! state value))
+        thunk
+        (lambda () (set! log (cons saved log)) (set! state saved))
+      ) ;dynamic-wind
+    ) ;let
+  ) ;define
+
+  (with-state 'a (lambda () state))
+  (with-state 'outer (lambda () (with-state 'inner (lambda () state))))
+  (check (reverse log) => '(init outer init))
+  (check state => 'init)
+) ;let
+
 (check-report)
