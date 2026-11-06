@@ -1,35 +1,44 @@
-(import (liii check)
-        (srfi srfi-166 base)
-        (srfi srfi-166 color))
-
-(check-set-mode! 'report-failed)
-
 ;; as-true-color
-;; 24-bit 真彩色格式化组合子（srfi-166 散参形式）。
-;; as-true-color 设置前景色，on-true-color 设置背景色。
+;; 24-bit 真彩色格式化组合子，按 RGB 分量设置前景色。
 ;;
 ;; 语法
 ;; ----
 ;; (as-true-color r g b fmt ...)
-;; (on-true-color r g b fmt ...)
-;; r、g、b 为 0~255 的精确整数。
 ;;
-;; 示例
+;; 参数
 ;; ----
-;; (show #f (as-true-color 138 190 183 "gf")) => "\x1b[38;2;138;190;183mgf\x1b[39m"
+;; r : exact-integer?
+;; 红色分量，0~255。
 ;;
-;; 另见
+;; g : exact-integer?
+;; 绿色分量，0~255。
+;;
+;; b : exact-integer?
+;; 蓝色分量，0~255。
+;;
+;; fmt : format?
+;; 零个或多个格式化对象。
+;;
+;; 返回值
 ;; ----
-;; (liii format color) 提供了更方便的形式，还支持 RGB 列表和 hex 字符串：
-;;   gf doc liii/format/color as-true-color
+;; format?
+;; 包裹了 ANSI 24-bit 前景控制序列的格式化组合子。
+
+(import (liii check) (srfi srfi-166 base) (srfi srfi-166 color))
+
+(check-set-mode! 'report-failed)
 
 (check (show #f (as-true-color 138 190 183 "gf"))
-       => "\x1b[38;2;138;190;183mgf\x1b[39m")
+  =>
+  "\x1b;[38;2;138;190;183mgf\x1b;[39m"
+) ;check
 (check (show #f (as-true-color 255 128 0 "or" "ange"))
-       => "\x1b[38;2;255;128;0morange\x1b[39m")
+  =>
+  "\x1b;[38;2;255;128;0morange\x1b;[39m"
+) ;check
 (check (show #f (as-true-color 138 190 183))
-       => "\x1b[38;2;138;190;183m\x1b[39m")
-(check (show #f (on-true-color 10 20 30 "dark-bg"))
-       => "\x1b[48;2;10;20;30mdark-bg\x1b[49m")
+  =>
+  "\x1b;[38;2;138;190;183m\x1b;[39m"
+) ;check
 
 (check-report)
