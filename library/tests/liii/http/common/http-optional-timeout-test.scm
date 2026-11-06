@@ -25,7 +25,7 @@
 
 ;; 值为 #f 时返回 #f
 
-(import (liii check) (liii http-common))
+(import (liii check) (liii http common))
 
 (check-set-mode! 'report-failed)
 

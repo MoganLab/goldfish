@@ -21,7 +21,7 @@
 ;; type-error
 ;; entries 不是关联列表，或某一项不是键值对时抛出。
 
-(import (liii check) (liii http-common))
+(import (liii check) (liii http common))
 
 (check-set-mode! 'report-failed)
 

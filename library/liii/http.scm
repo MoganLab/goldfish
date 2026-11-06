@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii http)
-  (import (liii error) (liii http-common) (scheme file))
+  (import (liii error) (liii http common) (scheme file))
   (export http-head http-get http-post http-ok?)
   (begin
 

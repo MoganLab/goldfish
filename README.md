@@ -37,9 +37,9 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii option)](goldfish/liii/option.scm)         | Option Type Library                  | `option?`, `option-map`, `option-flatten`                        |
 | [(liii either)](goldfish/liii/either.scm)         | Either Type Library                  | `left?`, `right?`, `either-map`                                  |
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4` `uuid7`                                                  |
-| [(liii http)](goldfish/liii/http.scm)             | HTTP client library                  | `http-get`, `http-post`, `http-head`                             |
-| [(liii http-async)](goldfish/liii/http-async.scm) | Async HTTP client library            | `http-async-get`, `http-wait-all`                                |
-| [(liii http-common)](goldfish/liii/http-common.scm) | Shared helpers for http modules   | `http-ok?`                                                       |
+| [(liii http)](library/liii/http.scm)             | HTTP client library                  | `http-get`, `http-post`, `http-head`                             |
+| [(liii http async)](library/liii/http/async.scm) | Async HTTP client library            | `http-async-get`, `http-wait-all`                                |
+| [(liii http common)](library/liii/http/common.scm) | Shared helpers for http modules   | `http-ok?`                                                       |
 | [(liii json)](goldfish/liii/json.scm)             | JSON parsing and manipulation        | `string->json`, `json->string`                                   |
 | [(liii subprocess)](goldfish/liii/subprocess.scm) | Subprocess management                | `run`, `run-pipe`, `run-sequence`                                 |
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |

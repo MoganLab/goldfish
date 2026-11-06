@@ -37,9 +37,9 @@
 | [(liii option)](goldfish/liii/option.scm)         | Option 类型库                   | `option?`, `option-map`, `option-flatten`                          |
 | [(liii either)](goldfish/liii/either.scm)         | Either 类型库（左值/右值）      | `left?`, `right?`, `either-map`                                    |
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4` `uuid7`                                                    |
-| [(liii http)](goldfish/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
-| [(liii http-async)](goldfish/liii/http-async.scm) | 异步 HTTP 客户端库             | `http-async-get`, `http-wait-all`                                  |
-| [(liii http-common)](goldfish/liii/http-common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |
+| [(liii http)](library/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
+| [(liii http async)](library/liii/http/async.scm) | 异步 HTTP 客户端库             | `http-async-get`, `http-wait-all`                                  |
+| [(liii http common)](library/liii/http/common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |
 | [(liii json)](goldfish/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
 | [(liii subprocess)](goldfish/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |

@@ -22,7 +22,7 @@
 ;; ----
 ;; 如果没有活跃的异步请求，http-wait-all 立即返回。
 
-(import (liii check) (liii http-async) (liii os))
+(import (liii check) (liii http async) (liii os))
 
 (check-set-mode! 'report-failed)
 

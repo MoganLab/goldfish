@@ -22,7 +22,7 @@
 ;; 异步 HEAD 请求立即返回，不阻塞。请求完成后调用 callback。
 ;; 适合并发检查多个资源的状态。
 
-(import (liii check) (liii http-async) (liii os))
+(import (liii check) (liii http async) (liii os))
 
 (check-set-mode! 'report-failed)
 

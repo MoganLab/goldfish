@@ -14,7 +14,7 @@
 ;; limitations under the License.
 ;;
 
-(define-library (liii http-common)
+(define-library (liii http common)
   (import (liii alist) (liii error) (scheme file))
   (export http-ok? http-require-string http-require-procedure
     http-require-boolean http-optional-string http-optional-procedure

@@ -1,11 +1,11 @@
-# (liii http-common) 模块函数索引
+# (liii http common) 模块函数索引
 
-`(liii http-common)` 存放 `(liii http)` 与 `(liii http-async)` 共享的响应处理与参数校验辅助函数。
+`(liii http common)` 存放 `(liii http)` 与 `(liii http async)` 共享的响应处理与参数校验辅助函数。
 
 使用时导入：
 
 ```scheme
-(import (liii http-common))
+(import (liii http common))
 ```
 
 ## 查看函数文档
@@ -21,7 +21,7 @@ gf doc http-ok?
 ### 响应处理
 - `http-ok?` - 检查响应是否成功（2xx 状态码）
 
-### 内部辅助函数（供 (liii http) 与 (liii http-async) 复用）
+### 内部辅助函数（供 (liii http) 与 (liii http async) 复用）
 - `http-require-string` - 校验必填字符串参数
 - `http-require-procedure` - 校验必填过程参数
 - `http-require-boolean` - 校验必填布尔参数

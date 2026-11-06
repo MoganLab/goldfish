@@ -20,7 +20,7 @@
 ;; type-error
 ;; data 既不是空数据也不是关联列表时抛出。
 
-(import (liii check) (liii http-common))
+(import (liii check) (liii http common))
 
 (check-set-mode! 'report-failed)
 

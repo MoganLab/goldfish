@@ -25,7 +25,7 @@
 
 ;; 测试异步 GET 请求
 
-(import (liii check) (liii http-async) (liii string) (scheme time) (liii os))
+(import (liii check) (liii http async) (liii string) (scheme time) (liii os))
 
 (check-set-mode! 'report-failed)
 

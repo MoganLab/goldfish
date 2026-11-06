@@ -3,7 +3,7 @@
 ;; 对比展示异步和同步 HTTP 请求的区别
 ;;
 
-(import (liii http) (liii http-async) (liii sys) (scheme time))
+(import (liii http) (liii http async) (liii sys) (scheme time))
 
 (display "========================================\n")
 (display "  Async vs Sync HTTP Comparison Demo\n")

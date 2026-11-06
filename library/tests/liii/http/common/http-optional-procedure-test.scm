@@ -21,7 +21,7 @@
 ;; type-error
 ;; value 为既非 #f 又非过程的值时抛出。
 
-(import (liii check) (liii http-common))
+(import (liii check) (liii http common))
 
 (check-set-mode! 'report-failed)
 

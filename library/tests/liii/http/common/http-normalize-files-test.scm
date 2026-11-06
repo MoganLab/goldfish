@@ -23,7 +23,7 @@
 ;; value-error
 ;; 文件路径不存在、描述缺少 file 键或含不支持的键时抛出。
 
-(import (liii check) (liii http-common) (scheme file))
+(import (liii check) (liii http common) (scheme file))
 
 (check-set-mode! 'report-failed)
 
