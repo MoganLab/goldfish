@@ -64,6 +64,11 @@ bin/gf doc --build-json               # 重建函数索引
 
 函数文档来源于 `tests/` 目录下的 `*-test.scm` 文件。新增或修改测试文档后，运行 `bin/gf doc --build-json` 更新索引。
 
+索引按加载根目录分别写入其关联的 `tests` 根目录：语言层写入 `tests/function-library-index.json`，
+标准库写入 `library/tests/function-library-index.json`，工具写入各自的 `tools/<工具>/tests/function-library-index.json`。
+`--build-json` 会扫描每个加载根目录下的库源码目录（跳过 `tests/` 目录），把各加载根目录的导出记录合并后写出，
+因此打包发布前需要执行一次该命令，索引文件会随 `tests/**`、`library/**`、`tools/**` 一并安装。
+
 ### 静态检查：`check`
 
 `check` 对 Scheme 代码执行只读静态检查，包括文件行数、语法树嵌套深度、glue 封装、记录类型定义和单元测试规范。检查失败时返回非零退出码。
