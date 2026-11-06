@@ -1,13 +1,3 @@
-(import (liii check)
-        (liii error)
-        (liii os)
-        (liii string)
-        (liii shutil))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; rmtree
 ;; 递归删除目录树（目录及其全部内容）。
 ;;
@@ -30,7 +20,7 @@
 ;; 删除成功返回 #t。
 ;; ignore-errors 为 #t 且删除失败时返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 path 不是字符串时抛出错误。
@@ -41,10 +31,19 @@
 ;; os-error
 ;; 当删除失败时抛出错误（ignore-errors 为 #t 时不抛出）。
 ;;
-;; 测试安全约定
-;; ------------
+;; 说明
+;; ----
 ;; rmtree 是破坏性操作，所有测试只允许删除系统临时目录
 ;; (os-temp-dir) 下面的子目录，绝不允许触碰其他路径。
+
+(import (liii check)
+        (liii error)
+        (liii os)
+        (liii string)
+        (liii shutil))
+
+
+(check-set-mode! 'report-failed)
 
 
 ;; ; 安全护栏：path 必须是临时目录下严格更深层的子路径，

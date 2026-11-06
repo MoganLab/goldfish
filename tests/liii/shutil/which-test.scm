@@ -1,11 +1,3 @@
-(import (liii check)
-        (liii os)
-        (liii shutil))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; which
 ;; 在 PATH 或指定目录中查找可执行文件。
 ;;
@@ -17,11 +9,25 @@
 ;; 参数
 ;; ----
 ;; cmd : string?
+;; 要查找的可执行文件名。
 ;; path : string?
+;; 可选的查找目录，缺省时在 PATH 环境变量指定的目录中查找。
 ;;
-;; 说明
+;; 返回值
 ;; ----
-;; 找到时返回可执行文件路径字符串，找不到返回 #f。
+;; string? 或 #f
+;; 找到时返回可执行文件的完整路径字符串，找不到返回 #f。
+;;
+;; 错误处理
+;; ----
+;; cmd 不是字符串时抛出 type-error。
+
+(import (liii check)
+        (liii os)
+        (liii shutil))
+
+
+(check-set-mode! 'report-failed)
 
 
 ;; ; 基本功能测试
