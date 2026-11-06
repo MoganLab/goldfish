@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; reverse-list->string
 ;; 将反转的字符列表转换为字符串。
 ;;
@@ -24,6 +19,12 @@
 ;; ----
 ;; 1. 与 (liii string) 的区别：无直接对应函数，(liii string-cursor) 独有
 ;; 2. 性能：O(n)，n 为列表长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (reverse-list->string '(#\c #\b #\a)) => "abc")
 (check (reverse-list->string '()) => "")

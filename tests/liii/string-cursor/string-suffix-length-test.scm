@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-suffix-length
 ;; 返回两个字符串的最长公共后缀长度。
 ;;
@@ -28,6 +23,12 @@
 ;; 1. string-suffix-length 是 SRFI-130 中的字符串比较函数
 ;; 2. 与 (liii string) 中的 string-suffix-length 功能相同
 ;; 3. 性能：O(n)，n 为公共后缀长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-suffix-length "" "") => 0)
 (check (string-suffix-length "abc" "abc") => 3)

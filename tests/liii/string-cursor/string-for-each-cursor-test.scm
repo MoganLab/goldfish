@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-for-each-cursor
 ;; 对字符串中的每个字符位置（cursor）应用给定的过程。
 ;;
@@ -29,6 +24,12 @@
 ;; 2. 传递给 proc 的是 cursor 而非字符本身
 ;; 3. 需要使用 string-ref/cursor 等函数从 cursor 获取字符
 ;; 4. 性能：O(n)，n 为字符串字符数
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试 - 收集所有 cursor 并通过 string-ref/cursor 读取字符
 (let ((result '()))

@@ -1,8 +1,3 @@
-(import (liii check) (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-remove
 ;; 移除字符串中满足谓词的字符。
 ;;
@@ -35,6 +30,12 @@
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符移除，支持 Unicode
 ;; 3. 性能：O(n)，只需遍历一次字符串
 
+(import (liii check) (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 (check (string-remove char-alphabetic? "abc123") => "123")
 (check (string-remove char-numeric? "abc123") => "abc")
 (check (string-remove char-numeric? "中文123") => "中文")
@@ -44,4 +45,5 @@
 (let* ((s "abc123") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-remove char-numeric? s start end) => "abc")
 ) ;let*
+
 (check-report)

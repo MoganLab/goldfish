@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-split
 ;; 使用分隔符将字符串分割成子串列表。
 ;;
@@ -41,6 +36,12 @@
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，正确处理 Unicode
 ;; 3. 性能：O(n×m)，n 为 s 长度，m 为 delimiter 长度
 
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 (check (string-split "a:b:c" ":") => '("a" "b" "c"))
 (check (string-split "abc" "") => '("a" "b" "c"))
 (check (string-split "" ":") => '())
@@ -61,4 +62,5 @@
 (let* ((s "a,b,c") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-split s "," 'infix #f start end) => '("a" "b" "c"))
 ) ;let*
+
 (check-report)

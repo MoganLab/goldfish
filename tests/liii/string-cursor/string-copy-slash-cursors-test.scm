@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-copy/cursors
 ;; 复制字符串的子串。
 ;;
@@ -33,6 +28,12 @@
 ;; 3. start 和 end 必须同为整数或同为游标
 ;; 4. 与 (liii string) 中的 string-copy 功能类似，但支持游标参数
 ;; 5. 性能：O(n)，n 为子串字符数
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试
 (let ((s "abcdef"))

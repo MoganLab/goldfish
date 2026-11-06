@@ -1,9 +1,3 @@
-(import (liii check))
-(import (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-trim-both
 ;; 去掉字符串两侧满足谓词的字符。
 ;;
@@ -32,6 +26,13 @@
 ;; 1. string-trim-both 是 SRFI-130 中的字符串修剪函数
 ;; 2. 与 (liii string) 中的 string-trim-both 功能相同
 ;; 3. 性能：O(n)，n 为被修剪的字符数
+
+(import (liii check))
+(import (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-trim-both "  abc  ") => "abc")
 (check (string-trim-both "abc") => "abc")

@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-cursor-end
 ;; 返回字符串的post-end游标。
 ;;
@@ -25,6 +20,12 @@
 ;; 1. 创建游标时会预扫描字符串生成偏移表
 ;; 2. 空字符串返回指向位置0的游标
 ;; 3. 性能：O(n)，n为字符串字节长度（预扫描一次）
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试空字符串
 (let ((c (string-cursor-end "")))

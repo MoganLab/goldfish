@@ -1,9 +1,3 @@
-(import (liii check))
-(import (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-skip
 ;; 从左向右查找，返回第一个不满足谓词的字符的cursor。
 ;; 如果没有找到，返回 end cursor。
@@ -37,6 +31,13 @@
 ;; 2. 常用于跳过空白字符等场景
 ;; 3. 搜索范围是 [start, end)
 ;; 4. 性能：O(n)，n 为字符串字符数
+
+(import (liii check))
+(import (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试
 (let ((s "   abc"))
@@ -79,4 +80,5 @@
       ) ;
   (check (string-cursor->index s result) => 3)
 ) ;let*
+
 (check-report)

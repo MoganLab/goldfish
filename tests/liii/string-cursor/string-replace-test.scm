@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-replace
 ;; 替换字符串中的指定子串。
 ;;
@@ -41,6 +36,12 @@
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符位置操作，支持 Unicode
 ;; 3. 性能：O(n)，n 为涉及的字符串总长度
 
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 (check (string-replace "It's easy to code it up in Scheme." "lots of fun" 5 9)
   =>
   "It's lots of fun to code it up in Scheme."
@@ -61,4 +62,5 @@
       ) ;
   (check (string-replace s1 s2 start1 end1 start2 end2) => "abXYZef")
 ) ;let*
+
 (check-report)

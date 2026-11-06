@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-pad
 ;; 在字符串左侧补齐字符，使其达到指定长度。
 ;;
@@ -35,6 +30,12 @@
 ;; 2. 与 (liii string) 中的 string-pad 功能相同
 ;; 3. 如果 s 的长度超过 len，则截断右侧
 ;; 4. 性能：O(len)
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-pad "325" 5) => "  325")
 (check (string-pad "71325" 5) => "71325")

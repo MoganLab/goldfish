@@ -1,8 +1,3 @@
-(import (liii check) (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-count
 ;; 统计字符串中满足给定谓词条件的字符数量。
 ;;
@@ -29,6 +24,12 @@
 ;; 2. 空字符串返回 0
 ;; 3. 性能：O(n)，n 为检查的字符数
 
+(import (liii check) (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 基本测试 - 统计字母字符
 (check (string-count char-alphabetic? "abc123") => 3)
 
@@ -46,4 +47,5 @@
 (let* ((s "abc123") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-count char-alphabetic? s start end) => 3)
 ) ;let*
+
 (check-report)

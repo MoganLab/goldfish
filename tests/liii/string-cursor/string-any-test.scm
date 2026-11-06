@@ -1,8 +1,3 @@
-(import (liii check) (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-any
 ;; 检查是否有任意字符满足谓词。
 ;;
@@ -35,12 +30,18 @@
 ;; 4. 与 (liii string) 版本的差异：本版本只接受谓词(procedure)，不支持字符参数
 ;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确遍历和检查
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string) 库中也提供了 string-any 函数，该版本支持 char/pred?
 ;; 两种参数类型，基于整数索引遍历。
 ;; 参见: gf doc liii/string "string-any"
 ;; 性能：O(n)，n 为检查的字符数
+
+(import (liii check) (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 空字符串返回 #f
 (check (string-any char? "") => #f)
@@ -87,4 +88,5 @@
 (let* ((s "abc123") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-any char-numeric? s start end) => #t)
 ) ;let*
+
 (check-report)

@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-null?
 ;; 判断字符串是否为空。
 ;;
@@ -25,6 +20,12 @@
 ;; 1. 空字符串返回#t
 ;; 2. 包含任意字符（包括中文、emoji）的字符串返回#f
 ;; 3. 性能：O(1)，直接检查长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试
 (check (string-null? "") => #t)

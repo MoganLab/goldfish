@@ -1,9 +1,3 @@
-(import (liii check))
-(import (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-every
 ;; 检查是否所有字符都满足谓词。
 ;;
@@ -35,12 +29,19 @@
 ;; 3. start/end 参数可以是整数索引或 string-cursor
 ;; 4. 与 (liii string) 版本的差异：本版本只接受谓词(procedure)，不支持字符参数
 ;;
-;; 相关实现
-;; --------
+;; 说明
+;; ----
 ;; (liii string) 库中也提供了 string-every 函数，该版本支持 char/pred?
 ;; 两种参数类型，基于整数索引遍历。
 ;; 参见: gf doc liii/string "string-every"
 ;; 性能：O(n)，n 为检查的字符数
+
+(import (liii check))
+(import (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 空字符串返回 #t
 (check (string-every char? "") => #t)
