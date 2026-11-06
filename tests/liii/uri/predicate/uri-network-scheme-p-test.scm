@@ -1,9 +1,3 @@
-(import (liii check) (liii uri predicate))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-network-scheme?
 ;; 检查是否为网络 scheme（有默认端口定义的 scheme）。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-network-scheme? scheme)
 ;;
+;; 参数
+;; ----
+;; scheme : string
+;;   要检查的 URI 协议名称。
+;;
 ;; 返回值
 ;; ----
 ;; boolean?
 ;;   如果是网络 scheme 返回 #t，否则返回 #f。
 
+(import (liii check) (liii uri predicate))
+
+(check-set-mode! 'report-failed)
 
 ;; 网络 scheme
 (check (uri-network-scheme? "http") => #t)

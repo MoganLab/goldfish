@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri make) (liii uri compare))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; string->uri
 ;; make-uri 的别名，从字符串解析构造 URI。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (string->uri str)
 ;;
+;; 参数
+;; ----
+;; str : string
+;;   要解析的 URI 字符串。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回解析后的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri make) (liii uri compare))
+
+(check-set-mode! 'report-failed)
 
 ;; 与 make-uri 结果相同
 

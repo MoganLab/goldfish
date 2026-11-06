@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri predicate))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-absolute?
 ;; 检查是否为绝对 URI（有 scheme）。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-absolute? uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : any
+;;   要检查的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; boolean?
 ;;   如果是绝对 URI 返回 #t，否则返回 #f。
 
+(import (liii check) (liii uri record) (liii uri predicate))
+
+(check-set-mode! 'report-failed)
 
 ;; 绝对 URI（有 scheme）
 

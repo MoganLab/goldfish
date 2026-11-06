@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri transform))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-join-path
 ;; 在 URI 的 path 后追加段。
 ;;
@@ -11,11 +5,21 @@
 ;; ----
 ;; (uri-join-path uri-obj . segments)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要修改的 URI 对象。
+;; segments : string ...
+;;   要依次追加的路径段。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回新的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri transform))
+
+(check-set-mode! 'report-failed)
 
 ;; 追加单个段
 

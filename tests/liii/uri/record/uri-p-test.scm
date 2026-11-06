@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri?
 ;; 检查对象是否为 URI 记录。
 ;;
@@ -21,6 +15,9 @@
 ;; boolean?
 ;;   如果是 URI 记录返回 #t，否则返回 #f。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; URI 对象
 (check (uri? (make-uri-raw "http" "example.com" "/" '() #f)) => #t)

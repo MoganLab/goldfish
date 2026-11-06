@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; alist->query-string
 ;; 将 alist 转为查询字符串。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (alist->query-string alist)
 ;;
+;; 参数
+;; ----
+;; alist : alist?
+;;   查询参数的键值对列表。
+;;
 ;; 返回值
 ;; ----
 ;; string?
 ;;   返回查询字符串。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单转换
 (check (alist->query-string '(("a" . "1"))) => "a=1")

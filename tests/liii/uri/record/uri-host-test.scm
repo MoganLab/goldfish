@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-host
 ;; 从 netloc 解析获取 host。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-host uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; string? 或 #f
 ;;   返回 host 字符串。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单 host
 

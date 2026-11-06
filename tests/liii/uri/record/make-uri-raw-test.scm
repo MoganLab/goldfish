@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-uri-raw
 ;; 从组件创建原始 URI 记录。
 ;;
@@ -34,6 +28,9 @@
 ;; make-uri-raw 创建原始 URI 记录，不进行任何编码或验证。
 ;; 如需从字符串解析 URI，请使用 make-uri。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 基本构造
 (check (uri? (make-uri-raw "https" "example.com" "/path" '() #f)) => #t)

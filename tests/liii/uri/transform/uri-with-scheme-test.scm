@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri transform))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-with-scheme
 ;; 替换 URI 的 scheme。
 ;;
@@ -11,11 +5,21 @@
 ;; ----
 ;; (uri-with-scheme uri-obj new-scheme)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要修改的 URI 对象。
+;; new-scheme : string? 或 #f
+;;   新的协议名称。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回新的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri transform))
+
+(check-set-mode! 'report-failed)
 
 ;; 修改 scheme
 

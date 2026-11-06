@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri transform))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-with-host
 ;; 替换 URI 的 host。
 ;;
@@ -11,11 +5,21 @@
 ;; ----
 ;; (uri-with-host uri-obj new-host)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要修改的 URI 对象。
+;; new-host : string? 或 #f
+;;   新的主机名。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回新的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri transform))
+
+(check-set-mode! 'report-failed)
 
 ;; 修改 host
 

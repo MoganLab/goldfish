@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-path
 ;; 获取 URI 的 path。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-path uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; string? 或 #f
 ;;   返回路径字符串。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单路径
 

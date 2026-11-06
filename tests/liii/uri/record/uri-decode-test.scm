@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-decode
 ;; 对百分比编码的字符串进行解码。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-decode str)
 ;;
+;; 参数
+;; ----
+;; str : string
+;;   要解码的字符串。
+;;
 ;; 返回值
 ;; ----
 ;; string?
 ;;   返回解码后的字符串。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 无需解码
 (check (uri-decode "hello") => "hello")

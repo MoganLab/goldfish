@@ -1,9 +1,3 @@
-(import (liii check) (liii uri))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-join
 ;; 合并两个 URI（RFC 3986）
 ;;
@@ -11,11 +5,21 @@
 ;; ----
 ;; (uri-join base-uri ref-uri)
 ;;
+;; 参数
+;; ----
+;; base-uri : uri?
+;;   作为合并基准的 URI。
+;; ref-uri : uri?
+;;   要合并到基准 URI 的引用。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回新的 URI 记录。
 
+(import (liii check) (liii uri))
+
+(check-set-mode! 'report-failed)
 
 ;; 合并相对路径引用
 
@@ -33,29 +37,33 @@
 ;; RFC 3986 5.2.3：合并相对路径引用时保留结尾斜杠
 
 (check (uri->string (uri-join (string->uri "http://a/x/") (string->uri "p/")))
-  => "http://a/x/p/"
-)
+  =>
+  "http://a/x/p/"
+) ;check
 
 (check (uri->string (uri-join (string->uri "http://a/x/") (string->uri "p/q/")))
-  => "http://a/x/p/q/"
-)
+  =>
+  "http://a/x/p/q/"
+) ;check
 
 (check (uri->string (uri-join (string->uri "http://a/x/y") (string->uri "p/")))
-  => "http://a/x/p/"
-)
+  =>
+  "http://a/x/p/"
+) ;check
 
 
 ;; 连续合并时，目录型相对引用仍应作为后续引用的 base path
 
 (define directory-uri
   (uri-join (string->uri "http://h/draft/") (string->uri "baseUriChange/"))
-)
+) ;define
 
 
 (check (uri->string directory-uri) => "http://h/draft/baseUriChange/")
 (check (uri->string (uri-join directory-uri (string->uri "file.json")))
-  => "http://h/draft/baseUriChange/file.json"
-)
+  =>
+  "http://h/draft/baseUriChange/file.json"
+) ;check
 
 
 (check-report)

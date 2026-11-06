@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-parent
 ;; 获取父目录路径。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-parent uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; string?, #f, 或 ""
 ;;   返回父目录路径，根路径返回 #f，无目录返回 ""。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 多级路径
 

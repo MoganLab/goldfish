@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-scheme
 ;; 获取 URI 的 scheme。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-scheme uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; string? 或 #f
 ;;   返回 scheme 字符串，如 "http", "https"。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 (define u1 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-scheme u1) => "https")

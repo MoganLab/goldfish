@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri transform))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-with-path
 ;; 替换 URI 的 path。
 ;;
@@ -11,11 +5,21 @@
 ;; ----
 ;; (uri-with-path uri-obj new-path)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要修改的 URI 对象。
+;; new-path : string?
+;;   新的路径。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回新的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri transform))
+
+(check-set-mode! 'report-failed)
 
 ;; 修改 path
 

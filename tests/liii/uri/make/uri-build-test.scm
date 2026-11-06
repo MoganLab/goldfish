@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri make))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-build
 ;; 使用关键字参数从组件构建 URI。
 ;;
@@ -11,11 +5,31 @@
 ;; ----
 ;; (uri-build #:key scheme user password host port path query fragment)
 ;;
+;; 参数
+;; ----
+;; scheme : string? 或 #f
+;;   可选协议名称。
+;; user、password : string? 或 #f
+;;   可选认证信息。
+;; host : string? 或 #f
+;;   可选主机名。
+;; port : integer? 或 #f
+;;   可选端口号。
+;; path : string? 或 #f
+;;   可选路径。
+;; query : alist?
+;;   可选查询参数列表。
+;; fragment : string? 或 #f
+;;   可选片段标识符。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回构建的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri make))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单构建
 

@@ -1,9 +1,3 @@
-(import (liii check) (liii uri predicate))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-default-port
 ;; 获取 scheme 的默认端口。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-default-port scheme)
 ;;
+;; 参数
+;; ----
+;; scheme : string
+;;   URI 协议名称。
+;;
 ;; 返回值
 ;; ----
 ;; number? 或 #f
 ;;   返回 scheme 的默认端口号，未知 scheme 返回 #f。
 
+(import (liii check) (liii uri predicate))
+
+(check-set-mode! 'report-failed)
 
 ;; 标准 scheme
 (check (uri-default-port "http") => 80)

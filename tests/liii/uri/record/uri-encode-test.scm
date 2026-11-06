@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-encode
 ;; 对字符串进行百分比编码。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-encode str)
 ;;
+;; 参数
+;; ----
+;; str : string
+;;   要编码的字符串。
+;;
 ;; 返回值
 ;; ----
 ;; string?
 ;;   返回编码后的字符串。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 无需编码
 (check (uri-encode "hello") => "hello")

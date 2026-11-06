@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri transform))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-without-query-param
 ;; 移除 URI 的指定 query 参数。
 ;;
@@ -11,11 +5,21 @@
 ;; ----
 ;; (uri-without-query-param uri-obj key)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要修改的 URI 对象。
+;; key : string
+;;   要移除的查询参数名称。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回新的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri transform))
+
+(check-set-mode! 'report-failed)
 
 ;; 移除单个参数
 

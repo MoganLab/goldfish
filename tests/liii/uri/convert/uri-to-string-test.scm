@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri convert))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri->string
 ;; 将 URI 转换为字符串。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri->string uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要转换的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; string?
 ;;   返回 URI 字符串。
 
+(import (liii check) (liii uri record) (liii uri convert))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单 URI
 

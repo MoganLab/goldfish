@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri compare))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-hash
 ;; 计算 URI 的哈希值。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-hash uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要计算哈希值的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; integer?
 ;;   返回 URI 的哈希值（基于各组件长度之和）。
 
+(import (liii check) (liii uri record) (liii uri compare))
+
+(check-set-mode! 'report-failed)
 
 ;; 相同 URI 有相同哈希值
 

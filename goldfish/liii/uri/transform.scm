@@ -176,14 +176,19 @@
     ) ;define
 
     (define (uri-with-name uri-obj new-name)
-      (let ((parent (uri-parent uri-obj)))
+      (let* ((parent (uri-parent uri-obj))
+             (path (uri-path-raw uri-obj))
+             (root? (and (string? path) (> (string-length path) 0) (char=? (string-ref path 0) #\/))
+             ) ;root?
+            ) ;
         (uri-with-path uri-obj
-          (if (and parent (not (string=? parent "")))
-            (string-append parent "/" new-name)
-            new-name
-          ) ;if
+          (cond
+           ((and parent (not (string=? parent ""))) (string-append parent "/" new-name))
+           (root? (string-append "/" new-name))
+           (else new-name)
+          ) ;cond
         ) ;uri-with-path
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (uri-with-suffix uri-obj new-suffix)
