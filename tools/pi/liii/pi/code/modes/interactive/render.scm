@@ -17,9 +17,9 @@
 (define-library (liii pi code modes interactive render)
   (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
     %pi-app-working-border-row %pi-app-render-working-border!
-    %pi-app-handle-resize! pi-app-scroll-up!
-    pi-app-scroll-down! pi-app-scroll-top! pi-app-scroll-bottom!
-    pi-app-scroll-line-up! pi-app-scroll-line-down!
+    %pi-app-handle-resize! pi-app-scroll-up! pi-app-scroll-down!
+    pi-app-scroll-top! pi-app-scroll-bottom! pi-app-scroll-line-up!
+    pi-app-scroll-line-down!
   ) ;export
   (import (scheme base)
     (liii string)
