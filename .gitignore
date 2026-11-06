@@ -37,6 +37,7 @@ tests/resources/hashlib-test-large-local.txt
 tests/function-library-index.json
 tools/doc/tests/function-library-index.json
 tools/pi/tests/function-library-index.json
+library/tests/function-library-index.json
 .claude/settings.local.json
 .codex
 .sisyphus/
