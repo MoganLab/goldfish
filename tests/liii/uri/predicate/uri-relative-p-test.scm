@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri predicate))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-relative?
 ;; 检查是否为相对 URI（无 scheme）。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-relative? uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : any
+;;   要检查的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; boolean?
 ;;   如果是相对 URI 返回 #t，否则返回 #f。
 
+(import (liii check) (liii uri record) (liii uri predicate))
+
+(check-set-mode! 'report-failed)
 
 ;; 相对 URI（无 scheme）
 
