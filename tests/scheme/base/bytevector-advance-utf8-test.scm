@@ -46,5 +46,44 @@
 (check (bytevector-advance-utf8 #u8(255) 0) => 0)
 (check (bytevector-advance-utf8 #u8(97 98) 0 1) => 1)
 (check (bytevector-advance-utf8 #u8(97 98) 1 1) => 1)
+;; 2 字节序列
+(check (bytevector-advance-utf8 #u8(195 164 72) 0) => 2)
+(check (bytevector-advance-utf8 #u8(195 169 101) 0) => 2)
+;; 3 字节序列
+(check (bytevector-advance-utf8 #u8(228 184 173 72) 0) => 3)
+(check (bytevector-advance-utf8 #u8(230 177 137 101) 0) => 3)
+;; 4 字节序列
+(check (bytevector-advance-utf8 #u8(240 159 145 141 72) 0) => 4)
+(check (bytevector-advance-utf8 #u8(240 159 154 128 101) 0) => 4)
+;; 多字节混合序列的逐字符前进
+(check (bytevector-advance-utf8 #u8(72 195 164 228 184 173 240 159 145 141) 0)
+  =>
+  1
+) ;check
+(check (bytevector-advance-utf8 #u8(72 195 164 228 184 173 240 159 145 141) 1)
+  =>
+  3
+) ;check
+(check (bytevector-advance-utf8 #u8(72 195 164 228 184 173 240 159 145 141) 3)
+  =>
+  6
+) ;check
+(check (bytevector-advance-utf8 #u8(72 195 164 228 184 173 240 159 145 141) 6)
+  =>
+  10
+) ;check
+;; 无效与截断序列停留在当前索引
+(check (bytevector-advance-utf8 #u8(128) 0) => 0)
+(check (bytevector-advance-utf8 #u8(194) 0) => 0)
+(check (bytevector-advance-utf8 #u8(240 159 145) 0) => 0)
+(check (bytevector-advance-utf8 #u8(194 0) 0) => 0)
+(check (bytevector-advance-utf8 #u8(228 0 173) 0) => 0)
+(check (bytevector-advance-utf8 #u8(240 159 0 141) 0) => 0)
+;; end 参数截断多字节序列
+(check (bytevector-advance-utf8 #u8(72 101 108 108 111) 0 2) => 1)
+(check (bytevector-advance-utf8 #u8(195 164 72) 0 2) => 2)
+(check (bytevector-advance-utf8 #u8(195 164 72) 0 3) => 2)
+;; 超出序列末尾的索引
+(check (bytevector-advance-utf8 #u8(72) 1) => 1)
 
 (check-report)

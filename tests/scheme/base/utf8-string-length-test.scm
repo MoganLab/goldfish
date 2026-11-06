@@ -37,6 +37,19 @@
 (check (utf8-string-length "こんにちは") => 5)
 ;; 韩文测试
 (check (utf8-string-length "안녕하세요") => 5)
+;; Emoji 测试（每个字符 4 字节、1 个码点）
+(check (utf8-string-length "👍") => 1)
+(check (utf8-string-length "🚀") => 1)
+(check (utf8-string-length "🎉") => 1)
+(check (utf8-string-length "👍🚀🎉") => 3)
+;; 含空格的混合字符串测试
+(check (utf8-string-length "Hello 你好") => 8)
+(check (utf8-string-length "Hello 👍 World") => 13)
+(check (utf8-string-length "你好 🚀 测试") => 7)
+;; 与 string-length（字节数）的区别
+(check-true (> (string-length "中") (utf8-string-length "中")))
+(check-true (> (string-length "👍") (utf8-string-length "👍")))
+(check-true (= (string-length "Hello") (utf8-string-length "Hello")))
 ;; 错误测试
 (check-catch 'type-error (utf8-string-length 123))
 (check-catch 'type-error (utf8-string-length 'symbol))
