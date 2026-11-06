@@ -44,7 +44,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii json schema)](library/liii/json/schema.scm) | JSON Schema 2020-12 validation     | `json-schema-valid?`, `json-schema-errors`                       |
 | [(liii subprocess)](library/liii/subprocess.scm) | Subprocess management                | `run`, `run-pipe`, `run-sequence`                                 |
 | [(liii base64)](library/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |
-| [(liii hashlib)](goldfish/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
+| [(liii hashlib)](library/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 encoding conversion     | `utf8->utf16le`, `utf16be->utf8`                                  |
 | [(liii sort)](goldfish/liii/sort.scm)             | Sorting Library                      | `list-sort`, `list-stable-sort`, `vector-sort`                    |
 | [(liii time)](goldfish/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
