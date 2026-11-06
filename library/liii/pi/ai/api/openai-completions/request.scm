@@ -12,6 +12,7 @@
     (liii uri)
     (liii json)
     (liii http)
+    (liii uuid)
     (liii error)
     (liii time)
     (liii pi ai event)
@@ -25,6 +26,7 @@
   ) ;import
   (export openai-build-tool-declarations-from-names openai-request
     openai-build-endpoint openai-build-headers openai-build-proxy-alist
+    openai-opencode-extra-headers
   ) ;export
   (begin
 
@@ -58,11 +60,36 @@
       ) ;let*
     ) ;define
 
-    (define (openai-build-headers api-key)
-      (list (cons "Content-Type" "application/json")
-        (cons "Authorization" (string-append "Bearer " (or api-key "")))
-        (cons "User-Agent" "Goldfish-Pi/1.0")
-      ) ;list
+    (define* (openai-build-headers api-key (extra-headers '()))
+      (let ((base (list (cons "Content-Type" "application/json")
+                    (cons "Authorization" (string-append "Bearer " (or api-key "")))
+                    (cons "User-Agent" "Goldfish-Pi/1.0")
+                  ) ;list
+           ))
+        (if (pair? extra-headers)
+          (append base extra-headers)
+          base
+        ) ;if
+      ) ;let
+    ) ;define*
+
+    (define (openai-opencode-extra-headers url provider session-id)
+      (if (or (and (string? url) (string-contains? url "opencode.ai"))
+            (and (string? provider)
+              (or (string=? provider "opencode")
+                (string=? provider "opencode-go")
+              ) ;or
+            ) ;and
+          ) ;or
+        (list (cons "x-opencode-session"
+                (if (and (string? session-id) (> (string-length session-id) 0))
+                  session-id
+                  (uuid4)
+                ) ;if
+              ) ;cons
+        ) ;list
+        '()
+      ) ;if
     ) ;define
 
     (define (openai-build-proxy-alist proxy-url)
@@ -167,10 +194,13 @@
                     ((req-json-str) (json->string req-body))
                     ((proxy-alist) (openai-build-proxy-alist proxy-url))
                    ) ;
-        (let ((key-rotation? (pi-key-rotation? config)))
+        (let ((key-rotation? (pi-key-rotation? config))
+              (session-id (let ((p (assoc 'session-id config))) (and p (cdr p))))
+             ) ;
           (let loop
             ((attempt 1) (api-key (pi-request-api-key config)))
-            (let* ((headers (openai-build-headers api-key))
+            (let* ((extra-hdrs (openai-opencode-extra-headers url provider session-id))
+                   (headers (openai-build-headers api-key extra-hdrs))
                    (resp (%post-openai url req-json-str headers proxy-alist timeout))
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))

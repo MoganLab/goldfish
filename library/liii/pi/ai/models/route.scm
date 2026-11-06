@@ -46,8 +46,17 @@
       ) ;let
     ) ;define
 
-    (define (pi-provider-default-model provider)
+    (define (%canonical-provider provider)
       (let ((p (if (symbol? provider) (symbol->string provider) provider)))
+        (cond ((equal? p "zai") "zai-coding-cn")
+              ((equal? p "opencode-go") "opencode")
+              (else p)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (pi-provider-default-model provider)
+      (let ((p (%canonical-provider (if (symbol? provider) (symbol->string provider) provider))))
         (cond ((equal? p "anthropic") "claude-opus-4-8")
               ((equal? p "kimi-coding") "kimi-for-coding")
               ((equal? p "glm") "glm-5.3")
@@ -55,6 +64,7 @@
               ((or (equal? p "zai-coding-cn") (equal? p "zai")) "glm-5.3")
               ((or (equal? p "minimax") (equal? p "minimax-cn")) "MiniMax-M3.1-Flash")
               ((equal? p "ollama") "qwen2.5-coder:latest")
+              ((or (equal? p "opencode") (equal? p "opencode-go")) "deepseek-v4.1-flash")
               (else "gemini-3.8-flash")
         ) ;cond
       ) ;let
@@ -64,7 +74,7 @@
     ;; 不再回退到内置目录，否则 providers.json / models 白名单会形同虚设。
     ;; 本地 ollama 服务由本地动态加载模型，允许任意模型 id。
     (define (pi-provider-has-model? provider model-id models-store)
-      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
+      (let* ((p-str (%canonical-provider (if (symbol? provider) (symbol->string provider) provider)))
              (store-models (%get-provider-models models-store p-str))
             ) ;
         (or (equal? p-str "ollama")
@@ -199,8 +209,9 @@
       ) ;error
     ) ;define
 
-    (define (pi-route-provider-and-model cli-p cli-m settings models-store opt-env)
-      (let* ((has-cli-p?
+    (define (pi-route-provider-and-model cli-p-raw cli-m settings models-store opt-env)
+      (let* ((cli-p (and (string? cli-p-raw) (%canonical-provider cli-p-raw)))
+             (has-cli-p?
                (and (string? cli-p) (not (string-null? (string-trim-both cli-p))))
              ) ;has-cli-p?
              (has-cli-m?
@@ -218,14 +229,16 @@
              (slash? (and (string? raw-m) (string-contains? raw-m "/")))
              (parts (if slash? (string-split raw-m "/") '()))
              (first-part (and slash? (pair? parts) (car parts)))
+             (first-canon (and first-part (%canonical-provider first-part)))
              (slash-p
                (and slash?
                  (not has-cli-p?)
                  (or (member first-part (%catalog-provider-names models-store))
+                   (member first-canon (%catalog-provider-names models-store))
                    (assoc first-part PI_PROVIDERS)
                    (member first-part PI_SUPPORTED_PROVIDERS)
                  ) ;or
-                 first-part
+                 first-canon
                ) ;and
              ) ;slash-p
              (explicit-m

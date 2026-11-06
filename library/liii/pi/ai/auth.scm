@@ -161,6 +161,11 @@
                (%env-var-non-empty "ZHIPU_API_KEY" opt-env)
              ) ;or
             ) ;
+            ((or (string=? p-str "opencode") (string=? p-str "opencode-go"))
+             (or (%env-var-non-empty "OPENCODE_API_KEY" opt-env)
+               (%env-var-non-empty "OPENCODE_GO_API_KEY" opt-env)
+             ) ;or
+            ) ;
             (else #f)
       ) ;cond
     ) ;define
@@ -168,6 +173,8 @@
     (define (%provider-alias p-str)
       (cond ((string=? p-str "zai-coding-cn") "zai")
             ((string=? p-str "zai") "zai-coding-cn")
+            ((string=? p-str "opencode") "opencode-go")
+            ((string=? p-str "opencode-go") "opencode")
             (else #f)
       ) ;cond
     ) ;define

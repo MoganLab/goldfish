@@ -41,6 +41,20 @@
   (check (pi-resolve-provider-key "zai-coding-cn" auth '()) => "zai-secret")
 ) ;let
 
+;; 3b. opencode 与 opencode-go 环境变量及别名支持
+(let ((env '(("OPENCODE_API_KEY" . "env-opencode-key"))))
+  (check (pi-resolve-provider-key "opencode" '() env) => "env-opencode-key")
+  (check (pi-resolve-provider-key "opencode-go" '() env) => "env-opencode-key")
+) ;let
+(let ((env '(("OPENCODE_GO_API_KEY" . "env-opencode-go-key"))))
+  (check (pi-resolve-provider-key "opencode" '() env) => "env-opencode-go-key")
+  (check (pi-resolve-provider-key "opencode-go" '() env) => "env-opencode-go-key")
+) ;let
+(let ((auth '(("opencode" . "auth-opencode-key"))))
+  (check (pi-resolve-provider-key "opencode" auth '()) => "auth-opencode-key")
+  (check (pi-resolve-provider-key "opencode-go" auth '()) => "auth-opencode-key")
+) ;let
+
 ;; 4. 未找到时返回 #f
 (check (pi-resolve-provider-key "unknown-provider" '() '()) => #f)
 

@@ -82,7 +82,9 @@
                  (missing (%missing-models store-models builtin))
                 ) ;
             (cond ((null? missing) models-store)
-                  ((not entry) (cons (cons p-str (list (cons "models" builtin))) models-store))
+                  ((not entry)
+                   (append models-store (list (cons p-str (list (cons "models" builtin)))))
+                  ) ;
                   (else
                     (map (lambda (e)
                            (if (eq? e entry) (%merge-entry-models entry store-models missing) e)

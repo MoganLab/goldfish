@@ -179,6 +179,7 @@
       (let* ((settings (cdr (or (assoc 'settings config) '(#f))))
              (key-rotation? (pi-key-rotation? config))
              (provider (cdr (or (assoc 'provider config) '(#f . #f))))
+             (session-id (let ((p (assoc 'session-id config))) (and p (cdr p))))
             ) ;
         (let-values (((max-r base-delay max-delay provider-r)
                       (pi-resolve-retry-params settings opt-retry)
@@ -186,7 +187,8 @@
                     ) ;
           (let loop
             ((attempt 1) (api-key (pi-request-api-key config)))
-            (let* ((headers (openai-build-headers api-key))
+            (let* ((extra-hdrs (openai-opencode-extra-headers url provider session-id))
+                   (headers (openai-build-headers api-key extra-hdrs))
                    (stream-state (%init-openai-stream-state))
                    (idle-timed-out? #f)
                    (emitted? #f)

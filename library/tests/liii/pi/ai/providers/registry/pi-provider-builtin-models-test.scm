@@ -42,8 +42,9 @@
 ;; PI_PROVIDER_BUILTIN_MODELS 两处导出一致（均为 id -> models 的 alist）
 (check-true (pair? (assoc "kimi-coding" PI_PROVIDER_BUILTIN_MODELS)))
 
-;; "zai" 别名条目不在内置模型目录中（目录按正式 id 组织）
+;; "zai" 与 "opencode-go" 别名条目不在内置模型目录中（目录按正式 id 组织）
 (check (pi-provider-builtin-models "zai") => '())
+(check (pi-provider-builtin-models "opencode-go") => '())
 
 ;; anthropic / glm provider 已移除，无内置模型目录
 (check (pi-provider-builtin-models "glm") => '())
@@ -52,7 +53,7 @@
 ;; 支持的 provider 列表
 (check PI_SUPPORTED_PROVIDERS
   =>
-  '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama")
+  '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama" "opencode")
 ) ;check
 
 (check-report)
