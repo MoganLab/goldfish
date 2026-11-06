@@ -35,6 +35,7 @@
       ],
       "path": [
         "goldfish",
+        "r7rs",
         "library",
         "tests",
         "tools",
@@ -60,7 +61,7 @@
         "reason": "(liii date-time) 总聚合入口测试，跨全部子库验证导出接口协同，不适用单函数文档规范"
       },
       {
-        "path": "tests/scheme/",
+        "path": "tests/goldfish/scheme/",
         "reason": "现有语言测试正向 goldfish/tests/ 迁移，迁移前保留旧测试布局与文档规范"
       },
       {
@@ -114,7 +115,7 @@
     ],
     "no-glue": [
       "bench/",
-      "goldfish/scheme/boot.scm",
+      "r7rs/scheme/boot.scm",
       "goldfish/srfi/srfi-13.scm",
       "tests/"
     ],
@@ -140,7 +141,7 @@
         "reason": "性能基准测试脚本包含大量展开测试数据与循环"
       },
       {
-        "path": "tests/scheme/char/",
+        "path": "r7rs/tests/scheme/char/",
         "reason": "Unicode 字符属性与大小写转换规范测试大查表"
       },
       {
@@ -148,7 +149,7 @@
         "reason": "协程调度机核心算法不可分割"
       },
       {
-        "path": "goldfish/scheme/syntax-rules.scm",
+        "path": "r7rs/scheme/syntax-rules.scm",
         "reason": "宏展开器核心算法不可分割"
       },
       {
@@ -176,11 +177,11 @@
         "reason": "URI 规范解析与记录模型"
       },
       {
-        "path": "goldfish/scheme/base.scm",
+        "path": "r7rs/scheme/base.scm",
         "reason": "R7RS 基础库聚合与核心导出定义"
       },
       {
-        "path": "goldfish/scheme/char.scm",
+        "path": "r7rs/scheme/char.scm",
         "reason": "Scheme 标准字符分类核心实现"
       },
       {
@@ -196,11 +197,11 @@
         "reason": "Packrat 解析引擎语法规则测试用例"
       },
       {
-        "path": "tests/scheme/base/assoc-test.scm",
+        "path": "r7rs/tests/scheme/base/assoc-test.scm",
         "reason": "assoc 边界与各种键匹配完整测试集"
       },
       {
-        "path": "tests/scheme/boot-test.scm",
+        "path": "tests/goldfish/scheme/boot-test.scm",
         "reason": "自举环境各模块与全局符号加载测试"
       }
     ],
@@ -226,7 +227,7 @@
         "reason": "协程调度机核心算法不可分割"
       },
       {
-        "path": "goldfish/scheme/syntax-rules.scm",
+        "path": "r7rs/scheme/syntax-rules.scm",
         "reason": "宏展开器核心算法不可分割"
       },
       {
@@ -270,11 +271,11 @@
         "reason": "字符串处理核心扩展函数集合"
       },
       {
-        "path": "goldfish/scheme/base.scm",
+        "path": "r7rs/scheme/base.scm",
         "reason": "R7RS 基础库聚合与核心导出定义"
       },
       {
-        "path": "goldfish/scheme/boot.scm",
+        "path": "r7rs/scheme/boot.scm",
         "reason": "Goldfish 系统自举入口与环境初始化"
       }
     ]

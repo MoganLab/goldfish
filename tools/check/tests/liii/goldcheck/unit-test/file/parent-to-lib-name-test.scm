@@ -22,7 +22,11 @@
 (check (parent->lib-name "tests/scheme/base") => "(scheme base)")
 (check (parent->lib-name "tests/liii/string") => "(liii string)")
 
-;; 2. 非 tests/ 开头的路径直接按段拼接
+;; 2. 板块测试目录去除 <板块>/tests/ 前缀
+(check (parent->lib-name "r7rs/tests/scheme/base") => "(scheme base)")
+(check (parent->lib-name "library/tests/liii/path") => "(liii path)")
+
+;; 3. 非 tests/ 开头的路径直接按段拼接
 (check (parent->lib-name "tools/check/unit-test") => "(tools check unit-test)")
 
 (check-report)

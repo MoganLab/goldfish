@@ -27,8 +27,8 @@
 
 (check-set-mode! 'report-failed)
 
-;; 1. 提取核心库导出标识符
-(check (extract-library-exports "goldfish/scheme/case-lambda.scm")
+;; 1. 提取 R7RS 板块库导出标识符
+(check (extract-library-exports "r7rs/scheme/case-lambda.scm")
   =>
   '("case-lambda")
 ) ;check

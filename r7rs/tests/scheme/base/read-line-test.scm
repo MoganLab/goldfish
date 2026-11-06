@@ -110,8 +110,8 @@
 ) ;let
 
 ;; 测试12: read-line 从真实标准输入端口读取（默认去除换行符，with-eol 保留换行符）
-(import (liii subprocess) (liii either) (liii string))
-(let* ((res (run-either (list "bin/gf"
+(import (liii subprocess) (liii either) (liii string) (liii sys))
+(let* ((res (run-either (list (executable)
                           "-e"
                           "(let* ((l1 (read-line)) (l2 (read-line (current-input-port) #t)) (l3 (read-line))) (list l1 l2 l3))"
                         ) ;list

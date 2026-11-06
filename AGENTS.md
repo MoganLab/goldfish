@@ -127,7 +127,7 @@ R7RS-small 规范定义的库及其在仓库中的对应关系：
 - **以 R7RS-small 文本为唯一规范来源**，实现不得擅自扩大或缩小语义；超出 small 范围的扩展一律归入 `(liii ...)` 库。- R7RS-small 之外的可选库（`(scheme lazy)`、`(scheme mutable-pairs)`、`(scheme r5rs)` 等）不属于本板块。
 - 对规范的行为偏差与历史兼容处理，必须在 `r7rs/tests/` 中以一致性测试固化，并在源码注释中说明依据。
 - 本板块只承载标准定义的库，不放置 Goldfish 私有扩展。
-- `goldfish/scheme/boot.scm`（自举入口与环境初始化）与 `goldfish/scheme/syntax-rules.scm`（卫生宏展开器）属于语言本体，不属于 R7RS 板块，继续留在 `goldfish/`。
+- `r7rs/scheme/boot.scm`（自举入口与环境初始化）与 `r7rs/scheme/syntax-rules.scm`（卫生宏展开器）不是 R7RS-small 定义的库，而是 `(scheme ...)` 系列库赖以构建的底座：它们只依赖 s7 内建原语，不反向依赖 `goldfish/`，因此随本板块一起置于 `r7rs/`。
 
 ### 2.3 依赖规则
 

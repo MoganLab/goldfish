@@ -2,9 +2,35 @@
   "enabled": true,
   "domains": [
     {
+      "name": "r7rs",
+      "root": "r7rs/",
+      "depends-on": [],
+      "layers": [
+        {
+          "name": "standard",
+          "libs": [
+            "scheme base",
+            "scheme case-lambda",
+            "scheme char",
+            "scheme complex",
+            "scheme cxr",
+            "scheme eval",
+            "scheme file",
+            "scheme inexact",
+            "scheme process-context",
+            "scheme read",
+            "scheme time",
+            "scheme write"
+          ]
+        }
+      ]
+    },
+    {
       "name": "goldfish",
       "root": "goldfish/",
-      "depends-on": [],
+      "depends-on": [
+        "r7rs"
+      ],
       "layers": [
         {
           "name": "kernel",

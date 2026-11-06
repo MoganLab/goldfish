@@ -33,7 +33,7 @@
 ;; 5. 仅包含单元测试文件返回 #t
 (check
   (positionals-only-unit-test-files?
-    '("tests/scheme/base/char-p-test.scm")
+    '("r7rs/tests/scheme/base/char-p-test.scm")
   ) ;positionals-only-unit-test-files?
   =>
   #t
@@ -42,7 +42,7 @@
 ;; 6. 包含单元测试文件与非测试文件混合返回 #f
 (check
   (positionals-only-unit-test-files?
-    '("tests/scheme/base/char-p-test.scm" "goldfish/scheme/base.scm")
+    '("r7rs/tests/scheme/base/char-p-test.scm" "r7rs/scheme/base.scm")
   ) ;positionals-only-unit-test-files?
   =>
   #f

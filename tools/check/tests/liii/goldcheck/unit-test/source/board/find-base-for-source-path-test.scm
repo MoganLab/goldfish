@@ -18,13 +18,13 @@
 (import (scheme base)
   (liii check)
   (liii path)
-  (liii goldcheck unit-test source reexport)
+  (liii goldcheck unit-test source board)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 标准 goldfish 库源码路径解析基准目录
-(let ((base (find-base-for-source-path "goldfish/scheme/base.scm")))
+(let ((base (find-base-for-source-path "r7rs/scheme/base.scm")))
   (check-true (string? base))
   (check-true (path-dir? (path base)))
 ) ;let

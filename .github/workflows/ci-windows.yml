@@ -7,6 +7,7 @@ on:
       - 'goldfish/**'
       - 'json/**'
       - 'library/**'
+      - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
       - 'tools/**'
@@ -19,6 +20,7 @@ on:
       - 'goldfish/**'
       - 'json/**'
       - 'library/**'
+      - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
       - 'tools/**'
@@ -48,6 +50,8 @@ jobs:
         run: xmake config --yes -vD
       - name: build
         run: xmake build --yes -vD goldfish
+      - name: test r7rs
+        run: bin/gf test r7rs/tests/
       - name: test library
         run: bin/gf test library/tests/
       - name: test tools/fmt

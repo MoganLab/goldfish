@@ -31,7 +31,7 @@
     extract-library-exports extract-library-defined-exports
     extract-library-reexported-entries check-missing-exported-tests
     check-reexported-tests check-reexported-test-file file-defines-library?
-    find-test-dir-for-library-source
+    find-test-dir-for-library-source hint-source-path?
   ) ;export
   (begin
 
@@ -119,15 +119,34 @@
     ) ;define
 
     (define (find-tests-library-source norm)
-      (if (string-starts? norm "tests/")
-        (let* ((parts (string-split norm "/"))
-               (subpath (string-join (cdr parts) "/"))
-               (candidate (resolve-repo-file (string-append "goldfish/" subpath ".scm")))
-              ) ;
-          (if (path-file? (path candidate)) candidate #f)
-        ) ;let*
-        #f
-      ) ;if
+      ;; 仓库分为四个板块：r7rs/（R7RS 标准库）、goldfish/（语言层）、
+      ;; library/（标准库）、tools/（工具）。测试目录与源码目录的对应关系
+      ;; 统一为「<板块>/tests/<板块内路径>」：
+      ;;   r7rs/tests/scheme/base    <-> r7rs/scheme/base.scm
+      ;;   library/tests/liii/path   <-> library/liii/path.scm
+      ;;   tests/liii/foo            <-> goldfish/liii/foo.scm
+      (let* ((parts (string-split norm "/"))
+             (prefix (car parts))
+             (rest (cdr parts))
+             ;; 板块内测试目录形如 <板块>/tests/<子路径>，去掉中间的 tests 段
+             (sub
+               (if (and (pair? rest) (string=? (car rest) "tests")) (cdr rest) rest)
+             ) ;sub
+             (rel
+               (cond ((string=? prefix "r7rs") (string-append "r7rs/" (string-join sub "/")))
+                     ((string=? prefix "library") (string-append "library/" (string-join sub "/")))
+                     ((string=? prefix "tests") (string-append "goldfish/" (string-join rest "/")))
+                     (else #f)
+               ) ;cond
+             ) ;rel
+            ) ;
+        (if (not rel)
+          #f
+          (let ((candidate (resolve-repo-file (string-append rel ".scm"))))
+            (if (path-file? (path candidate)) candidate #f)
+          ) ;let
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (find-fixture-library-source parent)
@@ -203,16 +222,31 @@
       ) ;if
     ) ;define
 
+    (define (hint-source-path? norm)
+      ;; hint 目录（类型提示库）不参与库源码与测试目录的互推导。
+      (or (string-starts? norm "hint/") (string-contains? norm "/hint/"))
+    ) ;define
+
     (define (find-tests-test-dir norm)
-      (if (and (string-starts? norm "goldfish/")
-            (not (string-starts? norm "goldfish/hint/"))
-            (string-ends? norm ".scm")
-          ) ;and
-        (let ((subpath (substring norm 9 (- (string-length norm) 4))))
-          (resolve-repo-file (string-append "tests/" subpath))
-        ) ;let
-        #f
-      ) ;if
+      ;; 源码路径 -> 测试目录：与 find-tests-library-source 互为逆映射。
+      (cond ((hint-source-path? norm) #f)
+            ((and (string-starts? norm "goldfish/") (string-ends? norm ".scm"))
+             (resolve-repo-file
+               (string-append "tests/" (substring norm 9 (- (string-length norm) 4)))
+             ) ;resolve-repo-file
+            ) ;
+            ((and (string-starts? norm "r7rs/") (string-ends? norm ".scm"))
+             (resolve-repo-file
+               (string-append "r7rs/tests/" (substring norm 5 (- (string-length norm) 4)))
+             ) ;resolve-repo-file
+            ) ;
+            ((and (string-starts? norm "library/") (string-ends? norm ".scm"))
+             (resolve-repo-file
+               (string-append "library/tests/" (substring norm 8 (- (string-length norm) 4)))
+             ) ;resolve-repo-file
+            ) ;
+            (else #f)
+      ) ;cond
     ) ;define
 
     (define (find-fixture-test-dir src-path)
@@ -290,6 +324,7 @@
 
     (set-exported-name-to-test-stem-fn! exported-name->test-stem)
     (set-find-library-source-fn! find-library-source-for-test-dir)
+    (set-find-test-dir-fn! find-test-dir-for-library-source)
 
   ) ;begin
 ) ;define-library

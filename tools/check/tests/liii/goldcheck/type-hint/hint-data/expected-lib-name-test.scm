@@ -19,7 +19,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 包含 hint 目录段的路径推导
-(check (expected-lib-name "goldfish/hint/scheme/base.scm")
+(check (expected-lib-name "r7rs/hint/scheme/base.scm")
   =>
   '(hint scheme base)
 ) ;check
@@ -29,6 +29,6 @@
 ) ;check
 
 ;; 2. 无 hint 目录段返回 #f
-(check (expected-lib-name "goldfish/scheme/base.scm") => #f)
+(check (expected-lib-name "r7rs/scheme/base.scm") => #f)
 
 (check-report)
