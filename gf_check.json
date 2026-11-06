@@ -160,7 +160,7 @@
         "reason": "高效字符串游标实现"
       },
       {
-        "path": "goldfish/liii/packrat.scm",
+        "path": "library/liii/packrat.scm",
         "reason": "Packrat 语法解析引擎核心实现"
       },
       {
@@ -234,7 +234,7 @@
         "reason": "高效字符串游标实现"
       },
       {
-        "path": "goldfish/liii/packrat.scm",
+        "path": "library/liii/packrat.scm",
         "reason": "Packrat 语法解析引擎核心实现"
       },
       {
