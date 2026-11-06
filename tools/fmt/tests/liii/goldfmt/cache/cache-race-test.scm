@@ -13,7 +13,6 @@
 ;; 事先不存在。
 
 (set! *load-path* (cons "tools/fmt" *load-path*))
-(set! *load-path* (cons "tools/common" *load-path*))
 
 (import (liii check)
   (liii go)

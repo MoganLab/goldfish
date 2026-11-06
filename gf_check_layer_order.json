@@ -45,7 +45,6 @@
           "name": "standard",
           "libs": [
             "srfi 166",
-            "srfi 78",
             "srfi sicp",
             "srfi srfi-1",
             "srfi srfi-11",
@@ -72,10 +71,8 @@
             "srfi srfi-224",
             "srfi srfi-26",
             "srfi srfi-267",
-            "srfi srfi-27",
             "srfi srfi-39",
             "srfi srfi-48",
-            "srfi srfi-78",
             "srfi srfi-8",
             "srfi srfi-9"
           ]
@@ -84,75 +81,98 @@
           "name": "application",
           "libs": [
             "liii alist",
-            "liii argparse",
             "liii ascii",
             "liii bag",
-            "liii base64",
             "liii bitwise",
-            "liii check",
-            "liii chez",
             "liii comparator",
-            "liii config-parser",
             "liii cut",
-            "liii date-time",
-            "liii diff",
             "liii either",
             "liii enum",
             "liii flexvector",
             "liii format",
-            "liii fs-watch",
             "liii fxmapping",
             "liii generator",
-            "liii gfproject config",
-            "liii gfproject tools",
             "liii go",
-            "liii goldfmt",
             "liii han-zi",
             "liii hash-table",
+            "liii iset",
+            "liii let",
+            "liii list",
+            "liii match",
+            "liii option",
+            "liii par",
+            "liii queue",
+            "liii range",
+            "liii raw-string",
+            "liii set",
+            "liii sort",
+            "liii stack",
+            "liii string",
+            "liii string-cursor",
+            "liii syntax",
+            "liii syntax-case",
+            "liii tree",
+            "liii trie",
+            "liii unicode",
+            "liii vector"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "library",
+      "root": "library/",
+      "depends-on": [
+        "goldfish"
+      ],
+      "layers": [
+        {
+          "name": "standard",
+          "libs": [
+            "srfi 78",
+            "srfi srfi-27",
+            "srfi srfi-78",
+            "liii argparse",
+            "liii base64",
+            "liii check",
+            "liii chez",
+            "liii config-parser",
+            "liii date-time",
+            "liii diff",
+            "liii fs-watch",
+            "liii gfproject",
+            "liii gfproject config",
+            "liii gfproject tools",
+            "liii goldfmt",
+            "liii goldtool",
+            "liii goldtool cache",
+            "liii goldtool changed",
+            "liii goldtool parallel",
             "liii hashlib",
             "liii http",
             "liii http async",
             "liii http common",
-            "liii iset",
             "liii json",
             "liii json schema",
-            "liii let",
-            "liii list",
             "liii logging",
-            "liii match",
-            "liii option",
             "liii os",
             "liii packrat",
-            "liii par",
             "liii path",
+            "liii pi ai",
             "liii psutil",
-            "liii queue",
             "liii random",
-            "liii range",
-            "liii raw-string",
             "liii semver",
-            "liii set",
             "liii shutil",
             "liii signal",
-            "liii sort",
             "liii sse",
-            "liii stack",
-            "liii string",
-            "liii string-cursor",
             "liii subprocess",
-            "liii syntax",
-            "liii syntax-case",
             "liii sys",
             "liii tempfile",
             "liii time",
             "liii timeit",
-            "liii tree",
-            "liii trie",
             "liii tui",
-            "liii unicode",
             "liii uri",
-            "liii uuid",
-            "liii vector"
+            "liii uuid"
           ]
         }
       ]
@@ -161,16 +181,10 @@
       "name": "pi",
       "root": "tools/pi/",
       "depends-on": [
+        "library",
         "goldfish"
       ],
       "layers": [
-        {
-          "name": "ai",
-          "libs": [
-            "liii pi ai",
-            "liii pi abort"
-          ]
-        },
         {
           "name": "agent",
           "libs": [
@@ -195,28 +209,11 @@
       ]
     },
     {
-      "name": "common",
-      "root": "tools/common/",
-      "depends-on": [
-        "goldfish"
-      ],
-      "layers": [
-        {
-          "name": "shared",
-          "libs": [
-            "liii goldtool changed",
-            "liii goldtool cache",
-            "liii goldtool parallel"
-          ]
-        }
-      ]
-    },
-    {
       "name": "check",
       "root": "tools/check/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -231,8 +228,8 @@
       "name": "doc",
       "root": "tools/doc/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -247,8 +244,8 @@
       "name": "fix",
       "root": "tools/fix/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -263,8 +260,8 @@
       "name": "repl",
       "root": "tools/repl/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -279,8 +276,8 @@
       "name": "test",
       "root": "tools/test/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -298,8 +295,8 @@
       "name": "help",
       "root": "tools/help/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -314,8 +311,8 @@
       "name": "pr",
       "root": "tools/pr/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -330,8 +327,8 @@
       "name": "code",
       "root": "tools/code/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -346,8 +343,8 @@
       "name": "source",
       "root": "tools/source/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {
@@ -365,8 +362,8 @@
       "name": "version",
       "root": "tools/version/",
       "depends-on": [
-        "goldfish",
-        "common"
+        "library",
+        "goldfish"
       ],
       "layers": [
         {

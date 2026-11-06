@@ -17,8 +17,6 @@
 ;; 格式化缓存：供 scheme-fmt / cpp-fmt 共享。
 ;; 底层复用 (liii goldtool cache)：空文件存在即认为已格式化。
 
-(set! *load-path* (append (list "../common" "tools/common") *load-path*))
-
 (define-library (liii goldfmt cache)
   (import (liii base) (liii goldtool cache))
   (export fmt-cache-base-dir fmt-cache-path fmt-cache-hit? fmt-cache-touch)
