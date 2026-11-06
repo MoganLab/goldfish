@@ -1,12 +1,3 @@
-(import (liii check) (liii iset) (liii list))
-
-
-(check-set-mode! 'report-failed)
-
-
-(define mixed-set (list->iset (iota 20 -10 3)))
-
-
 ;;
 ;; iset-search
 ;; 在集合中搜索元素，并使用 continuation 决定更新方式。
@@ -34,6 +25,16 @@
 ;; 返回两个值：可能更新后的集合和 obj。
 ;;
 ;; iset-search insertion
+
+(import (liii check) (liii list) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
+(define mixed-set (list->iset (iota 20 -10 3)))
+
+
 (call-with-values (lambda ()
                     (iset-search mixed-set
                       1

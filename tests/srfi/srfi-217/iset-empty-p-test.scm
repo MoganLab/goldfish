@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; iset-empty?
 ;; 检查集合是否为空。
@@ -21,6 +15,13 @@
 ;; -----
 ;; 如果 iset 为空，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check-true (iset-empty? (iset)))
 (check-false (iset-empty? (iset 2 3 5 7 11)))
 (check-false (iset-empty? (iset 1)))

@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; iset-delete
 ;; 返回一个新集合，移除指定元素。
@@ -24,6 +18,13 @@
 ;; -----
 ;; 返回一个新的 iset。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check (iset->list (iset-delete (iset 1 3 5) 3)) => '(1 5))
 (check (iset->list (iset-delete (iset 1 2 3) 4)) => '(1 2 3))
 

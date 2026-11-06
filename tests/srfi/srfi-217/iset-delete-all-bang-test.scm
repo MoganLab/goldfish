@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; iset-delete-all!
 ;; 与 iset-delete-all 相同，但可以修改原集合。
@@ -24,6 +18,13 @@
 ;; -----
 ;; 返回修改后的原 iset。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check (iset->list (iset-delete-all! (iset 2 3 5 7 11) '(3 4 5))) => '(2 7 11))
 
 

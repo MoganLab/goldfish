@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; iset-adjoin!
 ;; 与 iset-adjoin 相同，但可以修改原集合。
@@ -24,6 +18,13 @@
 ;; -----
 ;; 返回修改后的原 iset。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check (iset->list (iset-adjoin! (iset 1 3 5) 0)) => '(0 1 3 5))
 
 

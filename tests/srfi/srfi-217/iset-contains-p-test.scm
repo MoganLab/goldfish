@@ -1,18 +1,3 @@
-(import (liii check) (liii iset) (liii list))
-
-
-(check-set-mode! 'report-failed)
-
-
-(define pos-seq (iota 20 100 3))
-
-(define neg-seq (iota 20 -100 3))
-
-(define pos-set (list->iset pos-seq))
-
-(define neg-set (list->iset neg-seq))
-
-
 ;;
 ;; iset-contains?
 ;; 检查集合是否包含指定元素。
@@ -33,6 +18,22 @@
 ;; -----
 ;; 如果 iset 包含 element，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (liii list) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
+(define pos-seq (iota 20 100 3))
+
+(define neg-seq (iota 20 -100 3))
+
+(define pos-set (list->iset pos-seq))
+
+(define neg-set (list->iset neg-seq))
+
+
 (check-true (iset-contains? (iset 2 3 5 7 11) 5))
 (check-false (iset-contains? (iset 2 3 5 7 11) 4))
 (check-true (every (lambda (n) (iset-contains? pos-set n)) pos-seq))

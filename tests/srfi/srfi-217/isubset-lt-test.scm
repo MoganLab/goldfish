@@ -1,4 +1,27 @@
-(import (liii check) (liii iset) (liii list))
+;;
+;; isubset<
+;; 返回集合中小于 k 的元素。
+;;
+
+;; 语法
+;; ----
+;; (isubset< iset k)
+;;
+
+;; 参数
+;; ----
+;; set : iset
+;; 目标集合。
+;;
+;; k : exact-integer
+;; 目标元素。
+
+;; 返回值
+;; ----
+;; iset
+;; 返回至多包含一个元素 k 的 iset。
+
+(import (liii check) (liii list) (srfi srfi-217))
 
 
 (check-set-mode! 'report-failed)
@@ -13,14 +36,6 @@
 (define mixed-set (list->iset mixed-seq))
 
 
-;;
-;; isubset<
-;; 返回集合中小于 k 的元素。
-;;
-;; 语法
-;; ----
-;; (isubset< iset k)
-;;
 (check (iset->list (isubset< pos-set 109)) => '(100 103 106))
 (check (iset->list (isubset< mixed-set -4)) => '(-10 -7))
 

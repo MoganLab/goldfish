@@ -1,4 +1,22 @@
-(import (liii check) (liii iset) (liii list))
+;;
+;; iset-disjoint?
+;; 检查两个集合是否不相交（没有共同元素）。
+;;
+;; 语法
+;; ----
+;; (iset-disjoint? iset1 iset2)
+;;
+;; 参数
+;; ----
+;; iset1, iset2 : iset
+;; 要检查的集合。
+;;
+;; 返回值
+;; -----
+;; 如果两个集合没有共同元素，返回 #t；否则返回 #f。
+;;
+
+(import (liii check) (liii list) (srfi srfi-217))
 
 
 (check-set-mode! 'report-failed)
@@ -17,23 +35,6 @@
 (define sparse-set (list->iset (iota 20 -10000 1003)))
 
 
-;;
-;; iset-disjoint?
-;; 检查两个集合是否不相交（没有共同元素）。
-;;
-;; 语法
-;; ----
-;; (iset-disjoint? iset1 iset2)
-;;
-;; 参数
-;; ----
-;; iset1, iset2 : iset
-;; 要检查的集合。
-;;
-;; 返回值
-;; -----
-;; 如果两个集合没有共同元素，返回 #t；否则返回 #f。
-;;
 (check-true (iset-disjoint? (iset 1 3 5) (iset 0 2 4)))
 (check-false (iset-disjoint? (iset 1 3 5) (iset 2 3 4)))
 (check-true (iset-disjoint? pos-set neg-set))

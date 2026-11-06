@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; iset-unfold
 ;; 使用 unfold 模式创建整数集合。
@@ -30,6 +24,13 @@
 ;; -----
 ;; 返回生成的 iset。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check (iset->list (iset-unfold (lambda (n) (> n 64)) values (lambda (n) (* n 2)) 2))
   =>
   '(2 4 8 16 32 64)

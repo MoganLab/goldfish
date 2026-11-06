@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; iset-member
 ;; 查找集合中与指定元素相等的元素。
@@ -27,6 +21,13 @@
 ;; -----
 ;; 如果 element 在 iset 中，返回该元素；否则返回 default。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check (iset-member (iset 2 3 5 7 11) 7 #f) => 7)
 (check (iset-member (iset 2 3 5 7 11) 4 'failure) => 'failure)
 

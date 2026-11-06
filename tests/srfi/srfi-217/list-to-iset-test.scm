@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; list->iset
 ;; 将列表转换为集合。
@@ -21,6 +15,13 @@
 ;; -----
 ;; 返回包含列表元素的新 iset。重复元素会被去重。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check (iset->list (list->iset '(-3 -1 0 2))) => '(-3 -1 0 2))
 
 

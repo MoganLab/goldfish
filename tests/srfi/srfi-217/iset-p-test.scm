@@ -1,9 +1,3 @@
-(import (liii check) (liii iset))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;;
 ;; iset?
 ;; 检查对象是否为整数集合（iset）。
@@ -21,6 +15,13 @@
 ;; -----
 ;; 如果 obj 是 iset，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (srfi srfi-217))
+
+
+(check-set-mode! 'report-failed)
+
+
 (check-true (iset? (iset)))
 (check-true (iset? (iset 1 2 3)))
 (check-false (iset? '()))
