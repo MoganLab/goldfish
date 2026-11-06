@@ -1,7 +1,3 @@
-(import (liii check) (liii unicode) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; utf8-string-set!
 ;; 按 Unicode 字符索引替换字符串中的字符，返回新字符串。
 ;;
@@ -37,6 +33,11 @@
 ;; 当索引为负数或超出字符串字符范围时抛出错误。
 ;; type-error
 ;; 当 str 不是字符串、index 不是整数、char 不是字符时抛出错误。
+
+(import (liii check) (liii unicode) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (utf8-string-set! "abc" 0 #\A) => "Abc")
 (check (utf8-string-set! "abc" 1 #\B) => "aBc")
 (check (utf8-string-set! "abc" 2 #\C) => "abC")
@@ -66,4 +67,5 @@
 (check-catch 'out-of-range (utf8-string-set! "abc" 3 #\a))
 (check-catch 'type-error (utf8-string-set! "abc" 0 "a"))
 (check-catch 'out-of-range (utf8-string-set! "" 0 #\a))
+
 (check-report)

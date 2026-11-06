@@ -1,7 +1,3 @@
-(import (liii check) (liii unicode) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; utf8-make-string
 ;; 创建一个由指定 UTF-8 字符重复填充的新字符串。
 ;;
@@ -34,6 +30,11 @@
 ;; 当 k 为负数时抛出错误。
 ;; type-error
 ;; 当提供的填充参数不是字符时抛出错误。
+
+(import (liii check) (liii unicode) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (utf8-make-string 0) => "")
 (check (utf8-make-string 0 #\a) => "")
 (check (utf8-make-string 0 #\中) => "")
@@ -60,4 +61,5 @@
 (check-catch 'out-of-range (utf8-make-string -1 #\a))
 (check-catch 'out-of-range (utf8-make-string -1))
 (check-catch 'type-error (utf8-make-string 3 "a"))
+
 (check-report)

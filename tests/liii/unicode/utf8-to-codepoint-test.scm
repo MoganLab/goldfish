@@ -1,9 +1,3 @@
-(import (liii check) (liii unicode) (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; utf8->codepoint
 ;; 将 UTF-8 编码的字节向量转换为 Unicode 码点。
 ;;
@@ -26,35 +20,33 @@
 ;; value-error 当字节向量为空或包含无效的 UTF-8 编码序列时。
 ;; type-error 当参数不是字节向量时。
 
+(import (liii check) (liii unicode) (liii base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1 字节编码
 (check (utf8->codepoint #u8(72)) => 72)
 (check (utf8->codepoint #u8(0)) => 0)
 (check (utf8->codepoint #u8(127)) => 127)
 
-
 ;; 2 字节编码
 (check (utf8->codepoint #u8(194 164)) => 164)
 (check (utf8->codepoint #u8(194 128)) => 128)
 (check (utf8->codepoint #u8(223 191)) => 2047)
-
 
 ;; 3 字节编码
 (check (utf8->codepoint #u8(228 184 173)) => 20013)
 (check (utf8->codepoint #u8(224 160 128)) => 2048)
 (check (utf8->codepoint #u8(239 191 191)) => 65535)
 
-
 ;; 4 字节编码
 (check (utf8->codepoint #u8(240 159 145 141)) => 128077)
 (check (utf8->codepoint #u8(240 144 128 128)) => 65536)
 (check (utf8->codepoint #u8(244 143 191 191)) => 1114111)
 
-
 ;; 常见字符
 (check (utf8->codepoint #u8(240 159 154 128)) => 128640)
 (check (utf8->codepoint #u8(240 159 142 137)) => 127881)
-
 
 ;; 与 codepoint->utf8 互逆操作
 (check (utf8->codepoint (codepoint->utf8 72)) => 72)
@@ -62,13 +54,11 @@
 (check (utf8->codepoint (codepoint->utf8 128077)) => 128077)
 (check (utf8->codepoint (codepoint->utf8 1114111)) => 1114111)
 
-
 ;; 错误处理
 (check-catch 'value-error (utf8->codepoint #u8()))
 (check-catch 'value-error (utf8->codepoint #u8(128)))
 (check-catch 'value-error (utf8->codepoint #u8(192 128)))
 (check-catch 'type-error (utf8->codepoint "not-a-bytevector"))
 (check-catch 'type-error (utf8->codepoint 123))
-
 
 (check-report)

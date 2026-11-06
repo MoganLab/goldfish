@@ -1,15 +1,13 @@
-(import (liii check) (liii unicode) (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; unicode-replacement-char
 ;; Unicode 替换字符常量。
 ;;
 ;; 语法
 ;; ----
 ;; unicode-replacement-char
+;;
+;; 参数
+;; ----
+;; 无。本库导出的常量，不接收参数。
 ;;
 ;; 返回值
 ;; ----
@@ -21,19 +19,19 @@
 ;; 替换字符（U+FFFD）用于替换无法识别的字符或无效的字节序列。
 ;; 它在处理损坏的编码数据时特别有用。
 
+(import (liii check) (liii unicode) (liii base))
+
+(check-set-mode! 'report-failed)
 
 ;; 基本值测试
 (check unicode-replacement-char => 65533)
 (check unicode-replacement-char => 65533)
 
-
 ;; 验证类型和值
 (check-true (integer? unicode-replacement-char))
-
 
 ;; 与 hexstr 转换
 (check (codepoint->hexstr unicode-replacement-char) => "FFFD")
 (check (hexstr->codepoint "FFFD") => unicode-replacement-char)
-
 
 (check-report)

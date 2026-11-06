@@ -1,5 +1,3 @@
-(import (liii check) (liii unicode) (liii base))
-
 ;; utf8-replace-invalid
 ;; 把字符串中的非法 UTF-8 字节序列替换为 U+FFFD（替换字符）。
 ;;
@@ -30,12 +28,13 @@
 ;; ----
 ;; type-error 当参数不是字符串时。
 
+(import (liii check) (liii unicode) (liii base))
+
 (check-set-mode! 'report-failed)
 
 (define (u+fffd)
   (utf8->string #u8(239 191 189))
 ) ;define
-
 
 ;; 合法 UTF-8 不受影响
 (check (utf8-replace-invalid "") => "")
@@ -117,26 +116,35 @@
 ) ;check
 
 ;; 越界序列混在正常文本中
-(check (utf8-replace-invalid (string-append "a" (byte-vector->string #u8(237 160 128)) "b"))
+(check (utf8-replace-invalid (string-append "a" (byte-vector->string #u8(237 160 128)) "b")
+       ) ;utf8-replace-invalid
   =>
   (string-append "a" (u+fffd) (u+fffd) (u+fffd) "b")
 ) ;check
 
 ;; 第二字节合法但第三字节非法：E0 A0 是最大非法子序列，41 "退回"
 (check (utf8-replace-invalid (byte-vector->string #u8(224 160 65)))
- =>
+  =>
   (string-append (u+fffd) "A")
 ) ;check
 
 ;; 合法边界不受影响：U+0800 / U+D7FF / U+10000 / U+10FFFF
 (check (utf8-replace-invalid (byte-vector->string #u8(224 160 128)))
-  => (byte-vector->string #u8(224 160 128)))
+  =>
+  (byte-vector->string #u8(224 160 128))
+) ;check
 (check (utf8-replace-invalid (byte-vector->string #u8(237 159 191)))
-  => (byte-vector->string #u8(237 159 191)))
+  =>
+  (byte-vector->string #u8(237 159 191))
+) ;check
 (check (utf8-replace-invalid (byte-vector->string #u8(240 144 128 128)))
-  => (byte-vector->string #u8(240 144 128 128)))
+  =>
+  (byte-vector->string #u8(240 144 128 128))
+) ;check
 (check (utf8-replace-invalid (byte-vector->string #u8(244 143 191 191)))
-  => (byte-vector->string #u8(244 143 191 191)))
+  =>
+  (byte-vector->string #u8(244 143 191 191))
+) ;check
 
 ;; 类型错误检查
 (check-catch 'type-error (utf8-replace-invalid 123))
