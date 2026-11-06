@@ -1,9 +1,3 @@
-(import (liii check) (liii sort))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; list-sorted?
 ;; 检查列表是否已按指定比较函数排序。
 ;;
@@ -24,14 +18,16 @@
 ;; boolean
 ;; 如果列表已排序返回 #t，否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (list-sorted? < '(1 2 3 4 5)) => #t
-;; (list-sorted? < '(1 5 1 0 -1)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; cmp 不是过程、lst 不是正规列表时抛出错误
+
+(import (liii check) (liii sort))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check-false (list-sorted? < '(1 5 1 0 -1 9 2 4 3)))

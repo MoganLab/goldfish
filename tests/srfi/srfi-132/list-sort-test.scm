@@ -1,9 +1,3 @@
-(import (liii check) (liii sort))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; list-sort
 ;; 对列表进行非破坏性快速排序。
 ;;
@@ -28,13 +22,16 @@
 ;; ----
 ;; 这是一个非破坏性操作，原列表不会被修改。
 ;;
-;; 示例
-;; ----
-;; (list-sort < '(3 1 4 1 5 9 2 6)) => '(1 1 2 3 4 5 6 9)
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii check) (liii sort))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (define test-list '(3 1 4 1 5 9 2 6 5))

@@ -1,7 +1,3 @@
-(import (liii check) (liii sort) (liii list))
-
-(check-set-mode! 'report-failed)
-
 ;; list-sort!
 ;; 对列表进行原地排序（破坏性操作），返回排序后的列表本身。
 ;;
@@ -33,13 +29,14 @@
 ;;    list-sort! 是 (list-sort! less? lst)，比较函数在前；
 ;;    内置 sort! 是 (sort! seq less?)，序列在前
 ;;
-;; 示例
-;; ----
-;; (list-sort! < (list 1 5 1 0 -1 9 2 4 3)) => '(-1 0 1 1 2 3 4 5 9)
-;;
 ;; 错误处理
 ;; ----
 ;; 当 lst 不是列表时抛出 type-error 错误。
+
+(import (liii check) (liii sort) (liii list))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本升序排序：精确内容断言
 (check (list-sort! < (list 3 1 4 1 5 9 2 6 5)) => '(1 1 2 3 4 5 5 6 9))

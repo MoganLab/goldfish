@@ -1,9 +1,3 @@
-(import (liii check) (liii sort))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; list-stable-sort
 ;; 对列表进行非破坏性稳定排序。
 ;;
@@ -28,13 +22,16 @@
 ;; ----
 ;; 这是一个非破坏性操作，原列表不会被修改。稳定排序保证相等元素的原始顺序。
 ;;
-;; 示例
-;; ----
-;; (list-stable-sort < '(1 5 1 0 -1 9 2 4 3)) => 稳定排序后的列表
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii check) (liii sort))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check-true (list-sorted? < (list-stable-sort < '(1 5 1 0 -1 9 2 4 3))))

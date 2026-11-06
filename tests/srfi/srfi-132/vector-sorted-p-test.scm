@@ -1,9 +1,3 @@
-(import (liii check) (liii sort))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-sorted?
 ;; 检查向量是否已按指定比较函数排序。
 ;;
@@ -32,14 +26,16 @@
 ;; boolean
 ;; 如果向量已排序返回 #t，否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (vector-sorted? < #(1 2 3 4 5)) => #t
-;; (vector-sorted? < #(5 1 2 3 4) 1) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; Invalid start or end parameters 当 start > end 时
+
+(import (liii check) (liii sort))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check-false (vector-sorted? < #(1 5 1 0 -1 9 2 4 3)))

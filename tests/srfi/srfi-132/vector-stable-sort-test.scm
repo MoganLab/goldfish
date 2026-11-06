@@ -1,9 +1,3 @@
-(import (liii check) (liii sort))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-stable-sort
 ;; 对向量进行非破坏性稳定排序。
 ;;
@@ -28,13 +22,16 @@
 ;; ----
 ;; 这是一个非破坏性操作，原向量不会被修改。稳定排序保证相等元素的原始顺序。
 ;;
-;; 示例
-;; ----
-;; (vector-stable-sort < #(1 5 1 0 -1 9 2 4 3)) => 稳定排序后的向量
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii check) (liii sort))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check-true (vector-sorted? < (vector-stable-sort < #(1 5 1 0 -1 9 2 4 3))))

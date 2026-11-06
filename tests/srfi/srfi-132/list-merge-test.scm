@@ -1,9 +1,3 @@
-(import (liii check) (liii sort))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; list-merge
 ;; 合并两个已排序的列表，返回一个新的已排序列表。
 ;;
@@ -31,13 +25,16 @@
 ;; ----
 ;; 这是一个非破坏性操作。两个输入列表必须已经按相同顺序排序。
 ;;
-;; 示例
-;; ----
-;; (list-merge < '(1 3 5) '(2 4 6)) => '(1 2 3 4 5 6)
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii check) (liii sort))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 基本合并测试
