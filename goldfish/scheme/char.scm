@@ -21,7 +21,7 @@
     string-ci>? string-ci<=? string-ci>=? string-upcase string-downcase
     string-foldcase
   ) ;export
-  (import (scheme base) (liii unicode))
+  (import (scheme base))
   (begin
     (define (digit-value ch)
       (case ch

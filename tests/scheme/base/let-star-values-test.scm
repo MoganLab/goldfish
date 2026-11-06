@@ -22,7 +22,8 @@
 ;; any
 ;; 返回最后一个 body 表达式的结果。
 
-(import (srfi srfi-11) (srfi 78))
+(import (liii check))
+(import (scheme base))
 
 (check-set-mode! 'report-failed)
 

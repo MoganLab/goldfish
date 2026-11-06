@@ -36,7 +36,7 @@
 ;; varlet 把绑定添加到 target-let，并返回同一对象
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

@@ -27,7 +27,7 @@
 ;; cutlet 移除指定符号
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

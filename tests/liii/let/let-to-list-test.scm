@@ -25,7 +25,7 @@
 ;; 空 inlet 转换为空列表
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

@@ -1,13 +1,13 @@
-# (scheme let) 模块函数分类索引
+# (liii let) 模块函数分类索引
 
-`(scheme let)` 提供 S7 风格的环境（let）操作函数。
+`(liii let)` 提供 S7 风格的环境（let）操作函数。
 在 S7/Goldfish 中，环境本身是一等公民对象，可以创建、查询、组合和修改，
 适合实现模块系统、沙箱求值、面向对象等需要显式操控环境的场景。
 
 ## 常见用法示例
 
 ```scheme
-(import (scheme let))
+(import (liii let))
 
 ;; 示例1：创建一个独立环境并访问其中的绑定
 (define e (inlet 'x 1 'y 2))
@@ -32,7 +32,7 @@ gf doc "函数名"
 或者指定库名：
 
 ```bash
-gf doc scheme/let "函数名"
+gf doc liii/let "函数名"
 ```
 
 ## 函数分类索引

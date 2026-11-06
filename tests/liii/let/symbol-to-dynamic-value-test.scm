@@ -26,7 +26,7 @@
 ;; 未绑定的符号返回 #<undefined>
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

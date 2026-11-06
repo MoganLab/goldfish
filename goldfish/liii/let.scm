@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (scheme let)
+(define-library (liii let)
   (export
     ;; 谓词
     let?
