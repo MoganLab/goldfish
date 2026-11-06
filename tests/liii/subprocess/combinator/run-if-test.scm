@@ -1,5 +1,3 @@
-(import (liii check) (liii either) (liii os) (liii subprocess))
-
 ;; run-if
 ;; 条件执行命令（替代 shell 的 if test）。
 ;;
@@ -18,6 +16,8 @@
 ;; ----
 ;; Either
 ;; 被执行命令成功时返回 Right（内含退出码 0），失败时返回 Left（内含 <process-error> 记录）。
+
+(import (liii check) (liii either) (liii os) (liii subprocess))
 
 (when (or (os-linux?) (os-macos?))
   (check (either-right? (run-if "false" "echo yes" "echo no")) => #t)

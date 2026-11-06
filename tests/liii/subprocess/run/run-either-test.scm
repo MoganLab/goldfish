@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii either)
-  (liii os)
-  (liii path)
-  (liii string)
-  (liii subprocess)
-  (scheme file)
-) ;import
-
 ;; run-either
 ;; 执行命令并返回标准输出或错误信息。
 ;;
@@ -33,6 +24,15 @@
 ;; Either
 ;; 成功时返回 Right（内含标准输出字符串），
 ;; 失败时返回 Left（内含 <process-error> 记录）。
+
+(import (liii check)
+  (liii either)
+  (liii os)
+  (liii path)
+  (liii string)
+  (liii subprocess)
+  (scheme file)
+) ;import
 
 (when (or (os-linux?) (os-macos?))
   ;; basic success

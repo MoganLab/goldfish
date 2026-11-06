@@ -1,5 +1,3 @@
-(import (liii check) (liii either) (liii os) (liii subprocess))
-
 ;; run-or
 ;; 顺序执行命令，成功即停（替代 shell 的 ||）。
 ;;
@@ -19,6 +17,8 @@
 ;; ----
 ;; Either
 ;; 任一命令成功时返回 Right 0，全部失败时返回 Left（内含 <process-error> 记录）。
+
+(import (liii check) (liii either) (liii os) (liii subprocess))
 
 (when (or (os-linux?) (os-macos?))
   (check (either-right? (run-or "true" "false")) => #t)

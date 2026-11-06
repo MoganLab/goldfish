@@ -1,5 +1,3 @@
-(import (liii check) (liii either) (liii os) (liii string) (liii subprocess))
-
 ;; run-pipe
 ;; 将多个命令串联为管道（替代 shell 的 |）。
 ;;
@@ -21,6 +19,8 @@
 ;; 成功时返回 Right（内含管道最后一级的 stdout 字符串），
 ;; 失败时返回 Left（内含 <process-error> 记录）。
 
+(import (liii check) (liii either) (liii os) (liii string) (liii subprocess))
+
 (when (or (os-linux?) (os-macos?))
   (check (either-right? (run-pipe "echo hello world" '(grep "hello"))) => #t)
   (check (to-right (run-pipe "echo hello world" '(grep "hello")))
@@ -32,8 +32,7 @@
     #t
   ) ;check
   (check
-    (string-trim-both
-      (to-right (run-pipe '(printf "a\nb\nc") '(grep "a") '(wc "-l")))
+    (string-trim-both (to-right (run-pipe '(printf "a\nb\nc") '(grep "a") '(wc "-l")))
     ) ;string-trim-both
     =>
     "1"

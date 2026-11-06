@@ -1,5 +1,3 @@
-(import (liii check) (liii either) (liii os) (liii subprocess))
-
 ;; run-when
 ;; 条件不满足时执行命令。
 ;;
@@ -19,6 +17,8 @@
 ;; Either
 ;; condition 满足时返回 Right 0；command 成功时返回 Right 0，
 ;; 失败时返回 Left（内含 <process-error> 记录）。
+
+(import (liii check) (liii either) (liii os) (liii subprocess))
 
 (when (or (os-linux?) (os-macos?))
   (check (either-right? (run-when "false" "echo yes")) => #t)

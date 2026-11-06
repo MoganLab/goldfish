@@ -1,5 +1,3 @@
-(import (liii check) (liii os) (liii subprocess))
-
 ;; run
 ;; 执行命令并返回退出码。
 ;;
@@ -32,6 +30,8 @@
 ;; 1. 字符串命令通过 wordexp 拆分后执行，不支持 shell 管道等特性。
 ;; 2. 列表形式以 symbol 开头，最终转换为字符串执行。
 ;; 3. 命令中显式包含 cd 时不可同时设置 :cwd，否则抛 value-error。
+
+(import (liii check) (liii os) (liii subprocess))
 
 (when (or (os-linux?) (os-macos?))
   (check (zero? (run "true")) => #t)

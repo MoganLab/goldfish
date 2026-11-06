@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii either)
-  (liii os)
-  (liii path)
-  (liii subprocess)
-  (scheme file)
-) ;import
-
 ;; run-and
 ;; 顺序执行命令，失败即停（替代 shell 的 &&）。
 ;;
@@ -28,6 +20,14 @@
 ;; Either
 ;; 全部成功时返回 Right（内含最后一个命令的退出码 0），
 ;; 失败时返回 Left（内含 <process-error> 记录）。
+
+(import (liii check)
+  (liii either)
+  (liii os)
+  (liii path)
+  (liii subprocess)
+  (scheme file)
+) ;import
 
 (when (or (os-linux?) (os-macos?))
   (check (either-right? (run-and "true" "true")) => #t)
