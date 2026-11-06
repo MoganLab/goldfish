@@ -37,111 +37,189 @@
   ) ;if
 ) ;define
 
-;; C 实现的 define-library（src/s7_r7rs_library.c）已注册时，此后备版本不生效
-(unless (defined? 'define-library)
-  (define-macro (define-library libname . body)
-    `(define ,(symbol (object->string libname))
-       (with-let (sublet (unlet)
-                   (cons 'import import)
-                   (cons '*export* ())
-                   (cons 'export
-                     (define-macro (,(gensym) . names)
-                       `(set! *export* (append (quote ,names) *export*)))))
-         ,@body
-         (apply inlet
-           (map (lambda (entry)
-                  (if (or (member (car entry) '(*export* export import))
-                        (and (pair? *export*)
-                          (not (member (car entry) *export*))))
-                    (values)
-                    entry))
-             (curlet)))))
-  ) ;define-macro
-) ;unless
+;; UTF-8 码点编解码原语
+;;
+;; (scheme ...) 系列库只承载 R7RS-small 定义的内容，而 UTF-8 码点编解码属于语言
+;; 底层的字节设施，因此放在自举入口这一层，供 (scheme char) 等 R7RS 库使用，
+;; 避免 R7RS 库反向依赖标准库 (liii unicode)。
+;;
+;; 实现只使用 s7 内建的 rootlet 原语（logior/logand/ash/byte-vector 等），
+;; 不依赖任何 (liii ...) 或 (srfi ...) 库。
+;;
+;; 注意：本文件的符号位于 rootlet，(scheme ...) 库可以直接使用（与
+;; syntax-rules.scm 提供的 syntax-rules / define-syntax 同一惯例）。
 
-(unless (defined? 'r7rs-import-library-filename)
-  (define (r7rs-import-library-filename libs)
-    (when (pair? libs)
-      (let ((lib (if (memq (caar libs) '(only except prefix rename)) (cadar libs) (car libs))
-            ) ;lib
-           ) ;
-        (when
-          (not (defined? (symbol (object->string lib))))
-          (load
-            (let loop
-              ((parts lib) (name ""))
-              (set! name (string-append name (symbol->string (car parts))))
-              (if (null? (cdr parts))
-                (string-append name ".scm")
-                (begin
-                  (set! name (string-append name "/"))
-                  (loop (cdr parts) name)
-                ) ;begin
-              ) ;if
-            ) ;let
-          ) ;load
-        ) ;when
-        (r7rs-import-library-filename (cdr libs))
-      ) ;let
+(define (codepoint->utf8 codepoint)
+  (unless (integer? codepoint)
+    (error 'type-error "codepoint->utf8: expected integer, got" codepoint)
+  ) ;unless
+
+  (when (or (< codepoint 0) (> codepoint 1114111))
+    (error 'value-error "codepoint->utf8: codepoint out of Unicode range" codepoint)
+  ) ;when
+
+  (cond ((<= codepoint 127) (byte-vector codepoint))
+
+        ((<= codepoint 2047)
+         (let ((byte1 (logior 192 (logand (ash codepoint -6) 31)))
+               (byte2 (logior 128 (logand codepoint 63)))
+              ) ;
+           (byte-vector byte1 byte2)
+         ) ;let
+        ) ;
+
+        ((<= codepoint 65535)
+         (let ((byte1 (logior 224 (logand (ash codepoint -12) 15)))
+               (byte2 (logior 128 (logand (ash codepoint -6) 63)))
+               (byte3 (logior 128 (logand codepoint 63)))
+              ) ;
+           (byte-vector byte1 byte2 byte3)
+         ) ;let
+        ) ;
+
+        (else
+          (let ((byte1 (logior 240 (logand (ash codepoint -18) 7)))
+                (byte2 (logior 128 (logand (ash codepoint -12) 63)))
+                (byte3 (logior 128 (logand (ash codepoint -6) 63)))
+                (byte4 (logior 128 (logand codepoint 63)))
+               ) ;
+            (byte-vector byte1 byte2 byte3 byte4)
+          ) ;let
+        ) ;else
+  ) ;cond
+) ;define
+
+(define (utf8->codepoint-at bv start)
+  (unless (byte-vector? bv)
+    (error 'type-error "utf8->codepoint-at: expected bytevector")
+  ) ;unless
+
+  (let ((len (length bv)))
+    (when (>= start len)
+      (error 'value-error "utf8->codepoint-at: start index past end of bytevector")
     ) ;when
-  ) ;define
-) ;unless
 
-;; C 实现的 import（src/s7_r7rs_library.c）已注册时，此后备版本不生效
-(unless (defined? 'import)
-  (define-macro (import . libs)
-    `(begin
-       (r7rs-import-library-filename (quote ,libs))
-       (varlet (curlet)
-         ,@(map (lambda (lib)
-                  (case (car lib)
-                        ((only)
-                         `((lambda (e names)
-                             (apply inlet
-                               (map (lambda (name) (cons name (e name))) names)))
-                           (symbol->value (symbol (object->string (cadr (quote
-                                                                          ,lib)))))
-                           (cddr (quote ,lib))))
-                        ((except)
-                         `((lambda (e names)
-                             (apply inlet
-                               (map (lambda (entry)
-                                      (if (member (car entry) names)
-                                        (values)
-                                        entry))
-                                 e)))
-                           (symbol->value (symbol (object->string (cadr (quote
-                                                                          ,lib)))))
-                           (cddr (quote ,lib))))
-                        ((prefix)
-                         `((lambda (e prefx)
-                             (apply inlet
-                               (map (lambda (entry)
-                                      (cons (string->symbol (string-append (symbol->string prefx)
-                                                              (symbol->string (car entry))))
-                                        (cdr entry)))
-                                 e)))
-                           (symbol->value (symbol (object->string (cadr (quote
-                                                                          ,lib)))))
-                           (caddr (quote ,lib))))
-                        ((rename)
-                         `((lambda (e names)
-                             (apply inlet
-                               (map (lambda (entry)
-                                      (let ((info (assoc (car entry) names)))
-                                        (if info
-                                          (cons (cadr info) (cdr entry))
-                                          entry)))
-                                 e)))
-                           (symbol->value (symbol (object->string (cadr (quote
-                                                                          ,lib)))))
-                           (cddr (quote ,lib))))
-                        (else `(let ((sym (symbol (object->string (quote ,lib)))))
-                                 (if (not (defined? sym))
-                                   (format () "~A not loaded~%" sym)
-                                   (symbol->value sym))))))
-             libs)))
-  ) ;define-macro
-) ;unless
+    (let ((first-byte (byte-vector-ref bv start)))
+      (cond ((<= first-byte 127) first-byte)
+
+            ((<= 194 first-byte 223)
+             (when (> (+ start 2) len)
+               (error 'value-error "utf8->codepoint-at: incomplete 2-byte sequence")
+             ) ;when
+             (let ((byte2 (byte-vector-ref bv (+ start 1))))
+               (unless (<= 128 byte2 191)
+                 (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+               ) ;unless
+               (logior (ash (logand first-byte 31) 6) (logand byte2 63))
+             ) ;let
+            ) ;
+
+            ((<= 224 first-byte 239)
+             (when (> (+ start 3) len)
+               (error 'value-error "utf8->codepoint-at: incomplete 3-byte sequence")
+             ) ;when
+             (let ((byte2 (byte-vector-ref bv (+ start 1)))
+                   (byte3 (byte-vector-ref bv (+ start 2)))
+                  ) ;
+               (unless (and (<= 128 byte2 191) (<= 128 byte3 191))
+                 (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+               ) ;unless
+               (let ((codepoint (logior (ash (logand first-byte 15) 12)
+                                  (ash (logand byte2 63) 6)
+                                  (logand byte3 63)
+                                ) ;logior
+                     ) ;codepoint
+                    ) ;
+                 (when (or (<= 55296 codepoint 57343)
+                         (and (= first-byte 224) (< codepoint 2048))
+                         (and (= first-byte 237) (>= codepoint 55296))
+                       ) ;or
+                   (error 'value-error "utf8->codepoint-at: invalid codepoint")
+                 ) ;when
+                 codepoint
+               ) ;let
+             ) ;let
+            ) ;
+
+            ((<= 240 first-byte 244)
+             (when (> (+ start 4) len)
+               (error 'value-error "utf8->codepoint-at: incomplete 4-byte sequence")
+             ) ;when
+             (let ((byte2 (byte-vector-ref bv (+ start 1)))
+                   (byte3 (byte-vector-ref bv (+ start 2)))
+                   (byte4 (byte-vector-ref bv (+ start 3)))
+                  ) ;
+               (unless (and (<= 128 byte2 191) (<= 128 byte3 191) (<= 128 byte4 191))
+                 (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+               ) ;unless
+               (let ((codepoint (logior (ash (logand first-byte 7) 18)
+                                  (ash (logand byte2 63) 12)
+                                  (ash (logand byte3 63) 6)
+                                  (logand byte4 63)
+                                ) ;logior
+                     ) ;codepoint
+                    ) ;
+                 (when (or (< codepoint 65536)
+                         (> codepoint 1114111)
+                         (and (= first-byte 240) (< codepoint 65536))
+                         (and (= first-byte 244) (> codepoint 1114111))
+                       ) ;or
+                   (error 'value-error "utf8->codepoint-at: invalid codepoint")
+                 ) ;when
+                 codepoint
+               ) ;let
+             ) ;let
+            ) ;
+
+            (else (error 'value-error "utf8->codepoint-at: invalid UTF-8 sequence"))
+      ) ;cond
+    ) ;let
+  ) ;let
+) ;define
+
+(define (utf8-string . chars)
+  ;; 由码点序列构造 UTF-8 字符串；等价于 (liii unicode) 的同名函数，
+  ;; 实现下移至自举层，使 (scheme ...) 库不必依赖标准库。
+  (let* ((parts
+           (map
+             (lambda (c)
+               (if (char? c)
+                 (codepoint->utf8 (char->integer c))
+                 (error 'type-error "utf8-string: expected char" c)
+               ) ;if
+             ) ;lambda
+             chars
+           ) ;map
+         ) ;parts
+         (total
+           (let loop
+             ((rest parts) (n 0))
+             (if (null? rest) n (loop (cdr rest) (+ n (length (car rest)))))
+           ) ;let
+         ) ;total
+         (out (make-string total))
+         (idx 0)
+        ) ;
+    (let fill
+      ((rest parts))
+      (if (null? rest)
+        out
+        (let ((bv (car rest)))
+          (let inner
+            ((i 0))
+            (if (>= i (length bv))
+              (fill (cdr rest))
+              (begin
+                (string-set! out idx (integer->char (byte-vector-ref bv i)))
+                (set! idx (+ idx 1))
+                (inner (+ i 1))
+              ) ;begin
+            ) ;if
+          ) ;let
+        ) ;let
+      ) ;if
+    ) ;let
+  ) ;let*
+) ;define
 
 (load "scheme/syntax-rules.scm")
