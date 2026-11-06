@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; call-with-input-string
 ;; 从字符串创建输入端口，并将其作为参数传给指定过程。
 ;;
@@ -25,11 +18,14 @@
 ;; ----
 ;; call-with-input-string 是 S7 内置函数，但不在 R7RS 标准中定义。
 ;;
-;; 示例
-;; ----
-;; (call-with-input-string "123" (lambda (p) (read p)))         => 123
-;; (call-with-input-string "1 2" (lambda (p) (list (read p) (read p)))) => '(1 2)
-;; (call-with-input-string "44" (lambda (p) (+ 1 (read p))))   => 45
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check (call-with-input-string "123" (lambda (p) (read p))) => 123)

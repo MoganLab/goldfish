@@ -1,7 +1,3 @@
-(import (liii check) (liii base))
-
-(check-set-mode! 'report-failed)
-
 ;; receive
 ;; 将多值表达式的返回结果绑定到形参列表并执行表达式体。
 ;;
@@ -30,19 +26,11 @@
 ;; receive 宏来源于 SRFI-8。
 ;; 它为 call-with-values 提供了更简洁、可读性更高的接收多返回值语法抽象。
 ;;
-;; 示例
-;; ----
-;; (receive (a b) (values 1 2)
-;;   (+ a b))
-;; => 3
-;;
-;; (receive (a b . c) (values 1 2 3 4)
-;;   (list a b c))
-;; => (1 2 (3 4))
-;;
-;; (receive all (values 1 2 3)
-;;   all)
-;; => (1 2 3)
+
+(import (liii check) (srfi srfi-8))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 固定长度多值参数绑定
 (check (receive (a b) (values 1 2) (+ a b)) => 3)

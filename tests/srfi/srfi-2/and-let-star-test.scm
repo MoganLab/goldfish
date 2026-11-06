@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-(check-set-mode! 'report-failed)
-
 ;; and-let*
 ;; 顺序绑定变量或执行断言，如果任一子句结果为假则立即短路返回假，否则执行主体。
 ;;
@@ -48,6 +43,11 @@
 ;; 典型场景：
 ;; - 关联列表安全查询：(and-let* ((x (assq key alist))) (cdr x))
 ;; - 多步骤依赖校验与数据提取（如逐层解构、数据校验与转换流水线）。
+
+(import (liii check) (srfi srfi-2))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 基础用法：顺序变量绑定与主体执行
 (check (and-let* ((hi 3) (ho #t)) (+ hi 1)) => 4)

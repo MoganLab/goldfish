@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; loose-cdr
 ;; 宽松地获取列表的剩余部分（cdr）。
 ;; 与标准 cdr 不同，当传入空列表时返回空列表而不是报错。
@@ -22,6 +15,14 @@
 ;; ------
 ;; 如果参数是非空列表，返回除第一个元素外的剩余部分；
 ;; 如果参数是空列表，返回空列表。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试非空列表

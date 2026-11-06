@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; define*
 ;; 定义带有可选参数和关键字参数的函数。
 ;;
@@ -40,11 +33,19 @@
 ;; ----
 ;; define* 允许定义带有默认值的参数，调用时可以按位置传递或使用关键字传递。
 ;;
-;; 限制
+;; 注意
 ;; ----
 ;; 可选参数 (带默认值) 必须放在必需参数之后。
 ;; 如果可选参数需要出现在必需参数之前（如 range 函数），应使用 case-lambda：
 ;;   gf doc scheme/case-lambda
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 基础测试 - 带有默认值的可选参数

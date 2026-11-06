@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; keyword?
 ;; 判断对象是否为关键字。
 ;;
@@ -27,12 +20,14 @@
 ;; 在 S7 中，keyword 是一种特殊的 symbol。
 ;; 因此 (keyword? :x) 和 (symbol? :x) 都返回 #t。
 ;;
-;; 示例
-;; ----
-;; (keyword? :test)     => #t
-;; (keyword? 'symbol)   => #f
-;; (keyword? "string")  => #f
-;; (keyword? 123)       => #f
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check (keyword? :test) => #t)

@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; signature
 ;; 获取函数的类型签名（参数类型和返回值类型的约束）。
 ;;
@@ -27,6 +20,14 @@
 ;; ----
 ;; 签名可能包含循环结构（用 #1=... 表示），表示接受可变数量的参数。
 ;; 例如 #1=(number? . #1#) 表示返回 number? 并接受任意数量的 number? 参数。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试 car/cdr 的完整签名（返回任意类型，需要 pair? 参数）

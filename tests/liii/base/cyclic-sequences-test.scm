@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; cyclic-sequences
 ;; 返回对象内部所有环形（循环引用）子结构组成的列表。
 ;;
@@ -28,6 +21,14 @@
 ;; 2. 环形列表（如尾部的 cdr 指回自身）会被检测出来。
 ;; 3. 嵌套结构中的环形子结构也会被检测出来。
 ;; 4. 常用于在打印、遍历前检测循环引用，避免无限递归。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 普通对象没有环形结构

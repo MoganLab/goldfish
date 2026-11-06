@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; eval-string
 ;; 将字符串作为 Scheme 代码进行求值。
 ;;
@@ -24,6 +17,14 @@
 ;; 返回值
 ;; ------
 ;; 字符串中最后一个表达式的求值结果。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试基本表达式

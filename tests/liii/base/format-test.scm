@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; format
 ;; 按照格式化字符串格式化参数并返回结果字符串或输出到端口。
 ;; 支持 SRFI-48 规范，允许省略目标端口参数（默认为 #f 并返回字符串）。
@@ -42,32 +35,14 @@
 ;;   ~&     - 新行（若前序字符非换行符则换行）
 ;;   ~~     - 字面量 ~
 ;;
-;; 示例
-;; ----
-;; (format "hello")                 => "hello"
-;; (format "~a" 123)                => "123"
-;; (format "~s" "abc")              => "\"abc\""
-;; (format "~d" 42)                 => "42"
-;; (format "~b" 5)                  => "101"
-;; (format "~o" 8)                  => "10"
-;; (format "~x" 255)                => "ff"
-;; (format "~c" #\a)                => "a"
-;; (format "~f" 1.5)                => "1.500000"
-;; (format "~e" 100.1)              => "1.001000e+02"
-;; (format "~%")                    => "\n"
-;; (format "~~")                    => "~"
-;; (format "hello~&world")          => "hello\nworld"
-;; (format #f "hello")              => "hello"
-;; (format #f "~A" 123)             => "123"
-;; (format #f "~S" "abc")           => "\"abc\""
-;; (format #f "~A ~A" 1 2)          => "1 2"
-;; (format #f "~%")                  => "\n"
-;; (format #f "~~")                  => "~"
-;; (format #f "~C" #\a)             => "a"
-;; (format #f "~D" 42)              => "42"
-;; (format #f "~X" 255)             => "ff"
-;; (format #f "~B" 5)               => "101"
-;; (format #f "~O" 8)               => "10"
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 省略 port 参数的测试场景（SRFI-48 核心特性）

@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; copy
 ;; 复制序列或对象。
 ;;
@@ -33,12 +26,14 @@
 ;; 当提供 target 时，将 source 的元素复制到 target 中并返回 target。
 ;; 当提供 start 和 end 时，只复制指定范围的元素。
 ;;
-;; 示例
-;; ----
-;; (copy '(1 2 3))              => (1 2 3)
-;; (copy #(1 2 3))              => #(1 2 3)
-;; (copy "abc")                 => "abc"
-;; (copy 123)                   => 123
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 基本复制测试

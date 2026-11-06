@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; arity
 ;; 获取过程可接受的参数数量范围。
 ;;
@@ -28,6 +21,14 @@
 ;; ----
 ;; arity 用于查询过程可接受的参数数量范围。
 ;; 对于变参函数（使用 . rest），max 可能是一个很大的数表示无上限。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试固定参数 lambda
