@@ -1,32 +1,39 @@
-(import (liii check)
-        (srfi srfi-166 unicode))
-
-(check-set-mode! 'report-failed)
-
 ;; string-terminal-width
-;; 计算字符串在终端上的显示宽度，全角字符计为 2 列，半角字符计为 1 列，ANSI 转义序列计为 0 列。
+;; 计算字符串在终端上的显示宽度。
 ;;
 ;; 语法
 ;; ----
-;; (string-terminal-width str [start] [end])
-;; (string-terminal-width/wide str [start] [end])
-;; (substring-terminal-width str lo hi)
-;; (substring-terminal-width/wide str lo hi)
+;; (string-terminal-width str [start [end]])
 ;;
-;; 示例
+;; 参数
 ;; ----
-;; (string-terminal-width "日本語") => 6
-;; (substring-terminal-width "ａｂｃ" 0 4) => "ａｂ"
+;; str : string?
+;; 待计算宽度的字符串。
 ;;
-;; 另见
+;; start : exact-integer?
+;; 可选，起始字符索引，默认 0。
+;;
+;; end : exact-integer?
+;; 可选，结束字符索引，默认字符串长度。
+;;
+;; 返回值
 ;; ----
-;; (liii format unicode) 同名再导出本函数，日常使用更推荐导入该库：
-;;   (import (liii format unicode))
-;;   (string-terminal-width "日本語")
+;; exact-integer?
+;; 显示列宽：全角字符计 2 列、半角计 1 列、
+;; ANSI 转义序列计 0 列，歧义字符计 1 列。
+;;
+;; 说明
+;; ----
+;; 歧义宽度字符需要按 2 列计算时请使用同库的
+;; string-terminal-width/wide。
+
+(import (liii check) (srfi srfi-166 unicode))
+
+(check-set-mode! 'report-failed)
 
 (check (string-terminal-width "日本語") => 6)
 (check (string-terminal-width "abc") => 3)
-(check (string-terminal-width "\x1b[31mred\x1b[39m") => 3)
+(check (string-terminal-width "\x1b;[31mred\x1b;[39m") => 3)
 
 (check (substring-terminal-width "ａｂｃ" 0 6) => "ａｂｃ")
 (check (substring-terminal-width "ａｂｃ" 0 4) => "ａｂ")
