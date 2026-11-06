@@ -3,8 +3,8 @@
 
 用法（在仓库根目录执行）：
 
-    python3 goldfish/liii/json/schema/meta/generate_meta.py
-    bin/gf fmt goldfish/liii/json/schema/meta.scm
+    python3 library/liii/json/schema/meta/generate_meta.py
+    bin/gf fmt library/liii/json/schema/meta.scm
 
 生成结果需再经 `gf fmt` 格式化，输出才会与仓库中的版本一致。
 """

@@ -18,6 +18,7 @@
 
 (define-library (liii goldcheck type-hint hint-data)
   (import (scheme base)
+    (scheme file)
     (liii base)
     (liii list)
     (liii string)
@@ -26,10 +27,15 @@
     (liii goldcheck type-hint util)
   ) ;import
   (export quote-marker? query-func-name expected-lib-name orig-lib-path
-    hint-var-defs signature-value query-define registered-entries type-ok?
-    signature-parts signature-ok? signature-arity find-def
+    library-source-roots hint-var-defs signature-value query-define
+    registered-entries type-ok? signature-parts signature-ok? signature-arity
+    find-def
   ) ;export
   (begin
+
+    ;; 库实现所在的源码根：语言层 goldfish/ 与标准库层 library/。
+    ;; hint 库统一存放在 goldfish/hint/ 下，其对应的原库可能位于任一源码根。
+    (define library-source-roots '("goldfish" "library"))
 
     ;; s7 的 read 对 'X 产生 #_quote 标记，用 object->string 识别
     (define (quote-marker? x)
@@ -69,10 +75,34 @@
       ) ;let
     ) ;define
 
-    ;; hint 路径 -> 原库路径：删除路径中的 "hint" 目录段
+    ;; 原库候选路径：hint 同层路径优先，其次语言层与标准库层。
+    (define (orig-lib-candidates r)
+      (let ((tail (cdr r)))
+        (cons (join-strings (append (car r) tail) "/")
+          (map
+            (lambda (root) (join-strings (append (list root) tail) "/"))
+            library-source-roots
+          ) ;map
+        ) ;cons
+      ) ;let
+    ) ;define
+
+    ;; hint 路径 -> 原库路径：删除路径中的 "hint" 目录段；
+    ;; 原库可能位于语言层或标准库层，按候选顺序取首个存在的文件。
     (define (orig-lib-path hint-path)
       (let ((r (hint-tail-comps (split-slash (normalize-sep hint-path)))))
-        (if r (join-strings (append (car r) (cdr r)) "/") #f)
+        (if r
+          (let ((candidates (orig-lib-candidates r)))
+            (let loop
+              ((cs candidates))
+              (if (null? cs)
+                (car candidates)
+                (if (file-exists? (car cs)) (car cs) (loop (cdr cs)))
+              ) ;if
+            ) ;let
+          ) ;let
+          #f
+        ) ;if
       ) ;let
     ) ;define
 

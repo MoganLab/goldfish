@@ -11,7 +11,7 @@
 ```
 
 JSON Schema 校验功能由 `(liii json schema)` 子模块提供，详见
-`tests/liii/json/schema/`。
+`library/tests/liii/json/schema/`。
 
 ## 查看函数文档
 

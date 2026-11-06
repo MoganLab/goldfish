@@ -92,7 +92,7 @@
 
 ;; Offline remote resources keep the runner deterministic and avoid network I/O.
 
-(define remote-dir "tests/liii/json/schema/official/remotes/draft2020-12/")
+(define remote-dir "library/tests/liii/json/schema/official/remotes/draft2020-12/")
 
 (define remote-base "http://localhost:1234/draft2020-12/")
 
@@ -189,7 +189,7 @@
 ) ;define
 
 (define (group-path name optional? format?)
-  (string-append "tests/liii/json/schema/official/draft2020-12/"
+  (string-append "library/tests/liii/json/schema/official/draft2020-12/"
     (if optional? "optional/" "")
     (if format? "format/" "")
     name
