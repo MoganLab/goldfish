@@ -30,7 +30,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii vector)](goldfish/liii/vector.scm)         | Vector Library                       | `vector-index`                                                   |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | Hash Table Library                   | `hash-table-empty?`, `hash-table-contains?`                      |
 | [(liii sys)](library/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
-| [(liii os)](goldfish/liii/os.scm)                 | Library looks like Python os module  | `getenv`, `mkdir`                                                |
+| [(liii os)](library/liii/os.scm)                  | Library looks like Python os module  | `getenv`, `mkdir`                                                |
 | [(liii path)](library/liii/path.scm)             | Path Library                         | `path-dir?`, `path-file?`                                        |
 | [(liii range)](goldfish/liii/range.scm)           | Range Library                        | `numeric-range`, `iota`                                          |
 | [(liii generator)](goldfish/liii/generator.scm)   | Generators and Accumulators          | `generator`, `gtake`, `generator-fold`                            |
