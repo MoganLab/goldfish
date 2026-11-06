@@ -1,11 +1,3 @@
-;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
-;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/doc" *load-path*))
-
-(import (liii check) (liii golddoc) (liii os) (liii path))
-
-(check-set-mode! 'report-failed)
-
 ;; build-function-indexes!
 ;; 根据当前 *load-path* 自动扫描源代码库的 export 声明并生成函数索引 JSON。
 ;;
@@ -27,6 +19,14 @@
 ;; 该函数会沿着当前 *load-path* 推导关联的 `tests` 根目录，
 ;; 从对应源代码目录的 `(define-library ... (export ...))` 中提取导出函数，
 ;; 并写出索引文件。
+;;
+;; 前提：运行测试时工作目录是项目根目录。
+
+(set! *load-path* (cons "tools/doc" *load-path*))
+
+(import (liii check) (liii golddoc) (liii os) (liii path))
+
+(check-set-mode! 'report-failed)
 
 (define (cleanup-build-index-fixture base-root)
   (let ((load-root (path-join base-root "goldfish"))
