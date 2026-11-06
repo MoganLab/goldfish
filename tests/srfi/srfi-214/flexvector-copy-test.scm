@@ -1,0 +1,75 @@
+;; flexvector-copy
+;; 创建 flexvector 的浅拷贝。时间复杂度 O(n)，n 为拷贝长度。
+;;
+;; 语法
+;; ----
+;; (flexvector-copy fv)
+;; (flexvector-copy fv start)
+;; (flexvector-copy fv start end)
+;;
+;; 参数
+;; ----
+;; fv : flexvector
+;;   源向量。
+;;
+;; start : exact-nonnegative-integer (可选，默认 0)
+;;   起始索引（包含）。
+;;
+;; end : exact-nonnegative-integer (可选，默认长度)
+;;   结束索引（不包含）。
+;;
+;; 返回值
+;; ----
+;; 返回新的 flexvector，是原向量的浅拷贝。
+
+(import (liii check) (liii flexvector))
+
+
+(check-set-mode! 'report-failed)
+
+
+
+
+;; 完整拷贝
+(let ((fv (flexvector 1 2 3)))
+  (let ((copy (flexvector-copy fv)))
+    ;; 长度相同
+    (check (flexvector-length fv) => (flexvector-length copy))
+    ;; 是不同对象
+    (check-false (eq? fv copy))
+    ;; 内容相同
+    (check (flexvector->vector copy) => #(1 2 3))
+    ;; 修改拷贝不影响原向量
+    (flexvector-set! copy 0 'x)
+    (check (flexvector-ref fv 0) => 1)
+    (check (flexvector-ref copy 0) => 'x)
+  ) ;let
+) ;let
+
+
+;; 从指定位置拷贝到末尾
+(let ((fv (flexvector 1 2 3 4 5)))
+  (check (flexvector->vector (flexvector-copy fv 2)) => #(3 4 5))
+) ;let
+
+
+;; 拷贝区间 [start, end)
+(let ((fv (flexvector 1 2 3 4 5)))
+  (check (flexvector->vector (flexvector-copy fv 1 4)) => #(2 3 4))
+) ;let
+
+
+;; 边界测试：空区间
+(let ((fv (flexvector 1 2 3)))
+  (check (flexvector->vector (flexvector-copy fv 0 0)) => #())
+  (check (flexvector->vector (flexvector-copy fv 3 3)) => #())
+) ;let
+
+
+;; 单元素区间
+(let ((fv (flexvector 1 2 3)))
+  (check (flexvector->vector (flexvector-copy fv 1 2)) => #(2))
+) ;let
+
+
+(check-report)

@@ -64,10 +64,6 @@
         "reason": "现有语言测试正向 goldfish/tests/ 迁移，迁移前保留旧测试布局与文档规范"
       },
       {
-        "path": "tests/srfi/srfi-113/",
-        "reason": "SRFI-113 测试尚未完全从 liii/set 与 liii/bag 合并迁移"
-      },
-      {
         "path": "tools/pi/liii/pi/code/core/tools",
         "reason": "工具核心库聚合重导出尚未完全拆分为单函数测试目录"
       },
