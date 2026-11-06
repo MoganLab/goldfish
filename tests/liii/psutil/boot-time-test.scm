@@ -1,23 +1,29 @@
-(import (liii check)
-        (liii psutil)
-        (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; boot-time
 ;; 获取系统启动时刻，返回 Unix Epoch 以来的秒数。
 ;;
 ;; 语法
 ;; ----
-;; (boot-time) => inexact-real?
+;; (boot-time)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ------
+;; inexact-real?
 ;; 非精确实数，单位为秒，与 Python psutil.boot_time() 的语义一致。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
-;; 平台不支持或无法获取启动时间时抛 os-error。
+;; os-error
+;; 平台不支持或无法获取启动时间时抛出。
+
+(import (liii check)
+        (liii psutil)
+        (scheme time))
+
+(check-set-mode! 'report-failed)
 
 (let-values (((now usec) (get-time-of-day)))
   (let ((time (boot-time)))

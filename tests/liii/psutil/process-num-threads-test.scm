@@ -1,24 +1,40 @@
-(import (liii check)
-        (liii os)
-        (liii psutil))
-
-(check-set-mode! 'report-failed)
-
 ;; process-num-threads
 ;; 查询当前或指定进程当前的线程数。
 ;;
 ;; 语法
 ;; ----
-;; (process-num-threads [pid]) => positive-integer?
+;; (process-num-threads)
+;; (process-num-threads pid)
 ;;
 ;; 参数
 ;; ----
-;; pid : 正精确整数，省略时查询当前进程。
+;; pid : 正精确整数
+;; 要查询的进程号，省略时查询当前进程。
 ;;
-;; 错误
+;; 返回值
 ;; ----
-;; PID 不是精确整数时抛 type-error，非正整数时抛 value-error。
-;; 进程不存在时抛 process-not-found-error；线程数无法读取时抛 os-error。
+;; exact-integer?
+;; 进程的线程数，为正精确整数。
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; PID 不是精确整数时抛出。
+;;
+;; value-error
+;; PID 不是正整数时抛出。
+;;
+;; process-not-found-error
+;; 进程不存在时抛出。
+;;
+;; os-error
+;; 线程数无法读取时抛出。
+
+(import (liii check)
+        (liii os)
+        (liii psutil))
+
+(check-set-mode! 'report-failed)
 
 (let ((count (process-num-threads)))
   (check-true (integer? count))

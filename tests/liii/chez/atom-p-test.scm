@@ -1,11 +1,4 @@
-(import (liii chez) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; atom? 函数测试
-;;
+;; atom?
 ;; 判断给定值是否为原子（非点对类型）。
 ;;
 ;; 语法
@@ -28,17 +21,13 @@
 ;; 在 Scheme 中，原子包括：数字、字符串、符号、布尔值、空列表 '()、向量等。
 ;; 非原子（即点对）是 cons 构造的复合数据结构。
 ;;
-;; 使用场景
-;; --------
-;; 常用于递归处理树形结构时判断叶子节点，或在宏展开时区分简单值和列表结构。
-;;
-;; 示例
+;; 错误处理
 ;; ----
-;; (atom? 'symbol) => #t
-;; (atom? 123) => #t
-;; (atom? "string") => #t
-;; (atom? '(a b c)) => #f
-;; (atom? '()) => #t
+;; 无异常抛出。
+
+(import (liii chez) (liii check))
+
+(check-set-mode! 'report-failed)
 
 
 (check-true (atom? 'symbol))
