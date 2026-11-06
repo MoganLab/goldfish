@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri make))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-uri
 ;; 从字符串解析构造 URI。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (make-uri str)
 ;;
+;; 参数
+;; ----
+;; str : string
+;;   要解析的 URI 字符串。
+;;
 ;; 返回值
 ;; ----
 ;; uri?
 ;;   返回解析后的 URI 记录。
 
+(import (liii check) (liii uri record) (liii uri make))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单 HTTP URI
 
@@ -87,4 +89,3 @@
 (check (uri-fragment-raw (make-uri "https://example.com/a")) => #f)
 
 (check-report)
-
