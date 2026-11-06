@@ -186,7 +186,10 @@
                ) ;if
              ) ;let
             ) ;
-            (else '())
+            ;; 库体顶层可以直接书写定义形式（等价于隐式 begin 的一部分），
+            ;; 例如 (define-library (x) (export a) (import ...) (define a 1))。
+            ;; 若不识别这类定义，导出符号会被误判为「重导出」。
+            (else (extract-form-definitions decl))
       ) ;cond
     ) ;define
 
