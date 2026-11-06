@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-remove-section!
 ;; 删除配置解析器中指定的 section 及其所有 option。
 ;;
@@ -25,6 +21,11 @@
 ;; ----
 ;; config-error
 ;; 不能删除 DEFAULT section；section 不存在时抛出。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((config (make-config-parser)))
   (config-read-string config "[database]\nhost=localhost\nport=5432\n")

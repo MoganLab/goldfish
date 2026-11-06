@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-has-option?
 ;; 检查配置解析器中是否存在指定的 option。
 ;;
@@ -28,6 +24,11 @@
 ;; 说明
 ;; ----
 ;; 如果当前 section 没有该 option，会在 DEFAULT section 中查找（继承机制）。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (define test-ini
   (&- #""

@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-add-section!
 ;; 添加新的 section 到配置解析器。
 ;;
@@ -25,6 +21,11 @@
 ;; ----
 ;; config-error
 ;; section 已存在时抛出。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((config (make-config-parser)))
   (config-read-string config "[database]\nhost=localhost\n")

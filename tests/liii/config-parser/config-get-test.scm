@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-get
 ;; 从配置解析器中获取指定 section 和 option 的值（字符串）。
 ;;
@@ -34,6 +30,11 @@
 ;; ----
 ;; config-error
 ;; section 不存在或 option 不存在（含 DEFAULT 继承查找）时抛出。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (define test-ini
   (&- #""

@@ -1,29 +1,25 @@
-(import (scheme base) (liii check) (liii fs-watch))
-
-(check-set-mode! 'report-failed)
-
 ;; make-fs-event-handler
 ;; 创建文件系统事件处理器（对齐 Python watchdog 的 FileSystemEventHandler），
 ;; 持有四个事件回调槽。
 ;;
 ;; 语法
 ;; ----
-;; (make-fs-event-handler [:on-modified cb] [:on-created cb]
-;;                        [:on-deleted cb] [:on-moved cb]) → fs-event-handler?
+;; (make-fs-event-handler)
+;; (make-fs-event-handler :on-modified cb :on-created cb :on-deleted cb :on-moved cb)
 ;;
 ;; 参数
 ;; ----
-;; :on-modified : procedure | #f (可选，默认 #f)
+;; :on-modified : procedure 或 #f (可选，默认 #f)
 ;; "modified" 事件回调，签名 (lambda (ctx event) ...)。
-;; :on-created : procedure | #f (可选，默认 #f)
+;; :on-created : procedure 或 #f (可选，默认 #f)
 ;; "created" 事件回调。
-;; :on-deleted : procedure | #f (可选，默认 #f)
+;; :on-deleted : procedure 或 #f (可选，默认 #f)
 ;; "deleted" 事件回调。
-;; :on-moved : procedure | #f (可选，默认 #f)
+;; :on-moved : procedure 或 #f (可选，默认 #f)
 ;; "moved" 事件回调（事件带 dest-path 目标路径）。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; fs-event-handler?
 ;; 事件处理器对象，供 fs-observer-schedule! 注册。
 ;;
@@ -41,6 +37,10 @@
 ;; ----
 ;; 任一回调槽传入非 procedure 且非 #f 时抛出 type-error。
 
+(import (scheme base) (liii check) (liii fs-watch))
+
+(check-set-mode! 'report-failed)
+
 ;; 四个回调槽的存取与缺省 #f
 (let ((h (make-fs-event-handler
            :on-modified (lambda (ctx ev) 'mod)
@@ -51,6 +51,14 @@
   (check-true (fs-event-handler? h))
   (check-true (procedure? (fs-handler-on-modified h)))
   (check-true (procedure? (fs-handler-on-created h)))
+  (check-false (fs-handler-on-deleted h))
+  (check-false (fs-handler-on-moved h))
+) ;let
+
+;; 全部槽缺省时均为 #f
+(let ((h (make-fs-event-handler)))
+  (check-false (fs-handler-on-modified h))
+  (check-false (fs-handler-on-created h))
   (check-false (fs-handler-on-deleted h))
   (check-false (fs-handler-on-moved h))
 ) ;let

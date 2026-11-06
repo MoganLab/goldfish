@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-has-section?
 ;; 检查配置解析器中是否存在指定的 section。
 ;;
@@ -21,6 +17,11 @@
 ;; ----
 ;; boolean
 ;; section 存在时返回 #t，否则返回 #f。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((config (make-config-parser)))
   (config-read-string config "[database]\nhost=localhost\nport=5432\n")

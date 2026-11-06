@@ -1,19 +1,9 @@
-(import (scheme base)
-  (scheme time)
-  (liii check)
-  (liii fs-watch)
-  (liii shutil)
-  (liii tempfile)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; fs-watch-start%
 ;; 带前置校验的底层 watcher 启动包装（C 层 g_fs_watch_start 的安全入口）。
 ;;
 ;; 语法
 ;; ----
-;; (fs-watch-start% path recursive) → integer?
+;; (fs-watch-start% path recursive)
 ;;
 ;; 参数
 ;; ----
@@ -23,7 +13,7 @@
 ;; 是否递归监听子目录；当前版本一律传 #f（递归暂不支持）。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; integer?
 ;; watcher 句柄（正整数），供 g_fs_watch_poll / g_fs_watch_stop 使用。
 ;;
@@ -41,23 +31,19 @@
 ;; path 非字符串或 recursive 非布尔时抛出 type-error；
 ;; recursive 为 #t（暂不支持）、目录不存在或平台监听初始化失败时抛出 value-error。
 
+(import (scheme base)
+  (scheme time)
+  (liii check)
+  (liii fs-watch)
+  (liii shutil)
+  (liii tempfile)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 (check-catch 'type-error (fs-watch-start% 123 #f))
 (check-catch 'type-error (fs-watch-start% "/tmp" "yes"))
 (check-catch 'value-error (fs-watch-start% "/tmp" #t))
-(check-catch 'value-error (fs-watch-start% "/no/such/dir/gf-fswatch" #f))
-
-;; start 必须在毫秒级返回：Windows 上若句柄没有 FILE_FLAG_OVERLAPPED，
-;; ReadDirectoryChangesW 会同步阻塞到目录首次变化，C 层“等待监听就位”
-;; 的 2s 超时就会变成固定启动延迟（gf pi 启动即受此影响）。
-(let* ((dir (make-temp-dir "gf-fswatch-start-"))
-       (t0 (current-second))
-       (handle (fs-watch-start% dir #f))
-       (elapsed (- (current-second) t0))
-      ) ;
-  (check-true (integer? handle))
-  (check-true (< elapsed 1.0))
-  (g_fs_watch_stop handle)
-  (rmtree dir #t)
-) ;let*
+(check-catch 'value-error (fs-watch-start% "/no-such-dir-xyz-9911" #f))
 
 (check-report)

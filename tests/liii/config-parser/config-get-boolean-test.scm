@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-get-boolean
 ;; 从配置解析器中获取指定 option 的布尔值。
 ;;
@@ -35,6 +31,11 @@
 ;; ----
 ;; config-error
 ;; 值不是合法布尔字符串时抛出。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (define test-ini
   (&- #""

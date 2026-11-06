@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-read-file
 ;; 从文件读取 INI 配置并填充到解析器。
 ;;
@@ -25,6 +21,11 @@
 ;; ----
 ;; 文件内容解析规则与 `config-read-string` 一致。
 ;; 支持注释、多分隔符、DEFAULT section 继承等。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((config (make-config-parser)))
   (config-read-file config "tests/liii/config-parser/test-data.ini")

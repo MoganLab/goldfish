@@ -1,7 +1,3 @@
-(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; config-read-string
 ;; 从字符串读取 INI 配置并填充到解析器。
 ;;
@@ -26,6 +22,11 @@
 ;; ----
 ;; 支持 `=` 和 `:` 作为分隔符，`;` 和 `#` 作为注释符。
 ;; 键名存储为小写（大小写不敏感）。前后空白被忽略。
+
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((config (make-config-parser)))
   (config-read-string config
