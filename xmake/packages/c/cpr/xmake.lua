@@ -29,6 +29,15 @@ package("cpr")
     end)
 
     on_install("!wasm and !bsd", function (package)
+        -- set_sourcedir 指向工作区 3rdparty/cpr，直接就地构建会被 io.replace 以及
+        -- cmake 工具的 _shrink_cmake_arguments（当链接参数过长时在 CMakeLists.txt 开头插入 set(...)）
+        -- 污染 git 工作区；因此先将源码拷贝至 builddir 下的独立目录中构建，保持工作区干净。
+        local sourcedir = path.join(package:builddir(), "source")
+        os.tryrm(sourcedir)
+        os.mkdir(sourcedir)
+        os.cp(path.join(package:sourcedir(), "*"), sourcedir)
+        os.cd(sourcedir)
+
         io.replace("CMakeLists.txt", "-Werror", "", {plain = true})
         if package:is_plat("windows") or (package:is_plat("android") and is_subhost("windows")) then
             -- fix find_package issue on windows
@@ -43,6 +52,7 @@ package("cpr")
         table.insert(configs, "-DCPR_ENABLE_SSL=" .. (package:config("ssl") and "ON" or "OFF"))
 
         local opt = {}
+        opt.builddir = path.join(package:builddir(), "build")
         opt.packagedeps = {"libcurl"}
         if package:is_plat("windows") and package:has_tool("cxx", "cl", "clang_cl") then
             opt.cxflags = {"/EHsc"}
