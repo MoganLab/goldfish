@@ -1,9 +1,3 @@
-(import (liii check) (liii set))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; list->set
 ;; 将列表转换为 set。
 ;;
@@ -25,15 +19,13 @@
 ;; ----
 ;; 列表中的重复元素会被去重。
 ;;
-;; 示例
-;; ----
-;; (list->set '(1 2 3)) => 包含 1, 2, 3 的 set
-;; (list->set '(1 2 2 1)) => 包含 1, 2 的 set（重复被去重）
-;;
 ;; 错误处理
 ;; ----
 ;; 无异常抛出
 
+(import (liii check) (liii set))
+
+(check-set-mode! 'report-failed)
 
 (define s-empty (set))
 
@@ -43,24 +35,20 @@
 
 (define s-1-2 (set 1 2))
 
-
 (define s-list-1 (list->set '(1 2 3)))
 (check-true (set? s-list-1))
 (check-true (eq? (set-element-comparator s-list-1) comp))
 (check-true (set=? s-1-2-3 s-list-1))
 (check-false (eq? s-1-2-3 s-list-1))
 
-
 (define s-list-empty (list->set '()))
 (check-true (set=? s-empty s-list-empty))
 (check (set-size s-list-empty) => 0)
-
 
 ;; Duplicates in list should be handled
 
 (define s-list-dup (list->set '(1 2 2 1)))
 (check-true (set=? s-1-2 s-list-dup))
 (check (set-size s-list-dup) => 2)
-
 
 (check-report)
