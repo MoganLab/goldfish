@@ -1,11 +1,3 @@
-(import (liii check)
-        (liii uuid)
-        (liii time)
-        (scheme time)
-        (srfi srfi-1))
-
-(check-set-mode! 'report-failed)
-
 ;; uuid7
 ;; 生成一个 RFC 9562 标准 UUIDv7 时间有序唯一标识符。
 ;;
@@ -26,13 +18,17 @@
 ;; ----
 ;; 前 48 位包含毫秒级 Unix 时间戳，按时间生成具有单调递增性，对数据库索引与事件回溯友好。
 ;;
-;; 示例
-;; ----
-;; (uuid7) => "018f3a2b-8a00-7abc-9def-0123456789ab"
-;;
 ;; 错误处理
 ;; ------
 ;; 无异常抛出
+
+(import (liii check)
+        (liii uuid)
+        (liii time)
+        (scheme time)
+        (srfi srfi-1))
+
+(check-set-mode! 'report-failed)
 
 ;; 基础长度检验
 (check (string-length (uuid7)) => 36)

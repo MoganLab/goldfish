@@ -1,7 +1,3 @@
-(import (liii base64) (liii check))
-
-(check-set-mode! 'report-failed)
-
 ;; bytevector-base64-decode
 ;; 将 Base64 编码的字节向量解码为原始字节向量。
 ;;
@@ -31,6 +27,10 @@
 ;; - 含非法字符（含空白、URL-safe 字符） -> value-error
 ;; - 填充位置错误 -> value-error
 ;; - 输入非 bytevector -> type-error
+
+(import (liii base64) (liii check))
+
+(check-set-mode! 'report-failed)
 
 ;; 空输入
 (check (bytevector-base64-decode #u8()) => #u8())
@@ -67,50 +67,50 @@
        ) ;bytevector-base64-decode
   =>
   #u8(84
-    104
-    101
-    32
-    113
-    117
-    105
-    99
-    107
-    32
-    98
-    114
-    111
-    119
-    110
-    32
-    102
-    111
-    120
-    32
-    106
-    117
-    109
-    112
-    115
-    32
-    111
-    118
-    101
-    114
-    32
-    116
-    104
-    101
-    32
-    108
-    97
-    122
-    121
-    32
-    100
-    111
-    103
-    46
-) ;#
+      104
+      101
+      32
+      113
+      117
+      105
+      99
+      107
+      32
+      98
+      114
+      111
+      119
+      110
+      32
+      102
+      111
+      120
+      32
+      106
+      117
+      109
+      112
+      115
+      32
+      111
+      118
+      101
+      114
+      32
+      116
+      104
+      101
+      32
+      108
+      97
+      122
+      121
+      32
+      100
+      111
+      103
+      46
+  ) ;#
 ) ;check
 
 ;; Round-trip 一致性

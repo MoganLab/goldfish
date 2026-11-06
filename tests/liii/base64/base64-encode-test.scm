@@ -1,23 +1,19 @@
-(import (liii base64) (liii check) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; base64-encode
-;; 将字符串编码为 Base64 格式。
+;; 根据输入类型将字符串或字节向量编码为 Base64。
 ;;
 ;; 语法
 ;; ----
-;; (base64-encode str)
+;; (base64-encode x)
 ;;
 ;; 参数
 ;; ----
-;; str : string
-;; 要编码的字符串。必须是字符串类型，其他类型会引发类型错误。
+;; x : string 或 bytevector
+;; 要编码的字符串或原始字节序列。
 ;;
 ;; 返回值
 ;; ----
-;; string
-;; 输入字符串的 Base64 编码结果。遵循 RFC 4648 标准：
+;; string 或 bytevector
+;; 返回与输入类型对应的 Base64 编码结果。遵循 RFC 4648 标准：
 ;; - 每3个字节编码为4个字符
 ;; - 不足3字节时使用'='填充
 ;; - 使用A-Z, a-z, 0-9, '+', '/'字符集
@@ -30,7 +26,13 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 当输入不是字符串类型时引发 type-error
+;; 当输入不是字符串或字节向量时引发 type-error
+
+(import (liii base64) (liii check) (liii error))
+
+(check-set-mode! 'report-failed)
+
+(check (base64-encode #u8(102 111 111)) => (string->utf8 "Zm9v"))
 
 (check (base64-encode "") => "")
 (check (base64-encode "a") => "YQ==")

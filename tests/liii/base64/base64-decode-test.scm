@@ -1,23 +1,19 @@
-(import (liii base64) (liii check))
-
-(check-set-mode! 'report-failed)
-
 ;; base64-decode
-;; 将 Base64 格式的字符串解码为原始字符串。
+;; 根据输入类型将 Base64 字符串或字节向量解码为原始内容。
 ;;
 ;; 语法
 ;; ----
-;; (base64-decode str)
+;; (base64-decode x)
 ;;
 ;; 参数
 ;; ----
-;; str : string
-;; 要解码的 Base64 字符串。
+;; x : string 或 bytevector
+;; 要解码的 Base64 字符串或字节向量。
 ;;
 ;; 返回值
 ;; ----
-;; string
-;; 解码后的原始字符串。
+;; string 或 bytevector
+;; 返回与输入类型对应的解码结果。
 ;;
 ;; 注意
 ;; ----
@@ -26,7 +22,14 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; 输入类型不受支持时抛出 type-error；Base64 内容非法时抛出 value-error。
+
+(import (liii base64) (liii check))
+
+(check-set-mode! 'report-failed)
+
+(check (base64-decode (string->utf8 "Zm9v")) => #u8(102 111 111))
+(check-catch 'type-error (base64-decode 1))
 
 (check (base64-decode "") => "")
 

@@ -1,9 +1,3 @@
-(import (liii check) (liii uuid))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uuid4
 ;; 生成一个随机的 UUID v4 字符串。
 ;;
@@ -24,13 +18,13 @@
 ;; ----
 ;; 每次调用都会生成一个新的随机 UUID。
 ;;
-;; 示例
-;; ----
-;; (uuid4) => "550e8400-e29b-41d4-a716-446655440000"
-;;
 ;; 错误处理
 ;; ------
 ;; 无异常抛出
+
+(import (liii check) (liii uuid))
+
+(check-set-mode! 'report-failed)
 
 
 (check (string-length (uuid4)) => 36)
