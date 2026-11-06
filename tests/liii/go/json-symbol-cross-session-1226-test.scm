@@ -1,8 +1,28 @@
-(import (liii check) (liii go) (liii json) (liii psutil) (liii time))
-
-(check-set-mode! 'report-failed)
-
-;; 复现 issue #1226：JSON true/false/null 符号跨 s7 会话混用
+;; go-apply/source
+;; 复现 issue #1226 的回归测试：JSON true/false/null 符号跨 s7 会话混用。
+;;
+;; 语法
+;; ----
+;; (go-apply/source src env args ch)
+;;
+;; 参数
+;; ----
+;; src : list | symbol
+;; 过程源码表达式（lambda 列表），或解析为过程的全局符号。
+;; env : let
+;; 自由变量的捕获环境（通常是定义点的 funclet 或其派生 inlet）。
+;; args : list
+;; 传给该过程的参数列表，元素须为可序列化的数据。
+;; ch : channel
+;; 结果 channel，任务结束后收到恰好一个结果对象。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 说明
+;; ----
+;; 复现 issue #1226：JSON true/false/null 符号跨 s7 会话混用。
 ;;
 ;; 根因：src/liii_json.cpp 的 symbol_true/false/null（及 cached_gc、
 ;; cached_vector_ref、cached_list_to_vector、cached_string_to_number）
@@ -19,6 +39,10 @@
 ;; 修复前：除最后 glue 的会话外结果为 #f；修复后全部 #t。
 ;; 单核机器上线程池只有一个 worker（其自身即最后 glue 者），测试退化
 ;; 为恒真，多核 CI 上有效。
+
+(import (liii check) (liii go) (liii json) (liii psutil) (liii time))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 主会话基线：符号比较与 json-ref 布尔转换正常
 (check

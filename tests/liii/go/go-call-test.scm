@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; go-call
 ;; 过程版本的 go，将函数与参数调度到后台 worker 线程并发执行。
 ;;
@@ -24,6 +20,10 @@
 ;; 说明
 ;; ----
 ;; 与 (go (fn arg ...)) 宏不同，go-call 是过程，可以与 apply 搭配用于动态构造参数列表。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基本调用与通道通信
 

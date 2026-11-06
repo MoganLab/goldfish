@@ -1,13 +1,13 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; fiber-yield!
 ;; 主动让出当前 fiber 的执行权，切换到就绪队列中的下一个协程。
 ;;
 ;; 语法
 ;; ----
 ;; (fiber-yield!)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ----
@@ -16,6 +16,10 @@
 ;; 说明
 ;; ----
 ;; 协程在让出点保存现场（call/cc），再次被调度时从让出点继续。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define log '())
 (spawn-fiber (lambda () (set! log (cons 'a1 log)) (fiber-yield!) (set! log (cons 'a2 log)))

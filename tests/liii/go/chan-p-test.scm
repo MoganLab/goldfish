@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; chan?
 ;; 判断对象是否为通道。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; boolean
 ;; obj 是通道返回 #t，否则返回 #f。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ch (make-chan))
 (check (chan? ch) => #t)

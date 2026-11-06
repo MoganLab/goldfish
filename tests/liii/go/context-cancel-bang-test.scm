@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; context-cancel!
 ;; 主动取消一个 context，唤醒所有等待取消信号的协程。
 ;;
@@ -22,6 +18,10 @@
 ;; ----
 ;; 1. 取消是幂等的，重复调用安全。
 ;; 2. 与 select 配合可实现协作式任务取消。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ctx (make-context))
 (context-cancel! ctx)

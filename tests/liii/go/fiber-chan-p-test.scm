@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; fiber-chan?
 ;; 判断对象是否为 fiber 通道。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; boolean
 ;; obj 是 fiber 通道返回 #t，否则返回 #f。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (check (fiber-chan? (make-fiber-chan)) => #t)
 (check (fiber-chan? (make-chan)) => #f)

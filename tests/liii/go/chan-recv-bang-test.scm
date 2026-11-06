@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; chan-recv!
 ;; 从通道接收一个值。
 ;;
@@ -37,6 +33,10 @@
 ;; 错误处理
 ;; ----
 ;; ch 不是通道时抛出 type-error。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ch (make-chan 2))
 (chan-send! ch 1)

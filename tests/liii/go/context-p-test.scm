@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; context?
 ;; 判断对象是否为 context。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; boolean
 ;; obj 是 context 返回 #t，否则返回 #f。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (check (context? (make-context)) => #t)
 (check (context? (make-chan)) => #f)

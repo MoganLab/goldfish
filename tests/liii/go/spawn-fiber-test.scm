@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; spawn-fiber
 ;; 创建一个轻量级用户态协程（fiber），加入就绪队列。
 ;;
@@ -22,6 +18,10 @@
 ;; ----
 ;; 1. spawn 只入队不执行，需调用 fiber-scheduler-run! 启动调度。
 ;; 2. fiber 是协作式调度：只有 fiber-yield! 或 fiber 通道操作才会切换。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define log '())
 (spawn-fiber (lambda () (set! log (cons 'a log))))

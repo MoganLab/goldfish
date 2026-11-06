@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; chan-send!
 ;; 向通道发送一个值。
 ;;
@@ -39,6 +35,10 @@
 ;; ----
 ;; ch 不是通道时抛出 type-error；向已关闭的通道发送抛出 value-error；
 ;; val 不可序列化时抛出 type-error。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ch (make-chan 2))
 (check (chan-send! ch 42) => #t)

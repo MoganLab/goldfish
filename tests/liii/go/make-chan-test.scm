@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; make-chan
 ;; 创建一个新通道（channel）。
 ;;
@@ -28,6 +24,10 @@
 ;; 错误处理
 ;; ----
 ;; capacity 为负数或非整数时抛出 type-error。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ch1 (make-chan))
 (check (chan? ch1) => #t)

@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; fiber-send!
 ;; 向 fiber 通道发送一个值（无界缓冲，永不阻塞）。
 ;;
@@ -24,6 +20,10 @@
 ;; 说明
 ;; ----
 ;; 若有挂起的接收者，直接唤醒并交付；否则追加到缓冲区。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define fch (make-fiber-chan))
 

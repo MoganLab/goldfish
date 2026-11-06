@@ -1,7 +1,3 @@
-(import (liii check) (liii go))
-
-(check-set-mode! 'report-failed)
-
 ;; chan-closed?
 ;; 判断通道是否已关闭。
 ;;
@@ -22,6 +18,10 @@
 ;; 错误处理
 ;; ----
 ;; ch 不是通道时抛出 type-error。
+
+(import (liii check) (liii go))
+
+(check-set-mode! 'report-failed)
 
 (define ch (make-chan 1))
 (check (chan-closed? ch) => #f)
