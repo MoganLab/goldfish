@@ -27,6 +27,10 @@
   =>
   "goldfish/scheme/base.scm"
 ) ;check
+(check (orig-lib-path "goldfish/hint/liii/gfproject/config.scm")
+  =>
+  "library/liii/gfproject/config.scm"
+) ;check
 (check (orig-lib-path "tools/check/hint/liii/clean.scm")
   =>
   "tools/check/liii/clean.scm"

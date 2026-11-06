@@ -21,7 +21,10 @@
     (scheme file)
     (liii base)
     (liii list)
+    (liii os)
+    (liii path)
     (liii string)
+    (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck type-hint parse)
     (liii goldcheck type-hint util)
@@ -77,14 +80,55 @@
 
     ;; 原库候选路径：hint 同层路径优先，其次语言层与标准库层。
     (define (orig-lib-candidates r)
-      (let ((tail (cdr r)))
-        (cons (join-strings (append (car r) tail) "/")
-          (map
-            (lambda (root) (join-strings (append (list root) tail) "/"))
-            library-source-roots
-          ) ;map
-        ) ;cons
+      (let* ((tail (cdr r))
+             (pre (car r))
+             (base-prefix
+               (if (null? pre) '() (reverse (cdr (reverse pre))))
+             ) ;base-prefix
+             (same-layer (join-strings (append pre tail) "/"))
+             (rooted
+               (map
+                 (lambda (root) (join-strings (append base-prefix (list root) tail) "/"))
+                 library-source-roots
+               ) ;map
+             ) ;rooted
+             (rel-rooted
+               (map
+                 (lambda (root) (join-strings (append (list root) tail) "/"))
+                 library-source-roots
+               ) ;map
+             ) ;rel-rooted
+            ) ;
+        (dedup (cons same-layer (append rooted rel-rooted)))
+      ) ;let*
+    ) ;define
+
+    (define (find-repo-root)
+      (let ((root (gfproject-root)))
+        (if (and root (string? root) (not (string=? root "")))
+          root
+          (let loop
+            ((dir (getcwd)))
+            (if
+              (and (path-dir? (path (path-join dir "goldfish")))
+                (path-file? (path (path-join dir "gf_check.json")))
+              ) ;and
+              dir
+              (let ((parent (path->string (path-parent (path dir)))))
+                (if (or (string=? parent dir) (string=? parent "/")) #f (loop parent))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
       ) ;let
+    ) ;define
+
+    (define (candidate-exists? p)
+      (or (file-exists? p)
+        (let ((root (find-repo-root)))
+          (and root (file-exists? (string-append root "/" p)))
+        ) ;let
+      ) ;or
     ) ;define
 
     ;; hint 路径 -> 原库路径：删除路径中的 "hint" 目录段；
@@ -97,7 +141,7 @@
               ((cs candidates))
               (if (null? cs)
                 (car candidates)
-                (if (file-exists? (car cs)) (car cs) (loop (cdr cs)))
+                (if (candidate-exists? (car cs)) (car cs) (loop (cdr cs)))
               ) ;if
             ) ;let
           ) ;let
