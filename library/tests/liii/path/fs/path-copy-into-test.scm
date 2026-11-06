@@ -17,17 +17,22 @@
 ;; boolean
 ;; 复制成功返回 #t，失败返回 #f。
 
-(import (liii check) (liii path) (liii os))
+(import (liii check) (liii path) (liii os) (liii string))
 
 (check-set-mode! 'report-failed)
 
-(let ((src "tests/liii/path/path-copy-into-src.txt")
-      (dir "tests/liii/path/copy-into-dir")
-     ) ;
+;; 使用临时目录，避免依赖仓库布局与工作目录
+(let* ((base
+         (path-join (path-temp-dir)
+           (string-append "gf-path-copy-into-test-" (number->string (getpid)))
+         ) ;path-join
+       ) ;base
+       (src (path-join base "path-copy-into-src.txt"))
+       (dir (path-join base "copy-into-dir"))
+      ) ;
+  (path-mkdir base)
   (path-write-text src "hello path-copy-into")
-  (when (not (path-exists? dir))
-    (g_mkdir dir)
-  ) ;when
+  (path-mkdir dir)
   (check-true (path-copy-into src dir))
   (check (path-read-text (path-join dir (path "path-copy-into-src.txt")))
     =>
@@ -36,6 +41,7 @@
   (path-unlink src)
   (path-unlink (path-join dir (path "path-copy-into-src.txt")))
   (path-rmdir dir)
-) ;let
+  (path-rmdir base)
+) ;let*
 
 (check-report)

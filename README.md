@@ -31,7 +31,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | Hash Table Library                   | `hash-table-empty?`, `hash-table-contains?`                      |
 | [(liii sys)](goldfish/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
 | [(liii os)](goldfish/liii/os.scm)                 | Library looks like Python os module  | `getenv`, `mkdir`                                                |
-| [(liii path)](goldfish/liii/path.scm)             | Path Library                         | `path-dir?`, `path-file?`                                        |
+| [(liii path)](library/liii/path.scm)             | Path Library                         | `path-dir?`, `path-file?`                                        |
 | [(liii range)](goldfish/liii/range.scm)           | Range Library                        | `numeric-range`, `iota`                                          |
 | [(liii generator)](goldfish/liii/generator.scm)   | Generators and Accumulators          | `generator`, `gtake`, `generator-fold`                            |
 | [(liii option)](goldfish/liii/option.scm)         | Option Type Library                  | `option?`, `option-map`, `option-flatten`                        |

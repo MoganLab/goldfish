@@ -31,7 +31,7 @@
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | 哈希表                          | `hash-table-empty?`, `hash-table-contains?`                        |
 | [(liii sys)](goldfish/liii/sys.scm)               | 库类似于 Python 的 `sys` 模块   | `argv`                                                             |
 | [(liii os)](goldfish/liii/os.scm)                 | 库类似于 Python 的 `os` 模块    | `getenv`, `mkdir`                                                  |
-| [(liii path)](goldfish/liii/path.scm)             | 路径函数库                      | `path-dir?`, `path-file?`                                          |
+| [(liii path)](library/liii/path.scm)             | 路径函数库                      | `path-dir?`, `path-file?`                                          |
 | [(liii range)](goldfish/liii/range.scm)           | 范围库                          | `numeric-range`, `iota`                                            |
 | [(liii generator)](goldfish/liii/generator.scm)   | 生成器与累加器函数库            | `generator`, `gtake`, `generator-fold`                             |
 | [(liii option)](goldfish/liii/option.scm)         | Option 类型库                   | `option?`, `option-map`, `option-flatten`                          |

@@ -35,6 +35,7 @@
       ],
       "path": [
         "goldfish",
+        "library",
         "tests",
         "tools",
         "demo",
