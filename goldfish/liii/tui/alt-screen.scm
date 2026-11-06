@@ -29,7 +29,7 @@
 (define-library (liii tui alt-screen)
   (export make-alt-screen alt-screen? alt-screen-terminal alt-screen-lines
     alt-screen-render! alt-screen-normalize alt-screen-clear!
-    alt-screen-invalidate! alt-screen-refresh!
+    alt-screen-invalidate! alt-screen-refresh! alt-screen-resize-check!
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -45,10 +45,11 @@
   (begin
 
     (define-record-type <alt-screen>
-      (%make-alt-screen terminal buffer)
+      (%make-alt-screen terminal buffer last-size)
       alt-screen?
       (terminal %alt-screen-terminal)
       (buffer %alt-screen-buffer)
+      (last-size %alt-screen-last-size %alt-screen-last-size-set!)
     ) ;define-record-type
 
     (define (%check-alt-screen screen caller)
@@ -66,7 +67,7 @@
         (type-error (string-append "make-alt-screen: expected terminal, got " (object->string term))
         ) ;type-error
       ) ;unless
-      (%make-alt-screen term (make-screen-buffer))
+      (%make-alt-screen term (make-screen-buffer) #f)
     ) ;define
 
     (define (alt-screen-terminal screen)
@@ -264,6 +265,34 @@
       (%check-alt-screen screen "alt-screen-invalidate!")
       (screen-buffer-invalidate! (%alt-screen-buffer screen))
       #t
+    ) ;define
+
+    ;; 终端缩放检测：对比终端当前尺寸与上一次检测时记录的尺寸。
+    ;; 变化时更新记录并使整屏缓存失效（resize 后终端已对旧内容做 reflow，
+    ;; 增量 diff 无法再保证屏幕干净，下一次渲染自动全量重绘），返回 #t；
+    ;; 无变化、首次记录或终端无法报告尺寸时返回 #f。
+    ;; 空闲轮询循环每轮调用一次即可跟随终端缩放（ioctl 开销可忽略）。
+    (define (alt-screen-resize-check! screen)
+      (%check-alt-screen screen "alt-screen-resize-check!")
+      (let ((size (terminal-size (%alt-screen-terminal screen))))
+        (cond ((not (pair? size)) #f)
+              (else
+                (let ((last (%alt-screen-last-size screen)))
+                  (cond ((equal? size last) #f)
+                        ((not last)
+                         ;; 首次检测：仅记录基准尺寸，不算变化（刚按当前尺寸渲染过）
+                         (%alt-screen-last-size-set! screen size)
+                         #f
+                        ) ;
+                        (else (%alt-screen-last-size-set! screen size)
+                          (screen-buffer-invalidate! (%alt-screen-buffer screen))
+                          #t
+                        ) ;else
+                  ) ;cond
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
     ) ;define
 
     ;; 全量重绘：清屏后按当前帧内容重新渲染

@@ -30,3 +30,4 @@ gf doc make-alt-screen
 - `alt-screen-clear!` - 清除终端屏幕与帧缓存
 - `alt-screen-invalidate!` - 使缓存失效以强制重绘
 - `alt-screen-refresh!` - 全量重绘当前帧
+- `alt-screen-resize-check!` - 检测终端缩放并使整屏缓存失效
