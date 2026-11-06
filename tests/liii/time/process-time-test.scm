@@ -1,13 +1,14 @@
-(import (liii check) (liii time))
-
-(check-set-mode! 'report-failed)
-
 ;; process-time
 ;; 返回当前进程累计消耗的 CPU 时间，单位为秒。
 ;;
 ;; 语法
 ;; ----
 ;; (process-time)
+;;
+;; 参数
+;; ----
+;; 无
+;; 该函数不接受任何参数。
 ;;
 ;; 返回值
 ;; ----
@@ -21,22 +22,27 @@
 ;; 3. 不应与 current-second 或 thread-time 的绝对值直接比较
 ;; 4. 系统接口失败或平台不支持时抛出 os-error
 ;;
-;; 示例
+;; 说明
 ;; ----
+;; 用法示例：
 ;; (define start (process-time))
 ;; (heavy-computation)
 ;; (define cpu-seconds (- (process-time) start))
 
+(import (liii check) (liii time))
+
+(check-set-mode! 'report-failed)
+
 (let ((seconds (process-time)))
   (check (real? seconds) => #t)
   (check (inexact? seconds) => #t)
-  (check (>= seconds 0.0) => #t))
+  (check (>= seconds 0.0) => #t)) ;let
 
 (let ((start (process-time)))
   (do ((i 0 (+ i 1))
        (n 0 (+ n i)))
       ((= i 10000)
        (check (>= n 0) => #t)
-       (check (>= (- (process-time) start) 0.0) => #t))))
+       (check (>= (- (process-time) start) 0.0) => #t)))) ;do
 
 (check-report)

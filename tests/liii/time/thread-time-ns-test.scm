@@ -1,13 +1,14 @@
-(import (liii check) (liii time))
-
-(check-set-mode! 'report-failed)
-
 ;; thread-time-ns
 ;; 返回当前操作系统线程累计消耗的 CPU 时间，单位为纳秒。
 ;;
 ;; 语法
 ;; ----
 ;; (thread-time-ns)
+;;
+;; 参数
+;; ----
+;; 无
+;; 该函数不接受任何参数。
 ;;
 ;; 返回值
 ;; ----
@@ -21,16 +22,20 @@
 ;; 3. 返回值是累计 CPU 时间，应通过两次调用的差值计算 CPU 耗时
 ;; 4. 系统接口失败或平台不支持时抛出 os-error
 
+(import (liii check) (liii time))
+
+(check-set-mode! 'report-failed)
+
 (let ((nanoseconds (thread-time-ns)))
   (check (integer? nanoseconds) => #t)
   (check (exact? nanoseconds) => #t)
-  (check (>= nanoseconds 0) => #t))
+  (check (>= nanoseconds 0) => #t)) ;let
 
 (let ((start (thread-time-ns)))
   (do ((i 0 (+ i 1))
        (n 0 (+ n i)))
       ((= i 10000)
        (check (>= n 0) => #t)
-       (check (>= (- (thread-time-ns) start) 0) => #t))))
+       (check (>= (- (thread-time-ns) start) 0) => #t)))) ;do
 
 (check-report)
