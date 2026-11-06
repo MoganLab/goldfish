@@ -1,0 +1,53 @@
+;; enum-set-remove!
+;; 线性更新地移除满足谓词的成员。
+;;
+;; 语法
+;; ----
+;; (enum-set-remove! pred enum-set)
+;;
+;; 参数
+;; ----
+;; pred : procedure?
+;; 移除谓词。
+;;
+;; enum-set : enum-set?
+;; 待更新的集合。
+;;
+;; 返回值
+;; ----
+;; enum-set
+;; 移除成员后的集合。
+;;
+;; 注意
+;; ----
+;; 会直接更新传入集合。
+;;
+;; 错误处理
+;; ----
+;; 无。
+
+(import (liii check) (liii enum))
+
+
+(check-set-mode! 'report-failed)
+
+
+(define color-names '(red tangerine orange yellow green cyan blue violet))
+
+
+(define color (make-enum-type color-names))
+
+
+(define color-red (enum-name->enum color 'red))
+
+
+(define color-set (enum-type->enum-set color))
+
+(let ((removed (enum-set-remove! (lambda (e) (enum=? e color-red)) (enum-set-copy color-set))
+      ) ;removed
+     ) ;
+  (check (enum-set-contains? removed color-red) => #f)
+) ;let
+
+
+(check-report)
