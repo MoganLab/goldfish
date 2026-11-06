@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; listify
 ;; 把值规约为列表。
 ;;
@@ -23,14 +19,14 @@
 ;; ----
 ;; 空列表原样返回，空向量转成空列表。
 ;;
-;; 示例
-;; ----
-;; (listify #(1 2)) => '(1 2)
-;; (listify 1) => '(1)
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check (listify #(1 2)) => '(1 2))
 (check (listify #()) => '())

@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; object-ref
 ;; 读取 JSON 对象中与给定键匹配的值。
 ;;
@@ -29,14 +25,14 @@
 ;; ----
 ;; 字符串键与同名符号键等价；键存在但值为 #f 时返回 #f 而不是 default。
 ;;
-;; 示例
-;; ----
-;; (object-ref '(("age" . 18)) "age" #f) => 18
-;; (object-ref '(() ) "age" 'missing) => 'missing
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当键既不是字符串也不是符号时。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (define object '(("name" . "Liii") (age . 18) ("enabled" . #f)))
 

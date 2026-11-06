@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; json-boolean?
 ;; 判断值是否为 JSON 布尔值。
 ;;
@@ -23,15 +19,14 @@
 ;; ----
 ;; 除 Scheme 布尔值 #t/#f 外，符号 true 与 false 也被视为 JSON 布尔值。
 ;;
-;; 示例
-;; ----
-;; (json-boolean? #t) => #t
-;; (json-boolean? 'true) => #t
-;; (json-boolean? 1) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (json-boolean? #t))
 (check-true (json-boolean? #f))

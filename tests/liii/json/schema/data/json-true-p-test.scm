@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; json-true?
 ;; 判断值是否为 JSON 布尔真值。
 ;;
@@ -23,15 +19,14 @@
 ;; ----
 ;; 数字 0 与空列表都不是 JSON 布尔真值。
 ;;
-;; 示例
-;; ----
-;; (json-true? #t) => #t
-;; (json-true? 'true) => #t
-;; (json-true? #f) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (json-true? #t))
 (check-true (json-true? 'true))

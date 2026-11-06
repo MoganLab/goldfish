@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; object-cell
 ;; 查找 JSON 对象中与给定键匹配的第一个键值对。
 ;;
@@ -26,13 +22,14 @@
 ;; ----
 ;; 字符串键与同名符号键等价；返回的键值对保留对象中存储的原始键。
 ;;
-;; 示例
-;; ----
-;; (object-cell '(("name" . "Liii")) 'name) => ("name" . "Liii")
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当键既不是字符串也不是符号时。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (define object '(("name" . "Liii") (age . 18) ("enabled" . #f)))
 

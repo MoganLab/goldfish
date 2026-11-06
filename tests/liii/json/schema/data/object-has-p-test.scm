@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; object-has?
 ;; 判断 JSON 对象中是否存在与给定键匹配的键。
 ;;
@@ -26,13 +22,14 @@
 ;; ----
 ;; 键存在但值为 #f 时同样返回 #t。
 ;;
-;; 示例
-;; ----
-;; (object-has? '(("enabled" . #f)) "enabled") => #t
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当键既不是字符串也不是符号时。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (define object '(("name" . "Liii") (age . 18) ("enabled" . #f)))
 

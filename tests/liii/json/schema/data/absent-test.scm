@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; absent
 ;; 缺失值的唯一标记。
 ;;
@@ -22,13 +18,14 @@
 ;; ----
 ;; 该标记与普通列表不同，可用于区分“键不存在”与“键存在但值为空列表”。
 ;;
-;; 示例
-;; ----
-;; (car absent) => 'absent
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema data))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (pair? absent))
 (check (car absent) => 'absent)
