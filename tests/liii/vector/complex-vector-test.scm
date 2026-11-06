@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; complex-vector
 ;; 创建只包含复数元素的专用向量。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; type-error 当任一参数不是复数时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (vector? (complex-vector 1.0+2.0i 3.0+4.0i)))
 (check-true (complex-vector? (complex-vector 1.0+2.0i 3.0+4.0i)))

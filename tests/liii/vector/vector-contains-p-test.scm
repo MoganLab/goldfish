@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-contains?
 ;; 检查向量中是否包含指定元素。
 ;;
@@ -36,6 +30,10 @@
 ;; ----
 ;; type-error 当vec不是向量，或compare不是过程时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (vector-contains? #(1 2 3) 2))
 (check-false (vector-contains? #(1 2 3) 4))

@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector-append
 ;; 连接多个向量并返回新向量。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; type-error 当任一参数不是向量时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check (vector-append) => #())
 (check (vector-append #(1 2 3)) => #(1 2 3))
@@ -73,30 +71,34 @@
 
 
 ;; openlet 方法分派测试：openlet 位于首参 / 非首参 / 中间位置
-(check (vector-append (openlet (inlet 'vector-append (lambda (self . rest) (apply vector-append #(0) rest)))
-                      ) ;openlet
-         #(1 2)
-       ) ;vector-append
+(check
+  (vector-append
+    (openlet (inlet 'vector-append (lambda (self . rest) (apply vector-append #(0) rest)))
+    ) ;openlet
+    #(1 2)
+  ) ;vector-append
   =>
   #(0 1 2)
 ) ;check
 
-(check (vector-append #(1 2)
-         (openlet (inlet 'vector-append (lambda (vec self) (vector-append vec #(99)))))
-       ) ;vector-append
+(check
+  (vector-append #(1 2)
+    (openlet (inlet 'vector-append (lambda (vec self) (vector-append vec #(99)))))
+  ) ;vector-append
   =>
   #(1 2 99)
 ) ;check
 
-(check (vector-append #(1)
-         #(2)
-         (openlet (inlet 'vector-append
-                    (lambda (vec self . rest) (apply vector-append vec #(99) rest))
-                  ) ;inlet
-         ) ;openlet
-         #(3)
-         #(4)
-       ) ;vector-append
+(check
+  (vector-append #(1)
+    #(2)
+    (openlet (inlet 'vector-append
+               (lambda (vec self . rest) (apply vector-append vec #(99) rest))
+             ) ;inlet
+    ) ;openlet
+    #(3)
+    #(4)
+  ) ;vector-append
   =>
   #(1 2 99 3 4)
 ) ;check
@@ -105,8 +107,9 @@
 (let ((v #(1 2)))
   (do ((i 0 (+ i 1)))
     ((= i 5))
-    (let ((o (openlet (inlet 'vector-append (lambda (vec self) (gc) (vector-append vec #(3))))
-             ) ;openlet
+    (let ((o
+            (openlet (inlet 'vector-append (lambda (vec self) (gc) (vector-append vec #(3))))
+            ) ;openlet
           ) ;o
          ) ;
       (check (vector-append v o) => #(1 2 3))

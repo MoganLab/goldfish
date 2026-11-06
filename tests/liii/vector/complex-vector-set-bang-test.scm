@@ -1,11 +1,3 @@
-(import (liii check)
-        (liii os)
-        (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; complex-vector-set!
 ;; 设置复数向量中指定位置的元素。
 ;;
@@ -39,12 +31,17 @@
 ;; type-error 当value不是复数时
 ;; out-of-range 当索引越界时
 
+(import (liii check) (liii os) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((v (complex-vector 1.0+2.0i 3.0+4.0i)))
   (complex-vector-set! v 0 100.0+200.0i)
   (if (os-windows?)
     (check-true (number? (complex-vector-ref v 0)))
-    (check (complex-vector-ref v 0) => 100.0+200.0i))
+    (check (complex-vector-ref v 0) => 100.0+200.0i)
+  ) ;if
 ) ;let
 
 
@@ -52,7 +49,8 @@
   (complex-vector-set! v 2 3.14+2.71i)
   (if (os-windows?)
     (check-true (number? (complex-vector-ref v 2)))
-    (check (complex-vector-ref v 2) => 3.14+2.71i))
+    (check (complex-vector-ref v 2) => 3.14+2.71i)
+  ) ;if
 ) ;let
 
 
@@ -67,10 +65,13 @@
   (if (os-windows?)
     (begin
       (check-true (number? (complex-vector-ref m 0 1)))
-      (check-true (number? (complex-vector-ref m 1 2))))
+      (check-true (number? (complex-vector-ref m 1 2)))
+    ) ;begin
     (begin
       (check (complex-vector-ref m 0 1) => 1.0+2.0i)
-      (check (complex-vector-ref m 1 2) => 3.0+4.0i)))
+      (check (complex-vector-ref m 1 2) => 3.0+4.0i)
+    ) ;begin
+  ) ;if
   (check-catch 'out-of-range (complex-vector-set! m -1 0 1.0+1.0i))
   (check-catch 'out-of-range (complex-vector-set! m 2 0 1.0+1.0i))
   (check-catch 'out-of-range (complex-vector-set! m 0 3 1.0+1.0i))

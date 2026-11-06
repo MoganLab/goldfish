@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; float-vector
 ;; 创建只包含浮点数元素的专用向量。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; type-error 当任一参数不是数字时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (vector? (float-vector 1.0 2.0 3.0)))
 (check-true (float-vector? (float-vector 1.0 2.0 3.0)))

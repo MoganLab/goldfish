@@ -1,10 +1,3 @@
-(import (liii check)
-        (liii os)
-        (liii vector))
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-complex-vector
 ;; 创建指定长度的复数向量。
 ;;
@@ -34,6 +27,9 @@
 ;; ----
 ;; type-error 当k不是合法整数或fill不是复数时
 
+(import (liii check) (liii os) (liii vector))
+
+(check-set-mode! 'report-failed)
 
 (check-true (complex-vector? (make-complex-vector 0)))
 (check-true (complex-vector? (make-complex-vector 3)))
@@ -50,10 +46,13 @@
   (if (os-windows?)
     (begin
       (check-true (number? (complex-vector-ref v 0)))
-      (check-true (number? (complex-vector-ref v 2))))
+      (check-true (number? (complex-vector-ref v 2)))
+    ) ;begin
     (begin
       (check (complex-vector-ref v 0) => 1.0+2.0i)
-      (check (complex-vector-ref v 2) => 1.0+2.0i)))
+      (check (complex-vector-ref v 2) => 1.0+2.0i)
+    ) ;begin
+  ) ;if
 ) ;let
 
 (let ((mv (make-complex-vector '(2 3) 2.0+3.0i)))
@@ -61,7 +60,8 @@
   (check (vector-dimensions mv) => '(2 3))
   (if (os-windows?)
     (check-true (number? (complex-vector-ref mv 1 2)))
-    (check (complex-vector-ref mv 1 2) => 2.0+3.0i))
+    (check (complex-vector-ref mv 1 2) => 2.0+3.0i)
+  ) ;if
 ) ;let
 
 

@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-float-vector
 ;; 创建指定长度的浮点数向量。
 ;;
@@ -33,6 +27,10 @@
 ;; ----
 ;; type-error 当k不是合法整数或fill不是实数时
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (float-vector? (make-float-vector 0)))
 (check-true (float-vector? (make-float-vector 3)))

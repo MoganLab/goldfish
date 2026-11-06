@@ -1,9 +1,3 @@
-(import (liii check) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; float-vector?
 ;; 判断对象是否为浮点数向量。
 ;;
@@ -29,6 +23,10 @@
 ;; ----
 ;; 无
 
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (float-vector? (float-vector 1.0 2.0 3.0)))
 (check-false (float-vector? (vector 1.0 2.0 3.0)))
