@@ -1,9 +1,3 @@
-(import (liii check) (liii hashlib))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; sha256
 ;; 计算字符串的 SHA256 哈希值。
 ;;
@@ -28,6 +22,9 @@
 ;; 3. 比 SHA1 更安全，推荐用于安全敏感场景
 ;; 4. 空字符串有固定的哈希值
 
+(import (liii check) (liii hashlib))
+
+(check-set-mode! 'report-failed)
 
 ;; ; 基本功能测试：常见字符串哈希
 (check (sha256 "")

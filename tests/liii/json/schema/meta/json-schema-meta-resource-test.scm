@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema meta) (liii json schema data))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-meta-resource
 ;; 按 URI 读取内嵌的元 Schema 资源。
 ;;
@@ -23,16 +19,13 @@
 ;; ----
 ;; 资源全部内嵌在库中，读取过程不做任何 I/O。
 ;;
-;; 示例
-;; ----
-;; (object-ref (json-schema-meta-resource
-;;               "https://json-schema.org/draft/2020-12/schema")
-;;             "$id" #f)
-;; => "https://json-schema.org/draft/2020-12/schema"
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-unresolvable 当 URI 不是内嵌资源时。
+
+(import (liii check) (liii json schema meta) (liii json schema data))
+
+(check-set-mode! 'report-failed)
 
 ;; 每个内嵌资源都可寻址，且 $id 与 URI 一致。
 (for-each

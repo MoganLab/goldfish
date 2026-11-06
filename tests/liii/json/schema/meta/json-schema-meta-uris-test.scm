@@ -1,13 +1,3 @@
-(import (liii check) (liii json schema meta))
-
-(check-set-mode! 'report-failed)
-
-;; member 返回的是匹配位置的尾部（真值但不严格等于 #t），这里归一化为布尔。
-
-(define (truthy? value)
-  (not (eq? value #f))
-) ;define
-
 ;; json-schema-meta-uris
 ;; 返回内嵌元 Schema 资源的 URI 列表。
 ;;
@@ -28,13 +18,19 @@
 ;; ----
 ;; 元 Schema 与词汇表全部内嵌在库中，检查过程不做任何 I/O。
 ;;
-;; 示例
-;; ----
-;; (length (json-schema-meta-uris)) => 9
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema meta))
+
+(check-set-mode! 'report-failed)
+
+;; member 返回的是匹配位置的尾部（真值但不严格等于 #t），这里归一化为布尔。
+
+(define (truthy? value)
+  (not (eq? value #f))
+) ;define
 
 (check (length (json-schema-meta-uris)) => 9)
 

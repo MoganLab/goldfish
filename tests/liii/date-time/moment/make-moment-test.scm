@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii date-time date)
-        (liii date-time moment))
-
-(check-set-mode! 'report-failed)
-
 ;; make-moment
 ;; 创建一个时刻对象（公历日期 + 从当天 00:00:00 起经过的秒数）。
 ;;
@@ -20,13 +14,13 @@
 ;; ----
 ;; moment? 时刻对象。
 ;;
-;; 示例
-;; ----
-;; (make-moment (make-date 2025 1 1) 100)
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是合法日期或秒数超出范围时抛出错误。
+
+(import (liii check) (liii date-time date) (liii date-time moment))
+
+(check-set-mode! 'report-failed)
 
 (check-true (moment? (make-moment (make-date 2025 1 1) 0)))
 (check-true (moment? (make-moment (make-date 2025 1 1) 100)))
