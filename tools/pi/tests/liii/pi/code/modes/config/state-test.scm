@@ -48,7 +48,7 @@
 ;; 1. provider 全量视图：默认 provider 置顶，其余按白名单顺序，最后是灰显的内置 provider
 (check (map pi-config-provider-id (pi-config-state-providers st))
   =>
-  '("kimi-coding" "google" "custom-kimi" "deepseek" "minimax-cn" "ollama" "zai-coding-cn")
+  '("kimi-coding" "google" "custom-kimi" "deepseek" "minimax-cn" "ollama" "opencode" "zai-coding-cn")
 ) ;check
 
 ;; 1b. 可用标记：白名单内 #t，否则 #f
@@ -134,7 +134,7 @@
 ) ;let*
 
 ;; 11. 计数与目录
-(check (pi-config-state-provider-count st) => 7)
+(check (pi-config-state-provider-count st) => 8)
 (check (pi-config-state-enabled-provider-count st) => 3)
 (check (> (pi-config-state-model-count st) 40) => #t)
 ;; 可用模型数 = google 全部（无 models 白名单）+ kimi 1 + custom 1
@@ -163,8 +163,8 @@
 
 ;; 13. 未配置目录（文件缺失）：全部 provider 与模型可用，可用计数非零且与总数一致
 (let ((st-empty (pi-config-state (string-append FIXTURE "/no-providers") :env '())))
-  (check (pi-config-state-provider-count st-empty) => 6)
-  (check (pi-config-state-enabled-provider-count st-empty) => 6)
+  (check (pi-config-state-provider-count st-empty) => 7)
+  (check (pi-config-state-enabled-provider-count st-empty) => 7)
   (check (> (pi-config-state-model-count st-empty) 0) => #t)
   (check (pi-config-state-enabled-model-count st-empty)
     =>
@@ -178,8 +178,8 @@
 
 ;; 14. 空数组配置目录：同样全部 provider 与模型可用
 (let ((st-arr (pi-config-state (string-append FIXTURE "/empty-providers") :env '())))
-  (check (pi-config-state-provider-count st-arr) => 6)
-  (check (pi-config-state-enabled-provider-count st-arr) => 6)
+  (check (pi-config-state-provider-count st-arr) => 7)
+  (check (pi-config-state-enabled-provider-count st-arr) => 7)
   (check (> (pi-config-state-model-count st-arr) 0) => #t)
   (check (pi-config-state-enabled-model-count st-arr)
     =>

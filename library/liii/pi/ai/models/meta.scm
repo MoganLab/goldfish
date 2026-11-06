@@ -78,6 +78,12 @@
                      (lookup-env-var "MINIMAX_BASE_URL" opt-env)
                    ) ;or
                  ) ;and
+                 (and (string? provider)
+                   (or (string=? provider "opencode") (string=? provider "opencode-go"))
+                   (or (lookup-env-var "OPENCODE_BASE_URL" opt-env)
+                     (lookup-env-var "OPENCODE_GO_BASE_URL" opt-env)
+                   ) ;or
+                 ) ;and
                  (lookup-env-var "GF_PI_BASE_URL" opt-env)
                ) ;or
              ) ;env-url
@@ -109,19 +115,21 @@
              (is-ds? (string=? p-str "deepseek"))
              (is-mm? (string=? p-str "minimax-cn"))
              (is-zai? (or (string=? p-str "zai-coding-cn") (string=? p-str "zai")))
+             (is-opencode? (or (string=? p-str "opencode") (string=? p-str "opencode-go")))
              (def-url (cond (is-ant? "https://api.anthropic.com")
                             (is-kimi? "https://api.kimi.com/coding/v1")
                             (is-glm? "https://open.bigmodel.cn/api/anthropic")
                             (is-ds? "https://api.deepseek.com/anthropic")
                             (is-mm? "https://api.minimaxi.com/anthropic")
                             (is-zai? "https://open.bigmodel.cn/api/coding/paas/v4")
+                            (is-opencode? "https://opencode.ai/zen/go/v1")
                             ((string=? p-str "ollama") "http://localhost:11434/v1")
                             (else "https://generativelanguage.googleapis.com/v1beta")
                       ) ;cond
              ) ;def-url
              (m
                (or (%find-model-in-list (%get-provider-models models-store p-str) model-id)
-                 (and (or is-mm? is-zai?)
+                 (and (or is-mm? is-zai? is-opencode?)
                    (%find-model-in-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()) model-id)
                  ) ;and
                ) ;or
@@ -141,6 +149,7 @@
                            (is-kimi? 262144)
                            (is-mm? 1000000)
                            (is-zai? 1000000)
+                           (is-opencode? 1000000)
                            (else 128000)
                      ) ;cond
              ) ;def-cw
@@ -150,6 +159,7 @@
                            (is-ds? 8192)
                            (is-mm? 512000)
                            (is-zai? 131072)
+                           (is-opencode? 131072)
                            (else 16384)
                      ) ;cond
              ) ;def-mt

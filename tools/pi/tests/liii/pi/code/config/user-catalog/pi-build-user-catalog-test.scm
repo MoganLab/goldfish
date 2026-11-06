@@ -112,7 +112,7 @@
 (let ((catalog (pi-build-user-catalog (string-append FIXTURE "/no-providers"))))
   (check (map car catalog)
     =>
-    '("deepseek" "google" "kimi-coding" "minimax-cn" "ollama" "zai-coding-cn")
+    '("deepseek" "google" "kimi-coding" "minimax-cn" "ollama" "opencode" "zai-coding-cn")
   ) ;check
 ) ;let
 
@@ -120,7 +120,7 @@
 (let ((catalog (pi-build-user-catalog (string-append FIXTURE "/empty-providers"))))
   (check (map car catalog)
     =>
-    '("deepseek" "google" "kimi-coding" "minimax-cn" "ollama" "zai-coding-cn")
+    '("deepseek" "google" "kimi-coding" "minimax-cn" "ollama" "opencode" "zai-coding-cn")
   ) ;check
 ) ;let
 
@@ -130,7 +130,7 @@
      ) ;
   (check (map car config-catalog)
     =>
-    '("deepseek" "google" "kimi-coding" "minimax-cn" "ollama" "zai-coding-cn")
+    '("deepseek" "google" "kimi-coding" "minimax-cn" "ollama" "opencode" "zai-coding-cn")
   ) ;check
   (check
     (map
@@ -138,7 +138,7 @@
       config-catalog
     ) ;map
     =>
-    '(#t #t #t #t #t #t)
+    '(#t #t #t #t #t #t #t)
   ) ;check
 ) ;let
 (let ((config-catalog (pi-build-config-catalog (string-append FIXTURE "/no-providers"))
@@ -150,7 +150,7 @@
       config-catalog
     ) ;map
     =>
-    '(#t #t #t #t #t #t)
+    '(#t #t #t #t #t #t #t)
   ) ;check
 ) ;let
 

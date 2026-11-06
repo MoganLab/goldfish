@@ -34,6 +34,14 @@
   =>
   '("ZAI_CODING_CN_API_KEY" "ZAI_API_KEY" "GLM_API_KEY" "ZHIPU_API_KEY")
 ) ;check
+(check (pi-provider-env-keys "opencode")
+  =>
+  '("OPENCODE_API_KEY" "OPENCODE_GO_API_KEY")
+) ;check
+(check (pi-provider-env-keys "opencode-go")
+  =>
+  '("OPENCODE_API_KEY" "OPENCODE_GO_API_KEY")
+) ;check
 
 ;; 未注册 provider 返回空表
 (check (pi-provider-env-keys "unknown-provider") => '())

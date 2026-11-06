@@ -33,4 +33,9 @@
   (check (cdr (assoc "Authorization" headers)) => "Bearer ")
 ) ;let
 
+;; 携带附加请求头
+(let ((headers (openai-build-headers "sk-test" (list (cons "x-opencode-session" "sess-42")))))
+  (check (cdr (assoc "x-opencode-session" headers)) => "sess-42")
+) ;let
+
 (check-report)

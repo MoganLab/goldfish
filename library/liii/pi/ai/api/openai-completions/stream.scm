@@ -10,6 +10,7 @@
     (liii string)
     (liii json)
     (liii http)
+    (liii uuid)
     (liii time)
     (liii pi ai abort)
     (liii pi ai time)
@@ -173,12 +174,32 @@
       (make-openai-stream-state '() #f (openai-map-usage '()) "stop" #f '())
     ) ;define
 
+    (define (%opencode-extra-headers url provider session-id)
+      (if (or (and (string? url) (string-contains? url "opencode.ai"))
+            (and (string? provider)
+              (or (string=? provider "opencode")
+                (string=? provider "opencode-go")
+              ) ;or
+            ) ;and
+          ) ;or
+        (list (cons "x-opencode-session"
+                (if (and (string? session-id) (> (string-length session-id) 0))
+                  session-id
+                  (uuid4)
+                ) ;if
+              ) ;cons
+        ) ;list
+        '()
+      ) ;if
+    ) ;define
+
     (define (%run-stream-loop config url req-json-str proxy-alist on-ev timeout
               opt-retry eff-idle
             ) ;%run-stream-loop
       (let* ((settings (cdr (or (assoc 'settings config) '(#f))))
              (key-rotation? (pi-key-rotation? config))
              (provider (cdr (or (assoc 'provider config) '(#f . #f))))
+             (session-id (let ((p (assoc 'session-id config))) (and p (cdr p))))
             ) ;
         (let-values (((max-r base-delay max-delay provider-r)
                       (pi-resolve-retry-params settings opt-retry)
@@ -186,7 +207,8 @@
                     ) ;
           (let loop
             ((attempt 1) (api-key (pi-request-api-key config)))
-            (let* ((headers (openai-build-headers api-key))
+            (let* ((extra-hdrs (%opencode-extra-headers url provider session-id))
+                   (headers (openai-build-headers api-key extra-hdrs))
                    (stream-state (%init-openai-stream-state))
                    (idle-timed-out? #f)
                    (emitted? #f)

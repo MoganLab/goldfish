@@ -43,6 +43,14 @@
   =>
   "https://open.bigmodel.cn/api/coding/paas/v4"
 ) ;check
+(check (pi-provider-base-url "opencode")
+  =>
+  "https://opencode.ai/zen/go/v1"
+) ;check
+(check (pi-provider-base-url "opencode-go")
+  =>
+  "https://opencode.ai/zen/go/v1"
+) ;check
 
 ;; 未注册 provider 无默认端点
 (check (pi-provider-base-url "unknown-provider") => #f)

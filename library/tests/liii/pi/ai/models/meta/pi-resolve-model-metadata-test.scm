@@ -38,4 +38,13 @@
   (check (pi-model-metadata-matched? m) => #f)
 ) ;let
 
+(let ((m (pi-resolve-model-metadata "opencode" "unlisted" '())))
+  (check (pi-model-metadata? m) => #t)
+  (check (pi-model-metadata-id m) => "unlisted")
+  (check (pi-model-metadata-provider m) => "opencode")
+  (check (pi-model-metadata-base-url m) => "https://opencode.ai/zen/go/v1")
+  (check (pi-model-metadata-context-window m) => 1000000)
+  (check (pi-model-metadata-matched? m) => #f)
+) ;let
+
 (check-report)

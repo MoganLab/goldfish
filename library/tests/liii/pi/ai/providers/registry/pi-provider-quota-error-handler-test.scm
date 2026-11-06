@@ -30,6 +30,8 @@
 (check-true (procedure? (pi-provider-quota-error-handler "kimi-coding")))
 (check-true (procedure? (pi-provider-quota-error-handler "minimax-cn")))
 (check-true (procedure? (pi-provider-quota-error-handler "google")))
+(check-true (procedure? (pi-provider-quota-error-handler "opencode")))
+(check-true (procedure? (pi-provider-quota-error-handler "opencode-go")))
 
 ;; 2. 未注册 provider 返回 #f
 (check-false (pi-provider-quota-error-handler "openrouter"))

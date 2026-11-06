@@ -27,6 +27,8 @@
 
 ;; "zai" 是 "zai-coding-cn" 的路由别名
 (check (pi-provider-api "zai") => "openai-completions")
+(check (pi-provider-api "opencode") => "openai-completions")
+(check (pi-provider-api "opencode-go") => "openai-completions")
 
 ;; 未注册 provider 默认走 google-generative-ai
 (check (pi-provider-api "unknown-provider") => "google-generative-ai")
