@@ -1,5 +1,3 @@
-(import (liii check) (liii either) (liii os) (liii subprocess))
-
 ;; run-sequence
 ;; 顺序执行所有命令，不因为失败而中断（替代 shell 的 ;）。
 ;;
@@ -20,6 +18,8 @@
 ;; Either
 ;; 最后一条命令成功时返回 Right（内含退出码 0），
 ;; 失败时返回 Left（内含 <process-error> 记录）。
+
+(import (liii check) (liii either) (liii os) (liii subprocess))
 
 (when (or (os-linux?) (os-macos?))
   (check (either-right? (run-sequence "true" "false" "true")) => #t)
