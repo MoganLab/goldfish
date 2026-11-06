@@ -244,6 +244,21 @@
 (check (car (car calls)) => 2)
 (check (caddr (car calls)) => '("b"))
 
+;; additionalProperties 只作用于同一层：
+;; allOf 分支里声明的属性不算当前层的已声明属性。
+
+(define schema-nested-allof
+  (list
+    (cons "allOf" (vector (list (cons "properties" properties-a))))
+    (cons "additionalProperties" #f)
+  ) ;list
+) ;define
+
+(check (count-errors "additionalProperties" #f '(("a" . 1)) schema-nested-allof)
+  =>
+  1
+) ;check
+
 ;; 错误对象携带关键字与路径信息。
 
 (define error

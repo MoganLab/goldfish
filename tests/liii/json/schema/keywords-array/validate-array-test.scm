@@ -173,6 +173,26 @@
 (check (car (car calls)) => 2)
 (check (caddr (car calls)) => '(1))
 
+;; contains 的 minContains 与 maxContains 约束匹配元素个数。
+
+(check (count-errors "contains" 1 #()
+              '(("contains" . (("type" . "integer"))) ("minContains" . 0)
+                ("maxContains" . 0)))
+  =>
+  0
+) ;check
+(check (count-errors "contains" 1 #(1)
+              '(("contains" . (("type" . "integer"))) ("minContains" . 0)
+                ("maxContains" . 0)))
+  =>
+  1
+) ;check
+(check (count-errors "contains" 1 #(1 2)
+              '(("contains" . (("type" . "integer"))) ("minContains" . 0)))
+  =>
+  0
+) ;check
+
 ;; 错误对象携带关键字与路径信息。
 
 (define error
