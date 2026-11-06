@@ -55,7 +55,7 @@
     ],
     "unit-test": [
       {
-        "path": "tests/liii/date-time/date-time-test.scm",
+        "path": "library/tests/liii/date-time/date-time-test.scm",
         "reason": "(liii date-time) 总聚合入口测试，跨全部子库验证导出接口协同，不适用单函数文档规范"
       },
       {
