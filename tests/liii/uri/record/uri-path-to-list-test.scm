@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-path->list
 ;; 将 path 分割为段列表。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-path->list uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; list?
 ;;   返回路径段列表，空路径返回空列表。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 普通路径
 

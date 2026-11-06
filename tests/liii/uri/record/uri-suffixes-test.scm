@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-suffixes
 ;; 获取所有后缀列表。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-suffixes uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; list?
 ;;   返回所有扩展名列表，无后缀返回空列表。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 单后缀
 

@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-name
 ;; 获取文件名/最后一级。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-name uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; string? 或 #f
 ;;   返回最后一级名称，空路径返回 #f。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 带文件名的路径
 

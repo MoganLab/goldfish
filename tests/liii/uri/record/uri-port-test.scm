@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri-port
 ;; 获取 URI 的端口（优先显式端口，否则返回默认端口）。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri-port uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要读取的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; number? 或 #f
 ;;   返回端口号或 #f。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 显式端口
 

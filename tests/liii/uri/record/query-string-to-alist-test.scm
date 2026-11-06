@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; query-string->alist
 ;; 将查询字符串解析为 alist。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (query-string->alist qs)
 ;;
+;; 参数
+;; ----
+;; qs : string? 或 #f
+;;   要解析的查询字符串。
+;;
 ;; 返回值
 ;; ----
 ;; alist?
 ;;   返回键值对的关联列表。
 
+(import (liii check) (liii uri record))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单解析
 (check (query-string->alist "a=1") => '(("a" . "1")))
