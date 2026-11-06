@@ -1,13 +1,9 @@
-(import (liii check) (liii sse) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; make-sse-decoder
 ;; 构造增量 Chunk 解码器闭包，接收字符串分片并在事件闭合时触发回调。
 ;;
 ;; 语法
 ;; ----
-;; (make-sse-decoder on-event) → procedure
+;; (make-sse-decoder on-event)
 ;;
 ;; 参数
 ;; ----
@@ -16,25 +12,29 @@
 ;;
 ;; 返回值
 ;; ----
-;; procedure (lambda (chunk) ...)
-;; 解码器闭包。接收 string? 或 eof-object? 类型的 chunk。
+;; procedure
+;; 解码器闭包 (lambda (chunk) ...)，接收 string? 或 eof-object? 类型的 chunk。
 ;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 on-event 不是 procedure? 时。
 ;; type-error 当 chunk 既不是 string? 也不是 eof-object? 时。
 
+(import (scheme base) (liii check) (liii sse))
+
+(check-set-mode! 'report-failed)
+
 (define (make-collecting-decoder)
   (let ((events '()))
-    (values (make-sse-decoder (lambda (ev) (set! events (cons ev events))))
+    (values
+      (make-sse-decoder (lambda (ev) (set! events (cons ev events))))
       (lambda () events)
     ) ;values
   ) ;let
 ) ;define
 
 ;; 1. 基础单 Chunk 完整事件触发
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   (decoder "data: hello world\n\n")
   (check (length (get-events)) => 1)
   (let ((ev (car (get-events))))
@@ -46,8 +46,7 @@
 ) ;let-values
 
 ;; 2. 人为拆分数据包模拟 TCP 分片（断包与拼包测试）
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   ;; 第一次传入半包：不应触发回调
   (decoder "data: he")
   (check (length (get-events)) => 0)
@@ -58,8 +57,7 @@
 ) ;let-values
 
 ;; 3. 跨 \r\n 换行符的分片测试
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   (decoder "event: update\r")
   (check (length (get-events)) => 0)
   (decoder "\ndata: payload\r\n\r")
@@ -73,16 +71,17 @@
 ) ;let-values
 
 ;; 4. 单 Chunk 内包含多条 SSE 消息
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   (decoder "data: first\n\ndata: second\n\ndata: third\n\n")
   (check (length (get-events)) => 3)
-  (check (map sse-event-data (reverse (get-events))) => '("first" "second" "third"))
+  (check (map sse-event-data (reverse (get-events)))
+    =>
+    '("first" "second" "third")
+  ) ;check
 ) ;let-values
 
 ;; 5. 多行连续 data 字段跨 Chunk 累积
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   (decoder "data: line 1\n")
   (decoder "data: line 2\n")
   (decoder "data: line 3\n\n")
@@ -91,8 +90,7 @@
 ) ;let-values
 
 ;; 6. 注释与心跳行忽略，不触发回调
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   (decoder ": heartbeat ping\n\n")
   (check (length (get-events)) => 0)
   (decoder ": comment 1\n: comment 2\ndata: actual data\n\n")
@@ -101,8 +99,7 @@
 ) ;let-values
 
 ;; 7. 事件状态重置（前一个事件的字段不污染后续事件）
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   (decoder "event: custom\nid: 99\nretry: 4000\ndata: with-fields\n\n")
   (decoder "data: next-plain-event\n\n")
   (check (length (get-events)) => 2)
@@ -117,8 +114,7 @@
 ) ;let-values
 
 ;; 8. EOF 闭合信号冲刷残余未闭合事件
-(let-values
-  (((decoder get-events) (make-collecting-decoder)))
+(let-values (((decoder get-events) (make-collecting-decoder)))
   (let ((eof (read-char (open-input-string ""))))
     (decoder "data: unclosed-line")
     (check (length (get-events)) => 0)

@@ -1,26 +1,26 @@
-(import (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; check-true
-;; 断言表达式结果为 `#t`。
+;; 断言表达式求值结果为 #t。
 ;;
 ;; 语法
 ;; ----
 ;; (check-true expr)
 ;;
-;; 使用场景
+;; 参数
 ;; ----
-;; 1. 验证谓词判断应成立的场景。
-;; 2. 验证某个条件分支已经命中。
-;; 3. 验证成功状态标志为 `#t`。
+;; expr : any
+;; 要求值并验证的表达式。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;; 断言结果会被纳入 check-report 统计。
 
+(import (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check-true (number? 42))
 (check-true (zero? 0))
 (check-true (not #f))
-
 
 (check-report)

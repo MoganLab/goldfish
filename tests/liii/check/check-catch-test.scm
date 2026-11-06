@@ -1,26 +1,28 @@
-(import (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; check-catch
-;; 断言表达式会抛出指定错误标识。
+;; 断言表达式求值时会抛出指定的错误标识。
 ;;
 ;; 语法
 ;; ----
 ;; (check-catch error-id expr)
 ;;
-;; 使用场景
+;; 参数
 ;; ----
-;; 1. 验证非法参数类型会触发预期错误。
-;; 2. 验证参数个数不正确时的错误分支。
-;; 3. 为边界条件和失败路径补充回归测试。
+;; error-id : symbol?
+;; 期望捕获的错误标识符号（如 'type-error, 'wrong-number-of-args 等）。
+;; expr : any
+;; 预期会抛出错误的待求值表达式。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;; 断言结果会被纳入 check-report 统计。
 
+(import (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check-catch 'type-error (car 123))
 (check-catch 'wrong-number-of-args (car))
 (check-catch 'wrong-number-of-args (car '(1 2) '(3 4)))
-
 
 (check-report)

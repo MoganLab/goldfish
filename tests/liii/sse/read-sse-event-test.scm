@@ -1,7 +1,3 @@
-(import (liii check) (liii sse) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; read-sse-event
 ;; 从输入端口消费并解析下一个完整 Server-Sent Events (SSE) 事件。
 ;;
@@ -22,6 +18,10 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当传入的 port 不是 input-port? 时。
+
+(import (scheme base) (liii check) (liii sse))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基础单事件读取
 (let* ((p (open-input-string "data: hello world\n\n")) (ev (read-sse-event p)))
@@ -143,9 +143,9 @@
 (check-catch 'type-error (read-sse-event 'port))
 
 ;; 13. 多事件与连续注释排查（显式端口与默认 current-input-port 两种读法）
+
 (define big-text
-  (string-append ": init connection\n\n" "data: event one\n\n"
-    ": heartbeat\n\n"
+  (string-append ": init connection\n\n" "data: event one\n\n" ": heartbeat\n\n"
     "event: custom\ndata: event two line a\ndata: event two line b\n\n"
     "data: event three\n\n"
   ) ;string-append
@@ -181,7 +181,7 @@
                           "-e"
                           "(import (liii sse))\n(let loop () (let ((ev (read-sse-event))) (unless (eof-object? ev) (write (sse-event-data ev)) (newline) (loop))))"
                         ) ;list
-              :input big-text
+              :input  big-text
               :stdout 'capture
             ) ;run-either
        ) ;res
