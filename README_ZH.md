@@ -42,7 +42,7 @@
 | [(liii http common)](library/liii/http/common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |
 | [(liii json)](library/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
 | [(liii json schema)](library/liii/json/schema.scm) | JSON Schema 2020-12 校验      | `json-schema-valid?`, `json-schema-errors`                         |
-| [(liii subprocess)](goldfish/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
+| [(liii subprocess)](library/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
 | [(liii hashlib)](goldfish/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 编码转换           | `utf8->utf16le`, `utf16be->utf8`                                    |
