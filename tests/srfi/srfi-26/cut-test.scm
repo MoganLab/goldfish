@@ -1,7 +1,3 @@
-(import (liii check) (liii cut))
-
-(check-set-mode! 'report-failed)
-
 ;; cut
 ;; 参数特化宏（创建部分应用函数闭包，非占位符表达式在每次调用时求值）。
 ;;
@@ -28,11 +24,11 @@
 ;; 与 cute 的区别在于：cut 中的 non-slot 表达式是在每次调用返回的过程时求值，
 ;; 而 cute 是在过程创建（特化）时立即求值一次。
 ;;
-;; 示例
-;; ----
-;; ((cut list 1 <> 3 <>) 2 4)          => (1 2 3 4)
-;; ((cut list 1 <> 3 <...>) 2 4 5 6)    => (1 2 3 4 5 6)
-;; ((cut + 1 <...>) 2 3 4)              => 10
+
+(import (liii check) (srfi srfi-26))
+
+(check-set-mode! 'report-failed)
+
 
 ;; SRFI-26 标准规范测试
 (check ((cut list)) => '())
@@ -60,10 +56,10 @@
 ;; 过程位置使用占位符
 (check ((cut <>) list) => '())
 (check ((cut <> 1 <...>) + 2 3) => 6)
+(check ((cut <> #t <...>) if 1 0) => 1)
 
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args ((cut list <> <>) 1))
 (check-catch 'wrong-number-of-args ((cut list <> <> <...>) 1))
 
 (check-report)
-
