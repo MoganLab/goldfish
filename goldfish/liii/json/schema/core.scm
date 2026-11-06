@@ -18,10 +18,12 @@
 (define-library (liii json schema core)
   (import (scheme base) (liii json schema evaluator))
   (export json-schema-node-valid? json-schema-descend-errors)
-  (define (json-schema-node-valid? validator instance schema root)
-    (null? (validate-node validator instance schema '() '() root))
-  ) ;define
-  (define (json-schema-descend-errors validator instance schema path schema-path root)
-    (validate-node validator instance schema path schema-path root)
-  ) ;define
+  (begin
+    (define (json-schema-node-valid? validator instance schema root)
+      (null? (validate-node validator instance schema '() '() root))
+    ) ;define
+    (define (json-schema-descend-errors validator instance schema path schema-path root)
+      (validate-node validator instance schema path schema-path root)
+    ) ;define
+  ) ;begin
 ) ;define-library

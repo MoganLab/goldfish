@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema) (liii json schema core) (liii json))
-
-(check-set-mode! 'report-failed)
-
 ;; json-schema-node-valid?
 ;; 以指定的根资源校验单个 Schema 节点，返回实例是否合法。
 ;;
@@ -34,13 +30,14 @@
 ;; 需要错误列表时请使用 json-schema-descend-errors。
 ;; 每次调用都会重置动态作用域，因此可以在同一次校验中重复使用。
 ;;
-;; 示例
-;; ----
-;; (json-schema-node-valid? validator 1 '(("type" . "integer")) #t) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-schema-error 当 Schema 非法时。
+
+(import (liii check) (liii json schema) (liii json schema core) (liii json))
+
+(check-set-mode! 'report-failed)
+
 
 (define validator (make-json-schema-validator #t))
 
