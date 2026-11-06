@@ -30,7 +30,7 @@ compile_commands.json
 
 node_modules/
 
-result*
+/result*
 .envrc
 .direnv/
 tests/resources/hashlib-test-large-local.txt

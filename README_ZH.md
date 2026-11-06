@@ -30,7 +30,7 @@
 | [(liii vector)](goldfish/liii/vector.scm)         | 向量函数库                      | `vector-index`                                                     |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | 哈希表                          | `hash-table-empty?`, `hash-table-contains?`                        |
 | [(liii sys)](library/liii/sys.scm)               | 库类似于 Python 的 `sys` 模块   | `argv`                                                             |
-| [(liii os)](goldfish/liii/os.scm)                 | 库类似于 Python 的 `os` 模块    | `getenv`, `mkdir`                                                  |
+| [(liii os)](library/liii/os.scm)                  | 库类似于 Python 的 `os` 模块    | `getenv`, `mkdir`                                                  |
 | [(liii path)](library/liii/path.scm)             | 路径函数库                      | `path-dir?`, `path-file?`                                          |
 | [(liii range)](goldfish/liii/range.scm)           | 范围库                          | `numeric-range`, `iota`                                            |
 | [(liii generator)](goldfish/liii/generator.scm)   | 生成器与累加器函数库            | `generator`, `gtake`, `generator-fold`                             |
@@ -44,7 +44,7 @@
 | [(liii json schema)](library/liii/json/schema.scm) | JSON Schema 2020-12 校验      | `json-schema-valid?`, `json-schema-errors`                         |
 | [(liii subprocess)](library/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
 | [(liii base64)](library/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
-| [(liii hashlib)](goldfish/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
+| [(liii hashlib)](library/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 编码转换           | `utf8->utf16le`, `utf16be->utf8`                                    |
 | [(liii sort)](goldfish/liii/sort.scm)             | 排序函数库                      | `list-sort`, `list-stable-sort`, `vector-sort`                      |
 | [(liii time)](goldfish/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |

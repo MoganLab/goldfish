@@ -36,10 +36,11 @@
 
 (define (resource-file filename)
   (let ((local-path (string-append "tests/resources/" filename))
+        (alt-path (string-append "library/tests/resources/" filename))
         (abs-path (string-append "tools/fmt/tests/resources/" filename)))
-    (if (access local-path 'R_OK)
-        local-path
-        abs-path)
+    (cond ((access local-path 'R_OK) local-path)
+          ((access alt-path 'R_OK) alt-path)
+          (else abs-path))
   ) ;let
 ) ;define
 
