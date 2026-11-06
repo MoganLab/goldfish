@@ -238,11 +238,11 @@
         "reason": "Packrat 语法解析引擎核心实现"
       },
       {
-        "path": "goldfish/liii/config-parser.scm",
+        "path": "library/liii/config-parser.scm",
         "reason": "配置解析器完整状态机实现"
       },
       {
-        "path": "goldfish/liii/logging.scm",
+        "path": "library/liii/logging.scm",
         "reason": "日志框架格式化与分发逻辑"
       },
       {

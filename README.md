@@ -29,27 +29,27 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-starts?`, `string-ends?`                                  |
 | [(liii vector)](goldfish/liii/vector.scm)         | Vector Library                       | `vector-index`                                                   |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | Hash Table Library                   | `hash-table-empty?`, `hash-table-contains?`                      |
-| [(liii sys)](goldfish/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
+| [(liii sys)](library/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
 | [(liii os)](goldfish/liii/os.scm)                 | Library looks like Python os module  | `getenv`, `mkdir`                                                |
 | [(liii path)](library/liii/path.scm)             | Path Library                         | `path-dir?`, `path-file?`                                        |
 | [(liii range)](goldfish/liii/range.scm)           | Range Library                        | `numeric-range`, `iota`                                          |
 | [(liii generator)](goldfish/liii/generator.scm)   | Generators and Accumulators          | `generator`, `gtake`, `generator-fold`                            |
 | [(liii option)](goldfish/liii/option.scm)         | Option Type Library                  | `option?`, `option-map`, `option-flatten`                        |
 | [(liii either)](goldfish/liii/either.scm)         | Either Type Library                  | `left?`, `right?`, `either-map`                                  |
-| [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4` `uuid7`                                                  |
+| [(liii uuid)](library/liii/uuid.scm)             | UUID generation                      | `uuid4` `uuid7`                                                  |
 | [(liii http)](library/liii/http.scm)             | HTTP client library                  | `http-get`, `http-post`, `http-head`                             |
 | [(liii http async)](library/liii/http/async.scm) | Async HTTP client library            | `http-async-get`, `http-wait-all`                                |
 | [(liii http common)](library/liii/http/common.scm) | Shared helpers for http modules   | `http-ok?`                                                       |
 | [(liii json)](library/liii/json.scm)             | JSON parsing and manipulation        | `string->json`, `json->string`                                   |
 | [(liii json schema)](library/liii/json/schema.scm) | JSON Schema 2020-12 validation     | `json-schema-valid?`, `json-schema-errors`                       |
 | [(liii subprocess)](library/liii/subprocess.scm) | Subprocess management                | `run`, `run-pipe`, `run-sequence`                                 |
-| [(liii base64)](goldfish/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |
+| [(liii base64)](library/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |
 | [(liii hashlib)](goldfish/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 encoding conversion     | `utf8->utf16le`, `utf16be->utf8`                                  |
 | [(liii sort)](goldfish/liii/sort.scm)             | Sorting Library                      | `list-sort`, `list-stable-sort`, `vector-sort`                    |
 | [(liii time)](goldfish/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
-| [(liii argparse)](goldfish/liii/argparse.scm)     | Command line argument parsing        | `make-argument-parser`                                            |
-| [(liii config-parser)](goldfish/liii/config-parser.scm) | INI configuration parser      | `config-read-string`, `config-get`, `config-write`               |
+| [(liii argparse)](library/liii/argparse.scm)     | Command line argument parsing        | `make-argument-parser`                                            |
+| [(liii config-parser)](library/liii/config-parser.scm) | INI configuration parser      | `config-read-string`, `config-get`, `config-write`               |
 | [(liii go)](goldfish/liii/go.scm)                 | Go-style concurrency library         | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |
 | [(liii par)](goldfish/liii/par.scm)               | Parallel data processing library     | `par-map`, `par-for-each`, `vector-par-map`                      |
 
