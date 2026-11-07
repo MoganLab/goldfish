@@ -1,3 +1,20 @@
+;; pi-build-simplify-apply-prompt
+;; 构建应用修改模式下的代码简化提示词。
+;;
+;; 语法
+;; ----
+;; (pi-build-simplify-apply-prompt files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 变更文件及其上下文信息列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 组装好的应用修改提示词文本。
+
 (import (liii check)
         (liii string)
         (liii pi simplify prompt)
@@ -13,7 +30,6 @@
   ) ;list
 ) ;define
 
-;; pi-build-simplify-apply-prompt
 ;; 应用模式提示词：范围约束 + 逐文件修改 + 跑测试 + 总结并单列越界机会。
 
 (let* ((files (list (file "src/calc.ts" "modified" '(((start . 21) (end . 33))) #t)
