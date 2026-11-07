@@ -17,7 +17,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当任一参数不是 range 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -53,5 +53,11 @@
   (check (range->list (range-reverse r)) => '(e d c b a))
 ) ;let
 
+
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-reverse 42))
+(check-catch 'type-error (range-reverse "r"))
+(check-catch 'type-error (range-reverse '(0 1 2)))
 
 (check-report)

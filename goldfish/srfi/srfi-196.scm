@@ -562,6 +562,7 @@
     ) ;define
 
     (define (range-reverse r)
+      (%check-range "range-reverse" r)
       (%range-maybe-vectorize
         (raw-range (range-start-index r)
           (range-length r)
@@ -576,6 +577,8 @@
        (() (raw-range 0 0 (lambda (i) i) 0))
        ((r) r)
        ((ra rb)
+        (%check-range "range-append" ra)
+        (%check-range "range-append" rb)
         (let ((la (range-length ra)) (lb (range-length rb)))
           (%range-maybe-vectorize
             (raw-range 0
@@ -588,7 +591,7 @@
           ) ;%range-maybe-vectorize
         ) ;let
        ) ;
-       (rs
+       (rs (for-each (lambda (r) (%check-range "range-append" r)) rs)
          (let ((lens (map range-length rs)))
            (%range-maybe-vectorize
              (raw-range 0
