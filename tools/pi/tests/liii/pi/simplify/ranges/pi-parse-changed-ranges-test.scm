@@ -1,12 +1,26 @@
+;; pi-parse-changed-ranges
+;; 解析 git diff 的 hunk 头部并合并相邻行号区间。
+;;
+;; 语法
+;; ----
+;; (pi-parse-changed-ranges diff-text)
+;;
+;; 参数
+;; ----
+;; diff-text : string?
+;; git diff 命令的原始输出文本。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 合并后的 (start . end) 区间 alist 列表。
+
 (import (liii check)
         (liii string)
         (liii pi simplify ranges)
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; pi-parse-changed-ranges
-;; 解析 git diff --unified=0 的新文件侧 hunk 头，并合并相邻区间。
 
 ;; 1. 基本 hunk 头：省略行数视为 1；零行 hunk（纯删除）跳过
 (check (pi-parse-changed-ranges

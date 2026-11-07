@@ -1,3 +1,20 @@
+;; pi-collect-simplify-files
+;; 收集待简化的文件信息，包括改动行号区间与截断内容。
+;;
+;; 语法
+;; ----
+;; (pi-collect-simplify-files . opts)
+;;
+;; 参数
+;; ----
+;; opts : list?
+;; 关键字参数，支持 :ref :staged :files :runner :timeout :max-files 等。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含 files、paths、total 和 source 的结果 alist。
+
 (import (liii check)
         (liii string)
         (liii pi simplify ranges)
@@ -34,9 +51,6 @@
 (define (field key entry)
   (cdr (assoc key entry))
 ) ;define
-
-;; pi-collect-simplify-files
-;; 复用 044 的变更文件收集，再逐文件抓取改动行范围与内容。
 
 ;; 1. modified / added / renamed 的状态与行范围
 (let* ((box (vector '()))

@@ -1,3 +1,20 @@
+;; pi-format-simplify-suggestions
+;; 将代码简化建议列表格式化为易读的 Markdown 文本展示。
+;;
+;; 语法
+;; ----
+;; (pi-format-simplify-suggestions suggestions)
+;;
+;; 参数
+;; ----
+;; suggestions : list?
+;; 简化建议 alist 列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 格式化后的 Markdown 字符串。
+
 (import (liii check)
         (liii string)
         (liii pi simplify format)
@@ -18,7 +35,6 @@
   ) ;append
 ) ;define
 
-;; pi-format-simplify-suggestions
 ;; 无建议时输出固定文案。
 (check (pi-format-simplify-suggestions '())
   =>

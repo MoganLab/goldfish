@@ -1,3 +1,20 @@
+;; pi-parse-simplify-suggestions
+;; 解析模型返回的只读代码简化建议 JSON 文本。
+;;
+;; 语法
+;; ----
+;; (pi-parse-simplify-suggestions text)
+;;
+;; 参数
+;; ----
+;; text : string?
+;; 模型输出的原始文本或 Markdown 代码块。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 解析出的建议条目 alist 列表。
+
 (import (liii check)
         (liii string)
         (liii pi simplify parse)
@@ -8,9 +25,6 @@
 (define (field key entry)
   (cdr (assoc key entry))
 ) ;define
-
-;; pi-parse-simplify-suggestions
-;; 解析只读模式返回的 JSON 建议列表。
 
 ;; 1. 完整字段
 (let* ((text "{\"suggestions\":[{\"file\":\"src/a.ts\",\"line\":12,\"category\":\"naming\",\"message\":\"rename t\",\"suggestion\":\"use total\"}]}")

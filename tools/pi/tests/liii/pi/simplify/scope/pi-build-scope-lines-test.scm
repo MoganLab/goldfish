@@ -1,3 +1,20 @@
+;; pi-build-scope-lines
+;; 根据变更文件列表生成用于提示词的 Scope 范围描述行。
+;;
+;; 语法
+;; ----
+;; (pi-build-scope-lines files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 文件信息字典列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 拼接好的范围描述文本。
+
 (import (liii check)
         (liii string)
         (liii pi simplify scope)
@@ -12,9 +29,6 @@
     (cons 'ranges-available? available?)
   ) ;list
 ) ;define
-
-;; pi-build-scope-lines
-;; 按原生 pi-simplify 的措辞生成 Scope 行。
 
 ;; 1. 多区间：相邻数字折叠成 start-end，单行只写数字
 (check (pi-build-scope-lines (list (file "src/calc.ts" "modified"
