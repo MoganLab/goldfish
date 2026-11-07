@@ -1,8 +1,33 @@
+;; pi-multikey-mark-cooldown!
+;; 按失败原因标记密钥冷却时长。
+;;
+;; 语法
+;; ----
+;; (pi-multikey-mark-cooldown! pool-key reason now-ms pool)
+;;
+;; 参数
+;; ----
+;; pool-key : pi-pool-key?
+;; 待标记冷却的密钥记录。
+;;
+;; reason : (or number? string? symbol?)
+;; 失败原因，403 或 invalid 视为密钥失效。
+;;
+;; now-ms : number?
+;; 当前时刻（毫秒）。
+;;
+;; pool : pi-key-pool?
+;; 所属密钥池记录，提供冷却时长配置。
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 直接更新密钥记录的冷却截止时间。
+
 (import (liii check) (liii pi multikey pool) (liii pi multikey load) (liii pi multikey policy))
 
 (check-set-mode! 'report-failed)
 
-;; pi-multikey-mark-cooldown!
 ;; 请求遇 HTTP 429/403（或 key 失效）时冷却对应 key：
 ;;   429 → cooldownMs（默认 20000，pool 可配置）
 ;;   403 / "invalid" → invalidKeyCooldownMs（默认 600000，pool 可配置）

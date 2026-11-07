@@ -1,9 +1,28 @@
+;; pi-multikey-augment-config
+;; 命中密钥池时向配置注入密钥与轮换钩子。
+;;
+;; 语法
+;; ----
+;; (pi-multikey-augment-config cfg . opt-parsed)
+;;
+;; 参数
+;; ----
+;; cfg : list?
+;; 当前会话配置 alist。
+;;
+;; opt-parsed : list?
+;; 可选的已解析参数列表。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 增强后的配置 alist。
+
 (import (liii check) (liii pi ai keyring)
   (liii pi multikey pool) (liii pi multikey config))
 
 (check-set-mode! 'report-failed)
 
-;; pi-multikey-augment-config
 ;; config augmenter：命中 <config-dir>/multikey.json 中 provider 对应的 pool 时
 ;; 注入 api-key（首个池内 key）/ multikey-pool / request-key / rotate-key；
 ;; 未命中时原样返回 cfg，核心经 (liii pi ai keyring) 钩子消费。
