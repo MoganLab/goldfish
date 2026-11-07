@@ -155,6 +155,7 @@ gf doc scheme/base "函数名"
 - `string-ref` - 按索引取字符
 - `string-set!` - 按索引设置字符
 - `string-copy` - 复制字符串
+- `string-copy!` - 把源串区间复制到目标串指定位置
 - `string-append` - 连接多个字符串
 - `substring` - 提取子字符串
 - `string-fill!` - 用字符填充字符串

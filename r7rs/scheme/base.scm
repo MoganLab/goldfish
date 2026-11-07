@@ -142,6 +142,7 @@
     string-append
     substring
     string-fill!
+    string-copy!
     string->list
     list->string
     string=?
@@ -877,6 +878,55 @@
                       (loop (+ to-i 1) (+ from-i 1))
                     ) ;begin
                   ) ;if
+                ) ;let
+              ) ;if
+            ) ;if
+          ) ;if
+        ) ;if
+      ) ;if
+    ) ;define*
+
+    ;; R7RS 6.7：(string-copy! to at from [start [end]]) 把 from 的
+    ;; [start, end) 区间复制到 to 的 at 起始位置。源与目标重叠时按
+    ;; “先拷入临时串再拷入目标”的语义处理。
+    (define*
+      (string-copy! to
+        at
+        from
+        (start 0)
+        (end (and (string? from) (string-length from)))
+      ) ;string-copy!
+      (if (not (string? to))
+        (error 'type-error "string-copy!: 'to' must be a string")
+        (if (not (integer? at))
+          (error 'type-error "string-copy!: 'at' must be an integer")
+          (if (not (string? from))
+            (error 'type-error "string-copy!: 'from' must be a string")
+            (if (or (not (integer? start)) (not (integer? end)))
+              (error 'type-error "string-copy!: 'start' and 'end' must be integers")
+              (if
+                (or (< at 0)
+                  (> at (string-length to))
+                  (< start 0)
+                  (> start (string-length from))
+                  (< end 0)
+                  (> end (string-length from))
+                  (> start end)
+                  (> (+ at (- end start)) (string-length to))
+                ) ;or
+                (error 'out-of-range "string-copy!")
+                ;; 先拷到临时串，再写入目标，天然满足重叠语义
+                (let ((tmp (substring from start end)))
+                  (let loop
+                    ((to-i at) (from-i 0))
+                    (if (>= from-i (string-length tmp))
+                      to
+                      (begin
+                        (string-set! to to-i (string-ref tmp from-i))
+                        (loop (+ to-i 1) (+ from-i 1))
+                      ) ;begin
+                    ) ;if
+                  ) ;let
                 ) ;let
               ) ;if
             ) ;if
