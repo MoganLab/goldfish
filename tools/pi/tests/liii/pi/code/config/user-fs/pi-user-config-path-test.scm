@@ -18,7 +18,7 @@
 ;; string
 ;; 拼接后的文件路径。
 
-(import (liii check) (liii os) (liii pi code config user-fs))
+(import (liii check) (liii string) (liii os) (liii pi code config user-fs))
 
 (check-set-mode! 'report-failed)
 
