@@ -202,6 +202,7 @@
     read-string
     read
     write-char
+    write-string
     newline
     flush-output-port
     eof-object?

@@ -231,6 +231,7 @@ gf doc scheme/base "函数名"
 - `read` - 读取对象
 - `read-line` - 读取一行
 - `write` - 写入对象
+- `write-string` - 按 display 风格写入字符串
 
 ### 十二、异常处理 (R7RS 6.11 Exceptions)
 - `raise` - 抛出异常

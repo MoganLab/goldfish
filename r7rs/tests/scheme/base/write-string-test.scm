@@ -32,7 +32,7 @@
 ;; 1. `write-string` 输出字符串内容本身，不带双引号（与 `display` 风格一致）。
 ;; 2. 可以通过 start 和 end 只输出字符串的一个区间。
 
-(import (liii check) (scheme write))
+(import (liii check) (scheme base))
 (check-set-mode! 'report-failed)
 
 (define (capture-output thunk)
