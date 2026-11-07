@@ -72,6 +72,8 @@
       (> k %range-maximum-complexity)
     ) ;define
 
+    ;; SRFI 原实现的辅助谓词，保留供内部判定使用；
+    ;; 公开接口的错误检查改用 %check-range / %check-index，直接抛出错误。
     (define (%range-valid-index? r index)
       (and (exact-natural? index) (< index (range-length r)))
     ) ;define
@@ -168,8 +170,33 @@
 
     ;; ; Accessors
 
+    (define (%check-range who r)
+      (unless (range? r)
+        (type-error (string-append who ": argument must be a range, got ~S") r)
+      ) ;unless
+    ) ;define
+
+    (define (%check-index who index)
+      (unless (exact-integer? index)
+        (type-error (string-append who ": index must be an exact integer, got ~S")
+          index
+        ) ;type-error
+      ) ;unless
+      (when (negative? index)
+        (value-error (string-append who ": index must be non-negative, got ~S") index)
+      ) ;when
+    ) ;define
+
     (define (range-ref r index)
-     ((range-indexer r) (+ index (range-start-index r)))
+      (%check-range "range-ref" r)
+      (%check-index "range-ref" index)
+      (unless (< index (range-length r))
+        (value-error "range-ref: index out of range, index ~S, range-length ~S"
+          index
+          (range-length r)
+        ) ;value-error
+      ) ;unless
+      ((range-indexer r) (+ index (range-start-index r)))
     ) ;define
 
     (define (%range-ref-no-check r index)
@@ -177,10 +204,18 @@
     ) ;define
 
     (define (range-first r)
+      (%check-range "range-first" r)
+      (when (zero? (range-length r))
+        (value-error "range-first: range is empty")
+      ) ;when
       (%range-ref-no-check r 0)
     ) ;define
 
     (define (range-last r)
+      (%check-range "range-last" r)
+      (when (zero? (range-length r))
+        (value-error "range-last: range is empty")
+      ) ;when
       (%range-ref-no-check r (- (range-length r) 1))
     ) ;define
 
