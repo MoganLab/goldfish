@@ -114,17 +114,19 @@ R7RS-small 规范定义的库及其在仓库中的对应关系：
 | `(scheme eval)` | `eval` 与 `environment` | 已实现 |
 | `(scheme file)` | 文件输入输出 | 已实现 |
 | `(scheme inexact)` | 精确/非精确数值转换 | 已实现 |
-| `(scheme let)` | `let*` / `letrec*` / `let-values` / `let*-values` | 已实现 |
+| `(scheme lazy)` | `delay` / `delay-force` / `force` / `make-promise` / `promise?` | 待实现 |
 | `(scheme load)` | `load` | 待实现 |
 | `(scheme process-context)` | `command-line` / `exit` / `get-environment-variable` | 已实现 |
 | `(scheme read)` | `read` | 已实现 |
 | `(scheme repl)` | `interaction-environment` | 待实现 |
+| `(scheme r5rs)` | R5RS 兼容层：`exact->inexact` / `inexact->exact` / `null-environment` / `scheme-report-environment` 等 | 待实现 |
 | `(scheme time)` | `current-second` / `current-jiffy` / `jiffies-per-second` | 已实现 |
 | `(scheme write)` | `write` / `write-shared` / `write-simple` | 已实现 |
 
 板块划分规则：
 
-- **以 R7RS-small 文本为唯一规范来源**，实现不得擅自扩大或缩小语义；超出 small 范围的扩展一律归入 `(liii ...)` 库。- R7RS-small 之外的可选库（`(scheme lazy)`、`(scheme mutable-pairs)`、`(scheme r5rs)` 等）不属于本板块。
+- **以 R7RS-small 文本为唯一规范来源**，实现不得擅自扩大或缩小语义；超出 small 范围的扩展一律归入 `(liii ...)` 库。R7RS-small 之外的可选库（`(scheme mutable-pairs)` 等 R6RS 遗留库）不属于本板块。
+- R7RS-small 附录 A 定义的库共 16 个，其中 `(scheme base)` 必须完整提供；其余库可以选择不提供，但一旦提供就必须完整且不得额外导出。
 - 对规范的行为偏差与历史兼容处理，必须在 `r7rs/tests/` 中以一致性测试固化，并在源码注释中说明依据。
 - 本板块只承载标准定义的库，不放置 Goldfish 私有扩展。
 - `r7rs/scheme/boot.scm`（自举入口与环境初始化）与 `r7rs/scheme/syntax-rules.scm`（卫生宏展开器）不是 R7RS-small 定义的库，而是 `(scheme ...)` 系列库赖以构建的底座：它们只依赖 s7 内建原语，不反向依赖 `goldfish/`，因此随本板块一起置于 `r7rs/`。
