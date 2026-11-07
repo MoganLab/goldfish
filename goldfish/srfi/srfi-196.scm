@@ -22,7 +22,7 @@
 ;;
 
 (define-library (srfi srfi-196)
-  (import (scheme base) (scheme case-lambda))
+  (import (scheme base) (scheme case-lambda) (liii error))
   (export range numeric-range vector-range string-range range-append iota-range
     range? range=? range-length range-ref range-first range-last subrange
     range-segment range-split-at range-take range-take-right range-drop
@@ -83,6 +83,15 @@
     ;; ; Constructors
 
     (define (range length indexer)
+      (unless (exact-integer? length)
+        (type-error "range: length must be an exact integer, got ~S" length)
+      ) ;unless
+      (when (negative? length)
+        (value-error "range: length must be a non-negative integer, got ~S" length)
+      ) ;when
+      (unless (procedure? indexer)
+        (type-error "range: indexer must be a procedure, got ~S" indexer)
+      ) ;unless
       (raw-range 0 length indexer 0)
     ) ;define
 

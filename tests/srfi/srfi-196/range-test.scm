@@ -24,7 +24,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 length 不是精确整数，或 indexer 不是过程时抛出。
+;; - value-error：当 length 是负整数时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -41,6 +42,27 @@
   (check (range-ref r 5) => 10)
   (check (range-ref r 9) => 18)
 ) ;let
+
+;; 长度为 0 的空 range 合法
+(let ((r (range 0 (lambda (i) i))))
+  (check-true (range? r))
+  (check (range-length r) => 0)
+) ;let
+
+;; length 类型非法时抛出 type-error
+(check-catch 'type-error (range 'a (lambda (i) i)))
+(check-catch 'type-error (range "10" (lambda (i) i)))
+(check-catch 'type-error (range 10.5 (lambda (i) i)))
+(check-catch 'type-error (range #f (lambda (i) i)))
+(check-catch 'type-error (range '(1 2) (lambda (i) i)))
+
+;; length 为负数时抛出 value-error
+(check-catch 'value-error (range -1 (lambda (i) i)))
+(check-catch 'value-error (range -10 (lambda (i) i)))
+
+;; indexer 不是过程时抛出 type-error
+(check-catch 'type-error (range 10 'not-a-procedure))
+(check-catch 'type-error (range 10 42))
 
 
 (check-report)
