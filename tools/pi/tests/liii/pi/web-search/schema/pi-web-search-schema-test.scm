@@ -1,10 +1,25 @@
+;; pi-web-search-schema
+;; 获取 web_search 工具的 JSON Schema 定义。
+;;
+;; 语法
+;; ----
+;; (pi-web-search-schema)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; list?
+;; JSON Schema 定义的 alist。
+
 (import (liii check)
   (liii pi web-search schema)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; pi-web-search-schema
 ;; 获取 web_search 工具的 JSON Schema 定义，形状对齐原生 pi-web-search 扩展。
 (let* ((schema (pi-web-search-schema))
        (props (cdr (assoc "properties" schema)))

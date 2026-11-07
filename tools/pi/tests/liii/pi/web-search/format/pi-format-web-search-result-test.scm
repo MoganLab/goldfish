@@ -1,3 +1,23 @@
+;; pi-format-web-search-result
+;; 将联网搜索结果整理为回答文本、内容块与来源列表。
+;;
+;; 语法
+;; ----
+;; (pi-format-web-search-result text grounding)
+;;
+;; 参数
+;; ----
+;; text : string?
+;; 模型返回的回答文本。
+;;
+;; grounding : list?
+;; grounding 元数据，包含 citations 与搜索结果条目。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含 text、content、sources 与 details 字段的结果 alist。
+
 (import (scheme base)
         (liii check)
         (liii string)

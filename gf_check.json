@@ -93,6 +93,10 @@
         "reason": "多 API Key 端到端集成测试，不适用单函数文档规范"
       },
       {
+        "path": "tools/pi/tests/liii/pi-web-search-agent-loop-e2e-test.scm",
+        "reason": "联网搜索端到端集成测试，跨 Agent 循环与多库函数，不适用单函数文档规范"
+      },
+      {
         "path": "tools/pi/tests/liii/pi-agent-test.scm",
         "reason": "Agent 工作流聚合测试，跨多个库函数，不适用单函数文档规范"
       },

@@ -1,3 +1,23 @@
+;; pi-execute-web-search-deepseek
+;; 验证 pi-execute-web-search 在 deepseek provider 分支下的搜索与抓取行为。
+;;
+;; 语法
+;; ----
+;; (pi-execute-web-search args . opts)
+;;
+;; 参数
+;; ----
+;; args : list?
+;; web_search 工具参数 alist。
+;;
+;; opts : list?
+;; 可选关键字参数，支持 :api-key、:provider、:config 等。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含 text、content 与 sources 字段的搜索结果 alist。
+
 (import (scheme base)
         (liii check)
         (liii string)

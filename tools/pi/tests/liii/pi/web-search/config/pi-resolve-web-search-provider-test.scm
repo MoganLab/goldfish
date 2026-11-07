@@ -1,10 +1,35 @@
+;; pi-resolve-web-search-provider
+;; 解析联网搜索使用的后端 provider。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-web-search-provider config opt-provider ws-config . opt-env)
+;;
+;; 参数
+;; ----
+;; config : list?
+;; 会话配置 alist。
+;;
+;; opt-provider : (or string? boolean?)
+;; 显式传入的 provider 名称。
+;;
+;; ws-config : (or list? boolean?)
+;; web-search.json 解析后的配置 alist。
+;;
+;; opt-env : (or list? boolean?)（可选）
+;; 环境变量 alist（测试可控）。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 生效的 provider 名称。
+
 (import (liii check)
         (liii pi web-search config)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; pi-resolve-web-search-provider
 ;; 签名：(pi-resolve-web-search-provider config opt-provider ws-config . opt-env)
 ;; 优先级：显式 opt > ws-config（web-search.json） > 环境变量 > config
 
