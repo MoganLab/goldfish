@@ -22,7 +22,7 @@
 (import (scheme base)
   (liii check)
   (liii path)
-  (liii goldcheck unit-test source parse)
+  (liii goldcheck unit-test source exports)
 ) ;import
 
 (check-set-mode! 'report-failed)

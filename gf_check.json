@@ -19,7 +19,7 @@
       "enabled": true
     },
     "unit-test": {
-      "enabled": false
+      "enabled": true
     },
     "no-crlf": {
       "enabled": true,
@@ -61,12 +61,44 @@
         "reason": "(liii date-time) 总聚合入口测试，跨全部子库验证导出接口协同，不适用单函数文档规范"
       },
       {
+        "path": "library/tests/liii/date-time/README.md",
+        "reason": "总聚合入口测试目录的导览文档，随入口测试一并豁免"
+      },
+      {
+        "path": "library/tests/srfi/78/README.md",
+        "reason": "SRFI 规范官方测试集目录，优先保证完整性与对照性"
+      },
+      {
+        "path": "tests/demo/",
+        "reason": "示例与演示代码，非正式单元测试，不适用单函数文档规范"
+      },
+      {
         "path": "tools/fmt/tests/liii/goldfmt/",
         "reason": "gf fmt 工具测试仍按场景（T1/T2 等）组织为聚合用例，尚未拆分为单函数测试目录"
       },
       {
-        "path": "tools/test/tests/liii/goldtest/",
+        "path": "tools/test/tests/liii/",
         "reason": "gf test 工具测试仍为聚合用例，尚未拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/doc/tests/liii/",
+        "reason": "gf doc 工具测试仍为聚合用例，尚未拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/code/tests/liii/goldcode/",
+        "reason": "gf code 工具测试仍为聚合用例，尚未拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/help/tests/liii/goldhelp/",
+        "reason": "gf help 工具测试仍为聚合用例，尚未拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/pr/tests/liii/goldpr/",
+        "reason": "gf pr 工具测试仍为聚合用例，尚未拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/version/tests/liii/goldversion/",
+        "reason": "gf version 工具测试仍为聚合用例，尚未拆分为单函数测试目录"
       },
       {
         "path": "tests/goldfish/scheme/",
