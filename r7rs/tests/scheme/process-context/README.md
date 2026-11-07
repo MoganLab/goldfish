@@ -43,3 +43,8 @@ gf doc scheme/process-context "函数名"
 ### 二、命令行
 
 - `command-line` - 返回当前程序的命令行参数列表
+
+### 三、进程退出
+
+- `exit` - 运行 dynamic-wind after 后退出进程
+- `emergency-exit` - 跳过所有清理立即退出进程
