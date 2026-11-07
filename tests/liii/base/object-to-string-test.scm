@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; object->string
 ;; 将对象转换为字符串表示。
 ;;
@@ -30,6 +23,14 @@
 ;; ------
 ;; string?
 ;; 对象的字符串表示。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试基本类型

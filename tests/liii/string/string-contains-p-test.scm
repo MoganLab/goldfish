@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-contains?
 ;; 检查字符串是否包含指定子串。
 ;;
@@ -28,6 +26,9 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是字符串类型时。
+
+(import (liii check) (liii string))
+
 
 (check-true (string-contains? "0123456789" "3"))
 (check-true (string-contains? "0123456789" "34"))

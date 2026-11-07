@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-drop-right
 ;; 跳过后nchars个字符，返回字符串剩余部分。
 ;;
@@ -34,6 +29,12 @@
 ;; --------
 ;; value-error
 ;; 当nchars大于字符串长度时抛出错误
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试 - ASCII
 (check (string-drop-right "abcdef" 0) => "abcdef")

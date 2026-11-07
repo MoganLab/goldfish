@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-concatenate
 ;; 将字符串列表连接成一个字符串。
 ;;
@@ -25,6 +20,12 @@
 ;; 1. 列表为空时返回空字符串
 ;; 2. 支持 Unicode 字符串
 ;; 3. 性能：O(n)，n 为所有字符串总字节长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-concatenate '("a" "b" "c")) => "abc")
 (check (string-concatenate '()) => "")

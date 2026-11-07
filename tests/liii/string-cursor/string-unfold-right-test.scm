@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-unfold-right
 ;; 使用种子序列构造字符串（从右到左）。
 ;;
@@ -40,6 +35,12 @@
 ;; 1. 与 string-unfold 类似，但字符按相反顺序构建
 ;; 2. 与 (liii string) 的区别：无直接对应函数，(liii string-cursor) 独有
 ;; 3. 性能：O(n)，n 为生成的字符数
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-unfold-right (lambda (n) (> n 2))
          (lambda (n) (integer->char (+ n 65)))

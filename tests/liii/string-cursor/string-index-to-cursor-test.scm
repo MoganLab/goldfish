@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-index->cursor
 ;; 将字符索引转换为字符串游标。
 ;;
@@ -29,6 +24,12 @@
 ;; 2. 如果 index 已经是游标，则直接返回
 ;; 3. 与 (liii string) 的区别：(liii string-cursor) 提供了完整的游标操作支持
 ;; 4. 性能：O(n)，需要扫描字符串建立位置映射表
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试
 (let* ((s "abcdef")

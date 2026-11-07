@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-fold-right
 ;; 从右到左遍历字符串，将每个字符与累积值进行折叠运算。
 ;;
@@ -33,6 +28,12 @@
 ;; 3. 空字符串返回 knil
 ;; 4. 性能：O(n)，n 为字符串字符数
 
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 基本测试 - ASCII，从右到左折叠为顺序列表
 (check (string-fold-right cons '() "abc") => '(#\a #\b #\c))
 
@@ -49,4 +50,5 @@
 (let* ((s "abc") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-fold-right (lambda (c count) (+ count 1)) 0 s start end) => 3)
 ) ;let*
+
 (check-report)

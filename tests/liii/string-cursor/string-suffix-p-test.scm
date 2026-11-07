@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-suffix?
 ;; 判断 s1 是否是 s2 的后缀。
 ;;
@@ -28,6 +23,12 @@
 ;; 1. string-suffix? 是 SRFI-130 中的字符串比较函数
 ;; 2. 与 (liii string) 中的 string-suffix? 功能相同
 ;; 3. 性能：O(n)，n 为 s1 的长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-suffix? "" "") => #t)
 (check (string-suffix? "" "abc") => #t)

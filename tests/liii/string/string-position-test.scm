@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-position
 ;; 在字符串中查找子串的起始位置。
 ;;
@@ -29,6 +27,9 @@
 ;; 这是 s7 内置函数，(liii string) 重新导出以便统一使用。
 ;; 参数顺序为 (sub-str str)，与 srfi-13 的 string-contains 不同。
 ;; 空字符串作为 sub-str 时返回 #f。
+
+(import (liii check) (liii string))
+
 
 (check (string-position "34" "0123456789") => 3)
 (check (string-position "012" "0123456789") => 0)

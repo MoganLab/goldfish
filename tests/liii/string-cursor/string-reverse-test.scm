@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-reverse
 ;; 反转字符串中的字符顺序。
 ;;
@@ -33,6 +28,12 @@
 ;; 3. 支持可选的 start/end 参数指定子串反转
 ;; 4. 性能：O(n)，n 为子串字符数
 
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 基本测试
 (check (string-reverse "abc") => "cba")
 (check (string-reverse "") => "")
@@ -47,4 +48,5 @@
 (let* ((s "abcdef") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-reverse s start end) => "fedcba")
 ) ;let*
+
 (check-report)

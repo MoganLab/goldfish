@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; syntactic-closure-set-rename!
 ;; 设置句法闭包的重命名过程。
 ;;
@@ -30,6 +26,11 @@
 ;; 错误处理
 ;; --------
 ;; 第一个参数不是句法闭包时抛出 type-error。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 返回闭包本身
 (let ((sc (make-syntactic-closure (curlet) '() 'x)))

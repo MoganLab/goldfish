@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-contains-right
 ;; 在 s1 中查找 s2 最后一次出现的位置，返回 cursor。
 ;;
@@ -28,6 +23,12 @@
 ;; 1. string-contains-right 是 SRFI-130 中的字符串搜索函数
 ;; 2. 与 (liii string) 中的 string-contains-right 功能相同，但返回游标而非索引
 ;; 3. 性能：O(n×m)，n 为 s1 长度，m 为 s2 长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试
 (let ((result (string-contains-right "ababab" "ab")))

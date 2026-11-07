@@ -1,8 +1,5 @@
-(import (liii check) (liii par) (liii go) (liii list) (liii time) (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; par-for-each
+;; 并发遍历列表元素，对每个元素执行有副作用的过程。
 ;;
 ;; 语法
 ;; ----
@@ -27,6 +24,11 @@
 ;; 2. 主线程会等待所有任务执行完毕后才返回。
 ;; 3. 若 l 为空列表，直接返回 unspecified，不启动后台任务。
 ;; 4. 若后台 worker 发生未捕获异常，会在主线程重新抛出该异常。
+
+(import (liii check) (liii par) (liii go) (liii list) (liii time) (scheme time))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 空列表测试
 (check (par-for-each (lambda (x) x) '()) => (if #f #f))

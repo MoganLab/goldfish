@@ -1,7 +1,3 @@
-(import (liii check) (liii base))
-
-(check-set-mode! 'report-failed)
-
 ;; sort!
 ;; 对序列进行原地排序，返回排序后的序列本身（S7 内置函数）。
 ;;
@@ -35,24 +31,29 @@
 ;; 5. 比较函数必须一致（不能对相同的两个元素返回矛盾的结果），
 ;;    否则可能触发死循环检测而报错
 ;;
-;; 与 list-sort! 的区别
-;; -------------------
+;; 说明
+;; ----
 ;; (liii sort) 的 list-sort! 是基于 sort! 的薄封装，两者原地排序的
 ;; 语义一致（只改 car 不动列表骨架，返回值与输入 eq?），区别在于：
 ;; sort!       支持列表、向量和字符串，参数顺序是 (sort! seq less?)；
 ;; list-sort!  只支持列表，参数顺序是 (list-sort! less? lst)，
 ;;             比较函数在前（SRFI-132 约定）。
 ;;
-;; 相关函数
-;; --------
+;; 说明
+;; ----
 ;; list-sort!        - (liii sort) 中的列表排序，比较函数在前
 ;; list-stable-sort! - (liii sort) 中的稳定列表排序
 ;; vector-sort!      - (liii sort) 中的向量排序
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; 当 seq 不是序列时抛出 type-error 错误；
 ;; 当 less? 不是可接受两个参数的函数时抛出错误。
+
+(import (liii check) (liii base))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 列表排序：升序与降序
 (check (sort! (list 3 1 2) <) => '(1 2 3))

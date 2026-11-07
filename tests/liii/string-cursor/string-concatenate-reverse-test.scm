@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-concatenate-reverse
 ;; 将字符串列表按逆序连接成一个字符串。
 ;;
@@ -31,6 +26,12 @@
 ;; 1. 先反转列表顺序，再连接
 ;; 2. 支持可选的 final-string 和 end 参数
 ;; 3. 性能：O(n)，n 为所有字符串总字节长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-concatenate-reverse '("a" "b" "c")) => "cba")
 (check (string-concatenate-reverse '()) => "")

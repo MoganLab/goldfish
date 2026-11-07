@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-remove-prefix
 ;; 如果字符串以指定前缀开始，则移除该前缀；否则返回原字符串。
 ;;
@@ -31,6 +29,9 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是字符串类型时。需要两个参数都是字符串。
+
+(import (liii check) (liii string))
+
 
 (check (string-remove-prefix "浙江省杭州市西湖区" "浙江省")
   =>

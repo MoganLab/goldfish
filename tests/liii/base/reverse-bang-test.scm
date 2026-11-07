@@ -1,7 +1,3 @@
-(import (liii check) (liii base))
-
-(check-set-mode! 'report-failed)
-
 ;; reverse!
 ;; 原地反转列表或向量并返回结果，性能优于 reverse。
 ;;
@@ -27,18 +23,23 @@
 ;; 4. 对序列中的元素类型没有限制
 ;; 5. 当参数是非列表/非向量时，行为依赖于具体实现
 ;;
-;; 与 reverse 的区别
-;; ----------------
+;; 说明
+;; ----
 ;; reverse  返回一个新序列，原始序列保持不变；
 ;; reverse! 原地修改序列并返回结果，性能更好，但会破坏原始序列。
 ;;
-;; 相关函数
-;; --------
+;; 说明
+;; ----
 ;; reverse - 返回反转后的新列表或向量，不修改原始序列
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; 依赖具体实现行为
+
+(import (liii check) (liii base))
+
+(check-set-mode! 'report-failed)
+
 
 (check (reverse! '()) => '())
 (check (reverse! '(a)) => '(a))

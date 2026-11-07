@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-hook
 ;; 创建一个新的 hook（过程对象），可用于注册和触发回调函数。
 ;;
@@ -29,11 +22,14 @@
 ;; 通过 hook-functions 可以获取或设置 hook 的回调函数列表。
 ;; 触发 hook 时，回调函数按列表顺序依次执行。
 ;;
-;; 示例
-;; ----
-;; (define h (make-hook 'code))
-;; (set! (hook-functions h) (list (lambda (hook) (hook 'code))))
-;; (h 42)  ; 触发回调，code 为 42
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; make-hook 返回一个过程

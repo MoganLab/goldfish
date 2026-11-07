@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-replicate
 ;; 复制字符串的指定子串，并可以循环填充到指定长度。
 ;;
@@ -39,6 +34,12 @@
 ;; 3. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，(liii string) 按字节操作
 ;; 4. 性能：O(n)，n 为输出字符串长度
 
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 基本测试
 (check (string-replicate "abcdef" 2 8) => "cdefab")
 (check (string-replicate "abcdef" -2 4) => "efabcd")
@@ -53,4 +54,5 @@
 (let* ((s "abc") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-replicate s 0 6 start end) => "abcabc")
 ) ;let*
+
 (check-report)

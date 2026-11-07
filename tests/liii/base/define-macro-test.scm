@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-(check-set-mode! 'report-failed)
-
 ;; define-macro
 ;; 定义 Scheme 宏（展开器运行于宏定义时的词法环境中）。
 ;;
@@ -36,6 +31,12 @@
 ;; 与过程（procedure）不同，宏的参数在传入时不进行求值。
 ;; 宏体在求值展开时，处于宏【定义时】的词法环境中（而非调用点环境）。
 ;; 使用 (macro? obj) 可以判断对象是否为宏。
+
+(import (liii check))
+(import (liii base))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 用例 1：基本代码替换宏（交换两个变量）
 (define-macro (my-swap! a b)

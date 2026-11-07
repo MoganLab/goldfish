@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; defined?
 ;; 检查符号是否在指定环境中已定义（有绑定值）。
 ;;
@@ -35,6 +28,14 @@
 ;; defined? 用于检查一个符号是否已经被定义（有值）。
 ;; 注意：与 undefined? 不同，defined? 检查的是符号是否有绑定，
 ;; 而不是值是否为 #<undefined>。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试未定义的符号

@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; pyfmt
 ;; Python % 风格的具名格式化函数
 ;;
@@ -20,6 +18,9 @@
 ;; ----
 ;; string
 ;; 格式化后的字符串
+
+(import (liii check) (liii string))
+
 
 ;; 基础字符串替换
 (check (pyfmt "hello") => "hello")

@@ -27,7 +27,7 @@
       ) ;
   (check-true (string? tests-root))
   (check-true (path-dir? tests-root))
-  (check-true (path-file? (path-join tests-root "liii" "string-test.scm")))
+  (check-true (path-file? (path-join tests-root "liii" "string" "README.md")))
 ) ;let*
 
 (let* ((load-root (find-visible-library-root "liii/uri/compare"))

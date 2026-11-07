@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-cursor?
 ;; 判断一个值是否为字符串游标。
 ;;
@@ -25,6 +20,12 @@
 ;; 1. string-cursor? 是 SRFI-130 中的游标谓词函数
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 提供了完整的游标操作支持
 ;; 3. 性能：O(1)
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试
 (let ((s "abc") (c (string-cursor-start "abc")))

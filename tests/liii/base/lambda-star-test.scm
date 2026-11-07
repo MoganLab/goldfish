@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; lambda*
 ;; 创建带有默认参数和关键字参数的函数。
 ;;
@@ -26,10 +19,14 @@
 ;; lambda* 是 S7 内置函数，但不在 R7RS 标准中定义。
 ;; 支持通过关键字传入参数，如 (:b 5)。
 ;;
-;; 示例
-;; ----
-;; ((lambda* (a (b 2)) (+ a b)) 1)       => 3
-;; ((lambda* (a (b 2)) (+ a b)) 1 :b 5)  => 6
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check ((lambda* (a (b 2)) (+ a b)) 1) => 3)

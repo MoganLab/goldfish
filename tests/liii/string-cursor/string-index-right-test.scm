@@ -1,8 +1,3 @@
-(import (liii check) (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-index-right
 ;; 从右向左查找，返回满足谓词的字符的下一个位置（successor）的cursor。
 ;; 如果没有找到，返回 start cursor。
@@ -42,6 +37,12 @@
 ;; --------
 ;; value-error
 ;; 当 start/end 超出范围时抛出错误
+
+(import (liii check) (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试 - ASCII
 (let ((s "abc123"))
@@ -87,4 +88,5 @@
       ) ;
   (check (string-cursor->index s result) => 3)
 ) ;let*
+
 (check-report)

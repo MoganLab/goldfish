@@ -1,8 +1,5 @@
-(import (liii check) (liii par) (liii go) (liii time) (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; par-filter
+;; 并发过滤列表元素，返回满足判定条件的元素列表。
 ;;
 ;; 语法
 ;; ----
@@ -31,6 +28,11 @@
 ;; 4. 主线程会等待所有 worker 执行完毕后才返回。
 ;; 5. 若后台 worker 发生未捕获异常，主线程在收敛全部任务后重新抛出最早捕获的异常。
 ;; 6. 若参数类型不匹配，抛出 type-error。
+
+(import (liii check) (liii par) (liii go) (liii time) (scheme time))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 空列表测试
 (check (par-filter (lambda (x) (even? x)) '()) => '())

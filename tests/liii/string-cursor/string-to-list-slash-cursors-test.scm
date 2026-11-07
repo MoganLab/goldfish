@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string->list/cursors
 ;; 将字符串转换为字符列表。
 ;;
@@ -32,6 +27,12 @@
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符转换，支持 Unicode
 ;; 3. 性能：O(n)，n 为子串字符数
 
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 (check (string->list/cursors "abc") => '(#\a #\b #\c))
 (check (string->list/cursors "abc" 1 2) => '(#\b))
 (check (string->list/cursors "") => '())
@@ -44,4 +45,5 @@
 (let* ((s "abc") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (length (string->list/cursors s start end)) => 3)
 ) ;let*
+
 (check-report)

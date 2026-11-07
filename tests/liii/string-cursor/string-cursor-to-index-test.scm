@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-cursor->index
 ;; 将字符串游标转换为字符索引。
 ;;
@@ -28,6 +23,12 @@
 ;; 1. string-cursor->index 是 SRFI-130 中的游标转换函数
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 提供了完整的游标操作支持
 ;; 3. 性能：O(1)，直接读取游标中的索引信息
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试
 (let* ((s "abcdef")

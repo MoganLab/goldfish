@@ -1,8 +1,5 @@
-(import (liii check) (liii par) (liii go) (liii time) (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; vector-par-filter
+;; 并发过滤向量元素，返回满足判定条件的元素向量。
 ;;
 ;; 语法
 ;; ----
@@ -35,6 +32,11 @@
 ;; 5. 主线程会等待所有 worker 执行完毕后才返回。
 ;; 6. 若后台 worker 发生未捕获异常，主线程在收敛全部任务后重新抛出最早捕获的异常。
 ;; 7. 若参数类型不匹配，抛出 type-error。
+
+(import (liii check) (liii par) (liii go) (liii time) (scheme time))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 空向量测试
 (check (vector-par-filter (lambda (x) (even? x)) #()) => #())

@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-remove-suffix
 ;; 如果字符串以指定后缀结束，则移除该后缀；否则返回原字符串。
 ;;
@@ -28,17 +26,12 @@
 ;; 移除后缀是指将字符串末尾与后缀匹配的部分删除，返回剩余部分。
 ;; 该函数会返回新的字符串对象，而不是修改原字符串。
 ;;
-;; 示例
-;; ----
-;; (string-remove-suffix "filename.txt" ".txt") => "filename"
-;; (string-remove-suffix "test.js" ".py") => "test.js"
-;; (string-remove-suffix "hello world" "world") => "hello "
-;; (string-remove-suffix "test" "") => "test"
-;; (string-remove-suffix "" "test") => ""
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是字符串类型时。需要两个参数都是字符串。
+
+(import (liii check) (liii string))
+
 
 (check (string-remove-suffix "aaa" "a") => "aa")
 (check (string-remove-suffix "aaa" "") => "aaa")

@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; procedure-arglist
 ;; 获取过程的参数列表。
 ;;
@@ -28,6 +21,14 @@
 ;; ----
 ;; procedure-arglist 用于获取 Scheme 定义的函数的参数列表。
 ;; 注意：C 内置函数没有参数列表，调用会报错。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试固定参数 lambda

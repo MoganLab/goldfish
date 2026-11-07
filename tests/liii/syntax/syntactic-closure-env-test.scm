@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; syntactic-closure-env
 ;; 取出句法闭包捕获的词法环境。
 ;;
@@ -22,6 +18,11 @@
 ;; 错误处理
 ;; --------
 ;; 参数不是句法闭包时抛出 type-error。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 (let* ((e (curlet))
        (sc (make-syntactic-closure e '() 'x)))

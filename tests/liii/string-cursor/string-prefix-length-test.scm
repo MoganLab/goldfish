@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-prefix-length
 ;; 返回两个字符串的最长公共前缀长度。
 ;;
@@ -28,6 +23,12 @@
 ;; 1. string-prefix-length 是 SRFI-130 中的字符串比较函数
 ;; 2. 与 (liii string) 中的 string-prefix-length 功能相同
 ;; 3. 性能：O(n)，n 为公共前缀长度
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-prefix-length "" "") => 0)
 (check (string-prefix-length "abc" "abc") => 3)

@@ -1,8 +1,5 @@
-(import (liii check) (liii par) (liii go) (liii time) (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; vector-par-map
+;; 并发映射向量元素，返回与输入等长且保序的结果向量。
 ;;
 ;; 语法
 ;; ----
@@ -33,6 +30,11 @@
 ;; 4. 主线程会等待所有 worker 执行完毕后才返回。
 ;; 5. 若后台 worker 发生未捕获异常，主线程在收敛全部任务后重新抛出最早捕获的异常。
 ;; 6. 若参数类型不匹配，抛出 type-error。
+
+(import (liii check) (liii par) (liii go) (liii time) (scheme time))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 空向量测试
 (check (vector-par-map (lambda (x) (* x x)) #()) => #())

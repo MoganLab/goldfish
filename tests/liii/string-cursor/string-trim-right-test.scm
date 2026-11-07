@@ -1,9 +1,3 @@
-(import (liii check))
-(import (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-trim-right
 ;; 去掉字符串右侧满足谓词的字符。
 ;;
@@ -32,6 +26,13 @@
 ;; 1. string-trim-right 是 SRFI-130 中的字符串修剪函数
 ;; 2. 与 (liii string) 中的 string-trim-right 功能相同
 ;; 3. 性能：O(n)，n 为被修剪的字符数
+
+(import (liii check))
+(import (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-trim-right "  abc  ") => "  abc")
 (check (string-trim-right "abc  ") => "abc")

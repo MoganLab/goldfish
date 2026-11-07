@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-split
 ;; 按指定字符串分隔符精确分割字符串，保留空字段。
 ;;
@@ -32,6 +30,9 @@
 ;; type-error 当 `str` 不是字符串时
 ;; type-error 当 `sep` 不是字符串或字符时
 ;; wrong-number-of-args 当参数数量不正确时
+
+(import (liii check) (liii string))
+
 
 ;;
 ;; 相关实现

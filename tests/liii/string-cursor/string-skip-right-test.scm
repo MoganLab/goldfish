@@ -1,8 +1,3 @@
-(import (liii check) (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-skip-right
 ;; 从右向左查找，返回第一个不满足谓词的字符的 successor cursor。
 ;; 如果没有找到（全部满足），返回 start cursor。
@@ -38,6 +33,12 @@
 ;; 3. 搜索范围是 [start, end)
 ;; 4. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，支持 Unicode
 ;; 5. 性能：O(n)，n 为字符串字符数
+
+(import (liii check) (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试 - ASCII
 (let ((s "abc123"))
@@ -83,4 +84,5 @@
       ) ;
   (check (string-cursor->index s result) => 3)
 ) ;let*
+
 (check-report)

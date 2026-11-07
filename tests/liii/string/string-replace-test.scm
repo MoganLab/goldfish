@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-replace
 ;; 按从左到右、非重叠的方式替换字符串中的所有匹配子串。
 ;;
@@ -38,6 +36,9 @@
 ;; ----
 ;; type-error 当任一参数不是字符串类型时
 ;; wrong-number-of-args 当参数数量不正确时
+
+(import (liii check) (liii string))
+
 
 ;; 基本功能测试
 ;;

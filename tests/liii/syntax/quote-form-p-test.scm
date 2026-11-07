@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; quote-form?
 ;; 判断一个对象是否为 quote 形式。
 ;;
@@ -26,6 +22,11 @@
 ;; - (#_quote x)：s7 reader 将 'x 读为 (#_quote x)，#_quote 是驻留的语法对象；
 ;; - 形式必须恰好带一个参数：cdr 为 pair 且 cddr 为空列表。
 ;; 该函数常用于遍历代码或数据时穿透 quote 包装，如 (liii tree) 的 tree-depth。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 符号 quote 形式（car 为普通符号 quote）
 (check (quote-form? (list 'quote 'a)) => #t)

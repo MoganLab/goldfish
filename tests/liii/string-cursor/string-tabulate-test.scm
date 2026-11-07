@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-tabulate
 ;; 通过将过程应用于索引来构造字符串。
 ;;
@@ -28,6 +23,12 @@
 ;; 1. (proc i) 对每个 i 从 0 到 len-1 调用
 ;; 2. 与 (liii string) 的区别：无直接对应函数，(liii string-cursor) 独有
 ;; 3. 性能：O(n)，n 为 len
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 (check (string-tabulate (lambda (i) (integer->char (+ i 65))) 3) => "ABC")
 (check (string-tabulate (lambda (i) #\a) 0) => "")

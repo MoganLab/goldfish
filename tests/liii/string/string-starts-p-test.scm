@@ -1,5 +1,3 @@
-(import (liii check) (liii string))
-
 ;; string-starts?
 ;; 检查字符串是否以指定前缀开始。
 ;;
@@ -29,6 +27,9 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是字符串类型时。需要两个参数都是字符串；非字符串参数会抛出type-error。
+
+(import (liii check) (liii string))
+
 
 (check-true (string-starts? "MathAgape" "Ma"))
 (check-true (string-starts? "MathAgape" ""))

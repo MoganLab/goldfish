@@ -1,7 +1,3 @@
-(import (liii check) (liii syntax))
-
-(check-set-mode! 'report-failed)
-
 ;; resolve-syntactic-closures
 ;; 将含句法闭包的宏展开结果消解为干净的原生 S 表达式。
 ;;
@@ -27,6 +23,11 @@
 ;;   且同一标识符在同一次消解中重命名结果一致（记忆化）；
 ;; - quote 形式的数据部分只做剥离、不做重命名；
 ;; - 结果中不再含有任何 syntactic-closure 节点，可直接送入求值器。
+
+(import (liii check) (liii syntax))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 无闭包的表达式原样返回（有绑定的符号不重命名）
 (check (resolve-syntactic-closures '(+ 1 2)) => '(+ 1 2))

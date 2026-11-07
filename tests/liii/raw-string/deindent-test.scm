@@ -1,7 +1,3 @@
-(import (liii check) (liii raw-string))
-
-(check-set-mode! 'report-failed)
-
 ;; deindent
 ;; 对多行字符串按 closing line 的缩进去掉公共前导空格。
 ;;
@@ -28,6 +24,11 @@
 ;; ----
 ;; value-error
 ;; 字符串不是以新行开头、closing line 非法，或某一行缩进少于基准缩进时抛出。
+
+(import (liii check) (liii raw-string))
+
+(check-set-mode! 'report-failed)
+
 
 (check (deindent "\n  第一行\n  第二行\n  第三行\n  ")
   =>

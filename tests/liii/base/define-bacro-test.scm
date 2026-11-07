@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-(check-set-mode! 'report-failed)
-
 ;; define-bacro
 ;; 定义绑定宏（Bacro，展开器运行于宏调用点的环境中）。
 ;;
@@ -42,6 +37,12 @@
 ;; - 宏体内的自由变量在展开时从调用点的环境中查找解析。
 ;;
 ;; 使用 (macro? obj) 对 bacro 同样返回 #t。
+
+(import (liii check))
+(import (liii base))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 用例 1：自由变量从调用点环境中查找（与 define-macro 形成对比）
 

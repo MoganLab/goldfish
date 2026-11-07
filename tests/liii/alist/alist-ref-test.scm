@@ -1,9 +1,3 @@
-(import (liii alist) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; alist-ref
 ;; 在关联列表中按键查找对应的值。
 ;;
@@ -36,15 +30,16 @@
 ;; ----
 ;; 未提供thunk时，键不存在会抛出`key-error`。
 ;;
-;; 示例
-;; ----
-;; (alist-ref '((a 1)) 'a) => '(1)
-;; (alist-ref '((a . 1)) 'a) => 1
-;; (alist-ref '((a . 1)) 'b (lambda () 2)) => 2
-;;
 ;; 错误处理
 ;; ----
 ;; key-error 当键不存在且未提供thunk时抛出。
+
+(import (liii alist) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check (alist-ref '((a 1)) 'a) => '(1))

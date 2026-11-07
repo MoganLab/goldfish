@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string->vector/cursors
 ;; 将字符串转换为字符向量。
 ;;
@@ -32,6 +27,12 @@
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符转换，支持 Unicode
 ;; 3. 性能：O(n)，n 为子串字符数
 
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
+
 (check (string->vector/cursors "abc") => #(#\a #\b #\c))
 (check (string->vector/cursors "abc" 1 2) => #(#\b))
 (check (string->vector/cursors "") => #())
@@ -47,4 +48,5 @@
 (let* ((s "abc") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (vector-length (string->vector/cursors s start end)) => 3)
 ) ;let*
+
 (check-report)

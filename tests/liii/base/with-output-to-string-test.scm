@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; with-output-to-string
 ;; 将过程体内的输出收集到字符串中返回。
 ;;
@@ -24,11 +17,14 @@
 ;; ----
 ;; with-output-to-string 是 S7 内置函数，但不在 R7RS 标准中定义。
 ;;
-;; 示例
-;; ----
-;; (with-output-to-string (lambda () (display "hello"))) => "hello"
-;; (with-output-to-string (lambda () (display 123)))     => "123"
-;; (with-output-to-string (lambda () (values)))           => ""
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check (with-output-to-string (lambda () (display "hello"))) => "hello")

@@ -1,9 +1,3 @@
-(import (liii alist) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; vector->alist
 ;; 把向量转换成以索引为键的关联列表。
 ;;
@@ -25,14 +19,16 @@
 ;; ----
 ;; 空向量会转换成空列表。
 ;;
-;; 示例
-;; ----
-;; (vector->alist #()) => '()
-;; (vector->alist #(42)) => '((0 . 42))
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是向量时抛出。
+
+(import (liii alist) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (check (vector->alist #()) => '())

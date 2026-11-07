@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii base))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; procedure-source
 ;; 获取过程的源代码定义。
 ;;
@@ -28,6 +21,14 @@
 ;; procedure-source 可以获取用户定义的函数的源代码表示形式，
 ;; 这对于调试、代码分析和元编程非常有用。
 ;; 注意：C 内置函数没有源代码表示，因此返回空列表。
+
+(import (liii check))
+(import (liii base))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 ;; 测试 lambda 函数的源代码

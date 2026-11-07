@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; substring/cursors
 ;; 按cursor截取子串。
 ;;
@@ -29,6 +24,12 @@
 ;; 2. start 和 end 必须同为游标或同为整数索引
 ;; 3. 与 (liii string) 中的 substring 功能类似，但支持游标参数
 ;; 4. 性能：O(n)，n 为子串字符数
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试ASCII
 (let ((s "abcdef"))
@@ -92,4 +93,5 @@
 (check-catch 'out-of-range (substring/cursors "中文" 3 3))
 (check-catch 'out-of-range (substring/cursors "ab" 0 4))
 (check-catch 'out-of-range (substring/cursors "ab" 100000000 100000000))
+
 (check-report)

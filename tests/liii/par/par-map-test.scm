@@ -1,8 +1,5 @@
-(import (liii check) (liii par) (liii go) (liii time) (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; par-map
+;; 并发映射列表元素，返回与输入等长且保序的结果列表。
 ;;
 ;; 语法
 ;; ----
@@ -29,6 +26,11 @@
 ;; 3. 主线程会等待所有 worker 执行完毕后才返回。
 ;; 4. 若后台 worker 发生未捕获异常，主线程在收敛全部任务后重新抛出最早捕获的异常。
 ;; 5. 若参数类型不匹配，抛出 type-error。
+
+(import (liii check) (liii par) (liii go) (liii time) (scheme time))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 空列表测试
 (check (par-map (lambda (x) (* x x)) '()) => '())

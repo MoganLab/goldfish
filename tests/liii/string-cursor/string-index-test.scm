@@ -1,8 +1,3 @@
-(import (liii check) (scheme char))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-index
 ;; 从左向右查找，返回第一个满足谓词的字符的cursor。
 ;; 如果没有找到，返回 end cursor。
@@ -41,6 +36,12 @@
 ;; --------
 ;; value-error
 ;; 当 start/end 超出范围时抛出错误
+
+(import (liii check) (scheme char))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 基本测试 - ASCII
 (let ((s "abcdef"))
@@ -88,4 +89,5 @@
       ) ;
   (check (string-cursor->index s result) => 3)
 ) ;let*
+
 (check-report)

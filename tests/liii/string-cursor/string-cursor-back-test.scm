@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string-cursor))
-
-(check-set-mode! 'report-failed)
-
 ;; string-cursor-back
 ;; 向后移动nchars个位置。
 ;;
@@ -32,6 +27,12 @@
 ;; 2. 如果 cursor 是整数，会先转换为游标
 ;; 3. 如果移动超出范围，会报错
 ;; 4. 性能：O(1)
+
+(import (liii check))
+(import (liii string-cursor))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试ASCII字符串
 (let* ((end (string-cursor-end "abcdef"))

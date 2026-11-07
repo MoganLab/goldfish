@@ -1,8 +1,5 @@
-(import (liii check) (liii par) (liii go) (liii time) (scheme time))
-
-(check-set-mode! 'report-failed)
-
 ;; vector-par-for-each
+;; 并发遍历向量元素，对每个元素执行有副作用的过程。
 ;;
 ;; 语法
 ;; ----
@@ -31,6 +28,11 @@
 ;; 3. 主线程会等待所有任务执行完毕后才返回。
 ;; 4. 若 vec 为空向量，直接返回 unspecified，不启动后台任务。
 ;; 5. 若后台 worker 发生未捕获异常，会在主线程重新抛出该异常。
+
+(import (liii check) (liii par) (liii go) (liii time) (scheme time))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 1. 空向量测试
 (check (vector-par-for-each (lambda (x) x) #()) => (if #f #f))
