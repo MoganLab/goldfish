@@ -30,8 +30,16 @@
 (check (range-length (numeric-range 0 10)) => 10)
 (check (range-length (numeric-range 0 5)) => 5)
 (check (range-length (numeric-range 0 0)) => 0)
-(check (range-length (range 5 (lambda (i) i))) => 5)
-(check (range-length (range 0 (lambda (i) i))) => 0)
+(check
+  (range-length (range 5 (lambda (i) i)))
+  =>
+  5
+) ;check
+(check
+  (range-length (range 0 (lambda (i) i)))
+  =>
+  0
+) ;check
 
 
 (let ((r (numeric-range 10 30 2)))

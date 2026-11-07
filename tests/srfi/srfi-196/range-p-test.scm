@@ -28,7 +28,9 @@
 
 
 (check-true (range? (numeric-range 0 5)))
-(check-true (range? (range 5 (lambda (i) i))))
+(check-true
+  (range? (range 5 (lambda (i) i)))
+) ;check-true
 (check-false (range? "hello"))
 (check-false (range? '(1 2 3)))
 (check-false (range? #(1 2 3)))
