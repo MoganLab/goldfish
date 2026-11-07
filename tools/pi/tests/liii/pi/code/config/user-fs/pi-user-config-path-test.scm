@@ -18,20 +18,24 @@
 ;; string
 ;; 拼接后的文件路径。
 
-(import (liii check)
-  (liii pi code config user-fs)
-) ;import
+(import (liii check) (liii os) (liii pi code config user-fs))
 
 (check-set-mode! 'report-failed)
 
+(define (%normalize str)
+  (if (os-windows?) (string-replace str "\\" "/") str)
+) ;define
+
 ;; 1. 单级路径段
-(check (pi-user-config-path "/tmp/agent" "settings.json")
-  => "/tmp/agent/settings.json"
+(check (%normalize (pi-user-config-path "/tmp/agent" "settings.json"))
+  =>
+  "/tmp/agent/settings.json"
 ) ;check
 
 ;; 2. 多级路径段
-(check (pi-user-config-path "/tmp/agent" "models" "kimi-coding.json")
-  => "/tmp/agent/models/kimi-coding.json"
+(check (%normalize (pi-user-config-path "/tmp/agent" "models" "kimi-coding.json"))
+  =>
+  "/tmp/agent/models/kimi-coding.json"
 ) ;check
 
 (check-report)
