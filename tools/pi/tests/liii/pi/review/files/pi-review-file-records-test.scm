@@ -1,3 +1,20 @@
+;; pi-review-file-records
+;; 读取待审查文件内容并检测其编程语言，生成审查文件记录列表。
+;;
+;; 语法
+;; ----
+;; (pi-review-file-records paths)
+;;
+;; 参数
+;; ----
+;; paths : list?
+;; 待审查的文件路径字符串列表。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含 path、content 与 language 字段的字典列表。
+
 (import (liii check)
         (liii string)
         (liii pi review files)
@@ -24,7 +41,6 @@
 (define sample-py (fixture "sample.py"))
 (define missing-ts (fixture "missing.ts"))
 
-;; pi-review-file-records
 ;; 读取待审查文件内容并附带语言信息；缺失文件降级为空内容。
 (let ((recs (pi-review-file-records (list sample-ts sample-py missing-ts))))
   (check (length recs) => 3)
