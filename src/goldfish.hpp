@@ -1122,15 +1122,23 @@ find_goldhelp_tool_root (const char* gf_lib) {
 
 static fs::path
 find_local_gfproject_json () {
+  // 项目根在进程生命周期内不变，缓存避免每次调用重复 getcwd/stat
+  static fs::path cached;
+  static bool     resolved= false;
+  if (resolved) return cached;
+
   std::error_code ec;
   fs::path        cwd= fs::current_path (ec);
   if (!ec) {
     fs::path local_path= cwd / "gfproject.json";
     if (fs::exists (local_path, ec) && fs::is_regular_file (local_path, ec)) {
-      return local_path;
+      cached  = local_path;
+      resolved= true;
+      return cached;
     }
   }
-  return "";
+  resolved= true;
+  return cached;
 }
 
 static s7_pointer

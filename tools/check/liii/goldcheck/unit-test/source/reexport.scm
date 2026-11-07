@@ -25,6 +25,7 @@
     (liii goldcheck path)
     (liii goldcheck unit-test source board)
     (liii goldcheck unit-test source parse)
+    (liii goldcheck unit-test source exports)
   ) ;import
   (export find-defining-library-test-dir find-imported-export-for-stem
     check-reexported-tests check-reexported-test-file

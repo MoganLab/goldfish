@@ -25,6 +25,7 @@
     (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck unit-test source parse)
+    (liii goldcheck unit-test source exports)
     (liii goldcheck unit-test source reexport)
   ) ;import
   (export exported-name->test-stem find-library-source-for-test-dir
