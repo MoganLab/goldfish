@@ -1,3 +1,26 @@
+;; pi-args-set
+;; 向参数字典写入或覆盖指定键的取值。
+;;
+;; 语法
+;; ----
+;; (pi-args-set parsed key value)
+;;
+;; 参数
+;; ----
+;; parsed : alist
+;; 解析后的参数字典。
+;;
+;; key : symbol
+;; 参数键。
+;;
+;; value : any
+;; 写入的取值。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 更新后的参数字典。
+
 (import (liii check)
   (liii pi code cli args query)
 ) ;import

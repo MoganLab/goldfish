@@ -1,3 +1,20 @@
+;; parse-pi-args
+;; 解析 Pi 命令行中的会话目录参数。
+;;
+;; 语法
+;; ----
+;; (parse-pi-args argv)
+;;
+;; 参数
+;; ----
+;; argv : list
+;; 不包含可执行文件名称的字符串参数列表。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 解析后的参数字典。
+
 (import (liii check)
   (liii pi code cli args)
 ) ;import

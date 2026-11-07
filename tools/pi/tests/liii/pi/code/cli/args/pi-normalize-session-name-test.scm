@@ -1,5 +1,5 @@
 ;; pi-normalize-session-name
-;; 规范化会话显示名：换行折叠为空格、去首尾空白；空名或非字符串返回 #f。
+;; 规范化会话名称，将连续 CR/LF 折叠为一个空格并去除首尾空白。
 ;;
 ;; 语法
 ;; ----
@@ -8,30 +8,26 @@
 ;; 参数
 ;; ----
 ;; name : any
-;; 原始会话名。
+;; 待规范化的名称；只有字符串会被处理。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; string | #f
-;; 规范化后的名称；无效输入为 #f。
+;; 返回规范化后的非空名称；非字符串或规范化后为空时返回 #f。
+;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code cli args)
-) ;import
+(import (liii check) (liii pi code cli args))
 
 (check-set-mode! 'report-failed)
 
-(check (pi-normalize-session-name "simple-name") => "simple-name")
 
-;; 换行折叠为空格并去首尾空白
-(check (pi-normalize-session-name "  multi\nline\rname  ") => "multi line name")
-
-;; 空串与空白返回 #f
-(check-false (pi-normalize-session-name ""))
-(check-false (pi-normalize-session-name "   "))
-
-;; 非字符串返回 #f
-(check-false (pi-normalize-session-name 42))
+(check (pi-normalize-session-name "  My session  ") => "My session")
+(check (pi-normalize-session-name "Fix\nWindows\r\nsupport")
+  =>
+  "Fix Windows support"
+) ;check
+(check (pi-normalize-session-name "first\n\n\nsecond") => "first second")
+(check (pi-normalize-session-name " \n\r ") => #f)
+(check (pi-normalize-session-name 123) => #f)
 
 (check-report)
