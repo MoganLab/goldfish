@@ -23,7 +23,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 r 不是 range，或 start、end 不是精确整数时抛出。
+;; - value-error：当 start 或 end 为负、start 大于 end，或 end 超出 range 长度时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -58,6 +59,39 @@
     (check (range-ref s 4) => 9)
   ) ;let
 ) ;let
+
+;; start 与 end 相等时为空 range
+(let ((r (numeric-range 0 10)))
+  (check (range-length (subrange r 3 3)) => 0)
+) ;let
+
+;; start 或 end 不是精确整数时抛出 type-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'type-error (subrange r 'a 5))
+  (check-catch 'type-error (subrange r 0 "5"))
+  (check-catch 'type-error (subrange r 1.5 5))
+) ;let
+
+;; start 或 end 为负时抛出 value-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'value-error (subrange r -1 5))
+  (check-catch 'value-error (subrange r 0 -5))
+) ;let
+
+;; start 大于 end 时抛出 value-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'value-error (subrange r 2 1))
+) ;let
+
+;; end 超出 range 长度时抛出 value-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'value-error (subrange r 0 11))
+  (check-catch 'value-error (subrange r 5 20))
+) ;let
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (subrange 42 0 5))
+(check-catch 'type-error (subrange "r" 0 5))
 
 
 (check-report)

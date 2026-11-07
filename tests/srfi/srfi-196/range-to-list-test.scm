@@ -17,7 +17,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 r 不是 range 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -51,5 +51,11 @@
   (check (range->list r) => '(#\h #\e #\l #\l #\o))
 ) ;let
 
+
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range->list 42))
+(check-catch 'type-error (range->list "not-a-range"))
+(check-catch 'type-error (range->list '(0 1 2)))
 
 (check-report)

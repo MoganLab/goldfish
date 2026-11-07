@@ -23,7 +23,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 proc 不是过程，或任一 r 不是 range 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -52,5 +52,20 @@
   (check (range-fold-right + 0 r) => 15)
 ) ;let
 
+
+
+;; proc 不是过程时抛出 type-error
+(check-catch 'type-error (range-fold-right 42 0 (numeric-range 0 5)))
+(check-catch 'type-error (range-fold-right "not-a-proc" 0 (numeric-range 0 5)))
+(check-catch 'type-error (range-fold-right 'proc 0 (numeric-range 0 5)))
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-fold-right + 0 42))
+(check-catch 'type-error (range-fold-right + 0 "not-a-range"))
+
+;; 多 range 形式同样校验
+(check-catch 'type-error
+  (range-fold-right + 0 (numeric-range 0 3) "not-a-range")
+) ;check-catch
 
 (check-report)

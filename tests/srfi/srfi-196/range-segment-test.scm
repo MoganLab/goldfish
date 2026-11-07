@@ -20,7 +20,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 r 不是 range，或 k 不是精确整数时抛出。
+;; - value-error：当 k 为负或为零时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -54,6 +55,31 @@
     (check (range-length (car segs)) => 10)
   ) ;let
 ) ;let
+
+;; k 大于 range 长度时返回单个元素段
+(let ((r (numeric-range 0 3)))
+  (let ((segs (range-segment r 10)))
+    (check (length segs) => 1)
+    (check (range-length (car segs)) => 3)
+  ) ;let
+) ;let
+
+;; k 不是精确整数时抛出 type-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'type-error (range-segment r "3"))
+  (check-catch 'type-error (range-segment r 1.5))
+  (check-catch 'type-error (range-segment r 'k))
+) ;let
+
+;; k 为负或为零时抛出 value-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'value-error (range-segment r 0))
+  (check-catch 'value-error (range-segment r -1))
+) ;let
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-segment 42 3))
+(check-catch 'type-error (range-segment "r" 3))
 
 
 (check-report)

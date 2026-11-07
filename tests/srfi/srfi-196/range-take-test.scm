@@ -20,7 +20,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 r 不是 range，或 count 不是精确整数时抛出。
+;; - value-error：当 count 为负或超出 range 长度时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -53,6 +54,25 @@
     (check (range-length taken) => 0)
   ) ;let
 ) ;let
+
+
+
+;; count 不是精确整数时抛出 type-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'type-error (range-take r "3"))
+  (check-catch 'type-error (range-take r 1.5))
+  (check-catch 'type-error (range-take r 'n))
+) ;let
+
+;; count 为负或超出 range 长度时抛出 value-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'value-error (range-take r -1))
+  (check-catch 'value-error (range-take r 11))
+) ;let
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-take 42 3))
+(check-catch 'type-error (range-take "r" 3))
 
 
 (check-report)

@@ -20,7 +20,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 pred 不是过程，或 r 不是 range 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -45,5 +45,15 @@
   (check (range-count (lambda (x) #f) r) => 0)
 ) ;let
 
+
+
+;; pred 不是过程时抛出 type-error
+(check-catch 'type-error (range-count 42 (numeric-range 0 5)))
+(check-catch 'type-error (range-count "not-a-proc" (numeric-range 0 5)))
+(check-catch 'type-error (range-count 'pred (numeric-range 0 5)))
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-count (lambda (x) x) 42))
+(check-catch 'type-error (range-count (lambda (x) x) "not-a-range"))
 
 (check-report)

@@ -22,7 +22,7 @@
 ;;
 
 (define-library (srfi srfi-196)
-  (import (scheme base) (scheme case-lambda))
+  (import (scheme base) (scheme case-lambda) (liii error))
   (export range numeric-range vector-range string-range range-append iota-range
     range? range=? range-length range-ref range-first range-last subrange
     range-segment range-split-at range-take range-take-right range-drop
@@ -72,6 +72,8 @@
       (> k %range-maximum-complexity)
     ) ;define
 
+    ;; SRFI 原实现的辅助谓词，保留供内部判定使用；
+    ;; 公开接口的错误检查改用 %check-range / %check-index，直接抛出错误。
     (define (%range-valid-index? r index)
       (and (exact-natural? index) (< index (range-length r)))
     ) ;define
@@ -83,6 +85,15 @@
     ;; ; Constructors
 
     (define (range length indexer)
+      (unless (exact-integer? length)
+        (type-error "range: length must be an exact integer, got ~S" length)
+      ) ;unless
+      (when (negative? length)
+        (value-error "range: length must be a non-negative integer, got ~S" length)
+      ) ;when
+      (unless (procedure? indexer)
+        (type-error "range: indexer must be a procedure, got ~S" indexer)
+      ) ;unless
       (raw-range 0 length indexer 0)
     ) ;define
 
@@ -90,6 +101,18 @@
       (case-lambda
        ((start end) (numeric-range start end 1))
        ((start end step)
+        (unless (real? start)
+          (type-error "numeric-range: start must be a real number, got ~S" start)
+        ) ;unless
+        (unless (real? end)
+          (type-error "numeric-range: end must be a real number, got ~S" end)
+        ) ;unless
+        (unless (real? step)
+          (type-error "numeric-range: step must be a real number, got ~S" step)
+        ) ;unless
+        (when (zero? step)
+          (value-error "numeric-range: step must not be zero")
+        ) ;when
         (let ((len (exact (ceiling (max 0 (/ (- end start) step))))))
           (raw-range 0 len (lambda (n) (+ start (* n step))) 0)
         ) ;let
@@ -102,6 +125,18 @@
        ((len) (iota-range len 0 1))
        ((len start) (iota-range len start 1))
        ((len start step)
+        (unless (exact-integer? len)
+          (type-error "iota-range: len must be an exact integer, got ~S" len)
+        ) ;unless
+        (when (negative? len)
+          (value-error "iota-range: len must be a non-negative integer, got ~S" len)
+        ) ;when
+        (unless (real? start)
+          (type-error "iota-range: start must be a real number, got ~S" start)
+        ) ;unless
+        (unless (real? step)
+          (type-error "iota-range: step must be a real number, got ~S" step)
+        ) ;unless
         (raw-range 0
           len
           (cond ((and (zero? start) (= step 1)) (lambda (i) i))
@@ -116,10 +151,16 @@
     ) ;define
 
     (define (vector-range vec)
+      (unless (vector? vec)
+        (type-error "vector-range: argument must be a vector, got ~S" vec)
+      ) ;unless
       (raw-range 0 (vector-length vec) (lambda (i) (vector-ref vec i)) 0)
     ) ;define
 
     (define (string-range s)
+      (unless (string? s)
+        (type-error "string-range: argument must be a string, got ~S" s)
+      ) ;unless
       (vector-range (string->vector s))
     ) ;define
 
@@ -129,8 +170,41 @@
 
     ;; ; Accessors
 
+    (define (%check-range who r)
+      (unless (range? r)
+        (type-error (string-append who ": argument must be a range, got ~S") r)
+      ) ;unless
+    ) ;define
+
+    (define (%check-proc who f)
+      (unless (procedure? f)
+        (type-error (string-append who ": first argument must be a procedure, got ~S")
+          f
+        ) ;type-error
+      ) ;unless
+    ) ;define
+
+    (define (%check-index who index)
+      (unless (exact-integer? index)
+        (type-error (string-append who ": index must be an exact integer, got ~S")
+          index
+        ) ;type-error
+      ) ;unless
+      (when (negative? index)
+        (value-error (string-append who ": index must be non-negative, got ~S") index)
+      ) ;when
+    ) ;define
+
     (define (range-ref r index)
-     ((range-indexer r) (+ index (range-start-index r)))
+      (%check-range "range-ref" r)
+      (%check-index "range-ref" index)
+      (unless (< index (range-length r))
+        (value-error "range-ref: index out of range, index ~S, range-length ~S"
+          index
+          (range-length r)
+        ) ;value-error
+      ) ;unless
+      ((range-indexer r) (+ index (range-start-index r)))
     ) ;define
 
     (define (%range-ref-no-check r index)
@@ -138,10 +212,18 @@
     ) ;define
 
     (define (range-first r)
+      (%check-range "range-first" r)
+      (when (zero? (range-length r))
+        (value-error "range-first: range is empty")
+      ) ;when
       (%range-ref-no-check r 0)
     ) ;define
 
     (define (range-last r)
+      (%check-range "range-last" r)
+      (when (zero? (range-length r))
+        (value-error "range-last: range is empty")
+      ) ;when
       (%range-ref-no-check r (- (range-length r) 1))
     ) ;define
 
@@ -149,8 +231,19 @@
 
     (define range=?
       (case-lambda
-       ((equal ra rb) (%range=?-2 equal ra rb))
+       ((equal ra rb)
+        (unless (procedure? equal)
+          (type-error "range=?: equal must be a procedure, got ~S" equal)
+        ) ;unless
+        (%check-range "range=?" ra)
+        (%check-range "range=?" rb)
+        (%range=?-2 equal ra rb)
+       ) ;
        ((equal . rs)
+        (unless (procedure? equal)
+          (type-error "range=?: equal must be a procedure, got ~S" equal)
+        ) ;unless
+        (for-each (lambda (r) (%check-range "range=?" r)) rs)
         (let ((ra (car rs)))
           (every (lambda (rb) (%range=?-2 equal ra rb)) (cdr rs))
         ) ;let
@@ -180,6 +273,14 @@
     ;; ; Iteration
 
     (define (range-split-at r index)
+      (%check-range "range-split-at" r)
+      (%check-index "range-split-at" index)
+      (unless (<= index (range-length r))
+        (value-error "range-split-at: index out of range, index ~S, range-length ~S"
+          index
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (cond ((= index 0) (values (%empty-range-from r) r))
             ((= index (range-length r)) (values r (%empty-range-from r)))
             (else
@@ -193,6 +294,18 @@
     ) ;define
 
     (define (subrange r start end)
+      (%check-range "subrange" r)
+      (%check-index "subrange" start)
+      (%check-index "subrange" end)
+      (unless (<= start end)
+        (value-error "subrange: start must not exceed end, start ~S, end ~S" start end)
+      ) ;unless
+      (unless (<= end (range-length r))
+        (value-error "subrange: end out of range, end ~S, range-length ~S"
+          end
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (if (and (zero? start) (= end (range-length r)))
         r
         (raw-range (+ (range-start-index r) start)
@@ -204,6 +317,11 @@
     ) ;define
 
     (define (range-segment r k)
+      (%check-range "range-segment" r)
+      (%check-index "range-segment" k)
+      (unless (> k 0)
+        (value-error "range-segment: segment size must be positive, got ~S" k)
+      ) ;unless
       (let ((len (range-length r))
             (%subrange-no-check
               (lambda (s e)
@@ -226,6 +344,14 @@
     ) ;define
 
     (define (range-take r count)
+      (%check-range "range-take" r)
+      (%check-index "range-take" count)
+      (unless (<= count (range-length r))
+        (value-error "range-take: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (cond ((zero? count) (%empty-range-from r))
             ((= count (range-length r)) r)
             (else (raw-range (range-start-index r) count (range-indexer r) (range-complexity r))
@@ -234,6 +360,14 @@
     ) ;define
 
     (define (range-take-right r count)
+      (%check-range "range-take-right" r)
+      (%check-index "range-take-right" count)
+      (unless (<= count (range-length r))
+        (value-error "range-take-right: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (cond ((zero? count) (%empty-range-from r))
             ((= count (range-length r)) r)
             (else
@@ -247,6 +381,14 @@
     ) ;define
 
     (define (range-drop r count)
+      (%check-range "range-drop" r)
+      (%check-index "range-drop" count)
+      (unless (<= count (range-length r))
+        (value-error "range-drop: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (if (zero? count)
         r
         (raw-range (+ (range-start-index r) count)
@@ -258,6 +400,14 @@
     ) ;define
 
     (define (range-drop-right r count)
+      (%check-range "range-drop-right" r)
+      (%check-index "range-drop-right" count)
+      (unless (<= count (range-length r))
+        (value-error "range-drop-right: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (if (zero? count)
         r
         (raw-range (range-start-index r)
@@ -269,6 +419,8 @@
     ) ;define
 
     (define (range-count pred r . rs)
+      (%check-proc "range-count" pred)
+      (for-each (lambda (r) (%check-range "range-count" r)) (cons r rs))
       (if (null? rs)
         (%range-fold-1 (lambda (c x) (if (pred x) (+ c 1) c)) 0 r)
         (apply range-fold (lambda (c . xs) (if (apply pred xs) (+ c 1) c)) 0 r rs)
@@ -276,6 +428,8 @@
     ) ;define
 
     (define (range-map->list proc r . rs)
+      (%check-proc "range-map->list" proc)
+      (for-each (lambda (r) (%check-range "range-map->list" r)) (cons r rs))
       (if (null? rs)
         (%range-fold-right-1 (lambda (x res) (cons (proc x) res)) '() r)
         (apply range-fold-right
@@ -288,6 +442,8 @@
     ) ;define
 
     (define (range-for-each proc r . rs)
+      (%check-proc "range-for-each" proc)
+      (for-each (lambda (r) (%check-range "range-for-each" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let lp
@@ -322,8 +478,14 @@
 
     (define range-fold
       (case-lambda
-       ((proc nil r) (%range-fold-1 proc nil r))
+       ((proc nil r)
+        (%check-proc "range-fold" proc)
+        (%check-range "range-fold" r)
+        (%range-fold-1 proc nil r)
+       ) ;
        ((proc nil . rs)
+        (%check-proc "range-fold" proc)
+        (for-each (lambda (r) (%check-range "range-fold" r)) rs)
         (let ((len (short-minimum (map range-length rs))))
           (let lp
             ((i 0) (acc nil))
@@ -348,8 +510,14 @@
 
     (define range-fold-right
       (case-lambda
-       ((proc nil r) (%range-fold-right-1 proc nil r))
+       ((proc nil r)
+        (%check-proc "range-fold-right" proc)
+        (%check-range "range-fold-right" r)
+        (%range-fold-right-1 proc nil r)
+       ) ;
        ((proc nil . rs)
+        (%check-proc "range-fold-right" proc)
+        (for-each (lambda (r) (%check-range "range-fold-right" r)) rs)
         (let ((len (short-minimum (map range-length rs))))
           (let rec
             ((i 0))
@@ -366,6 +534,8 @@
     ) ;define
 
     (define (range-any pred r . rs)
+      (%check-proc "range-any" pred)
+      (for-each (lambda (r) (%check-range "range-any" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let lp
@@ -389,6 +559,8 @@
     ) ;define
 
     (define (range-every pred r . rs)
+      (%check-proc "range-every" pred)
+      (for-each (lambda (r) (%check-range "range-every" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let lp
@@ -412,14 +584,19 @@
     ) ;define
 
     (define (range-filter->list pred r)
+      (%check-proc "range-filter->list" pred)
+      (%check-range "range-filter->list" r)
       (range-fold-right (lambda (x xs) (if (pred x) (cons x xs) xs)) '() r)
     ) ;define
 
     (define (range-remove->list pred r)
+      (%check-proc "range-remove->list" pred)
+      (%check-range "range-remove->list" r)
       (range-fold-right (lambda (x xs) (if (pred x) xs (cons x xs))) '() r)
     ) ;define
 
     (define (range-reverse r)
+      (%check-range "range-reverse" r)
       (%range-maybe-vectorize
         (raw-range (range-start-index r)
           (range-length r)
@@ -434,6 +611,8 @@
        (() (raw-range 0 0 (lambda (i) i) 0))
        ((r) r)
        ((ra rb)
+        (%check-range "range-append" ra)
+        (%check-range "range-append" rb)
         (let ((la (range-length ra)) (lb (range-length rb)))
           (%range-maybe-vectorize
             (raw-range 0
@@ -446,7 +625,7 @@
           ) ;%range-maybe-vectorize
         ) ;let
        ) ;
-       (rs
+       (rs (for-each (lambda (r) (%check-range "range-append" r)) rs)
          (let ((lens (map range-length rs)))
            (%range-maybe-vectorize
              (raw-range 0
@@ -471,10 +650,12 @@
     ;; ; Conversion
 
     (define (range->list r)
+      (%check-range "range->list" r)
       (range-fold-right cons '() r)
     ) ;define
 
     (define (range->vector r)
+      (%check-range "range->vector" r)
       (let ((len (range-length r)))
         (let ((vec (make-vector len)))
           (let lp
@@ -488,6 +669,7 @@
     ) ;define
 
     (define (range->string r)
+      (%check-range "range->string" r)
       (let ((res (make-string (range-length r))))
         (range-fold (lambda (i c) (string-set! res i c) (+ i 1)) 0 r)
         res
@@ -499,6 +681,7 @@
     ) ;define
 
     (define (range->generator r)
+      (%check-range "range->generator" r)
       (let ((i 0) (len (range-length r)))
         (lambda ()
           (if (>= i len)
@@ -517,6 +700,8 @@
     ;; ; Vector versions (not in original SRFI but useful)
 
     (define (range-map->vector proc r . rs)
+      (%check-proc "range-map->vector" proc)
+      (for-each (lambda (r) (%check-range "range-map->vector" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let ((vec (make-vector len)))
@@ -548,10 +733,14 @@
     ) ;define
 
     (define (range-filter->vector pred r)
+      (%check-proc "range-filter->vector" pred)
+      (%check-range "range-filter->vector" r)
       (list->vector (range-filter->list pred r))
     ) ;define
 
     (define (range-remove->vector pred r)
+      (%check-proc "range-remove->vector" pred)
+      (%check-range "range-remove->vector" r)
       (list->vector (range-remove->list pred r))
     ) ;define
 

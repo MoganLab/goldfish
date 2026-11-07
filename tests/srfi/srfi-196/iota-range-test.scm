@@ -29,7 +29,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 len 不是精确整数，或 start、step 不是实数时抛出。
+;; - value-error：当 len 是负整数时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -59,6 +60,24 @@
   (check (range-ref r 1) => 2)
   (check (range-ref r 4) => 8)
 ) ;let
+
+;; len 为 0 的空 range 合法
+(check (range-length (iota-range 0)) => 0)
+
+;; len 不是精确整数时抛出 type-error
+(check-catch 'type-error (iota-range 'a))
+(check-catch 'type-error (iota-range "10"))
+(check-catch 'type-error (iota-range 10.5))
+(check-catch 'type-error (iota-range 10 'b))
+(check-catch 'type-error (iota-range 10 0 'c))
+
+;; len 为负数时抛出 value-error
+(check-catch 'value-error (iota-range -1))
+(check-catch 'value-error (iota-range -5 10 2))
+
+;; start 或 step 不是实数时抛出 type-error
+(check-catch 'type-error (iota-range 5 'start))
+(check-catch 'type-error (iota-range 5 0 "2"))
 
 
 (check-report)
