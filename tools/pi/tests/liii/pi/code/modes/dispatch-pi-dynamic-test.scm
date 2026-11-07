@@ -1,3 +1,29 @@
+;; dispatch-pi
+;; 验证扩展 Local Flow 的动态注册与分发行为。
+;;
+;; 语法
+;; ----
+;; (dispatch-pi parsed mode initial-msg rest-msgs)
+;;
+;; 参数
+;; ----
+;; parsed : list?
+;; 命令行解析后的参数 alist。
+;;
+;; mode : symbol?
+;; 运行模式。
+;;
+;; initial-msg : any
+;; 初始用户消息。
+;;
+;; rest-msgs : list
+;; 后续消息列表。
+;;
+;; 返回值
+;; ----
+;; any
+;; 匹配流程的执行结果。
+
 (import (liii check) (liii pi code cli args) (liii pi code modes) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)

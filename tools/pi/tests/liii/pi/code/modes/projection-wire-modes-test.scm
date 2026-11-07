@@ -1,3 +1,35 @@
+;; projection-wire-modes
+;; 验证投影到各运行模式的事件接线行为。
+;;
+;; 语法
+;; ----
+;; (run-session-flow parsed cfg prompt emit on-done . rest-msgs)
+;;
+;; 参数
+;; ----
+;; parsed : list?
+;; 命令行解析后的参数 alist。
+;;
+;; cfg : list?
+;; Agent 配置 alist。
+;;
+;; prompt : list?
+;; 系统提示词消息列表。
+;;
+;; emit : procedure 或 #f
+;; 事件发送函数。
+;;
+;; on-done : procedure
+;; 流程结束回调。
+;;
+;; rest-msgs : list
+;; 后续消息列表。
+;;
+;; 返回值
+;; ----
+;; any
+;; 流程的执行结果。
+
 (import (scheme base)
   (scheme file)
   (scheme write)
