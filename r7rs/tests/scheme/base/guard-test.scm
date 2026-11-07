@@ -129,4 +129,78 @@
   "re-raised 2"
 ) ;check
 
+;; 7. 卫生性（Issue 1341）：条件变量命名为内部使用的标识符时宏不被破坏
+(check
+  (guard (cond (#t cond))
+    (error 'x "boom")
+    'no-error
+  ) ;guard
+  =>
+  "boom"
+) ;check
+
+(check (guard (else (#t else)) (error 'x "e1")) => "e1")
+(check (guard (apply (#t apply)) (error 'x "e2")) => "e2")
+(check (guard (throw (#t throw)) (error 'x "e3")) => "e3")
+(check (guard (values (#t values)) (error 'x "e4")) => "e4")
+(check (guard (catch (#t catch)) (error 'x "e5")) => "e5")
+
+;; 8. 卫生性：使用点局部遮蔽 cond/apply/throw/values 等标识符不影响 guard
+(check
+  (let ((cond 42) (apply 43) (throw 44) (values 45) (catch 46))
+    (guard (e (#t e))
+      (error 'x "shadowed")
+    ) ;guard
+  ) ;let
+  =>
+  "shadowed"
+) ;check
+
+;; 8.1 遮蔽环境下正常返回（遮蔽 values 时用户自身的 values 调用也会被遮蔽，
+;; 故多值场景不遮蔽 values）
+(check
+  (let ((cond 42) (apply 43) (throw 44))
+    (guard (e (else 'err)) 'normal)
+  ) ;let
+  =>
+  'normal
+) ;check
+
+(check
+  (call-with-values
+    (lambda ()
+      (let ((cond 42) (apply 43) (throw 44))
+        (guard (e (else 'err)) (values 1 2))
+      ) ;let
+    ) ;lambda
+    (lambda (a b) (+ (* 10 a) b))
+  ) ;call-with-values
+  =>
+  12
+) ;check
+
+;; 8.2 遮蔽环境下 reraise 交由外层 guard 捕获
+(check
+  (let ((cond 42) (apply 43) (throw 44))
+    (guard (outer (#t outer))
+      (guard (e ((eq? e 1) "one"))
+        (raise 2)
+      ) ;guard
+    ) ;guard
+  ) ;let
+  =>
+  2
+) ;check
+
+;; 8.3 遮蔽环境下 => 子句
+(check
+  (let ((cond 42) (apply 43))
+    (guard (ex ((and (integer? ex) (* ex 100)) => (lambda (r) (+ ex r))))
+      (raise 5)
+    ) ;guard
+  ) ;let
+  =>
+  505
+) ;check
+
 (check-report)
