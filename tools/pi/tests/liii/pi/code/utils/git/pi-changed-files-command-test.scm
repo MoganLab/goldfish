@@ -1,11 +1,30 @@
+;; pi-changed-files-command
+;; 构造获取变更文件状态的 git diff 命令字符串。
+;;
+;; 语法
+;; ----
+;; (pi-changed-files-command ref staged)
+;;
+;; 参数
+;; ----
+;; ref : string?
+;; Git 引用名或提交哈希。
+;;
+;; staged : boolean?
+;; 是否比较暂存区。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 完整的 git diff 命令行字符串。
+
 (import (liii check)
         (liii string)
-        (liii pi review files)
+        (liii pi code utils git)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; pi-changed-files-command
 ;; 构造 git diff --name-status 命令。
 (check (pi-changed-files-command "HEAD" #f) => "git diff --name-status HEAD")
 (check (pi-changed-files-command "main" #f) => "git diff --name-status main")

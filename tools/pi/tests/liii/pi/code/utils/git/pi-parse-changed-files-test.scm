@@ -1,10 +1,26 @@
+;; pi-parse-changed-files
+;; 解析 git diff --name-status 输出为变更文件字典列表。
+;;
+;; 语法
+;; ----
+;; (pi-parse-changed-files text)
+;;
+;; 参数
+;; ----
+;; text : string?
+;; git diff --name-status 命令的输出文本。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含 path 与 status 字段的文件 alist 列表。
+
 (import (liii check)
-        (liii pi review files)
+        (liii pi code utils git)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; pi-parse-changed-files
 ;; 解析 git diff --name-status 输出。
 (check (pi-parse-changed-files "") => '())
 
