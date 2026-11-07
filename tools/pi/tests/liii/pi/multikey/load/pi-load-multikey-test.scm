@@ -1,8 +1,27 @@
+;; pi-load-multikey
+;; 读取 multikey.json 中与 provider 对应的密钥池配置。
+;;
+;; 语法
+;; ----
+;; (pi-load-multikey config-dir provider)
+;;
+;; 参数
+;; ----
+;; config-dir : (or string? path?)
+;; 配置目录路径。
+;;
+;; provider : (or string? symbol?)
+;; 目标 provider 名称。
+;;
+;; 返回值
+;; ----
+;; (or pi-key-pool? #f)
+;; 匹配的密钥池记录，未命中时返回 #f。
+
 (import (liii check) (liii pi multikey pool) (liii pi multikey load))
 
 (check-set-mode! 'report-failed)
 
-;; pi-load-multikey
 ;; 读取 <agent-dir>/multikey.json 的密钥池配置。
 ;; 存在与 provider 对应的 pool 时返回该 pool 的密钥池 record，
 ;; 过滤 enabled: false 的 key；无对应 pool 或文件不存在时返回 #f。

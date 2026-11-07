@@ -1,8 +1,27 @@
+;; pi-multikey-select-key
+;; 从密钥池中选取当前可用的密钥。
+;;
+;; 语法
+;; ----
+;; (pi-multikey-select-key pool now-ms)
+;;
+;; 参数
+;; ----
+;; pool : pi-key-pool?
+;; 密钥池记录。
+;;
+;; now-ms : number?
+;; 当前时刻（毫秒）。
+;;
+;; 返回值
+;; ----
+;; (or pi-pool-key? #f)
+;; 选中的密钥记录，全部冷却时返回 #f。
+
 (import (liii check) (liii pi multikey pool) (liii pi multikey load) (liii pi multikey policy))
 
 (check-set-mode! 'report-failed)
 
-;; pi-multikey-select-key
 ;; 从密钥池中选取当前可用 key：优先继续使用最近使用的可用 key。
 ;; 首次从配置顺序的第一个 key 开始；当前 key 冷却后才切换；全部冷却时返回 #f。
 

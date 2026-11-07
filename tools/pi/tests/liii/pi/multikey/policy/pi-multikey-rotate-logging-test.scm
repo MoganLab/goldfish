@@ -1,3 +1,29 @@
+;; pi-multikey-rotate-logging
+;; 验证密钥轮换时的脱敏切换日志输出。
+;;
+;; 语法
+;; ----
+;; (pi-multikey-rotate! config current-key status . opt-port)
+;;
+;; 参数
+;; ----
+;; config : list?
+;; 会话配置 alist，含 multikey-pool 字段。
+;;
+;; current-key : string?
+;; 当前使用的密钥。
+;;
+;; status : (or number? symbol?)
+;; 触发轮换的 HTTP 状态码或原因。
+;;
+;; opt-port : port?（可选）
+;; 日志输出端口，缺省写 stderr。
+;;
+;; 返回值
+;; ----
+;; (or string? symbol?)
+;; 下一个可用密钥字符串，池耗尽时返回 'exhausted。
+
 (import (scheme base)
   (liii check)
   (liii string)

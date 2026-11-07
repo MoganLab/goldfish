@@ -1,8 +1,33 @@
+;; pi-multikey-rotate!
+;; 冷却当前密钥并切换到下一个可用密钥。
+;;
+;; 语法
+;; ----
+;; (pi-multikey-rotate! config current-key status . opt-port)
+;;
+;; 参数
+;; ----
+;; config : list?
+;; 会话配置 alist，含 multikey-pool 字段。
+;;
+;; current-key : string?
+;; 当前使用的密钥。
+;;
+;; status : (or number? symbol?)
+;; 触发轮换的 HTTP 状态码或原因。
+;;
+;; opt-port : port?（可选）
+;; 日志输出端口，缺省写 stderr。
+;;
+;; 返回值
+;; ----
+;; (or string? symbol?)
+;; 下一个可用密钥字符串，池耗尽时返回 'exhausted，无 pool 时返回 #f。
+
 (import (liii check) (liii pi ai time) (liii pi multikey pool) (liii pi multikey load) (liii pi multikey policy))
 
 (check-set-mode! 'report-failed)
 
-;; pi-multikey-rotate!
 ;; 请求遇 429/403 时冷却当前 key 并切换到下一可用 key：
 ;;   429 → 按 429 冷却时长；403/invalid → 按 invalid 冷却时长；
 ;;   仍有可用 key 时返回新 key 字符串；pool 全部冷却时返回 'exhausted；
