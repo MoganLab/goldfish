@@ -1,6 +1,20 @@
+;; fmt-cache
+;; 格式化缓存的命中/写入/路径计算
 ;; (liii goldfmt cache) 模块测试文件
 ;;
 ;; 测试格式化缓存的命中/写入/路径计算逻辑。
+
+;; 语法
+;; ----
+;; (fmt-cache-hit? file-path) 等
+
+;; 参数
+;; ----
+;; file-path : string?，目标文件路径
+
+;; 返回值
+;; ------
+;; boolean? 等，缓存命中/写入结果
 
 (import (liii check) (liii base) (liii os) (liii path) (liii goldfmt cache))
 

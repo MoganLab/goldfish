@@ -1,3 +1,19 @@
+;; pool-for-each
+;; 并发分块执行文件级任务并按序回调
+;; ---- T1: -j/--jobs 解析 ------------------------------------------------
+
+;; 语法
+;; ----
+;; (pool-for-each file-fn files on-result)
+
+;; 参数
+;; ----
+;; file-fn : procedure?；files : list?；on-result : procedure?
+
+;; 返回值
+;; ------
+;; list，各文件的处理结果
+
 (set! *load-path* (cons "tools/fmt" *load-path*))
 
 (import (liii check)
@@ -16,8 +32,6 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; ---- T1: -j/--jobs 解析 ------------------------------------------------
 
 (check (parse-fmt-jobs '("gf" "fmt")) => 0)
 (check (parse-fmt-jobs '("gf" "fmt" "dir")) => 0)

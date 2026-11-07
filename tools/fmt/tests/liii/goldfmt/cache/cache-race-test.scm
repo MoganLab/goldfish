@@ -1,3 +1,5 @@
+;; fmt-cache-race
+;; 并发场景下格式化缓存读写的竞争行为
 ;; (liii goldfmt cache) 并发回归测试
 ;;
 ;; 背景：Windows CI 上 `gf fmt -e cpp -j 4` 格式化 4 个内容相同的文件时，
@@ -11,6 +13,18 @@
 ;; 本测试用通道屏障同步多个 worker，同时 touch 相同内容文件的缓存，
 ;; 断言所有 worker 均成功、无异常。每轮使用全新内容，保证目标缓存目录
 ;; 事先不存在。
+
+;; 语法
+;; ----
+;; (fmt-cache-race ...)
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+;; 返回值
+;; ------
+;; 见各断言场景
 
 (set! *load-path* (cons "tools/fmt" *load-path*))
 

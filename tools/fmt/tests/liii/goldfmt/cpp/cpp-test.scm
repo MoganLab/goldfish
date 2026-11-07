@@ -1,3 +1,18 @@
+;; cpp-check-one
+;; C++ 格式化聚合测试：clang-format 封装的检查与格式化路径
+;;
+;; 语法
+;; ----
+;; (cpp-check-one ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
 (set! *load-path* (cons "tools/fmt" *load-path*))
 
 (import (liii check)
