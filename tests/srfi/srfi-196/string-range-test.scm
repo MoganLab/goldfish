@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 s 不是字符串时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -36,6 +36,15 @@
   (check (range-ref r 0) => #\h)
   (check (range-ref r 4) => #\o)
 ) ;let
+
+;; 空字符串合法
+(check (range-length (string-range "")) => 0)
+
+;; s 不是字符串时抛出 type-error
+(check-catch 'type-error (string-range 42))
+(check-catch 'type-error (string-range 'hello))
+(check-catch 'type-error (string-range #(h e l l o)))
+(check-catch 'type-error (string-range #\a))
 
 
 (check-report)

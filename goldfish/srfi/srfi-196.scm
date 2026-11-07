@@ -149,10 +149,16 @@
     ) ;define
 
     (define (vector-range vec)
+      (unless (vector? vec)
+        (type-error "vector-range: argument must be a vector, got ~S" vec)
+      ) ;unless
       (raw-range 0 (vector-length vec) (lambda (i) (vector-ref vec i)) 0)
     ) ;define
 
     (define (string-range s)
+      (unless (string? s)
+        (type-error "string-range: argument must be a string, got ~S" s)
+      ) ;unless
       (vector-range (string->vector s))
     ) ;define
 

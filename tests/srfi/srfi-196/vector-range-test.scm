@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 vec 不是向量时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -36,6 +36,15 @@
   (check (range-ref r 0) => 'a)
   (check (range-ref r 4) => 'e)
 ) ;let
+
+;; 空 向量 合法
+(check (range-length (vector-range #())) => 0)
+
+;; vec 不是向量时抛出 type-error
+(check-catch 'type-error (vector-range "abc"))
+(check-catch 'type-error (vector-range '(a b c)))
+(check-catch 'type-error (vector-range 42))
+(check-catch 'type-error (vector-range 'vec))
 
 
 (check-report)
