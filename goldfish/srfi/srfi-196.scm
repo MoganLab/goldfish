@@ -176,6 +176,14 @@
       ) ;unless
     ) ;define
 
+    (define (%check-proc who f)
+      (unless (procedure? f)
+        (type-error (string-append who ": first argument must be a procedure, got ~S")
+          f
+        ) ;type-error
+      ) ;unless
+    ) ;define
+
     (define (%check-index who index)
       (unless (exact-integer? index)
         (type-error (string-append who ": index must be an exact integer, got ~S")
@@ -411,6 +419,8 @@
     ) ;define
 
     (define (range-count pred r . rs)
+      (%check-proc "range-count" pred)
+      (for-each (lambda (r) (%check-range "range-count" r)) (cons r rs))
       (if (null? rs)
         (%range-fold-1 (lambda (c x) (if (pred x) (+ c 1) c)) 0 r)
         (apply range-fold (lambda (c . xs) (if (apply pred xs) (+ c 1) c)) 0 r rs)
@@ -418,6 +428,8 @@
     ) ;define
 
     (define (range-map->list proc r . rs)
+      (%check-proc "range-map->list" proc)
+      (for-each (lambda (r) (%check-range "range-map->list" r)) (cons r rs))
       (if (null? rs)
         (%range-fold-right-1 (lambda (x res) (cons (proc x) res)) '() r)
         (apply range-fold-right
@@ -430,6 +442,8 @@
     ) ;define
 
     (define (range-for-each proc r . rs)
+      (%check-proc "range-for-each" proc)
+      (for-each (lambda (r) (%check-range "range-for-each" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let lp
@@ -464,8 +478,14 @@
 
     (define range-fold
       (case-lambda
-       ((proc nil r) (%range-fold-1 proc nil r))
+       ((proc nil r)
+        (%check-proc "range-fold" proc)
+        (%check-range "range-fold" r)
+        (%range-fold-1 proc nil r)
+       ) ;
        ((proc nil . rs)
+        (%check-proc "range-fold" proc)
+        (for-each (lambda (r) (%check-range "range-fold" r)) rs)
         (let ((len (short-minimum (map range-length rs))))
           (let lp
             ((i 0) (acc nil))
@@ -490,8 +510,14 @@
 
     (define range-fold-right
       (case-lambda
-       ((proc nil r) (%range-fold-right-1 proc nil r))
+       ((proc nil r)
+        (%check-proc "range-fold-right" proc)
+        (%check-range "range-fold-right" r)
+        (%range-fold-right-1 proc nil r)
+       ) ;
        ((proc nil . rs)
+        (%check-proc "range-fold-right" proc)
+        (for-each (lambda (r) (%check-range "range-fold-right" r)) rs)
         (let ((len (short-minimum (map range-length rs))))
           (let rec
             ((i 0))
@@ -508,6 +534,8 @@
     ) ;define
 
     (define (range-any pred r . rs)
+      (%check-proc "range-any" pred)
+      (for-each (lambda (r) (%check-range "range-any" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let lp
@@ -531,6 +559,8 @@
     ) ;define
 
     (define (range-every pred r . rs)
+      (%check-proc "range-every" pred)
+      (for-each (lambda (r) (%check-range "range-every" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let lp
@@ -554,10 +584,14 @@
     ) ;define
 
     (define (range-filter->list pred r)
+      (%check-proc "range-filter->list" pred)
+      (%check-range "range-filter->list" r)
       (range-fold-right (lambda (x xs) (if (pred x) (cons x xs) xs)) '() r)
     ) ;define
 
     (define (range-remove->list pred r)
+      (%check-proc "range-remove->list" pred)
+      (%check-range "range-remove->list" r)
       (range-fold-right (lambda (x xs) (if (pred x) xs (cons x xs))) '() r)
     ) ;define
 
@@ -662,6 +696,8 @@
     ;; ; Vector versions (not in original SRFI but useful)
 
     (define (range-map->vector proc r . rs)
+      (%check-proc "range-map->vector" proc)
+      (for-each (lambda (r) (%check-range "range-map->vector" r)) (cons r rs))
       (if (null? rs)
         (let ((len (range-length r)))
           (let ((vec (make-vector len)))
@@ -693,10 +729,14 @@
     ) ;define
 
     (define (range-filter->vector pred r)
+      (%check-proc "range-filter->vector" pred)
+      (%check-range "range-filter->vector" r)
       (list->vector (range-filter->list pred r))
     ) ;define
 
     (define (range-remove->vector pred r)
+      (%check-proc "range-remove->vector" pred)
+      (%check-range "range-remove->vector" r)
       (list->vector (range-remove->list pred r))
     ) ;define
 

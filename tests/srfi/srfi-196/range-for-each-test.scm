@@ -20,7 +20,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 proc 不是过程，或 r 不是 range 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -47,5 +47,15 @@
   (check sum => 6)
 ) ;let
 
+
+
+;; proc 不是过程时抛出 type-error
+(check-catch 'type-error (range-for-each 42 (numeric-range 0 5)))
+(check-catch 'type-error (range-for-each "not-a-proc" (numeric-range 0 5)))
+(check-catch 'type-error (range-for-each 'pred (numeric-range 0 5)))
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-for-each (lambda (x) x) 42))
+(check-catch 'type-error (range-for-each (lambda (x) x) "not-a-range"))
 
 (check-report)

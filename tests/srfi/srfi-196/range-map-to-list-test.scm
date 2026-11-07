@@ -20,7 +20,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 proc 不是过程，或 r 不是 range 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -46,5 +46,15 @@
   (check (range-map->list (lambda (x) (* x 2)) r) => '())
 ) ;let
 
+
+
+;; proc 不是过程时抛出 type-error
+(check-catch 'type-error (range-map->list 42 (numeric-range 0 5)))
+(check-catch 'type-error (range-map->list "not-a-proc" (numeric-range 0 5)))
+(check-catch 'type-error (range-map->list 'pred (numeric-range 0 5)))
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-map->list (lambda (x) x) 42))
+(check-catch 'type-error (range-map->list (lambda (x) x) "not-a-range"))
 
 (check-report)
