@@ -1,3 +1,23 @@
+;; web-search-extension
+;; 验证内置 web-search 扩展脚本的加载与 web_search 工具注册。
+;;
+;; 语法
+;; ----
+;; (pi-load-extension path api)
+;;
+;; 参数
+;; ----
+;; path : string?
+;; 扩展脚本路径。
+;;
+;; api : extension-api?
+;; 扩展宿主 API 实例。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 扩展加载结果字典。
+
 (import (liii check)
   (liii pi code core extensions)
   (liii pi code core tools)

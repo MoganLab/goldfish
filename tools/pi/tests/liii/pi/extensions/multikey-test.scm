@@ -1,3 +1,23 @@
+;; multikey-extension
+;; 验证内置 multikey 扩展脚本的加载与配置增强器（config augmenter）注入。
+;;
+;; 语法
+;; ----
+;; (pi-load-extension path api)
+;;
+;; 参数
+;; ----
+;; path : string?
+;; 扩展脚本路径。
+;;
+;; api : extension-api?
+;; 扩展宿主 API 实例。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 扩展加载结果字典。
+
 (import (liii check)
   (liii pi code core extensions)
   (liii pi code config)
