@@ -53,6 +53,8 @@
     ceiling
     truncate
     truncate/
+    truncate-quotient
+    truncate-remainder
     round
     floor-quotient
     floor-remainder
@@ -422,6 +424,28 @@
       ) ;when
       (let* ((q (truncate (/ x y))) (r (- x (* q y))))
         (values q r)
+      ) ;let*
+    ) ;define
+
+    (define (truncate-quotient x y)
+      (when (or (not (real? x)) (not (real? y)))
+        (error 'type-error "truncate-quotient: parameters must be real numbers")
+      ) ;when
+      (when (zero? y)
+        (error 'division-by-zero "truncate-quotient: division by zero")
+      ) ;when
+      (truncate (/ x y))
+    ) ;define
+
+    (define (truncate-remainder x y)
+      (when (or (not (real? x)) (not (real? y)))
+        (error 'type-error "truncate-remainder: parameters must be reals")
+      ) ;when
+      (when (zero? y)
+        (error 'division-by-zero "truncate-remainder: division by zero")
+      ) ;when
+      (let* ((q (truncate (/ x y))) (r (- x (* q y))))
+        r
       ) ;let*
     ) ;define
 

@@ -71,6 +71,8 @@ gf doc scheme/base "函数名"
 - `floor-remainder` - 向下取整的余数
 - `floor/` - 向下取整除法（返回商和余数）
 - `truncate/` - 截断除法（返回商和余数）
+- `truncate-quotient` - 向零取整的商
+- `truncate-remainder` - 截断除法余数（符号随被除数）
 
 ### 二、类型判断 (R7RS 6.1 Equivalence predicates + 类型判断)
 - `number?` - 是否为数值
