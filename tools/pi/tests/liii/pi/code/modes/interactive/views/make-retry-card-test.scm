@@ -37,11 +37,12 @@
   (check-false (eq? lines (component-render retry-card 30)))
 ) ;let*
 
-(let ((plain (string-join (map strip-ansi (component-render (make-retry-card "retry\x1b;[?1000lnow") 80))
-                         "\n"
-                ) ;string-join
-       ) ;plain
-      ) ;
+(let ((plain
+        (string-join (map strip-ansi (component-render (make-retry-card "retry\x1b;[?1000lnow") 80))
+          "\n"
+        ) ;string-join
+      ) ;plain
+     ) ;
   (check-true (string-contains? plain "retrynow"))
   (check-false (string-contains? plain "1000l"))
 ) ;let

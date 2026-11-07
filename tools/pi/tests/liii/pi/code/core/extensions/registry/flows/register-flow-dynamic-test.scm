@@ -18,19 +18,19 @@
 ;; extension-flow-def
 ;; 规范化后注册的流程定义记录。
 
-(import (liii check)
-  (liii pi code core extensions)
-) ;import
+(import (liii check) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. make-extension-flow-def 构造与访问器
-(let ((flow (make-extension-flow-def
-              'my-flow
+(let ((flow (make-extension-flow-def 'my-flow
               (lambda (parsed) (assoc 'my-flow parsed))
               (lambda (parsed cfg mode initial-msg) 0)
-              :local? #t
-              :priority 10)))
+              :local?   #t
+              :priority 10
+            ) ;make-extension-flow-def
+      ) ;flow
+     ) ;
   (check (extension-flow-def? flow) => #t)
   (check (extension-flow-def-name flow) => 'my-flow)
   (check (procedure? (extension-flow-def-predicate flow)) => #t)
@@ -41,16 +41,19 @@
 
 ;; 2. register-flow! 注册与查询
 (let* ((reg (make-extension-registry))
-       (flow1 (make-extension-flow-def
-                'local-flow
+       (flow1 (make-extension-flow-def 'local-flow
                 (lambda (p) #t)
                 (lambda (p c m msg) 42)
-                :local? #t))
-       (flow2 (make-extension-flow-def
-                'session-flow
+                :local? #t
+              ) ;make-extension-flow-def
+       ) ;flow1
+       (flow2 (make-extension-flow-def 'session-flow
                 (lambda (p) #f)
                 (lambda (p c m msg) 0)
-                :local? #f)))
+                :local? #f
+              ) ;make-extension-flow-def
+       ) ;flow2
+      ) ;
   (register-flow! reg flow1)
   (register-flow! reg flow2)
   (check (extension-flow-def? (find-extension-flow reg 'local-flow)) => #t)
@@ -61,10 +64,13 @@
 ;; 3. 校验器注册 register-validator!
 (let* ((reg (make-extension-registry))
        (called #f)
-       (v (lambda (parsed) (set! called #t) #t)))
+       (v (lambda (parsed) (set! called #t) #t))
+      ) ;
   (register-validator! reg v)
   (check (length (extension-registry-validators-list reg)) => 1)
-  (for-each (lambda (val-fn) (val-fn '())) (extension-registry-validators-list reg))
+  (for-each (lambda (val-fn) (val-fn '()))
+    (extension-registry-validators-list reg)
+  ) ;for-each
   (check called => #t)
 ) ;let*
 

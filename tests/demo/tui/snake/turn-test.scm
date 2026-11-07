@@ -1,3 +1,18 @@
+;; snake-turn
+;; 改变贪吃蛇前进方向，禁止 180 度掉头
+;;
+;; 语法
+;; ----
+;; (snake-turn game dir)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n当前游戏状态；dir : symbol，目标方向
+;;
+;; 返回值
+;; ------
+;; snake-game?\n转向后的新游戏状态
+
 (import (liii check)
   (demo tui snake logic)
 ) ;import

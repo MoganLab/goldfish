@@ -30,10 +30,7 @@
 ) ;check
 
 ;; 不存在时追加到末尾
-(check (pi-alist-set-key '((a . 1) (b . 2)) 'c 3)
-  =>
-  '((a . 1) (b . 2) (c . 3))
-) ;check
+(check (pi-alist-set-key '((a . 1) (b . 2)) 'c 3) => '((a . 1) (b . 2) (c . 3)))
 
 ;; 空 alist
 (check (pi-alist-set-key '() 'a 1) => '((a . 1)))

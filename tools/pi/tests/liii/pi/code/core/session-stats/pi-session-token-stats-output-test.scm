@@ -16,13 +16,17 @@
 ;; 输出 token 的累计数量。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(check (pi-session-token-stats-output (make-pi-session-token-stats 3000 500 1200 100)) => 500)
-(check (pi-session-token-stats-output (make-pi-session-token-stats 0 0 0 0)) => 0)
+(check (pi-session-token-stats-output (make-pi-session-token-stats 3000 500 1200 100))
+  =>
+  500
+) ;check
+(check (pi-session-token-stats-output (make-pi-session-token-stats 0 0 0 0))
+  =>
+  0
+) ;check
 
 (check-report)

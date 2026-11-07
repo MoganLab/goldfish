@@ -15,21 +15,21 @@
 ;; list?
 ;; 搜索结果条目列表。
 
-(import (liii check)
-        (liii json)
-        (liii pi web-search deepseek)
-) ;import
+(import (liii check) (liii json) (liii pi web-search deepseek))
 
 (check-set-mode! 'report-failed)
 
 ;; 解析 deepseek 搜索接口返回的 JSON 结果数据。
-(let* ((json-str "{\"query\":\"goldfish\",\"results\":[{\"title\":\"T1\",\"url\":\"https://u1\",\"snippet\":\"s1\",\"summary\":\"m1\"},{\"title\":\"T2\",\"url\":\"https://u2\",\"snippet\":\"s2\"}]}")
+(let* ((json-str "{\"query\":\"goldfish\",\"results\":[{\"title\":\"T1\",\"url\":\"https://u1\",\"snippet\":\"s1\",\"summary\":\"m1\"},{\"title\":\"T2\",\"url\":\"https://u2\",\"snippet\":\"s2\"}]}"
+       ) ;json-str
        (json-data (string->json json-str))
-       (results (deepseek-parse-search-results json-data)))
+       (results (deepseek-parse-search-results json-data))
+      ) ;
   (check (length results) => 2)
   (check (cdr (assoc "title" (car results))) => "T1")
   ;; 无 summary 时回退到 snippet
-  (check (cdr (assoc "summary" (cadr results))) => "s2"))
+  (check (cdr (assoc "summary" (cadr results))) => "s2")
+) ;let*
 
 ;; 空 results
 (check (deepseek-parse-search-results (string->json "{\"results\":[]}")) => '())

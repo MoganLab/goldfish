@@ -73,11 +73,10 @@
 (check (pi-load-multikey direct-dir "google") => #f)
 
 ;; 5. 全部 key 被禁用的 pool 视为无 pool
-(let ((bad-dir
-        (if (file-exists? "tests/fixtures/multikey-disabled")
-          "tests/fixtures/multikey-disabled"
-          "tools/pi/tests/fixtures/multikey-disabled"
-        ) ;if
+(let ((bad-dir (if (file-exists? "tests/fixtures/multikey-disabled")
+                 "tests/fixtures/multikey-disabled"
+                 "tools/pi/tests/fixtures/multikey-disabled"
+               ) ;if
       ) ;bad-dir
      ) ;
   (check (pi-load-multikey bad-dir "google") => #f)

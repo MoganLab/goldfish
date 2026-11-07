@@ -16,14 +16,24 @@
 ;; role 为 toolResult 的消息数量。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(let ((stats (make-pi-session-stats #f #f #f 1 0 0 0 1
-               (make-pi-session-token-stats 0 0 0 0) 0)))
-  (check (pi-session-stats-tool-results stats) => 1))
+(let ((stats (make-pi-session-stats #f
+               #f
+               #f
+               1
+               0
+               0
+               0
+               1
+               (make-pi-session-token-stats 0 0 0 0)
+               0
+             ) ;make-pi-session-stats
+      ) ;stats
+     ) ;
+  (check (pi-session-stats-tool-results stats) => 1)
+) ;let
 
 (check-report)

@@ -21,11 +21,7 @@
 ;; integer | unspecified
 ;; 只压缩不继续请求时返回 0；继续请求时返回请求结果。
 
-(import (scheme base)
-  (liii check)
-  (liii path)
-  (liii pi code modes flow)
-) ;import
+(import (scheme base) (liii check) (liii path) (liii pi code modes flow))
 
 (check-set-mode! 'report-failed)
 

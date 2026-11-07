@@ -16,26 +16,28 @@
 ;; 规范化后的流程定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry flows)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry flows)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((flow (make-extension-flow-def 'f (lambda (p) #t) (lambda (a b c d) 0))))
   (check (normalize-flow-def flow) => flow)
-) ;let*
+) ;let
 
-(let ((flow (normalize-flow-def (list (cons 'name 'my-flow)
-                                          (cons 'predicate (lambda (p) #t))
-                                          (cons 'handler (lambda (a b c d) 0))
-                                        ) ;list
-              ) ;normalize-flow-def
-            )
-      ) ;
+(let ((flow
+        (normalize-flow-def
+          (list (cons 'name 'my-flow)
+            (cons 'predicate (lambda (p) #t))
+            (cons 'handler (lambda (a b c d) 0))
+          ) ;list
+        ) ;normalize-flow-def
+      ) ;flow
+     ) ;
   (check-true (extension-flow-def? flow))
   (check (extension-flow-def-name flow) => 'my-flow)
-) ;let*
+) ;let
 
 (check-report)

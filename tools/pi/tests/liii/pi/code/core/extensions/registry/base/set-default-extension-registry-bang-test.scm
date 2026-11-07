@@ -16,16 +16,14 @@
 ;; 直接更新默认注册表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry base)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry base)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
-       (saved (default-extension-registry)))
+(let* ((reg (make-extension-registry)) (saved (default-extension-registry)))
   (set-default-extension-registry! reg)
   (check (default-extension-registry) => reg)
   (set-default-extension-registry! saved)

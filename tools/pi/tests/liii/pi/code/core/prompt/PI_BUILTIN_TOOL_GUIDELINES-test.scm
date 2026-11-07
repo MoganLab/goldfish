@@ -14,7 +14,10 @@
 ;; string
 ;; 内置工具使用指引文本。
 
-(import (liii check) (liii pi code core prompt) (liii pi code core session-manager))
+(import (liii check)
+  (liii pi code core prompt)
+  (liii pi code core session-manager)
+) ;import
 
 (check-set-mode! 'report-failed)
 

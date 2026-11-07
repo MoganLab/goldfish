@@ -19,16 +19,18 @@
 ;; 规范化后注册的命令定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry commands)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry commands)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
-       (cmd (register-command! reg (make-extension-command-def "c" "d" (lambda (a x) 1)))))
+(let* ((reg (make-extension-registry))
+       (cmd
+         (register-command! reg (make-extension-command-def "c" "d" (lambda (a x) 1)))
+       ) ;cmd
+      ) ;
   (check (length (extension-registry-commands reg)) => 1)
   (check (extension-command-def-name cmd) => "c")
 ) ;let*

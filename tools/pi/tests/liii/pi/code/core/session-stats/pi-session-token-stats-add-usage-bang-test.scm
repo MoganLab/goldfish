@@ -17,16 +17,14 @@
 ;; unspecified
 ;; 无返回值。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats)
-) ;import
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 基础累加：空 tokens 累加第一条 usage
 (let ((tokens (make-pi-session-token-stats 0 0 0 0))
-      (usage '((input . 100) (output . 40) (cacheRead . 800) (cacheWrite . 50))))
+      (usage '((input . 100) (output . 40) (cacheRead . 800) (cacheWrite . 50)))
+     ) ;
   (pi-session-token-stats-add-usage! tokens usage)
   (check (pi-session-token-stats-input tokens) => 100)
   (check (pi-session-token-stats-output tokens) => 40)
@@ -35,21 +33,28 @@
   (check (pi-session-token-stats-total tokens) => 990)
 
   ;; 2. 多轮累加：第二条 usage 继续累加
-  (let ((usage2 '(("input" . 200) ("output" . 60) ("cacheRead" . 900) ("cacheWrite" . 0))))
+  (let ((usage2 '(("input" . 200)
+                  ("output" . 60)
+                  ("cacheRead" . 900)
+                  ("cacheWrite" . 0))
+        ) ;usage2
+       ) ;
     (pi-session-token-stats-add-usage! tokens usage2)
     (check (pi-session-token-stats-input tokens) => 300)
     (check (pi-session-token-stats-output tokens) => 100)
     (check (pi-session-token-stats-cache-read tokens) => 1700)
     (check (pi-session-token-stats-cache-write tokens) => 50)
-    (check (pi-session-token-stats-total tokens) => 2150)))
+    (check (pi-session-token-stats-total tokens) => 2150)
+  ) ;let
+) ;let
 
 ;; 3. 缺失字段默认补 0
-(let ((tokens (make-pi-session-token-stats 10 20 30 40))
-      (usage '()))
+(let ((tokens (make-pi-session-token-stats 10 20 30 40)) (usage '()))
   (pi-session-token-stats-add-usage! tokens usage)
   (check (pi-session-token-stats-input tokens) => 10)
   (check (pi-session-token-stats-output tokens) => 20)
   (check (pi-session-token-stats-cache-read tokens) => 30)
-  (check (pi-session-token-stats-cache-write tokens) => 40))
+  (check (pi-session-token-stats-cache-write tokens) => 40)
+) ;let
 
 (check-report)

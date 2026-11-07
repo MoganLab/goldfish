@@ -272,7 +272,12 @@
                (rel (relativize-path src-path))
                (norm (normalize-sep rel))
               ) ;
-          (cond ((string-contains? norm-abs "/tests/") #f)
+          (cond ((or (string-contains? norm-abs "/tests/")
+                   (string-starts? norm "tests/")
+                   (string-contains? norm "/tests/")
+                 ) ;or
+                 #f
+                ) ;
                 ((find-tools-test-dir norm) => (lambda (p) p))
                 ((find-tests-test-dir norm) => (lambda (p) p))
                 ((find-fixture-test-dir src-path) => (lambda (p) p))

@@ -14,9 +14,7 @@
 ;; integer?
 ;; 最大字符数上限，数值为 4000。
 
-(import (liii check)
-        (liii pi review files)
-) ;import
+(import (liii check) (liii pi review files))
 
 (check-set-mode! 'report-failed)
 

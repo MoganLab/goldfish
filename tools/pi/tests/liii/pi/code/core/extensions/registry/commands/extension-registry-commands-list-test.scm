@@ -16,9 +16,9 @@
 ;; 命令定义记录列表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry commands)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry commands)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -27,6 +27,6 @@
   (check (extension-registry-commands-list reg) => '())
   (register-command! reg (make-extension-command-def "c" "d" (lambda (a x) 1)))
   (check (length (extension-registry-commands-list reg)) => 1)
-) ;let*
+) ;let
 
 (check-report)

@@ -15,18 +15,15 @@
 ;; any
 ;; 解析后的数据，文件缺失或语法错误时返回 #f。
 
-(import (liii check)
-  (liii path)
-  (liii pi code config user-fs)
-) ;import
+(import (liii check) (liii path) (liii pi code config user-fs))
 
 (check-set-mode! 'report-failed)
 
-(define tmp-file
-  (path-join (path-temp-dir) "pi-user-read-json-test.json")
-) ;define
+(define tmp-file (path-join (path-temp-dir) "pi-user-read-json-test.json"))
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 ;; 1. 文件缺失时返回 #f
 (check (pi-user-read-json (path->string tmp-file)) => #f)
@@ -35,12 +32,14 @@
 (path-write-text tmp-file "{\"name\":\"kimi\",\"enabled\":true}")
 (let ((data (pi-user-read-json (path->string tmp-file))))
   (check (cdr (assoc "name" data)) => "kimi")
-) ;let*
+) ;let
 
 ;; 3. 语法错误返回 #f
 (path-write-text tmp-file "{not json")
 (check (pi-user-read-json (path->string tmp-file)) => #f)
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 (check-report)

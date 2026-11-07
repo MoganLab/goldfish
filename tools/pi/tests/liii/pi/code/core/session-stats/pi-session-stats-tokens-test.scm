@@ -16,15 +16,15 @@
 ;; 输入、输出及缓存 token 统计。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
 (let* ((tokens (make-pi-session-token-stats 10 20 30 40))
-       (stats (make-pi-session-stats #f #f #f 0 0 0 0 0 tokens 0)))
+       (stats (make-pi-session-stats #f #f #f 0 0 0 0 0 tokens 0))
+      ) ;
   (check (pi-session-stats-tokens stats) => tokens)
-  (check (pi-session-token-stats-total (pi-session-stats-tokens stats)) => 100))
+  (check (pi-session-token-stats-total (pi-session-stats-tokens stats)) => 100)
+) ;let*
 
 (check-report)

@@ -15,9 +15,7 @@
 ;; number?
 ;; 冷却时长（毫秒）。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 

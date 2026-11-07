@@ -15,10 +15,7 @@
 ;; list
 ;; 解析后的会话条目字典列表。
 
-(import (liii check)
-  (liii path)
-  (liii pi code core compaction session)
-) ;import
+(import (liii check) (liii path) (liii pi code core compaction session))
 
 (check-set-mode! 'report-failed)
 
@@ -33,18 +30,17 @@
 (check (pi-read-session-entries tmp-file) => '())
 
 ;; 2. 逐行解析 JSON 条目，忽略空行
-(path-write-text
-  tmp-file
+(path-write-text tmp-file
   (string-append "{\"type\":\"message\",\"id\":\"m1\"}\n"
     "\n"
     "{\"type\":\"compaction\",\"id\":\"c1\"}\n"
-  )
+  ) ;string-append
 ) ;path-write-text
 (let ((entries (pi-read-session-entries tmp-file)))
   (check (length entries) => 2)
   (check (cdr (assoc "id" (car entries))) => "m1")
   (check (cdr (assoc "id" (cadr entries))) => "c1")
-) ;let*
+) ;let
 
 (path-unlink tmp-file)
 

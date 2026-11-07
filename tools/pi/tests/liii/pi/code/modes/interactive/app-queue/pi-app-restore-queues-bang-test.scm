@@ -27,13 +27,16 @@
 
 ;; 1. 回收 pending 消息并清空状态
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vterm)))
+       (app (make-pi-app :terminal vterm))
+      ) ;
   (pi-app-queue-steering! app "steer msg")
   (pi-app-queue-follow-up! app "follow msg")
   (let ((all (pi-app-restore-queues! app)))
     (check-true (and (member "steer msg" all) #t))
     (check-true (and (member "follow msg" all) #t))
     (check (%pi-app-steering-pending app) => '())
-    (check (%pi-app-follow-up-pending app) => '())))
+    (check (%pi-app-follow-up-pending app) => '())
+  ) ;let
+) ;let*
 
 (check-report)

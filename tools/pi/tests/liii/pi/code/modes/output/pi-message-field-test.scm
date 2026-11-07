@@ -21,10 +21,7 @@
 ;; any
 ;; 字段取值，缺失时返回默认值。
 
-(import (liii check)
-  (liii pi ai message)
-  (liii pi code modes output)
-) ;import
+(import (liii check) (liii pi ai message) (liii pi code modes output))
 
 (check-set-mode! 'report-failed)
 
@@ -33,7 +30,7 @@
   (check (pi-message-field msg "stopReason" #f) => "error")
   (check (pi-message-field msg 'stopReason #f) => "error")
   (check (pi-message-field msg "missing" "fallback") => "fallback")
-) ;let*
+) ;let
 
 ;; 2. 非消息对象返回默认值
 (check (pi-message-field #f "stopReason" #f) => #f)

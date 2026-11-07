@@ -47,6 +47,7 @@
 (define st (pi-config-state DIR :env '()))
 
 (define providers (pi-config-state-providers st))
+
 (define n (length providers))
 
 ;; 1. 模型列向下导航不会被前一个 provider 的模型数夹断

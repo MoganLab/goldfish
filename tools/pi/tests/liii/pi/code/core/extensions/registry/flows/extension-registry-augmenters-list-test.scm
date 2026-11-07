@@ -16,9 +16,9 @@
 ;; 配置增强过程列表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry flows)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry flows)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -27,6 +27,6 @@
   (check (extension-registry-augmenters-list reg) => '())
   (register-config-augmenter! reg (lambda (cfg) cfg))
   (check (length (extension-registry-augmenters-list reg)) => 1)
-) ;let*
+) ;let
 
 (check-report)

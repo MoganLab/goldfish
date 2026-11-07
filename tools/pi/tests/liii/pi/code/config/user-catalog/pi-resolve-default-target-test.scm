@@ -15,20 +15,21 @@
 ;; values
 ;; 两个值：生效的 provider 与模型 id。
 
-(import (liii check) (liii pi ai config record) (liii pi code config user-catalog))
+(import (liii check)
+  (liii pi ai config record)
+  (liii pi code config user-catalog)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 普通 provider/model
-(let-values (((p m) (pi-resolve-default-target
-                      (pi-settings "kimi-coding" "k3.1-pro"))))
+(let-values (((p m) (pi-resolve-default-target (pi-settings "kimi-coding" "k3.1-pro"))))
   (check p => "kimi-coding")
   (check m => "k3.1-pro")
 ) ;let-values
 
 ;; provider/model 斜杠语法
-(let-values (((p m) (pi-resolve-default-target
-                      (pi-settings "google" "kimi-coding/k3"))))
+(let-values (((p m) (pi-resolve-default-target (pi-settings "google" "kimi-coding/k3"))))
   (check p => "kimi-coding")
   (check m => "k3")
 ) ;let-values

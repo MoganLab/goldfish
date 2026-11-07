@@ -17,9 +17,7 @@
 ;; string | #f
 ;; 生效的代理 URL；未配置时返回 #f。
 
-(import (liii check)
-  (liii pi code config)
-) ;import
+(import (liii check) (liii pi code config))
 
 (check-set-mode! 'report-failed)
 
@@ -31,8 +29,7 @@
   =>
   "http://provider:7890"
 ) ;check
-(check (pi-cfg-provider-proxy
-         (list (cons 'models-store MODELS) (cons 'cli-proxy "socks5h://cli:1080"))
+(check (pi-cfg-provider-proxy (list (cons 'models-store MODELS) (cons 'cli-proxy "socks5h://cli:1080"))
          "google"
        ) ;pi-cfg-provider-proxy
   =>

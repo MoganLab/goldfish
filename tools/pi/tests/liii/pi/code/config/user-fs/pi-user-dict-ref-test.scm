@@ -21,9 +21,7 @@
 ;; any
 ;; 字段取值，缺失时返回默认值。
 
-(import (liii check)
-  (liii pi code config user-fs)
-) ;import
+(import (liii check) (liii pi code config user-fs))
 
 (check-set-mode! 'report-failed)
 
@@ -31,7 +29,7 @@
 (let ((obj '(("name" . "kimi") (id . "kimi-coding"))))
   (check (pi-user-dict-ref obj "name" #f) => "kimi")
   (check (pi-user-dict-ref obj 'id #f) => "kimi-coding")
-) ;let*
+) ;let
 
 ;; 2. 缺失键返回默认值
 (check (pi-user-dict-ref '() "missing" "fallback") => "fallback")

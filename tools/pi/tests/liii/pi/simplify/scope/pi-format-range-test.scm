@@ -15,9 +15,7 @@
 ;; string?
 ;; 单行号或以连字符分隔的范围字符串。
 
-(import (liii check)
-        (liii pi simplify scope)
-) ;import
+(import (liii check) (liii pi simplify scope))
 
 (check-set-mode! 'report-failed)
 

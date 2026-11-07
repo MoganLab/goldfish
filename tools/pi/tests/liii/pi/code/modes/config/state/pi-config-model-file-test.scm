@@ -16,10 +16,10 @@
 ;; 相对配置目录的文件路径，不存在时为 #f。
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii path)
-        (liii pi code modes config state)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -39,7 +39,8 @@
   (pi-config-provider st id)
 ) ;define
 
-(check (pi-config-model-file (car (pi-config-provider-models (prov "kimi-coding"))))
+(check
+  (pi-config-model-file (car (pi-config-provider-models (prov "kimi-coding"))))
   =>
   "models/kimi-coding/k3.1-pro.json"
 ) ;check

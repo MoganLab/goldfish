@@ -21,9 +21,7 @@
 ;; pi-pool-key?
 ;; 新建的密钥记录。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 
@@ -34,12 +32,12 @@
   (check (pi-pool-key-enabled pk) => #t)
   (check (pi-pool-key-last-used pk) => 0)
   (check (pi-pool-key-cooldown-until pk) => 0)
-) ;let*
+) ;let
 
 ;; 2. 可选标签与启用状态
 (let ((pk (pi-pool-key "sk-beta" "beta-label" #f)))
   (check (pi-pool-key-label pk) => "beta-label")
   (check (pi-pool-key-enabled pk) => #f)
-) ;let*
+) ;let
 
 (check-report)

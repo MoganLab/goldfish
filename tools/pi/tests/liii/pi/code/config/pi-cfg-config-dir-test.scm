@@ -15,13 +15,12 @@
 ;; any
 ;; 配置目录；cfg 为空或缺少目录项时返回 #f。
 
-(import (liii check)
-  (liii pi code config)
-) ;import
+(import (liii check) (liii pi code config))
 
 (check-set-mode! 'report-failed)
 
-(check (pi-cfg-config-dir '((config-dir . "/tmp/cfg") (agent-dir . "/tmp/agent")))
+(check (pi-cfg-config-dir '((config-dir . "/tmp/cfg")
+                            (agent-dir . "/tmp/agent")))
   =>
   "/tmp/cfg"
 ) ;check

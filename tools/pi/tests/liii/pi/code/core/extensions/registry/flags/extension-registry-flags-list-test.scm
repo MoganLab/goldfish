@@ -16,9 +16,9 @@
 ;; 标志定义记录列表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry flags)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry flags)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -27,6 +27,6 @@
   (check (extension-registry-flags-list reg) => '())
   (register-flag! reg (make-extension-flag-def "--f" "d"))
   (check (length (extension-registry-flags-list reg)) => 1)
-) ;let*
+) ;let
 
 (check-report)

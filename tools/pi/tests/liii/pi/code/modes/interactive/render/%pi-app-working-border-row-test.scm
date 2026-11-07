@@ -32,39 +32,47 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 尚无整帧渲染缓存：返回 #f
-(let ((app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)
-                   :handler (lambda (a m) #t))))
+(let ((app (make-pi-app
+             :terminal (make-virtual-terminal :width 80 :height 24)
+             :handler  (lambda (a m) #t)
+           ) ;make-pi-app
+      ) ;app
+     ) ;
   (check (%pi-app-working-border-row app) => #f)
 ) ;let
 
 ;; 2. 整帧渲染后：行号落在帧内，且指向编辑器上边框（busy 时为 Working 行）
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
-       (q (pi-app-queue app)))
+       (q (pi-app-queue app))
+      ) ;
   (pi-app-render! app)
   (pi-queue-set-busy! q)
   (pi-app-render! app)
   (let* ((row (%pi-app-working-border-row app))
-         (lines (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
+         (lines (map strip-ansi (alt-screen-lines (pi-app-screen app))))
+        ) ;
     (check-true (exact-integer? row))
     (check-true (>= row 0))
     (check-true (< row (length lines)))
     (check-true (string-contains? (list-ref lines row) "Working"))
-  ) ;let
+  ) ;let*
 ) ;let*
 
 ;; 3. 有排队消息时：边框行随待发送区下移，仍指向 Working 行
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
-       (q (pi-app-queue app)))
+       (q (pi-app-queue app))
+      ) ;
   (pi-queue-enqueue! q "排队消息")
   (pi-queue-set-busy! q)
   (pi-app-render! app)
   (let* ((row (%pi-app-working-border-row app))
-         (lines (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
+         (lines (map strip-ansi (alt-screen-lines (pi-app-screen app))))
+        ) ;
     (check-true (exact-integer? row))
     (check-true (string-contains? (list-ref lines row) "Working"))
-  ) ;let
+  ) ;let*
 ) ;let*
 
 (check-report)

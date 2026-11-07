@@ -16,10 +16,10 @@
 ;; provider 条目列表。
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii path)
-        (liii pi code modes config state)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -42,6 +42,6 @@
 (let ((providers (pi-config-state-providers st)))
   (check (> (length providers) 0) => #t)
   (check (pi-config-provider-id (car providers)) => "kimi-coding")
-) ;let*
+) ;let
 
 (check-report)

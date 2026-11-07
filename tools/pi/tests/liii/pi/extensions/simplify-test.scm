@@ -18,32 +18,28 @@
 ;; list?
 ;; 扩展加载结果字典。
 
-(import (liii check)
-  (liii path)
-  (liii pi code core extensions)
-) ;import
+(import (liii check) (liii path) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 
 (define (get-simplify-path)
-  (cond
-    ((file-exists? "tools/pi/extensions/simplify.scm")
-     "tools/pi/extensions/simplify.scm")
-    ((file-exists? "extensions/simplify.scm")
-     "extensions/simplify.scm")
-    (else "../../extensions/simplify.scm")
+  (cond ((file-exists? "tools/pi/extensions/simplify.scm")
+         "tools/pi/extensions/simplify.scm"
+        ) ;
+        ((file-exists? "extensions/simplify.scm") "extensions/simplify.scm")
+        (else "../../extensions/simplify.scm")
   ) ;cond
 ) ;define
 
 ;; 1. 加载 simplify.scm 扩展
-(let* ((api (make-extension-api))
-       (res (pi-load-extension (get-simplify-path) api)))
+(let* ((api (make-extension-api)) (res (pi-load-extension (get-simplify-path) api)))
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'ok) => #t)
 
   ;; 2. 验证 flags
   (let ((flag-simp (find-extension-flag api "--simplify"))
-        (flag-apply (find-extension-flag api "--apply")))
+        (flag-apply (find-extension-flag api "--apply"))
+       ) ;
     (check (extension-flag-def? flag-simp) => #t)
     (check (eq? (extension-flag-def-key flag-simp) 'simplify) => #t)
     (check (extension-flag-def? flag-apply) => #t)
@@ -52,7 +48,8 @@
 
   ;; 3. 验证 commands
   (let ((cmd-slash (find-extension-command api "/simplify"))
-        (cmd-plain (find-extension-command api "simplify")))
+        (cmd-plain (find-extension-command api "simplify"))
+       ) ;
     (check (extension-command-def? cmd-slash) => #t)
     (check (extension-command-def? cmd-plain) => #t)
   ) ;let
@@ -70,11 +67,9 @@
       ;; 正常合法参数通过
       (check (v '((simplify . #t) (apply . #t))) => (if #f #f))
       ;; --apply requires --simplify
-      (check-catch 'pi-arg-error
-        (v '((apply . #t) (simplify . #f))))
+      (check-catch 'pi-arg-error (v '((apply . #t) (simplify . #f))))
       ;; --simplify 与 --code-review 冲突
-      (check-catch 'pi-arg-error
-        (v '((simplify . #t) (code-review . #t))))
+      (check-catch 'pi-arg-error (v '((simplify . #t) (code-review . #t))))
     ) ;let
   ) ;let
 ) ;let*

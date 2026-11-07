@@ -18,9 +18,7 @@
 ;; boolean?
 ;; 仍在冷却期时返回 #t，否则返回 #f。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 
@@ -33,6 +31,6 @@
   (check (pi-pool-key-cooling? pk 1000) => #t)
   (check (pi-pool-key-cooling? pk 2000) => #f)
   (check (pi-pool-key-cooling? pk 3000) => #f)
-) ;let*
+) ;let
 
 (check-report)

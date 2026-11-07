@@ -40,16 +40,24 @@
 (check-true (procedure? pi-compact-session!))
 
 ;; 2. 会话内容过短时抛出 compact-error
+
 (define tmp-file
   (path-join (path-temp-dir) "pi-compact-session-bang-test.jsonl")
 ) ;define
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 (check-catch 'compact-error
-  (pi-compact-session! '() (path->string tmp-file) (make-pi-compaction-settings #t 100 100))
-)
+  (pi-compact-session! '()
+    (path->string tmp-file)
+    (make-pi-compaction-settings #t 100 100)
+  ) ;pi-compact-session!
+) ;check-catch
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 (check-report)

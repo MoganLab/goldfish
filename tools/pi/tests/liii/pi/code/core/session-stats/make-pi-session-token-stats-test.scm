@@ -16,9 +16,7 @@
 ;; total 由四类 token 之和计算的统计 record。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
@@ -28,6 +26,7 @@
   (check (pi-session-token-stats-output tokens) => 500)
   (check (pi-session-token-stats-cache-read tokens) => 1200)
   (check (pi-session-token-stats-cache-write tokens) => 100)
-  (check (pi-session-token-stats-total tokens) => 4800))
+  (check (pi-session-token-stats-total tokens) => 4800)
+) ;let
 
 (check-report)

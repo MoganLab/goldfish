@@ -22,9 +22,9 @@
 ;; 注册成功返回 #t。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions event)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions event)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -32,12 +32,12 @@
 (let ((reg (make-extension-registry)))
   (check (pi-on! reg 'session_start (lambda (p c) 1)) => #t)
   (check (length (extension-registry-listeners reg)) => 1)
-) ;let*
+) ;let
 
 (let ((reg (make-extension-registry)))
   (pi-on! reg "session_start" (lambda (p c) 1))
   (check (length (extension-registry-listeners reg)) => 1)
   (check-catch 'type-error (pi-on! reg 'session_start "not-a-procedure"))
-) ;let*
+) ;let
 
 (check-report)

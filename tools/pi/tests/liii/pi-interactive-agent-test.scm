@@ -1,90 +1,128 @@
+;; pi-interactive-agent
+;; 交互式 Agent 聚合测试：跨多个库函数验证多轮交互
+;;
+;; 语法
+;; ----
+;; (pi-interactive-agent ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
 (import (scheme base)
-        (scheme process-context)
-        (liii check)
-        (liii tui)
-        (liii string)
-        (liii pi ai message)
-        (liii pi agent loop)
-        (liii pi code modes interactive)
-        (liii pi code modes interactive worker)
-        (liii pi code modes interactive handler)
-        (liii pi agent queue))
+  (scheme process-context)
+  (liii check)
+  (liii tui)
+  (liii string)
+  (liii pi ai message)
+  (liii pi agent loop)
+  (liii pi code modes interactive)
+  (liii pi code modes interactive worker)
+  (liii pi code modes interactive handler)
+  (liii pi agent queue)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 测试 make-tui-agent-handler 构造与基础类型
 (let* ((mock-cfg '((provider . "mock") (api-key . "mock-key")))
-       (mock-runner (lambda (parsed cfg initial-msg emit on-finish)
-                      ;; 模拟执行：先派发工具调用，再派发助手回复，最后通知结算
-                      (emit 'tool_execution_end "call_1" "bash" "test result" #f)
-                      (emit 'message_end '(("role" . "assistant")
-                                          ("content" . #((("type" . "text") ("text" . "任务完成"))))))
-                      (emit 'agent_settled #f)))
+       (mock-runner
+         (lambda (parsed cfg initial-msg emit on-finish)
+           ;; 模拟执行：先派发工具调用，再派发助手回复，最后通知结算
+           (emit 'tool_execution_end "call_1" "bash" "test result" #f)
+           (emit 'message_end
+             '(("role" . "assistant")
+               ("content" . #((("type" . "text") ("text" . "任务完成")))))
+           ) ;emit
+           (emit 'agent_settled #f)
+         ) ;lambda
+       ) ;mock-runner
        (handler (make-tui-agent-handler '() mock-cfg :runner mock-runner))
-       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler handler)))
+       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler handler))
+      ) ;
   (check (procedure? handler) => #t)
-  
+
   ;; 2. 模拟用户输入提交，验证卡片生成与队列结算状态
   (pi-app-submit! app "请运行单元测试")
-  
+
   ;; 验证 chat 历史中已正确追加了：
   ;; 1) 用户深蓝卡片
   ;; 2) 工具深绿成功卡片
   ;; 3) 助手回复文本卡片
   (let ((chat (pi-app-chat app)))
     (check (length chat) => 3)
-    (check (pi-queue-idle? (pi-app-queue app)) => #t))
-  
+    (check (pi-queue-idle? (pi-app-queue app)) => #t)
+  ) ;let
+
   ;; 3. 模拟工具出错分支
   (let* ((error-runner (lambda (parsed cfg initial-msg emit on-finish)
                          (emit 'tool_execution_end "call_2" "read" "File not found" #t)
-                         (emit 'agent_settled #f)))
+                         (emit 'agent_settled #f)
+                       ) ;lambda
+         ) ;error-runner
          (err-handler (make-tui-agent-handler '() mock-cfg :runner error-runner))
-         (app2 (make-pi-app :terminal (make-virtual-terminal 80 24) :handler err-handler)))
+         (app2 (make-pi-app :terminal (make-virtual-terminal 80 24) :handler err-handler)
+         ) ;app2
+        ) ;
     (pi-app-submit! app2 "读取不存在的文件")
     (let ((chat (pi-app-chat app2)))
       (check (length chat) => 2)
-      (check (pi-queue-idle? (pi-app-queue app2)) => #t))))
+      (check (pi-queue-idle? (pi-app-queue app2)) => #t)
+    ) ;let
+  ) ;let*
+) ;let*
 
 ;; 4. 验证缺少 API Key 时不崩溃且向用户展示友好提示卡片
 (let* ((empty-cfg '((provider . "anthropic") (api-key . #f)))
        (handler (make-tui-agent-handler '() empty-cfg))
-       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler handler)))
+       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler handler))
+      ) ;
   (pi-app-submit! app "测试无凭证")
   ;; 应当有 2 个条目：1) 用户发送的消息卡片 2) 凭证缺失的报错卡片
   (let ((chat (pi-app-chat app)))
     (check (length chat) => 2)
-    (check (pi-queue-idle? (pi-app-queue app)) => #t)))
+    (check (pi-queue-idle? (pi-app-queue app)) => #t)
+  ) ;let
+) ;let*
 
 ;; 5. 验证 [pi retry] 重试事件作为卡片输出而非污染终端
 (let* ((mock-cfg '((provider . "mock") (api-key . "mock-key")))
        (retry-runner (lambda (parsed cfg initial-msg emit on-finish)
                        (emit 'retry "[pi retry] HTTP 429, attempt 1/12, waiting 2.0s")
-                       (emit 'agent_settled #f)))
+                       (emit 'agent_settled #f)
+                     ) ;lambda
+       ) ;retry-runner
        (handler (make-tui-agent-handler '() mock-cfg :runner retry-runner))
-       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler handler)))
+       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler handler))
+      ) ;
   (pi-app-submit! app "触发429重试")
   (let ((chat (pi-app-chat app)))
     ;; 应当有 2 个条目：1) 用户深蓝卡片 2) ↻ 重试卡片
     (check (length chat) => 2)
-    (check (pi-queue-idle? (pi-app-queue app)) => #t)))
+    (check (pi-queue-idle? (pi-app-queue app)) => #t)
+  ) ;let
+) ;let*
 
 ;; 6. 续会话时历史 assistant 消息的事件重放不得重复上屏，新回复仍需正常显示
 (let* ((old-msg (pi-assistant-message (list (pi-text-block "第一条回复"))))
        (new-msg (pi-assistant-message (list (pi-text-block "第二条回复"))))
-       (app (make-pi-app :terminal (make-virtual-terminal 80 24)
-              :handler (lambda (a m) #t)
-            ) ;make-pi-app
+       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler (lambda (a m) #t))
        ) ;app
        (emit (make-tui-emit (pi-app-event-chan app)))
-       (cfg '((provider . "test") (tools . ()) (settings . ())))
-       (request-fn
-         (lambda (provider config msgs sys-prompt tools on-ev timeout) new-msg)
+       (cfg '((provider . "test") (tools) (settings)))
+       (request-fn (lambda (provider config msgs sys-prompt tools on-ev timeout) new-msg)
        ) ;request-fn
       ) ;
   (run-agent-loop cfg (list old-msg) "sys" emit 10 5 600 #f request-fn #f)
   (pi-app-poll-events! app)
-  (let ((text (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
+  (let ((text
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;text
+       ) ;
     (check (length (pi-app-chat app)) => 1)
     (check-true (not (string-contains? text "第一条回复")))
     (check-true (string-contains? text "第二条回复"))
@@ -92,10 +130,14 @@
 ) ;let*
 
 ;; 7. 工具 start/update/end 在同一张卡片上原地推进，不重复追加卡片
-(let* ((app (make-pi-app :terminal (make-virtual-terminal 100 40)
-              :handler (lambda (a m) #t)))
+(let* ((app (make-pi-app
+              :terminal (make-virtual-terminal 100 40)
+              :handler  (lambda (a m) #t)
+            ) ;make-pi-app
+       ) ;app
        (emit (make-tui-emit (pi-app-event-chan app)))
-       (args '(("command" . "seq 1 8"))))
+       (args '(("command" . "seq 1 8")))
+      ) ;
   (emit 'tool_execution_start "live-1" "bash" args)
   (pi-app-poll-events! app)
   (check (length (pi-app-chat app)) => 1)
@@ -104,24 +146,38 @@
     (pi-app-poll-events! app)
     (check (length (pi-app-chat app)) => 1)
     (check (car (pi-app-chat app)) => card)
-    (let ((text (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
+    (let ((text
+            (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+          ) ;text
+         ) ;
       (check-true (string-contains? text "... (3 earlier lines, ctrl+o to expand)"))
-      (check-true (string-contains? text "Elapsed ")))
+      (check-true (string-contains? text "Elapsed "))
+    ) ;let
     ;; 运行中也可展开；全局 Ctrl+O 同时作用于模型工具卡片，
     ;; 并在 chat 底部追加可原地更新的状态卡片（对齐上游 showStatus）
     (check (pi-app-toggle-tool-output! app) => #t)
     (check (length (pi-app-chat app)) => 2)
     (check-true (status-card? (cadr (pi-app-chat app))))
     (pi-app-render! app)
-    (let ((lines (map string-trim-both (map strip-ansi (alt-screen-lines (pi-app-screen app))))))
+    (let ((lines
+            (map string-trim-both (map strip-ansi (alt-screen-lines (pi-app-screen app))))
+          ) ;lines
+         ) ;
       (check-true (pair? (member "1" lines)))
-      (check-true (pair? (member "8" lines))))
+      (check-true (pair? (member "8" lines)))
+    ) ;let
     (emit 'tool_execution_end "live-1" "bash" "1\n2\n3\n4\n5\n6\n7\n8" #f 4200)
     (pi-app-poll-events! app)
     (check (length (pi-app-chat app)) => 2)
     (check (car (pi-app-chat app)) => card)
-    (let ((text (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
+    (let ((text
+            (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+          ) ;text
+         ) ;
       (check-true (string-contains? text "Took 4.2s"))
-      (check-false (string-contains? text "Elapsed ")))))
+      (check-false (string-contains? text "Elapsed "))
+    ) ;let
+  ) ;let
+) ;let*
 
 (check-report)

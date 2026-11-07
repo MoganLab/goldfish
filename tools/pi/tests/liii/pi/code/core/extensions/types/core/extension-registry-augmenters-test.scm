@@ -16,14 +16,15 @@
 ;; 配置增强器列表。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types core)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types core)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((reg (make-extension-registry)))
-  (check (extension-registry-augmenters reg) => '()))
+  (check (extension-registry-augmenters reg) => '())
+) ;let
 
 (check-report)

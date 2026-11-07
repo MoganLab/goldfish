@@ -44,7 +44,9 @@
        (vterm (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vterm))
       ) ;
-  (when (file-exists? file) (delete-file file))
+  (when (file-exists? file)
+    (delete-file file)
+  ) ;when
   (save-session-header! file "res-id" "2026-11-04T08:00:00.000Z" "/tmp")
   (save-session-message! file
     "{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}],\"usage\":{\"input\":100,\"output\":20,\"cacheRead\":900,\"cacheWrite\":0}}"
@@ -54,7 +56,10 @@
   (check (pi-session-token-stats-cache-read (pi-app-tokens app)) => 900)
   (check (pi-session-token-stats-input (pi-app-tokens app)) => 100)
   ;; 恢复的会话按最后一条 assistant usage 换算上下文占比（1020/1000000）
-  (check (pi-footer-stats (%pi-app-footer app)) => "↑100 ↓20 R900 0.1%/1.0M (auto)")
+  (check (pi-footer-stats (%pi-app-footer app))
+    =>
+    "↑100 ↓20 R900 0.1%/1.0M (auto)"
+  ) ;check
   (delete-file file)
 ) ;let*
 

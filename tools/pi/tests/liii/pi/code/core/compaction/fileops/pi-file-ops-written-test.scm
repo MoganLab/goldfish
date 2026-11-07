@@ -16,13 +16,14 @@
 ;; 去重后的写入路径列表。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction fileops))
+(import (scheme base) (liii check) (liii pi code core compaction fileops))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-file-ops-written (make-pi-file-ops '("a.scm") '("b.scm") '("c.scm"))) => '("b.scm"))
+(check (pi-file-ops-written (make-pi-file-ops '("a.scm") '("b.scm") '("c.scm")))
+  =>
+  '("b.scm")
+) ;check
 
 (check-report)

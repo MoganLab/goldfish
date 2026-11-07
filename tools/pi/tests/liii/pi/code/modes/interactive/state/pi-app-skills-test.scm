@@ -26,12 +26,18 @@
 (check-set-mode! 'report-failed)
 
 (let ((app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24))))
-  (check (pi-app-skills app) => '())) ;let
+  (check (pi-app-skills app) => '())
+) ;let
 
 (let* ((skill (%make-pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f))
-       (app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)
-              :skills (list skill))))
+       (app (make-pi-app
+              :terminal (make-virtual-terminal :width 80 :height 24)
+              :skills   (list skill)
+            ) ;make-pi-app
+       ) ;app
+      ) ;
   (check (length (pi-app-skills app)) => 1)
-  (check (pi-skill-name (car (pi-app-skills app))) => "pdf-tools")) ;let*
+  (check (pi-skill-name (car (pi-app-skills app))) => "pdf-tools")
+) ;let*
 
 (check-report)

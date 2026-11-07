@@ -15,9 +15,7 @@
 ;; string? 或 #f
 ;; 识别出的语言标识字符串（如 "typescript"、"python"），无法识别时返回 #f。
 
-(import (liii check)
-        (liii pi review language)
-) ;import
+(import (liii check) (liii pi review language))
 
 (check-set-mode! 'report-failed)
 

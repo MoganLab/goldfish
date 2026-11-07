@@ -18,15 +18,14 @@
 ;; string
 ;; 相对配置目录的模型配置文件路径。
 
-(import (liii check)
-  (liii pi code modes config paths)
-) ;import
+(import (liii check) (liii pi code modes config paths))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 相对路径格式为 models/<provider>/<model>.json
 (check (pi-config-rel-model "kimi-coding" "k3.1-pro")
-  => "models/kimi-coding/k3.1-pro.json"
+  =>
+  "models/kimi-coding/k3.1-pro.json"
 ) ;check
 
 (check-report)

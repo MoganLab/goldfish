@@ -16,14 +16,14 @@
 ;; 自动压缩开关值。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 
 
-(check-true (pi-compaction-settings-enabled (make-pi-compaction-settings #t 1 1)))
-(check-false (pi-compaction-settings-enabled (make-pi-compaction-settings #f 1 1)))
+(check-true (pi-compaction-settings-enabled (make-pi-compaction-settings #t 1 1))
+) ;check-true
+(check-false (pi-compaction-settings-enabled (make-pi-compaction-settings #f 1 1))
+) ;check-false
 
 (check-report)

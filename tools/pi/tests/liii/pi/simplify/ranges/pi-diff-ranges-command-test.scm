@@ -21,10 +21,7 @@
 ;; string?
 ;; 完整的 git diff 命令字符串。
 
-(import (liii check)
-        (liii string)
-        (liii pi simplify ranges)
-) ;import
+(import (liii check) (liii string) (liii pi simplify ranges))
 
 (check-set-mode! 'report-failed)
 
@@ -52,12 +49,10 @@
 
 ;; 不安全的 ref / path 使用单引号包裹
 (check-true (string-contains? (pi-diff-ranges-command "main; rm -rf /tmp/x" #f "a b.ts")
-                "'main; rm -rf /tmp/x'"
-              ) ;string-contains?
+              "'main; rm -rf /tmp/x'"
+            ) ;string-contains?
 ) ;check-true
-(check-true (string-contains? (pi-diff-ranges-command "HEAD" #f "a b.ts")
-                "'a b.ts'"
-              ) ;string-contains?
+(check-true (string-contains? (pi-diff-ranges-command "HEAD" #f "a b.ts") "'a b.ts'")
 ) ;check-true
 
 (check-report)

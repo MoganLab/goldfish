@@ -16,14 +16,17 @@
 ;; 是否为本地流程。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let ((flow (make-extension-flow-def 'my-flow (lambda (parsed) #t) (lambda (p c m i) 0))))
-  (check (extension-flow-def-local? flow) => #f))
+(let ((flow (make-extension-flow-def 'my-flow (lambda (parsed) #t) (lambda (p c m i) 0))
+      ) ;flow
+     ) ;
+  (check (extension-flow-def-local? flow) => #f)
+) ;let
 
 (check-report)

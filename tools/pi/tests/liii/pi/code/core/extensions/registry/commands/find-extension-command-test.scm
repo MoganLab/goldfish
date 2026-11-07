@@ -19,16 +19,16 @@
 ;; 匹配的命令定义记录，未找到时返回 #f。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry commands)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry commands)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
-       (cmd (make-extension-command-def "review" "d" (lambda (a x) 1))))
+(let* ((reg (make-extension-registry))
+       (cmd (make-extension-command-def "review" "d" (lambda (a x) 1)))
+      ) ;
   (register-command! reg cmd)
   (check (find-extension-command reg "review") => cmd)
   (check (find-extension-command reg "missing") => #f)

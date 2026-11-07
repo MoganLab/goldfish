@@ -16,7 +16,7 @@
 ;; 符合命名规范时返回 #t，否则返回 #f。
 
 (import (scheme base)
-        (liii check)
+  (liii check)
   (liii check)
   (liii pi code core extensions install)
 ) ;import

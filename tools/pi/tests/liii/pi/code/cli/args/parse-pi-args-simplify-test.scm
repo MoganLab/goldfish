@@ -15,9 +15,7 @@
 ;; alist
 ;; 解析后的参数字典。
 
-(import (liii check)
-        (liii pi code cli args)
-) ;import
+(import (liii check) (liii pi code cli args))
 
 (check-set-mode! 'report-failed)
 
@@ -26,23 +24,30 @@
   (check (pi-args-ref p 'simplify) => #t)
   (check (pi-args-ref p 'apply) => #f)
   (check (pi-args-ref p 'staged) => #f)
-  (check (pi-args-ref p 'review-ref) => #f))
+  (check (pi-args-ref p 'review-ref) => #f)
+) ;let
 
 (let ((p (parse-pi-args '("--simplify" "--apply" "--staged" "--ref=main"
-                          "src/a.ts" "src/b.ts"))))
+                          "src/a.ts" "src/b.ts")
+         ) ;parse-pi-args
+      ) ;p
+     ) ;
   (check (pi-args-ref p 'simplify) => #t)
   (check (pi-args-ref p 'apply) => #t)
   (check (pi-args-ref p 'staged) => #t)
   (check (pi-args-ref p 'review-ref) => "main")
-  (check (pi-args-ref p 'messages) => '("src/a.ts" "src/b.ts")))
+  (check (pi-args-ref p 'messages) => '("src/a.ts" "src/b.ts"))
+) ;let
 
 ;; 分离形式 --ref main
 (let ((p (parse-pi-args '("--simplify" "--ref" "v1"))))
   (check (pi-args-ref p 'review-ref) => "v1")
-  (check (pi-args-ref p 'messages) => '()))
+  (check (pi-args-ref p 'messages) => '())
+) ;let
 
 ;; 未知选项仍进入 unknown-flags
 (let ((p (parse-pi-args '("--simplify" "--simplifier"))))
-  (check (pi-args-ref p 'unknown-flags) => '("--simplifier")))
+  (check (pi-args-ref p 'unknown-flags) => '("--simplifier"))
+) ;let
 
 (check-report)

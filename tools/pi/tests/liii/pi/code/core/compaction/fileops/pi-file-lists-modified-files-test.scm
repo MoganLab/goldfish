@@ -16,14 +16,16 @@
 ;; 排序并去重后的已修改文件路径列表。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction fileops))
+(import (scheme base) (liii check) (liii pi code core compaction fileops))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-file-lists-modified-files
-         (make-pi-file-lists '("a.scm") '("b.scm" "c.scm"))) => '("b.scm" "c.scm"))
+(check (pi-file-lists-modified-files (make-pi-file-lists '("a.scm") '("b.scm"
+                                                                      "c.scm"))
+       ) ;pi-file-lists-modified-files
+  =>
+  '("b.scm" "c.scm")
+) ;check
 
 (check-report)

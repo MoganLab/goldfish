@@ -15,19 +15,16 @@
 ;; list?
 ;; 包含 files、paths、total 和 source 的结果 alist。
 
-(import (liii check)
-        (liii string)
-        (liii pi simplify ranges)
-) ;import
+(import (liii check) (liii string) (liii pi simplify ranges))
 
 (check-set-mode! 'report-failed)
 
 (define (fixture name)
   (let loop
     ((candidates (list (string-append "tools/pi/tests/fixtures/simplify/" name)
-                       (string-append "tests/fixtures/simplify/" name)
-                       (string-append "../../fixtures/simplify/" name)
-                     ) ;list
+                   (string-append "tests/fixtures/simplify/" name)
+                   (string-append "../../fixtures/simplify/" name)
+                 ) ;list
      ) ;candidates
     ) ;
     (cond ((null? candidates) name)
@@ -54,27 +51,22 @@
 
 ;; 1. modified / added / renamed 的状态与行范围
 (let* ((box (vector '()))
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD"
-                         (string-append "M\t" sample "\n"
-                           "A\tnew.ts\n"
-                           "R100\told.ts\tnew-name.ts\n"
-                         ) ;string-append
-                         #f
-                       ) ;list
-                       (list (string-append "git diff --unified=0 --no-ext-diff HEAD -- "
-                               sample
-                             ) ;string-append
-                         "@@ -1 +2,2 @@\n@@ -10 +20 @@\n"
-                         #f
-                       ) ;list
-                       (list "git diff --unified=0 --no-ext-diff HEAD -- new-name.ts"
-                         "@@ -1 +5,2 @@\n"
-                         #f
-                       ) ;list
-                 ) ;list
-                 box
-               ) ;make-runner
+       (runner
+         (make-runner (list (list "git diff --name-status HEAD"
+                              (string-append "M\t" sample "\n" "A\tnew.ts\n" "R100\told.ts\tnew-name.ts\n")
+                              #f
+                            ) ;list
+                        (list (string-append "git diff --unified=0 --no-ext-diff HEAD -- " sample)
+                          "@@ -1 +2,2 @@\n@@ -10 +20 @@\n"
+                          #f
+                        ) ;list
+                        (list "git diff --unified=0 --no-ext-diff HEAD -- new-name.ts"
+                          "@@ -1 +5,2 @@\n"
+                          #f
+                        ) ;list
+                      ) ;list
+           box
+         ) ;make-runner
        ) ;runner
        (res (pi-collect-simplify-files :runner runner))
        (files (cdr (assoc 'files res)))
@@ -98,14 +90,10 @@
 
 ;; 2. 回退到 HEAD~1 时，行范围命令同样使用 HEAD~1（忽略 --staged）
 (let* ((box (vector '()))
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD" "" #t)
-                       (list "git diff --name-status HEAD~1" "M\ta.ts\n" #f)
-                       (list "git diff --unified=0 --no-ext-diff HEAD~1 -- a.ts"
-                         "@@ -1 +3,4 @@\n"
-                         #f
-                       ) ;list
-                 ) ;list
+       (runner (make-runner (list (list "git diff --name-status HEAD" "" #t)
+                              (list "git diff --name-status HEAD~1" "M\ta.ts\n" #f)
+                              (list "git diff --unified=0 --no-ext-diff HEAD~1 -- a.ts" "@@ -1 +3,4 @@\n" #f)
+                            ) ;list
                  box
                ) ;make-runner
        ) ;runner
@@ -118,13 +106,12 @@
 
 ;; 3. diff 失败时 ranges 为 #f 且 ranges-available? 为 #f
 (let* ((box (vector '()))
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD" "M\ta.ts\n" #f)
-                       (list "git diff --unified=0 --no-ext-diff HEAD -- a.ts"
-                         "fatal: bad revision"
-                         #t
-                       ) ;list
-                 ) ;list
+       (runner (make-runner (list (list "git diff --name-status HEAD" "M\ta.ts\n" #f)
+                              (list "git diff --unified=0 --no-ext-diff HEAD -- a.ts"
+                                "fatal: bad revision"
+                                #t
+                              ) ;list
+                            ) ;list
                  box
                ) ;make-runner
        ) ;runner
@@ -137,12 +124,8 @@
 
 ;; 4. 显式文件列表：状态视为 modified，仍按 ref 抓取行范围
 (let* ((box (vector '()))
-       (runner (make-runner
-                 (list (list "git diff --unified=0 --no-ext-diff HEAD -- a.ts"
-                         "@@ -1 +8 @@\n"
-                         #f
-                       ) ;list
-                 ) ;list
+       (runner (make-runner (list (list "git diff --unified=0 --no-ext-diff HEAD -- a.ts" "@@ -1 +8 @@\n" #f)
+                            ) ;list
                  box
                ) ;make-runner
        ) ;runner
@@ -157,18 +140,14 @@
 ) ;let*
 
 ;; 5. 超过上限时沿用 044 的提示
-(let* ((many (apply string-append
-               (map (lambda (i)
-                      (string-append "M\tf" (number->string i) ".ts\n")
-                    ) ;lambda
-                 '(1 2 3 4 5 6 7 8 9 10 11 12)
-               ) ;map
-             ) ;apply
+(let* ((many
+         (apply string-append
+           (map (lambda (i) (string-append "M\tf" (number->string i) ".ts\n"))
+             '(1 2 3 4 5 6 7 8 9 10 11 12)
+           ) ;map
+         ) ;apply
        ) ;many
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD" many #f))
-                 (vector '())
-               ) ;make-runner
+       (runner (make-runner (list (list "git diff --name-status HEAD" many #f)) (vector '()))
        ) ;runner
        (res (pi-collect-simplify-files :runner runner))
       ) ;

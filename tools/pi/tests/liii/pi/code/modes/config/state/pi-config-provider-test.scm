@@ -19,10 +19,10 @@
 ;; 匹配的 provider 条目，未找到时返回 #f。
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii path)
-        (liii pi code modes config state)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
 ) ;import
 
 (check-set-mode! 'report-failed)

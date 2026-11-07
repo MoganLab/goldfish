@@ -19,32 +19,40 @@
 ;; ------
 ;; 未指定
 
-(import
-  (scheme base)
+(import (scheme base)
   (liii check)
   (liii tui)
   (liii path)
   (liii string)
   (liii tempfile)
   (liii pi code core skills types)
-  (liii pi code modes interactive app))
+  (liii pi code modes interactive app)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
        (tmp (path-temp-dir))
        (skill-file (path-join tmp "pdf-SKILL.md"))
-       (submitted #f))
-  (path-write-text skill-file "---
-name: pdf-tools
-description: 提取 PDF 文本
----
-# PDF Instructions
-Extract text.")
-  (let* ((skill (%make-pi-skill "pdf-tools" "提取 PDF 文本" (path->string skill-file) (path->string tmp) #f))
-         (app (make-pi-app :terminal vterm
-                           :skills (list skill)
-                           :handler (lambda (a m) (set! submitted m)))))
+       (submitted #f)
+      ) ;
+  (path-write-text skill-file
+    "---\nname: pdf-tools\ndescription: 提取 PDF 文本\n---\n# PDF Instructions\nExtract text."
+  ) ;path-write-text
+  (let* ((skill (%make-pi-skill "pdf-tools"
+                  "提取 PDF 文本"
+                  (path->string skill-file)
+                  (path->string tmp)
+                  #f
+                ) ;%make-pi-skill
+         ) ;skill
+         (app (make-pi-app
+                :terminal vterm
+                :skills   (list skill)
+                :handler  (lambda (a m) (set! submitted m))
+              ) ;make-pi-app
+         ) ;app
+        ) ;
     ;; 提交 /skill:pdf-tools doc.pdf
     (pi-app-submit! app "/skill:pdf-tools doc.pdf")
     ;; 验证消息已展开
@@ -52,6 +60,8 @@ Extract text.")
     (check-true (string-starts? submitted "<skill name=\"pdf-tools\" location=\""))
     (check-true (string-contains? submitted "References are relative to "))
     (check-true (string-contains? submitted "# PDF Instructions\nExtract text."))
-    (check-true (string-ends? submitted "</skill>\n\ndoc.pdf"))))
+    (check-true (string-ends? submitted "</skill>\n\ndoc.pdf"))
+  ) ;let*
+) ;let*
 
 (check-report)

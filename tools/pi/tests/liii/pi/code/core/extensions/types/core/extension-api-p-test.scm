@@ -16,9 +16,9 @@
 ;; 是扩展 API 记录时返回 #t，否则返回 #f。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types core)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types core)
 ) ;import
 
 (check-set-mode! 'report-failed)

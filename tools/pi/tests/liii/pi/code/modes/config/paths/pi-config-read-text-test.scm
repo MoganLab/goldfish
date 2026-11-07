@@ -44,6 +44,6 @@
 (let ((text (pi-config-read-text st "models/kimi-coding.json")))
   (check-true (string? text))
   (check-true (> (string-length text) 0))
-) ;let*
+) ;let
 
 (check-report)

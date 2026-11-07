@@ -19,16 +19,20 @@
 ;; 规范化后注册的流程定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry flows)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry flows)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
-       (flow (extension-register-flow! reg (make-extension-flow-def 'my-flow (lambda (p) #t) (lambda (a b c d) 0)))))
+(let* ((reg (make-extension-registry))
+       (flow
+         (extension-register-flow! reg
+           (make-extension-flow-def 'my-flow (lambda (p) #t) (lambda (a b c d) 0))
+         ) ;extension-register-flow!
+       ) ;flow
+      ) ;
   (check (length (extension-registry-flows reg)) => 1)
   (check (extension-flow-def-name flow) => 'my-flow)
 ) ;let*

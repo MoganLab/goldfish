@@ -24,21 +24,15 @@
 ;; pi-skill?
 ;; 技能记录。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core skills types)
-) ;import
+(import (scheme base) (liii check) (liii pi code core skills types))
 
 (check-set-mode! 'report-failed)
 
-(let ((skill (%make-pi-skill "pdf-tools"
-               "Extract text from PDF files"
-               "/path/pdf/SKILL.md"
-               "/path/pdf"
-               #f
+(let ((skill (%make-pi-skill "pdf-tools" "Extract text from PDF files"
+               "/path/pdf/SKILL.md" "/path/pdf" #f
              ) ;%make-pi-skill
-       ) ;skill
-      )
+      ) ;skill
+     ) ;
   (check-true (pi-skill? skill))
   (check (pi-skill-name skill) => "pdf-tools")
 ) ;let

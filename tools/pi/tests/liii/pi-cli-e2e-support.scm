@@ -59,8 +59,7 @@
         ) ;when
       ) ;let
     ) ;lambda
-    '("auth.json" "providers.json"
-      "settings.json")
+    '("auth.json" "providers.json" "settings.json")
   ) ;for-each
   ;; 模型目录（models/<provider>.json 与 models/<provider>/<model>.json）
   (let ((src (path-join (path FIXTURE_DIR) (path "models")))
@@ -70,16 +69,15 @@
       (unless (path-exists? d)
         (path-mkdir d :parents #t :exist-ok #t)
       ) ;unless
-      (for-each (lambda (name)
-                  (let ((sp (path-join s (path name)))
-                        (dp (path-join d (path name)))
-                       ) ;
-                    (if (path-stat-dir? (path-stat (path->string sp)))
-                      (copy-tree sp dp)
-                      (path-copy sp dp)
-                    ) ;if
-                  ) ;let
-                ) ;lambda
+      (for-each
+        (lambda (name)
+          (let ((sp (path-join s (path name))) (dp (path-join d (path name))))
+            (if (path-stat-dir? (path-stat (path->string sp)))
+              (copy-tree sp dp)
+              (path-copy sp dp)
+            ) ;if
+          ) ;let
+        ) ;lambda
         (vector->list (listdir (path->string s)))
       ) ;for-each
     ) ;define

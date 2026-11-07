@@ -1,3 +1,18 @@
+;; snake-tick
+;; 推进贪吃蛇一帧：处理移动、吃食、转向与穿墙
+;;
+;; 语法
+;; ----
+;; (snake-tick game . opt-dir)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n当前游戏状态；opt-dir : symbol，可选的转向方向
+;;
+;; 返回值
+;; ------
+;; snake-game?\n推进一帧后的新游戏状态
+
 (import (liii check)
   (demo tui snake logic)
 ) ;import

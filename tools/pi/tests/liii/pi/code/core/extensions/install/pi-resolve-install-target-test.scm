@@ -19,7 +19,7 @@
 ;; 目标目录绝对路径。
 
 (import (scheme base)
-        (liii check)
+  (liii check)
   (scheme process-context)
   (liii check)
   (liii path)
@@ -28,26 +28,34 @@
 
 ;; 1. 测试全局目标路径（默认）
 (let ((target (pi-resolve-install-target "demo-ext"
-                :local? #f
+                :local?    #f
                 :agent-dir "/custom/agent"
-                :cwd "/project/dir"
+                :cwd       "/project/dir"
               ) ;pi-resolve-install-target
       ) ;target
      ) ;
   (check-true (string? target))
-  (check-true (string=? target (path->string (path-resolve (path "/custom/agent/extensions/demo-ext")))))
+  (check-true
+    (string=? target
+      (path->string (path-resolve (path "/custom/agent/extensions/demo-ext")))
+    ) ;string=?
+  ) ;check-true
 ) ;let
 
 ;; 2. 测试 --local 目标路径
 (let ((target (pi-resolve-install-target "demo-ext"
-                :local? #t
+                :local?    #t
                 :agent-dir "/custom/agent"
-                :cwd "/project/dir"
+                :cwd       "/project/dir"
               ) ;pi-resolve-install-target
       ) ;target
      ) ;
   (check-true (string? target))
-  (check-true (string=? target (path->string (path-resolve (path "/project/dir/.pi/extensions/demo-ext")))))
+  (check-true
+    (string=? target
+      (path->string (path-resolve (path "/project/dir/.pi/extensions/demo-ext")))
+    ) ;string=?
+  ) ;check-true
 ) ;let
 
 ;; 3. 非法扩展名直接报错

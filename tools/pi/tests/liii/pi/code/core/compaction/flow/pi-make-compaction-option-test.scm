@@ -40,7 +40,10 @@
 (define (write-settings enabled?)
   (path-mkdir CONFIG-DIR :parents #t :exist-ok #t)
   (path-write-text (path-join CONFIG-DIR (path "settings.json"))
-    (string-append "{\"compaction\":{\"enabled\":" (if enabled? "true" "false") "}}")
+    (string-append "{\"compaction\":{\"enabled\":"
+      (if enabled? "true" "false")
+      "}}"
+    ) ;string-append
   ) ;path-write-text
 ) ;define
 
@@ -55,13 +58,19 @@
 (let ((opt (pi-make-compaction-option '() CFG "session.jsonl" STATE 600)))
   (check-true (pair? opt))
   (check (car (car opt)) => 'compactor)
-  (check-true (procedure? (cdr (car opt)))))
+  (check-true (procedure? (cdr (car opt))))
+) ;let
 
 ;; 3. 无会话文件时不启用
 (check-false (pi-make-compaction-option '() CFG #f STATE 600))
 
 ;; 4. --no-auto-compact 时不启用
 (check-false (pi-make-compaction-option (list (cons 'no-auto-compact #t))
-                CFG "session.jsonl" STATE 600))
+               CFG
+               "session.jsonl"
+               STATE
+               600
+             ) ;pi-make-compaction-option
+) ;check-false
 
 (check-report)

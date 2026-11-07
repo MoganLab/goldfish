@@ -15,14 +15,12 @@
 ;; string
 ;; 技能描述。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core skills types)
-) ;import
+(import (scheme base) (liii check) (liii pi code core skills types))
 
 (check-set-mode! 'report-failed)
 
 (let ((skill (%make-pi-skill "pdf-tools" "Extract text" "/p/SKILL.md" "/p" #f)))
-  (check (pi-skill-description skill) => "Extract text"))
+  (check (pi-skill-description skill) => "Extract text")
+) ;let
 
 (check-report)

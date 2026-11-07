@@ -15,10 +15,7 @@
 ;; boolean
 ;; 是技能记录时为 #t。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core skills types)
-) ;import
+(import (scheme base) (liii check) (liii pi code core skills types))
 
 (check-set-mode! 'report-failed)
 

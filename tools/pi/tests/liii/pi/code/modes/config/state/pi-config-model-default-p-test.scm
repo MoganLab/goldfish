@@ -16,10 +16,10 @@
 ;; 是默认模型时返回 #t，否则返回 #f。
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii path)
-        (liii pi code modes config state)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -39,7 +39,9 @@
   (pi-config-provider st id)
 ) ;define
 
-(check (pi-config-model-default? (car (pi-config-provider-models (prov "kimi-coding"))))
+(check
+  (pi-config-model-default? (car (pi-config-provider-models (prov "kimi-coding")))
+  ) ;pi-config-model-default?
   =>
   #t
 ) ;check

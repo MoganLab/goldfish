@@ -22,7 +22,8 @@
   (liii time)
   (liii go)
   (liii tui)
-  (liii pi code modes interactive app))
+  (liii pi code modes interactive app)
+) ;import
 
 (check-set-mode! 'report)
 
@@ -38,12 +39,15 @@
 ;; ============================================================
 
 (let* ((vt (make-virtual-terminal 80 24))
-       (app (make-pi-app :terminal vt
+       (app (make-pi-app
+              :terminal vt
               ;; 注入同步 handler 防止派生 agent worker；
               ;; 不传 :bash-handler —— 必须走真实 go worker 路径
-              :handler (lambda (a m) #t)
-              :record-sink (lambda (cmd text code) #f))
-       ))
+              :handler     (lambda (a m) #t)
+              :record-sink (lambda (cmd text code) #f)
+            ) ;make-pi-app
+       ) ;app
+      ) ;
 
   ;; 1. 提交 ! 命令：卡片立即上屏（Running 态），任务进 worker
   (pi-app-run-bash! app "echo hello")
@@ -54,14 +58,16 @@
     (apply append (map (lambda (c) (component-render c 80)) (pi-app-chat app)))
   ) ;define
   (define (running?)
-    (let loop ((ls (map strip-ansi (chat-lines))))
+    (let loop
+      ((ls (map strip-ansi (chat-lines))))
       (cond ((null? ls) #f)
             ((string-contains? (car ls) "Running") #t)
             (else (loop (cdr ls)))
       ) ;cond
     ) ;let
   ) ;define
-  (let wait ((n 0))
+  (let wait
+    ((n 0))
     (when (and (< n 100) (running?))
       (pi-app-poll-events! app)
       (sleep 0.1)
@@ -72,7 +78,9 @@
   ;; 3. 断言：卡片已回填 —— 无 Running，输出含 hello
   ;;    （退出码 0 为 complete 态，设计上不显示状态行）
   (let ((lines (map strip-ansi (chat-lines))))
-    (check-true (not (any (lambda (l) (string-contains? l "Running")) lines)))
+    (check-true
+      (not (any (lambda (l) (string-contains? l "Running")) lines))
+    ) ;check-true
     (check-true (any (lambda (l) (string-contains? l "hello")) lines))
   ) ;let
 ) ;let*

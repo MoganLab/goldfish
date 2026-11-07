@@ -31,7 +31,8 @@
 
 ;; 2. 整帧渲染后写入缓存（帧行与光标位置）
 (let* ((vt (make-virtual-terminal :width 20 :height 5))
-       (app (make-pi-app :terminal vt :handler (lambda (a m) #t))))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+      ) ;
   (pi-app-render! app)
   (let ((cached (pi-app-rendered-frame app)))
     (check-true (pair? cached))

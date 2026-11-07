@@ -21,36 +21,40 @@
 ;; string?
 ;; 追加页面内容后的文本。
 
-(import (liii check)
-        (liii string)
-        (liii json)
-        (liii pi web-search deepseek)
-) ;import
+(import (liii check) (liii string) (liii json) (liii pi web-search deepseek))
 
 (check-set-mode! 'report-failed)
 
 (define (page title url content)
-  (string->json (string-append "{\"title\":\"" title "\",\"url\":\"" url "\",\"content\":\"" content "\"}"))
+  (string->json (string-append "{\"title\":\"" title "\",\"url\":\"" url
+                  "\",\"content\":\"" content "\"}"
+                ) ;string-append
+  ) ;string->json
 ) ;define
 
 ;; 1. 空正文时直接以标题段落开头
-(let ((out (deepseek-append-fetched-page "" (page "Example Page" "https://example.com" "body text"))))
+(let ((out (deepseek-append-fetched-page ""
+             (page "Example Page" "https://example.com" "body text")
+           ) ;deepseek-append-fetched-page
+      ) ;out
+     ) ;
   (check-true (string-starts? out "## Fetched Pages"))
   (check-true (string-contains? out "### Example Page"))
   (check-true (string-contains? out "https://example.com"))
   (check-true (string-contains? out "body text"))
-) ;let*
+) ;let
 
 ;; 2. 非空正文时保留原文并追加段落
-(let ((out (deepseek-append-fetched-page "search result" (page "T" "https://u" "c"))))
+(let ((out (deepseek-append-fetched-page "search result" (page "T" "https://u" "c")))
+     ) ;
   (check-true (string-starts? out "search result"))
   (check-true (string-contains? out "## Fetched Pages"))
   (check-true (string-contains? out "### T"))
-) ;let*
+) ;let
 
 ;; 3. 正文超长时截断
 (let ((out (deepseek-append-fetched-page "" (page "T" "https://u" "0123456789") 5)))
   (check-true (string-contains? out "[...truncated]"))
-) ;let*
+) ;let
 
 (check-report)

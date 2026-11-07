@@ -16,9 +16,7 @@
 ;; 仅对 pi-context-token-estimate record 返回 #t。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 

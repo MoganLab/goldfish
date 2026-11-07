@@ -35,7 +35,8 @@
 (check-set-mode! 'report-failed)
 
 (define SFILE
-  (path->string (path-join (path-temp-dir) "pi-persist-initial-user-msg-test.jsonl"))
+  (path->string (path-join (path-temp-dir) "pi-persist-initial-user-msg-test.jsonl")
+  ) ;path->string
 ) ;define
 
 (when (file-exists? SFILE)
@@ -51,16 +52,40 @@
   ;; 会话头 + 一条用户消息
   (check (length entries) => 2)
   (check (cdr (assoc "type" (cadr entries))) => "message")
-  (check (cdr (assoc "role" (cdr (assoc "message" (cadr entries))))) => "user")
-  (check-true (string-contains? (cdr (assoc "content" (cdr (assoc "message" (cadr entries)))))
-                  "hello world")))
+  (check
+    (cdr
+      (assoc "role" (cdr (assoc "message" (cadr entries))))
+    ) ;cdr
+    =>
+    "user"
+  ) ;check
+  (check-true
+    (string-contains?
+      (cdr
+        (assoc "content" (cdr (assoc "message" (cadr entries))))
+      ) ;cdr
+      "hello world"
+    ) ;string-contains?
+  ) ;check-true
+) ;let
 
 ;; 2. 再次调用：按追加语义继续落盘
-(persist-initial-user-msg! '() #f SFILE (list (pi-user-message "second message")))
+(persist-initial-user-msg! '()
+  #f
+  SFILE
+  (list (pi-user-message "second message"))
+) ;persist-initial-user-msg!
 
 (let ((entries (pi-read-session-entries SFILE)))
   (check (length entries) => 3)
-  (check-true (string-contains? (cdr (assoc "content" (cdr (assoc "message" (caddr entries)))))
-                  "second message")))
+  (check-true
+    (string-contains?
+      (cdr
+        (assoc "content" (cdr (assoc "message" (caddr entries))))
+      ) ;cdr
+      "second message"
+    ) ;string-contains?
+  ) ;check-true
+) ;let
 
 (check-report)

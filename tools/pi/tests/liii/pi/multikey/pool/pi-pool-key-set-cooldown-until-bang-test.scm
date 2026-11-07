@@ -18,9 +18,7 @@
 ;; 不返回
 ;; 直接更新密钥记录的冷却截止时间。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 
@@ -30,6 +28,6 @@
   (check (pi-pool-key-cooldown-until pk) => 5000)
   (pi-pool-key-set-cooldown-until! pk 8000)
   (check (pi-pool-key-cooldown-until pk) => 8000)
-) ;let*
+) ;let
 
 (check-report)

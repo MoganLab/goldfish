@@ -28,13 +28,16 @@
 ;; 新写入的压缩记录条目 ID。
 
 (import (scheme file)
-        (liii check)
-        (liii path)
-        (liii list)
-        (liii string)
-        (liii pi ai message) (liii pi code core compaction session) (liii pi code core session-manager)
-        (liii pi code core session-projection)
-        (liii pi code core compaction))
+  (liii check)
+  (liii path)
+  (liii list)
+  (liii string)
+  (liii pi ai message)
+  (liii pi code core compaction session)
+  (liii pi code core session-manager)
+  (liii pi code core session-projection)
+  (liii pi code core compaction)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -49,25 +52,31 @@
   (path->string (path-join (path-temp-dir) "pi-compact-append-test.jsonl"))
 ) ;define
 
-(when (file-exists? TARGET) (delete-file TARGET))
+(when (file-exists? TARGET)
+  (delete-file TARGET)
+) ;when
 (path-copy (path FIXTURE) (path TARGET))
 
 (let* ((before (pi-read-session-entries TARGET))
-       (before-msgs (filter (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
-                      before
-                    ) ;filter
+       (before-msgs
+         (filter
+           (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
+           before
+         ) ;filter
        ) ;before-msgs
        (id (pi-append-compaction-entry! TARGET
              "new summary"
              "u1"
              321
-             '((reason . "manual") (readFiles . ("/a")) (modifiedFiles . ()))
+             '((reason . "manual") (readFiles "/a") (modifiedFiles))
            ) ;pi-append-compaction-entry!
        ) ;id
        (after (pi-read-session-entries TARGET))
-       (after-msgs (filter (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
-                     after
-                   ) ;filter
+       (after-msgs
+         (filter
+           (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
+           after
+         ) ;filter
        ) ;after-msgs
        (entry (car (reverse after)))
       ) ;
@@ -83,10 +92,13 @@
   (check (length after-msgs) => (length before-msgs))
   ;; 投影回到新 summary
   (let*-values (((msgs _state _diag) (pi-build-session-projection after)))
-    (check-true (string-contains? (pi-user-message-content (car msgs)) "new summary"))
+    (check-true (string-contains? (pi-user-message-content (car msgs)) "new summary")
+    ) ;check-true
   ) ;let*-values
 ) ;let*
 
-(when (file-exists? TARGET) (delete-file TARGET))
+(when (file-exists? TARGET)
+  (delete-file TARGET)
+) ;when
 
 (check-report)

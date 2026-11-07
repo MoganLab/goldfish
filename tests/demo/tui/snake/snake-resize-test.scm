@@ -1,3 +1,18 @@
+;; snake-resize
+;; 调整游戏区域尺寸并按新边界归一化蛇身与食物
+;;
+;; 语法
+;; ----
+;; (snake-resize game width height)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n当前游戏状态；width, height : integer?，新区域尺寸
+;;
+;; 返回值
+;; ------
+;; snake-game?\n按新尺寸归一化后的游戏状态
+
 (import (liii check)
   (demo tui snake logic)
 ) ;import

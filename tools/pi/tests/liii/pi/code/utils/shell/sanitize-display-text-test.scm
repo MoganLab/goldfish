@@ -26,9 +26,7 @@
 ;; ----
 ;; type-error 当 str 不是字符串时。
 
-(import (liii check)
-        (liii string)
-        (liii pi code utils shell))
+(import (liii check) (liii string) (liii pi code utils shell))
 
 (check-set-mode! 'report-failed)
 
@@ -51,10 +49,16 @@
 
 ;; 删除 C0 控制字符（保留 \t \n \r）
 (check (sanitize-display-text "a\x00;b\x01;c") => "abc")
-(check (sanitize-display-text "line1\nline2\tline3\rline4") => "line1\nline2\tline3\rline4")
+(check (sanitize-display-text "line1\nline2\tline3\rline4")
+  =>
+  "line1\nline2\tline3\rline4"
+) ;check
 
 ;; 删除 U+FFF9..U+FFFB
-(check (sanitize-display-text (string-append "a" (utf8->string #u8(239 191 185)) "b")) => "ab")
+(check (sanitize-display-text (string-append "a" (utf8->string #u8(239 191 185)) "b"))
+  =>
+  "ab"
+) ;check
 
 ;; 修复非法 UTF-8
 (check (sanitize-display-text (string-append "a" (byte-vector->string #u8(255)) "b"))
@@ -63,7 +67,8 @@
 ) ;check
 
 ;; 组合测试：ANSI 颜色 + 控制字符 + 非法 UTF-8
-(check (sanitize-display-text (string-append "\x1b;[31m" "hi\x00;" (byte-vector->string #u8(255)) "\x1b;[0m"))
+(check (sanitize-display-text (string-append "\x1b;[31m" "hi\x00;" (byte-vector->string #u8(255)) "\x1b;[0m")
+       ) ;sanitize-display-text
   =>
   (string-append "hi" (utf8->string #u8(239 191 189)))
 ) ;check

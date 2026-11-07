@@ -15,10 +15,7 @@
 ;; (or string #f)
 ;; 最后一条消息的 ID，文件不存在或没有消息时返回 #f。
 
-(import (liii check)
-  (liii path)
-  (liii pi code core session-manager append)
-) ;import
+(import (liii check) (liii path) (liii pi code core session-manager append))
 
 (check-set-mode! 'report-failed)
 
@@ -26,20 +23,23 @@
   (path-join (path-temp-dir) "pi-find-last-session-message-id-test.jsonl")
 ) ;define
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 ;; 1. 文件不存在时返回 #f
 (check (find-last-session-message-id tmp-file) => #f)
 
 ;; 2. 返回最后一条消息的 ID
-(path-write-text
-  tmp-file
+(path-write-text tmp-file
   (string-append "{\"type\":\"message\",\"id\":\"m1\"}\n"
     "{\"type\":\"message\",\"id\":\"m2\"}\n"
-  )
+  ) ;string-append
 ) ;path-write-text
 (check (find-last-session-message-id tmp-file) => "m2")
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 (check-report)

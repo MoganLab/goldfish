@@ -16,14 +16,15 @@
 ;; 最近消息保留预算。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-compaction-settings-keep-recent-tokens
-         (make-pi-compaction-settings #t 16384 20000)) => 20000)
+(check (pi-compaction-settings-keep-recent-tokens (make-pi-compaction-settings #t 16384 20000)
+       ) ;pi-compaction-settings-keep-recent-tokens
+  =>
+  20000
+) ;check
 
 (check-report)

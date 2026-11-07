@@ -53,7 +53,9 @@
   (path-unlink (path SFILE))
 ) ;when
 
-(save-session-header! SFILE "session-flow-test" "2026-01-01T00:00:00.000Z" "/tmp")
+(save-session-header! SFILE "session-flow-test" "2026-01-01T00:00:00.000Z"
+  "/tmp"
+) ;save-session-header!
 
 (define CFG
   (list (cons 'tools '())
@@ -78,14 +80,28 @@
   (check (pi-assistant-message-stop-reason (cadr finished)) => "error")
   ;; 事件派发：session 事件先行，随后为 Agent 事件
   (check-true (pair? (member 'session emitted)))
-  (check-true (pair? (member 'agent_start emitted))))
+  (check-true (pair? (member 'agent_start emitted)))
+) ;let*
 
 ;; 2. 用户消息与错误消息均已落盘
 (let ((entries (pi-read-session-entries SFILE)))
   ;; 会话头 + 用户消息 + 错误消息
   (check (length entries) => 3)
   (check (cdr (assoc "type" (cadr entries))) => "message")
-  (check (cdr (assoc "role" (cdr (assoc "message" (cadr entries))))) => "user")
-  (check (cdr (assoc "role" (cdr (assoc "message" (caddr entries))))) => "assistant"))
+  (check
+    (cdr
+      (assoc "role" (cdr (assoc "message" (cadr entries))))
+    ) ;cdr
+    =>
+    "user"
+  ) ;check
+  (check
+    (cdr
+      (assoc "role" (cdr (assoc "message" (caddr entries))))
+    ) ;cdr
+    =>
+    "assistant"
+  ) ;check
+) ;let
 
 (check-report)

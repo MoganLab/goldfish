@@ -18,9 +18,7 @@
 ;; (or alist #f)
 ;; 投影状态字典，无恢复来源时返回 #f。
 
-(import (liii check)
-  (liii pi code session-state)
-) ;import
+(import (liii check) (liii pi code session-state))
 
 (check-set-mode! 'report-failed)
 
@@ -28,6 +26,9 @@
 (check (pi-load-session-state '((no-session . #t)) '()) => #f)
 
 ;; 2. 无恢复来源时返回 #f
-(check (pi-load-session-state '() '((agent-dir . "/tmp/pi-agent-load-state"))) => #f)
+(check (pi-load-session-state '() '((agent-dir . "/tmp/pi-agent-load-state")))
+  =>
+  #f
+) ;check
 
 (check-report)

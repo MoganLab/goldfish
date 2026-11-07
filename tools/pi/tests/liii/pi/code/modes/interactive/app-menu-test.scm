@@ -45,13 +45,17 @@
     ;; 命令菜单位于输入区下方、页脚上方（顺序即菜单顺序，行号随菜单项数变化）
     (let ((rows (list 32 33 34 35 36)))
       (check-true (string-contains? (list-ref plain (list-ref rows 0)) "/model"))
-      (check-true (string-contains? (list-ref plain (list-ref rows 0)) "Select model"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 0)) "Select model")
+      ) ;check-true
       (check-true (string-contains? (list-ref plain (list-ref rows 1)) "/thinking"))
-      (check-true (string-contains? (list-ref plain (list-ref rows 1)) "Set thinking level"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 1)) "Set thinking level")
+      ) ;check-true
       (check-true (string-contains? (list-ref plain (list-ref rows 2)) "/name"))
       (check-true (string-contains? (list-ref plain (list-ref rows 3)) "/session"))
       (check-true (string-contains? (list-ref plain (list-ref rows 4)) "/resume"))
-      (check-true (string-contains? (list-ref plain (list-ref rows 4)) "Select and resume a session")
+      (check-true (string-contains? (list-ref plain (list-ref rows 4))
+                    "Select and resume a session"
+                  ) ;string-contains?
       ) ;check-true
       ;; 菜单最多显示 5 项，第 6 项 /config 需要滚动（此处用计数行体现）
       (check-true (string-contains? (list-ref plain 37) "(1/6)"))

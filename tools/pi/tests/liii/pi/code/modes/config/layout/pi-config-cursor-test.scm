@@ -18,10 +18,7 @@
 ;; list
 ;; 包含 provider 与 model 下标的列表。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code modes config layout)
-) ;import
+(import (scheme base) (liii check) (liii pi code modes config layout))
 
 (check-set-mode! 'report-failed)
 

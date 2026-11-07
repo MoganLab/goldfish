@@ -22,10 +22,12 @@
 (check-set-mode! 'report-failed)
 
 (define DIR (path->string (path-join (path-temp-dir) "pi-write-atomic-test")))
+
 (define FILE (path->string (path-join (path DIR) "config.json")))
 
 (when (file-exists? DIR)
-  (rmtree DIR #t))
+  (rmtree DIR #t)
+) ;when
 (path-mkdir DIR :parents #t :exist-ok #t)
 
 ;; 目标不存在时直接创建

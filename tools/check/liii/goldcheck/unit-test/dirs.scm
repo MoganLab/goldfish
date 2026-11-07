@@ -63,14 +63,25 @@
     ) ;define
 
     (define (check-single-test-dir parent)
+      ;; 目录不存在（仅由源码反向推导出的期望路径）时，文档性检查
+      ;; （README、废弃单文件）无意义；但缺失单测的报告必须保留，
+      ;; 否则无测试目录的库会被漏报。
       (let* ((rel-parent (relativize-path parent))
-             (readme (path-join parent "README.md"))
-             (readme-rel (string-append rel-parent "/README.md"))
-             (v1 (check-dir-legacy-file parent rel-parent readme-rel))
-             (v2 (check-dir-readme readme))
+             (doc-viols
+               (if (path-dir? (path parent))
+                 (let ((readme (path-join parent "README.md"))
+                       (readme-rel (string-append rel-parent "/README.md"))
+                      ) ;
+                   (append (check-dir-legacy-file parent rel-parent readme-rel)
+                     (check-dir-readme readme)
+                   ) ;append
+                 ) ;let
+                 '()
+               ) ;if
+             ) ;doc-viols
              (v3 (check-missing-exported-tests parent rel-parent))
             ) ;
-        (append v1 v2 v3)
+        (append doc-viols v3)
       ) ;let*
     ) ;define
 
@@ -81,15 +92,31 @@
       ) ;cond
     ) ;define
 
-    ;; 把文件集合一次性规范化为字符串哈希集合，成员查询 O(1)，
+    ;; 把文件集合一次性规范化为已排序向量，成员查询用二分，
     ;; 避免 check-dir-test-files 对每个条目线性扫描整个文件列表。
     (define (files->norm-set files)
-      (let ((ht (make-hash-table (make-comparator string? string=? #f string-hash))))
-        (for-each
-          (lambda (f) (hash-table-set! ht (normalize-sep (relativize-path f)) #t))
-          files
-        ) ;for-each
-        ht
+      (list->vector
+        (sort!
+          (map (lambda (f) (normalize-sep (relativize-path f))) files)
+          string<?
+        ) ;sort!
+      ) ;list->vector
+    ) ;define
+
+    (define (norm-set-contains? norm-set target)
+      (let ((lo 0) (hi (vector-length norm-set)) (found #f))
+        (let loop
+          ()
+          (when (< lo hi)
+            (let* ((mid (quotient (+ lo hi) 2)) (v (vector-ref norm-set mid)))
+              (cond ((string=? v target) (set! found #t))
+                    ((string<? v target) (set! lo (+ mid 1)) (loop))
+                    (else (set! hi mid) (loop))
+              ) ;cond
+            ) ;let*
+          ) ;when
+        ) ;let
+        found
       ) ;let
     ) ;define
 
@@ -104,7 +131,7 @@
               (let* ((entry (vector-ref entries i)) (full (path->string (path-join parent entry))))
                 (if
                   (and (string-ends? entry "-test.scm")
-                    (not (hash-table-contains? norm-set (normalize-sep (relativize-path full))))
+                    (not (norm-set-contains? norm-set (normalize-sep (relativize-path full))))
                   ) ;and
                   (loop (+ i 1) (append (check-unit-test full) acc))
                   (loop (+ i 1) acc)

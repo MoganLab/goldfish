@@ -1,3 +1,18 @@
+;; get-tool-definition
+;; 按工具名返回工具的 JSON schema 定义
+;;
+;; 语法
+;; ----
+;; (get-tool-definition ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
 (import (liii check)
   (liii pi code core tools)
   (liii pi ai tools record)
@@ -13,8 +28,12 @@
     (lambda (name)
       (let ((def (get-tool-definition name)))
         (check-true (pi-tool-definition? def))
-        (check (pi-tool-definition-name def) => name)))
-    names))
+        (check (pi-tool-definition-name def) => name)
+      ) ;let
+    ) ;lambda
+    names
+  ) ;for-each
+) ;let
 
 ;; 2. 解耦验证：在未注册扩展工具时，原硬编码的扩展工具不再默认返回定义
 (check (get-tool-definition "web_search") => #f)
@@ -30,13 +49,15 @@
 
 ;; 3. 动态扩展注册表接驳：注册自定义工具后可正常获取
 (let* ((api (make-extension-api))
-       (tool (make-extension-tool-def
-               "calculator"
+       (tool (make-extension-tool-def "calculator"
                "Do math calculations"
                '((type . "object"))
                (lambda (args) 42)
-               :snippet "calc(expr)"
-               :guidelines '("Use for math"))))
+               :snippet    "calc(expr)"
+               :guidelines '("Use for math")
+             ) ;make-extension-tool-def
+       ) ;tool
+      ) ;
   (register-tool! api tool)
   (with-extension-registry api
     (lambda ()
@@ -47,19 +68,25 @@
         (check (pi-tool-definition-parameters def) => '((type . "object")))
         (check (procedure? (pi-tool-definition-execute def)) => #t)
         (check (pi-tool-definition-snippet def) => "calc(expr)")
-        (check (pi-tool-definition-guidelines def) => '("Use for math")))))
+        (check (pi-tool-definition-guidelines def) => '("Use for math"))
+      ) ;let
+    ) ;lambda
+  ) ;with-extension-registry
   ;; 作用域退出后不再存在
-  (check (get-tool-definition "calculator") => #f))
+  (check (get-tool-definition "calculator") => #f)
+) ;let*
 
 ;; 4. 注册 alist 格式工具定义
 (let ((api (make-extension-api)))
   (register-tool! api
     (list (cons 'name "alist_tool")
-          (cons 'description "Alist defined tool")
-          (cons 'parameters '((type . "object")))
-          (cons 'execute (lambda (args) "alist"))
-          (cons 'snippet "alist()")
-          (cons 'guidelines '("alist guideline"))))
+      (cons 'description "Alist defined tool")
+      (cons 'parameters '((type . "object")))
+      (cons 'execute (lambda (args) "alist"))
+      (cons 'snippet "alist()")
+      (cons 'guidelines '("alist guideline"))
+    ) ;list
+  ) ;register-tool!
   (with-extension-registry api
     (lambda ()
       (let ((def (get-tool-definition "alist_tool")))
@@ -67,63 +94,94 @@
         (check (pi-tool-definition-name def) => "alist_tool")
         (check (pi-tool-definition-description def) => "Alist defined tool")
         (check (pi-tool-definition-snippet def) => "alist()")
-        (check (pi-tool-definition-guidelines def) => '("alist guideline"))))))
+        (check (pi-tool-definition-guidelines def) => '("alist guideline"))
+      ) ;let
+    ) ;lambda
+  ) ;with-extension-registry
+) ;let
 
 ;; 5. current-extension-registry 未设置时回退到 default-extension-registry：
 ;; TUI worker 会话（(liii go) 独立 s7 会话）没有 with-extension-registry 动态作用域，
 ;; 扩展工具必须能从默认注册表解析，否则工具 schema 会被静默过滤掉
 (let* ((api (make-extension-api))
-       (_ (register-tool! api
-            (make-extension-tool-def
-              "fallback_tool"
-              "Resolved from default registry"
-              '((type . "object"))
-              (lambda (args) "fb"))))
+       (_
+         (register-tool! api
+           (make-extension-tool-def "fallback_tool"
+             "Resolved from default registry"
+             '((type . "object"))
+             (lambda (args) "fb")
+           ) ;make-extension-tool-def
+         ) ;register-tool!
+       ) ;_
        (_ (set-default-extension-registry! api))
-       (def (get-tool-definition "fallback_tool")))
+       (def (get-tool-definition "fallback_tool"))
+      ) ;
   (check-true (pi-tool-definition? def))
   (check (pi-tool-definition-name def) => "fallback_tool")
   (check (pi-tool-definition-description def) => "Resolved from default registry")
   ;; with-extension-registry 的优先级仍高于 default：作用域内以 current 为准
   (let ((other (make-extension-api)))
     (register-tool! other
-      (make-extension-tool-def "fallback_tool" "Shadowed by current" '((type . "object"))
-        (lambda (args) "other")))
+      (make-extension-tool-def "fallback_tool"
+        "Shadowed by current"
+        '((type . "object"))
+        (lambda (args) "other")
+      ) ;make-extension-tool-def
+    ) ;register-tool!
     (with-extension-registry other
       (lambda ()
         (check (pi-tool-definition-description (get-tool-definition "fallback_tool"))
-          => "Shadowed by current"))))
+          =>
+          "Shadowed by current"
+        ) ;check
+      ) ;lambda
+    ) ;with-extension-registry
+  ) ;let
   ;; 恢复默认注册表，避免影响后续测试
-  (set-default-extension-registry! #f))
+  (set-default-extension-registry! #f)
+) ;let*
 
 ;; read 定义的 record 与 alist 视图
 (let ((def (get-tool-definition "read")))
   (check-true (pi-tool-definition? def))
   (check (pi-tool-definition-name def) => "read")
   (check (cdr (assoc 'name def)) => "read")
-  (check (cdr (assoc 'snippet def)) => "Read file contents"))
+  (check (cdr (assoc 'snippet def)) => "Read file contents")
+) ;let
 
 ;; bash 支持默认与自定义超时 schema
 (let* ((def (get-tool-definition "bash"))
        (schema (pi-tool-definition-parameters def))
        (props (cdr (assoc "properties" schema)))
-       (t-prop (cdr (assoc "timeout" props))))
+       (t-prop (cdr (assoc "timeout" props)))
+      ) ;
   (check-true (pi-tool-definition? def))
   (check (cdr (assoc "description" t-prop))
-    => "Timeout in seconds (optional, defaults to 600s)"))
+    =>
+    "Timeout in seconds (optional, defaults to 600s)"
+  ) ;check
+) ;let*
 
 (let* ((def (get-tool-definition "bash" 300))
        (schema (pi-tool-definition-parameters def))
        (props (cdr (assoc "properties" schema)))
-       (t-prop (cdr (assoc "timeout" props))))
+       (t-prop (cdr (assoc "timeout" props)))
+      ) ;
   (check (cdr (assoc "description" t-prop))
-    => "Timeout in seconds (optional, defaults to 300s)"))
+    =>
+    "Timeout in seconds (optional, defaults to 300s)"
+  ) ;check
+) ;let*
 
 (let* ((def (get-tool-definition "bash" :timeout 150))
        (schema (pi-tool-definition-parameters def))
        (props (cdr (assoc "properties" schema)))
-       (t-prop (cdr (assoc "timeout" props))))
+       (t-prop (cdr (assoc "timeout" props)))
+      ) ;
   (check (cdr (assoc "description" t-prop))
-    => "Timeout in seconds (optional, defaults to 150s)"))
+    =>
+    "Timeout in seconds (optional, defaults to 150s)"
+  ) ;check
+) ;let*
 
 (check-report)

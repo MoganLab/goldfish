@@ -37,7 +37,9 @@
 ) ;define
 
 (define (ref alist key)
-  (let ((pair (assoc key alist))) (and pair (cdr pair)))
+  (let ((pair (assoc key alist)))
+    (and pair (cdr pair))
+  ) ;let
 ) ;define
 
 (define (p-index st id)
@@ -47,10 +49,7 @@
 ) ;define
 
 (let* ((st (pi-config-state (string-append FIXTURE "/config-tui") :env '()))
-       (plan (pi-config-plan-set-default st
-               (pi-config-cursor (p-index st "google") 0)
-               1
-             ) ;pi-config-plan-set-default
+       (plan (pi-config-plan-set-default st (pi-config-cursor (p-index st "google") 0) 1)
        ) ;plan
        (write (assoc "settings.json" (ref plan "writes")))
        (text (and write (cdr write)))
@@ -61,10 +60,7 @@
 
 ;; provider 列按 Enter 不设默认
 (let* ((st (pi-config-state (string-append FIXTURE "/config-tui") :env '()))
-       (plan (pi-config-plan-set-default st
-               (pi-config-cursor (p-index st "google") 0)
-               0
-             ) ;pi-config-plan-set-default
+       (plan (pi-config-plan-set-default st (pi-config-cursor (p-index st "google") 0) 0)
        ) ;plan
       ) ;
   (check (ref plan "ok") => #f)

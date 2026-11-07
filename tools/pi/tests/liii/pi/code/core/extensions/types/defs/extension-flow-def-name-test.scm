@@ -16,14 +16,17 @@
 ;; 流程名字符串或符号。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let ((flow (make-extension-flow-def 'my-flow (lambda (parsed) #t) (lambda (p c m i) 0))))
-  (check (extension-flow-def-name flow) => 'my-flow))
+(let ((flow (make-extension-flow-def 'my-flow (lambda (parsed) #t) (lambda (p c m i) 0))
+      ) ;flow
+     ) ;
+  (check (extension-flow-def-name flow) => 'my-flow)
+) ;let
 
 (check-report)

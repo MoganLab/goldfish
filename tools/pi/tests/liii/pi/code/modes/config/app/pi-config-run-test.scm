@@ -240,7 +240,20 @@
      ) ;
   ;; 6 次 ↓ 到 opencode，→ 进模型列，5 次 ↓
   (for-each (lambda (k) (virtual-terminal-push-key! vt k))
-    (list 'down 'down 'down 'down 'down 'down 'right 'down 'down 'down 'down 'down 'q)
+    (list 'down
+      'down
+      'down
+      'down
+      'down
+      'down
+      'right
+      'down
+      'down
+      'down
+      'down
+      'down
+      'q
+    ) ;list
   ) ;for-each
   (check (pi-config-run dir :terminal vt :env '()) => 'chat)
   (let ((screen (string-join (virtual-terminal-screen vt) "\n")))

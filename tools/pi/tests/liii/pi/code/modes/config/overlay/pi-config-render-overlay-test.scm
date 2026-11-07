@@ -137,7 +137,10 @@
   (check (pi-config-overlay-step view 0 20 "j") => (list view 1))
   (check (pi-config-overlay-step view 1 20 "k") => (list view 0))
   (check (pi-config-overlay-step view 5 20 "g") => (list view 0))
-  (check (cadr (pi-config-overlay-step view 0 20 "G")) => (cadr (pi-config-overlay-step view 0 20 'G)))
+  (check (cadr (pi-config-overlay-step view 0 20 "G"))
+    =>
+    (cadr (pi-config-overlay-step view 0 20 'G))
+  ) ;check
   (check (pi-config-overlay-step view 2 20 'escape) => (list #f 0))
   (check (pi-config-overlay-step view 2 20 "q") => (list #f 0))
 ) ;let

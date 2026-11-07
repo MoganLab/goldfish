@@ -28,20 +28,22 @@
 ;; 新建的流程定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let ((flow (make-extension-flow-def 'my-flow (lambda (parsed) #t) (lambda (p c m i) 0))))
+(let ((flow (make-extension-flow-def 'my-flow (lambda (parsed) #t) (lambda (p c m i) 0))
+      ) ;flow
+     ) ;
   (check-true (extension-flow-def? flow))
   (check (extension-flow-def-name flow) => 'my-flow)
   (check-true (procedure? (extension-flow-def-predicate flow)))
   (check-true (procedure? (extension-flow-def-handler flow)))
   (check (extension-flow-def-local? flow) => #f)
   (check (extension-flow-def-priority flow) => 0)
-) ;let*
+) ;let
 
 (check-report)

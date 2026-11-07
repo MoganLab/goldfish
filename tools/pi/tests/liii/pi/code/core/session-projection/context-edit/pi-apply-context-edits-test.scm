@@ -15,9 +15,7 @@
 ;; 两个值
 ;; 应用编辑后的条目列表与被忽略的编辑 ID 列表。
 
-(import (liii check)
-  (liii pi code core session-projection context-edit)
-) ;import
+(import (liii check) (liii pi code core session-projection context-edit))
 
 (check-set-mode! 'report-failed)
 
@@ -25,6 +23,6 @@
 (let-values (((entries ignored) (pi-apply-context-edits '())))
   (check entries => '())
   (check ignored => '())
-) ;let-values*
+) ;let-values
 
 (check-report)

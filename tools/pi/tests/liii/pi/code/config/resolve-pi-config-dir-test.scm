@@ -18,16 +18,17 @@
 ;; 解析后的运行配置，其中 config-dir 与 agent-dir 分离。
 
 (import (scheme process-context)
-        (scheme file)
-        (liii check)
-        (liii string)
-        (liii os)
-        (liii path)
-        (liii shutil)
-        (liii json)
-        (liii pi code cli args)
-        (liii pi code config)
-        (liii pi code core session-manager))
+  (scheme file)
+  (liii check)
+  (liii string)
+  (liii os)
+  (liii path)
+  (liii shutil)
+  (liii json)
+  (liii pi code cli args)
+  (liii pi code config)
+  (liii pi code core session-manager)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -37,7 +38,10 @@
 ;;   - 会话（sessions/）与扩展（extensions/）仍走 agent-dir：~/.pi/agent/sessions/...
 
 (define (%normalize dir)
-  (if (os-windows?) (string-replace (path->string dir) "\\" "/") (path->string dir))
+  (if (os-windows?)
+    (string-replace (path->string dir) "\\" "/")
+    (path->string dir)
+  ) ;if
 ) ;define
 
 (define (%write-json! filepath obj)
@@ -46,7 +50,9 @@
 ) ;define
 
 (define HOME_DIR (path-join (path-temp-dir) "pi-config-dir-resolve-home"))
+
 (define GF-AGENT (path-join HOME_DIR ".gf" "agent"))
+
 (define PI-AGENT (path-join HOME_DIR ".pi" "agent"))
 
 ;; 准备隔离的 HOME：~/.gf/agent 与 ~/.pi/agent 各有一份 settings.json
@@ -56,7 +62,8 @@
   ) ;list
 ) ;%write-json!
 (%write-json! (path-join GF-AGENT "auth.json")
-  (list (cons "google" (list (cons "type" "api_key") (cons "key" "gf-agent-key")))) ;list
+  (list (cons "google" (list (cons "type" "api_key") (cons "key" "gf-agent-key")))
+  ) ;list
 ) ;%write-json!
 (%write-json! (path-join PI-AGENT "settings.json")
   (list (cons "defaultProvider" "google")
@@ -72,36 +79,37 @@
      ) ;
   (unsetenv "PI_CODING_AGENT_DIR")
   (putenv "HOME" (path->string HOME_DIR))
-  (when (os-windows?) (putenv "USERPROFILE" (path->string HOME_DIR)))
+  (when (os-windows?)
+    (putenv "USERPROFILE" (path->string HOME_DIR))
+  ) ;when
   (let* ((cfg (resolve-pi-config args '()))
          (config-dir (cdr (assoc 'config-dir cfg)))
          (agent-dir (cdr (assoc 'agent-dir cfg)))
          (sdir (resolve-session-dir args cfg cwd))
         ) ;
     ;; 1. 配置目录固定 ~/.gf/agent，agent 目录仍是 ~/.pi/agent
-    (check-true (string-ends? (%normalize config-dir) "pi-config-dir-resolve-home/.gf/agent"))
-    (check-true (string-ends? (%normalize agent-dir) "pi-config-dir-resolve-home/.pi/agent"))
+    (check-true (string-ends? (%normalize config-dir) "pi-config-dir-resolve-home/.gf/agent")
+    ) ;check-true
+    (check-true (string-ends? (%normalize agent-dir) "pi-config-dir-resolve-home/.pi/agent")
+    ) ;check-true
 
     ;; 2. settings.json / auth.json 从 ~/.gf/agent 读取
     (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-flash")
     (check (cdr (assoc 'api-key cfg)) => "gf-agent-key")
 
     ;; 3. 会话目录仍归属 ~/.pi/agent/sessions
-    (check-true (string-contains? (%normalize sdir) "pi-config-dir-resolve-home/.pi/agent/sessions/"))
+    (check-true (string-contains? (%normalize sdir)
+                  "pi-config-dir-resolve-home/.pi/agent/sessions/"
+                ) ;string-contains?
+    ) ;check-true
   ) ;let*
   (if saved-agent
     (putenv "PI_CODING_AGENT_DIR" saved-agent)
     (unsetenv "PI_CODING_AGENT_DIR")
   ) ;if
-  (if saved-home
-    (putenv "HOME" saved-home)
-    (unsetenv "HOME")
-  ) ;if
+  (if saved-home (putenv "HOME" saved-home) (unsetenv "HOME"))
   (when (os-windows?)
-    (if saved-profile
-      (putenv "USERPROFILE" saved-profile)
-      (unsetenv "USERPROFILE")
-    ) ;if
+    (if saved-profile (putenv "USERPROFILE" saved-profile) (unsetenv "USERPROFILE"))
   ) ;when
 ) ;let
 
@@ -115,28 +123,27 @@
   (unsetenv "PI_CODING_AGENT_DIR")
   (path-mkdir (path-join home ".pi" "agent") :parents #t :exist-ok #t)
   (%write-json! (path-join home ".pi" "agent" "settings.json")
-    (list (cons "defaultProvider" "google") (cons "defaultModel" "gemini-3.8-flash")) ;list
+    (list (cons "defaultProvider" "google")
+      (cons "defaultModel" "gemini-3.8-flash")
+    ) ;list
   ) ;%write-json!
   (putenv "HOME" (path->string home))
-  (when (os-windows?) (putenv "USERPROFILE" (path->string home)))
-  (let* ((cfg (resolve-pi-config args '()))
-         (config-dir (cdr (assoc 'config-dir cfg)))
-        ) ;
-    (check-true (string-ends? (%normalize config-dir) "pi-config-dir-resolve-home-fallback/.gf/agent"))
+  (when (os-windows?)
+    (putenv "USERPROFILE" (path->string home))
+  ) ;when
+  (let* ((cfg (resolve-pi-config args '())) (config-dir (cdr (assoc 'config-dir cfg))))
+    (check-true (string-ends? (%normalize config-dir)
+                  "pi-config-dir-resolve-home-fallback/.gf/agent"
+                ) ;string-ends?
+    ) ;check-true
   ) ;let*
   (if saved-agent
     (putenv "PI_CODING_AGENT_DIR" saved-agent)
     (unsetenv "PI_CODING_AGENT_DIR")
   ) ;if
-  (if saved-home
-    (putenv "HOME" saved-home)
-    (unsetenv "HOME")
-  ) ;if
+  (if saved-home (putenv "HOME" saved-home) (unsetenv "HOME"))
   (when (os-windows?)
-    (if saved-profile
-      (putenv "USERPROFILE" saved-profile)
-      (unsetenv "USERPROFILE")
-    ) ;if
+    (if saved-profile (putenv "USERPROFILE" saved-profile) (unsetenv "USERPROFILE"))
   ) ;when
   (rmtree (path->string home) #t)
 ) ;let

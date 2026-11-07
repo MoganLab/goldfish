@@ -15,9 +15,7 @@
 ;; 不返回
 ;; 参数组合非法时抛出错误。
 
-(import (liii check)
-  (liii pi code cli args)
-) ;import
+(import (liii check) (liii pi code cli args))
 
 (check-set-mode! 'report-failed)
 
@@ -25,27 +23,52 @@
 (check (pi-validate-review-flags (parse-pi-args '("--code-review"))) => #t)
 (check (pi-validate-review-flags (parse-pi-args '("--auto-review"))) => #t)
 (check (pi-validate-review-flags (parse-pi-args '())) => #t)
-(check (pi-validate-review-flags (parse-pi-args '("--code-review" "--staged"))) => #t)
-(check (pi-validate-review-flags (parse-pi-args '("--code-review" "--ref=main"))) => #t)
+(check (pi-validate-review-flags (parse-pi-args '("--code-review" "--staged")))
+  =>
+  #t
+) ;check
+(check (pi-validate-review-flags (parse-pi-args '("--code-review" "--ref=main")))
+  =>
+  #t
+) ;check
 
 ;; 冲突组合与依赖缺失均报可读错误
 (check-catch 'pi-arg-error
-  (pi-validate-review-flags (parse-pi-args '("--code-review" "--auto-review"))))
+  (pi-validate-review-flags (parse-pi-args '("--code-review" "--auto-review")))
+) ;check-catch
 (check-catch 'pi-arg-error
-  (pi-validate-review-flags (parse-pi-args '("--staged"))))
+  (pi-validate-review-flags (parse-pi-args '("--staged")))
+) ;check-catch
 (check-catch 'pi-arg-error
-  (pi-validate-review-flags (parse-pi-args '("--ref=main"))))
+  (pi-validate-review-flags (parse-pi-args '("--ref=main")))
+) ;check-catch
 
 ;; simplify 组合
 (check (pi-validate-review-flags (parse-pi-args '("--simplify"))) => #t)
-(check (pi-validate-review-flags (parse-pi-args '("--simplify" "--staged"))) => #t)
-(check (pi-validate-review-flags (parse-pi-args '("--simplify" "--ref=main"))) => #t)
-(check (pi-validate-review-flags (parse-pi-args '("--simplify" "--apply"))) => #t)
-(check (pi-validate-review-flags (parse-pi-args '("--simplify" "--apply" "--staged"))) => #t)
+(check (pi-validate-review-flags (parse-pi-args '("--simplify" "--staged")))
+  =>
+  #t
+) ;check
+(check (pi-validate-review-flags (parse-pi-args '("--simplify" "--ref=main")))
+  =>
+  #t
+) ;check
+(check (pi-validate-review-flags (parse-pi-args '("--simplify" "--apply")))
+  =>
+  #t
+) ;check
+(check (pi-validate-review-flags (parse-pi-args '("--simplify"
+                                                  "--apply"
+                                                  "--staged")))
+  =>
+  #t
+) ;check
 
 (check-catch 'pi-arg-error
-  (pi-validate-review-flags (parse-pi-args '("--apply"))))
+  (pi-validate-review-flags (parse-pi-args '("--apply")))
+) ;check-catch
 (check-catch 'pi-arg-error
-  (pi-validate-review-flags (parse-pi-args '("--simplify" "--code-review"))))
+  (pi-validate-review-flags (parse-pi-args '("--simplify" "--code-review")))
+) ;check-catch
 
 (check-report)

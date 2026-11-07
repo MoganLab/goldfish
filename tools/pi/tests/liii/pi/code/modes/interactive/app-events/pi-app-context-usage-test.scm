@@ -31,13 +31,19 @@
 ;; 1. message_usage 事件携带上下文窗口：占比按单轮 usage 换算
 (let* ((app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)))
        (ch (pi-app-event-chan app))
-       (usage '((input . 100000) (output . 5000) (cacheRead . 140000)
-                 (cacheWrite . 5000)))
+       (usage '((input . 100000)
+                (output . 5000)
+                (cacheRead . 140000)
+                (cacheWrite . 5000))
+       ) ;usage
       ) ;
   (chan-send! ch (list 'message_usage usage 1000000))
   (pi-app-poll-events! app)
   (check (pi-footer-stats (%pi-app-footer app))
-    => "↑100k ↓5.0k R140k W5.0k CH57.1% 25.0%/1.0M (auto)"))
+    =>
+    "↑100k ↓5.0k R140k W5.0k CH57.1% 25.0%/1.0M (auto)"
+  ) ;check
+) ;let*
 
 ;; 2. 缺少 totalTokens 时按 input+output+cacheRead+cacheWrite 求和
 (let* ((app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)))
@@ -46,8 +52,9 @@
       ) ;
   (chan-send! ch (list 'message_usage usage 1000000))
   (pi-app-poll-events! app)
-  (check-true (string-contains (pi-footer-stats (%pi-app-footer app)) "50.0%/1.0M (auto)"))
-)
+  (check-true (string-contains (pi-footer-stats (%pi-app-footer app)) "50.0%/1.0M (auto)")
+  ) ;check-true
+) ;let*
 
 ;; 3. compaction 事件后占比未知，显示 "?"
 (let* ((app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)))
@@ -56,9 +63,12 @@
       ) ;
   (chan-send! ch (list 'message_usage usage 1000000))
   (pi-app-poll-events! app)
-  (check-true (string-contains (pi-footer-stats (%pi-app-footer app)) "25.0%/1.0M (auto)"))
+  (check-true (string-contains (pi-footer-stats (%pi-app-footer app)) "25.0%/1.0M (auto)")
+  ) ;check-true
   (chan-send! ch (list 'compaction))
   (pi-app-poll-events! app)
-  (check-true (string-contains (pi-footer-stats (%pi-app-footer app)) "?/1.0M (auto)")))
+  (check-true (string-contains (pi-footer-stats (%pi-app-footer app)) "?/1.0M (auto)")
+  ) ;check-true
+) ;let*
 
 (check-report)

@@ -16,8 +16,10 @@
 ;; 压缩设置 record；文件或字段缺失时回退默认值。
 
 (import (liii check)
-        (liii pi code config settings) (liii pi code core session-manager)
-        (liii pi code core compaction))
+  (liii pi code config settings)
+  (liii pi code core session-manager)
+  (liii pi code core compaction)
+) ;import
 
 (check-set-mode! 'report-failed)
 

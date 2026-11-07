@@ -56,14 +56,18 @@
         ) ;
     (if (file-exists? tmp-dir) (path-rmdir tmp-dir))
     (path-mkdir tmp-dir :parents #t :exist-ok #t)
-    (save-session-header! session-file "sess-state" "2026-10-30T08:00:00.000Z" tmp-dir)
+    (save-session-header! session-file "sess-state" "2026-10-30T08:00:00.000Z"
+      tmp-dir
+    ) ;save-session-header!
     session-file
   ) ;let*
 ) ;define
 
 (define (cleanup-state-session-test-file session-file)
   (let ((tmp-dir (path->string (path-parent session-file))))
-    (when (file-exists? session-file) (delete-file session-file))
+    (when (file-exists? session-file)
+      (delete-file session-file)
+    ) ;when
     (path-rmdir tmp-dir)
   ) ;let
 ) ;define
@@ -78,12 +82,10 @@
               "model_change"
               (list (cons "provider" "anthropic") (cons "model-id" model-id))
             ) ;append-session-state-entry!
-      ) ;mid
-     ) ;
+       ) ;mid
+      ) ;
   (check-true (string? mid))
-  (let* ((entries (pi-read-session-entries session-file))
-         (entry (cadr entries))
-        ) ;
+  (let* ((entries (pi-read-session-entries session-file)) (entry (cadr entries)))
     ;; header 之外只有一条状态条目，且被 string->json 完整读回
     (check (length entries) => 2)
     (check (cdr (assoc "type" entry)) => "model_change")
@@ -141,9 +143,7 @@
        (mid (append-session-state-entry! session-file "custom_state" '()))
       ) ;
   (check-true (string? mid))
-  (let* ((entries (pi-read-session-entries session-file))
-         (entry (cadr entries))
-        ) ;
+  (let* ((entries (pi-read-session-entries session-file)) (entry (cadr entries)))
     (check (cdr (assoc "type" entry)) => "custom_state")
     (check (cdr (assoc "id" entry)) => mid)
     ;; 空 fields 时只有 type/id/parentId/timestamp 四个键

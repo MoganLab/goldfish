@@ -24,9 +24,7 @@
 ;; any
 ;; 匹配流程的执行结果。
 
-(import (liii check)
-  (liii pi code modes)
-) ;import
+(import (liii check) (liii pi code modes))
 
 (check-set-mode! 'report-failed)
 

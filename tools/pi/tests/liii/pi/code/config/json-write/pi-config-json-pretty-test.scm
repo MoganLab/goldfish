@@ -16,10 +16,7 @@
 ;; string
 ;; 格式化后的多行 JSON 文本（2 空格缩进、键序保持、数组逐元素展开）。
 
-(import (liii check)
-  (liii json)
-  (liii pi code config json-write)
-)
+(import (liii check) (liii json) (liii pi code config json-write))
 
 (check-set-mode! 'report-failed)
 
@@ -36,7 +33,8 @@
 ) ;check
 
 ;; 嵌套数组随层级递增缩进
-(check (pi-config-json-pretty (list (cons "k" (vector "a"))))
+(check
+  (pi-config-json-pretty (list (cons "k" (vector "a"))))
   =>
   "{\n  \"k\": [\n    \"a\"\n  ]\n}"
 ) ;check

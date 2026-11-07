@@ -26,7 +26,7 @@
 ;; 可选 now-posix 参数固定"当前时间"便于测试；无法解析时返回空串
 ;; 档位：now / Nm / Nh / Nd / Nw / Nmo / Ny
 
-(define NOW 1793077200) ; 2026-10-27T05:00:00Z
+(define NOW 1793077200)
 
 (check (session-selector-format-age "2026-10-27T04:59:30.000Z" NOW) => "now")
 (check (session-selector-format-age "2026-10-27T04:15:00.000Z" NOW) => "45m")

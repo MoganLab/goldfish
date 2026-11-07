@@ -19,16 +19,20 @@
 ;; 规范化后注册的工具定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry tools)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry tools)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
-       (tool (extension-register-tool! reg (make-extension-tool-def "calc" "d" '() (lambda (a c) 1)))))
+(let* ((reg (make-extension-registry))
+       (tool
+         (extension-register-tool! reg
+           (make-extension-tool-def "calc" "d" '() (lambda (a c) 1))
+         ) ;extension-register-tool!
+       ) ;tool
+      ) ;
   (check (length (extension-registry-tools reg)) => 1)
   (check (extension-tool-def-name tool) => "calc")
 ) ;let*

@@ -15,10 +15,7 @@
 ;; boolean
 ;; 仅对 pi-context-usage record 返回 #t。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core context-usage)
-) ;import
+(import (scheme base) (liii check) (liii pi code core context-usage))
 
 (check-set-mode! 'report-failed)
 
@@ -26,7 +23,8 @@
   (check-true (pi-context-usage? ctx))
   (check (pi-context-usage-percent ctx) => 12.3)
   (check (pi-context-usage-window ctx) => 1048576)
-  (check (pi-context-usage-known? ctx) => #t))
+  (check (pi-context-usage-known? ctx) => #t)
+) ;let
 
 (check-false (pi-context-usage? #f))
 (check-false (pi-context-usage? '()))

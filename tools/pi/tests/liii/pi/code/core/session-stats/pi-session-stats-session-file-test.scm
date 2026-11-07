@@ -16,17 +16,37 @@
 ;; 文件会话返回路径，内存会话返回 #f。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(let ((file-stats (make-pi-session-stats "/tmp/session.jsonl" #f #f 0 0 0 0 0
-                    (make-pi-session-token-stats 0 0 0 0) 0))
-      (memory-stats (make-pi-session-stats #f #f #f 0 0 0 0 0
-                      (make-pi-session-token-stats 0 0 0 0) 0)))
+(let ((file-stats (make-pi-session-stats "/tmp/session.jsonl"
+                    #f
+                    #f
+                    0
+                    0
+                    0
+                    0
+                    0
+                    (make-pi-session-token-stats 0 0 0 0)
+                    0
+                  ) ;make-pi-session-stats
+      ) ;file-stats
+      (memory-stats (make-pi-session-stats #f
+                      #f
+                      #f
+                      0
+                      0
+                      0
+                      0
+                      0
+                      (make-pi-session-token-stats 0 0 0 0)
+                      0
+                    ) ;make-pi-session-stats
+      ) ;memory-stats
+     ) ;
   (check (pi-session-stats-session-file file-stats) => "/tmp/session.jsonl")
-  (check-false (pi-session-stats-session-file memory-stats)))
+  (check-false (pi-session-stats-session-file memory-stats))
+) ;let
 
 (check-report)

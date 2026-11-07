@@ -1,3 +1,18 @@
+;; snake-on-mouse
+;; 处理鼠标点击事件（开始/暂停/重开）
+;;
+;; 语法
+;; ----
+;; (snake-on-mouse game x y)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n当前游戏状态；x, y : integer?，点击坐标
+;;
+;; 返回值
+;; ------
+;; snake-game?\n处理点击后的游戏状态
+
 (import (liii check)
         (liii tui mouse)
         (demo tui snake logic)

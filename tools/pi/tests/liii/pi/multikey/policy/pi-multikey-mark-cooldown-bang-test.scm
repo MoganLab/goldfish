@@ -24,7 +24,11 @@
 ;; 不返回
 ;; 直接更新密钥记录的冷却截止时间。
 
-(import (liii check) (liii pi multikey pool) (liii pi multikey load) (liii pi multikey policy))
+(import (liii check)
+  (liii pi multikey pool)
+  (liii pi multikey load)
+  (liii pi multikey policy)
+) ;import
 
 (check-set-mode! 'report-failed)
 

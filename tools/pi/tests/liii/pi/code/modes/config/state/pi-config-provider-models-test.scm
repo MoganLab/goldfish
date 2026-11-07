@@ -16,10 +16,10 @@
 ;; 模型条目列表。
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii path)
-        (liii pi code modes config state)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -42,6 +42,6 @@
 (let ((ms (pi-config-provider-models (prov "kimi-coding"))))
   (check (length ms) => 5)
   (check (pi-config-model-id (car ms)) => "k3.1-pro")
-) ;let*
+) ;let
 
 (check-report)

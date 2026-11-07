@@ -45,8 +45,12 @@
     ;; 输入区上边框贴在底部（视口 19 + 上边框）
     (check-true (string-contains? (list-ref plain 19) "─"))
     ;; 页脚最后两行（页脚含路径/分支与用量/模型，内容随环境变化，只断言非空）
-    (check-true (> (string-length (string-trim (list-ref plain 22))) 0))
-    (check-true (> (string-length (string-trim (list-ref plain 23))) 0))
+    (check-true
+      (> (string-length (string-trim (list-ref plain 22))) 0)
+    ) ;check-true
+    (check-true
+      (> (string-length (string-trim (list-ref plain 23))) 0)
+    ) ;check-true
   ) ;let
 ) ;let*
 
@@ -265,7 +269,8 @@
   (check (scroll-view-follow? sv) => #t)
   (let ((plain (map strip-ansi (alt-screen-lines screen))))
     (check-true (string-contains? (string-join plain "\n") "msg-9"))
-    (check-false (string-contains? (string-join plain "\n") "Jump to latest message"))
+    (check-false (string-contains? (string-join plain "\n") "Jump to latest message")
+    ) ;check-false
   ) ;let
 ) ;let*
 

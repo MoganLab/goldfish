@@ -33,11 +33,15 @@
 
 (check-set-mode! 'report-failed)
 
-(define AGENT-DIR (path->string (path-join (path-temp-dir) "pi-save-model-test")))
+(define AGENT-DIR
+  (path->string (path-join (path-temp-dir) "pi-save-model-test"))
+) ;define
+
 (define SETTINGS (path->string (path-join AGENT-DIR "settings.json")))
 
 (when (file-exists? AGENT-DIR)
-  (rmtree AGENT-DIR #t))
+  (rmtree AGENT-DIR #t)
+) ;when
 (path-mkdir AGENT-DIR :parents #t :exist-ok #t)
 (path-write-text SETTINGS
   "{\"defaultProvider\":\"google\",\"defaultModel\":\"gemini-3.8-flash\",\"defaultThinkingLevel\":\"off\",\"compaction\":{\"enabled\":false}}"
@@ -49,10 +53,24 @@
   (check (cdr (assoc "defaultProvider" json)) => "anthropic")
   (check (cdr (assoc "defaultModel" json)) => "claude-haiku-4-5")
   (check (cdr (assoc "defaultThinkingLevel" json)) => "off")
-  (check (cdr (assoc "enabled" (cdr (assoc "compaction" json)))) => 'false)
+  (check
+    (cdr (assoc "enabled" (cdr (assoc "compaction" json))))
+    =>
+    'false
+  ) ;check
   ;; 写盘为格式化 JSON（多行、2 空格缩进），不再是单行
-  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultProvider\": \"anthropic\",") => #t)
-  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultThinkingLevel\": \"off\",") => #t)
+  (check (string-contains (path-read-text SETTINGS)
+           "\n  \"defaultProvider\": \"anthropic\","
+         ) ;string-contains
+    =>
+    #t
+  ) ;check
+  (check (string-contains (path-read-text SETTINGS)
+           "\n  \"defaultThinkingLevel\": \"off\","
+         ) ;string-contains
+    =>
+    #t
+  ) ;check
 ) ;let
 
 ;; 再次保存替换旧值而不是添加重复键。
@@ -60,8 +78,20 @@
 (let ((json (string->json (path-read-text SETTINGS))))
   (check (cdr (assoc "defaultProvider" json)) => "zai")
   (check (cdr (assoc "defaultModel" json)) => "glm-5")
-  (check (length (filter (lambda (entry) (equal? (car entry) "defaultProvider")) json)) => 1)
-  (check (length (filter (lambda (entry) (equal? (car entry) "defaultModel")) json)) => 1)
+  (check
+    (length
+      (filter (lambda (entry) (equal? (car entry) "defaultProvider")) json)
+    ) ;length
+    =>
+    1
+  ) ;check
+  (check
+    (length
+      (filter (lambda (entry) (equal? (car entry) "defaultModel")) json)
+    ) ;length
+    =>
+    1
+  ) ;check
 ) ;let
 
 (rmtree AGENT-DIR #t)

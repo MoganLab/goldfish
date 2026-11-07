@@ -31,7 +31,10 @@
 
 (check-set-mode! 'report-failed)
 
-(define tmp-dir (path->string (path-join (path-temp-dir) "gf-skills-expand-test")))
+(define tmp-dir
+  (path->string (path-join (path-temp-dir) "gf-skills-expand-test"))
+) ;define
+
 (define skill-file (path-join tmp-dir "SKILL.md"))
 
 (when (file-exists? tmp-dir)
@@ -39,16 +42,12 @@
 ) ;when
 
 (path-mkdir tmp-dir :parents #t :exist-ok #t)
-(path-write-text skill-file "---
-name: pdf-tools
-description: 提取 PDF
----
-# PDF Instructions
-Extract text.")
+(path-write-text skill-file
+  "---\nname: pdf-tools\ndescription: 提取 PDF\n---\n# PDF Instructions\nExtract text."
+) ;path-write-text
 
 (define skills
-  (list (%make-pi-skill "pdf-tools" "提取 PDF"
-          (path->string skill-file) tmp-dir #f)
+  (list (%make-pi-skill "pdf-tools" "提取 PDF" (path->string skill-file) tmp-dir #f)
   ) ;list
 ) ;define
 
@@ -61,14 +60,19 @@ Extract text.")
 ;; 命中展开：技能块 + 相对路径基准 + 正文 + 用户参数
 (let ((expanded (expand-skill-command "/skill:pdf-tools do something" skills)))
   (check-true (string-starts? expanded "<skill name=\"pdf-tools\" location=\""))
-  (check-true (string-contains? expanded (string-append "References are relative to " tmp-dir ".")))
+  (check-true (string-contains? expanded
+                (string-append "References are relative to " tmp-dir ".")
+              ) ;string-contains?
+  ) ;check-true
   (check-true (string-contains? expanded "# PDF Instructions"))
   (check-true (string-contains? expanded "</skill>"))
-  (check-true (string-ends? expanded "</skill>\n\ndo something")))
+  (check-true (string-ends? expanded "</skill>\n\ndo something"))
+) ;let
 
 ;; 无参数时不追加参数尾巴
 (let ((no-args (expand-skill-command "/skill:pdf-tools" skills)))
-  (check-true (string-ends? no-args "</skill>")))
+  (check-true (string-ends? no-args "</skill>"))
+) ;let
 
 (rmtree tmp-dir)
 

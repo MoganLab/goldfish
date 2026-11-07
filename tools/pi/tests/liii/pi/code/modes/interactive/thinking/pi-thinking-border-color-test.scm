@@ -14,9 +14,7 @@
 ;; any
 ;; 视具体调用结果而定。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code modes interactive thinking))
+(import (scheme base) (liii check) (liii pi code modes interactive thinking))
 
 (check-set-mode! 'report-failed)
 

@@ -16,14 +16,17 @@
 ;; 是流程定义记录时返回 #t，否则返回 #f。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(check-true (extension-flow-def? (make-extension-flow-def 'f (lambda (p) #t) (lambda (a b c d) 0))))
+(check-true
+  (extension-flow-def? (make-extension-flow-def 'f (lambda (p) #t) (lambda (a b c d) 0))
+  ) ;extension-flow-def?
+) ;check-true
 (check-false (extension-flow-def? #f))
 (check-false (extension-flow-def? '()))
 (check-false (extension-flow-def? (list (cons 'name 'f))))

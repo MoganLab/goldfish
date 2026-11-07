@@ -19,15 +19,16 @@
 ;; 直接更新注册表记录。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types core)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types core)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((reg (make-extension-registry)))
   (set-extension-registry-flows! reg '(a))
-  (check (extension-registry-flows reg) => '(a)))
+  (check (extension-registry-flows reg) => '(a))
+) ;let
 
 (check-report)

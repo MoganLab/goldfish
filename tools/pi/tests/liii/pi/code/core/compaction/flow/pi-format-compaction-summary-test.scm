@@ -17,10 +17,7 @@
 ;; string
 ;; 形如 "Compacted session: summarized 3 messages, kept 5, tokens before 1200" 的摘要串。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction flow)
-) ;import
+(import (scheme base) (liii check) (liii pi code core compaction flow))
 
 (check-set-mode! 'report-failed)
 
@@ -33,14 +30,20 @@
 
 ;; 1. 默认标签
 (check (pi-format-compaction-summary result)
-  => "Compacted session: summarized 3 messages, kept 5, tokens before 1200")
+  =>
+  "Compacted session: summarized 3 messages, kept 5, tokens before 1200"
+) ;check
 
 ;; 2. 自定义标签（自动压缩场景）
 (check (pi-format-compaction-summary result "Auto-compacted")
-  => "Auto-compacted session: summarized 3 messages, kept 5, tokens before 1200")
+  =>
+  "Auto-compacted session: summarized 3 messages, kept 5, tokens before 1200"
+) ;check
 
 ;; 3. 标签非字符串时回退默认标签
 (check (pi-format-compaction-summary result 42)
-  => "Compacted session: summarized 3 messages, kept 5, tokens before 1200")
+  =>
+  "Compacted session: summarized 3 messages, kept 5, tokens before 1200"
+) ;check
 
 (check-report)

@@ -39,6 +39,7 @@
 ;; 默认设置使用默认阈值
 (let ((s (pi-compaction-default-settings)))
   (check (pi-should-compact? 16383 100000 s) => #f)
-  (check (pi-should-compact? 90000 100000 s) => #t))
+  (check (pi-should-compact? 90000 100000 s) => #t)
+) ;let
 
 (check-report)

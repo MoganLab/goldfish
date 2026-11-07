@@ -19,10 +19,7 @@
 ;; 仅汇总带 usage 的 assistant 消息，兼容 symbol 和 string 键。
 ;; 其他角色、缺失 usage 的消息以及空会话不会产生费用。
 
-(import (scheme base)
-  (liii check)
-  (liii pi agent cost)
-) ;import
+(import (scheme base) (liii check) (liii pi agent cost))
 
 (check-set-mode! 'report-failed)
 
@@ -30,38 +27,45 @@
 ;; 仅汇总 assistant 消息中的 usage，忽略其他角色及缺失 usage 的消息
 (let* ((config '((provider . "google")
                  (model-id . "gemini-3.8-flash")
-                 (models-store . ())))
-       (msgs (list '((role . "user")
-                     (usage . ((input . 1000000))))
-               '((role . "assistant")
-                 (usage . ((input . 1000000)
-                           (output . 0)
-                           (cacheRead . 0)
-                           (cacheWrite . 0))))
-               '(("role" . "assistant")
-                 ("usage" . ((input . 0)
-                             (output . 1000000)
-                             (cacheRead . 0)
-                             (cacheWrite . 0))))
-               '((role . "assistant")
-                 (usage . ((input . 0)
-                           (output . 0)
-                           (cacheRead . 1000000)
-                           (cacheWrite . 0))))
-               '((role . "assistant"))
-               '((role . "toolResult")
-                 (usage . ((input . 1000000))))))
-       (summary (pi-agent-session-cost-summary msgs config)))
+                 (models-store)))
+       (msgs
+         (list '((role . "user") (usage (input . 1000000)))
+           '((role . "assistant")
+             (usage (input . 1000000)
+               (output . 0)
+               (cacheRead . 0)
+               (cacheWrite . 0)))
+           '(("role" . "assistant")
+             ("usage"
+              (input . 0)
+              (output . 1000000)
+              (cacheRead . 0)
+              (cacheWrite . 0)))
+           '((role . "assistant")
+             (usage (input . 0)
+               (output . 0)
+               (cacheRead . 1000000)
+               (cacheWrite . 0)))
+           '((role . "assistant"))
+           '((role . "toolResult") (usage (input . 1000000)))
+         ) ;list
+       ) ;msgs
+       (summary (pi-agent-session-cost-summary msgs config))
+      ) ;
   (check (cdr (assoc 'totalCost summary)) => 4.575)
-  (check (cdr (assoc 'totalSavings summary)) => 0.675))
+  (check (cdr (assoc 'totalSavings summary)) => 0.675)
+) ;let*
 
 ;; 空会话返回零费用和零缓存节省
-(let ((summary (pi-agent-session-cost-summary
-                 '()
+(let ((summary (pi-agent-session-cost-summary '()
                  '((provider . "google")
                    (model-id . "gemini-3.8-flash")
-                   (models-store . ())))))
+                   (models-store))
+               ) ;pi-agent-session-cost-summary
+      ) ;summary
+     ) ;
   (check (cdr (assoc 'totalCost summary)) => 0.0)
-  (check (cdr (assoc 'totalSavings summary)) => 0.0))
+  (check (cdr (assoc 'totalSavings summary)) => 0.0)
+) ;let
 
 (check-report)

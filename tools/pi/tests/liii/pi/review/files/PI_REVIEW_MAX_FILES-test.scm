@@ -14,9 +14,7 @@
 ;; integer?
 ;; 最大文件数量限制，数值为 10。
 
-(import (liii check)
-        (liii pi review files)
-) ;import
+(import (liii check) (liii pi review files))
 
 (check-set-mode! 'report-failed)
 

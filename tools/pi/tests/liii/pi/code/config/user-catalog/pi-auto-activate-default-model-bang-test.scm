@@ -28,29 +28,44 @@
 
 (check-set-mode! 'report-failed)
 
-(define DIR (path->string (path-join (path-temp-dir) "pi-auto-activate-default-model-test")))
+(define DIR
+  (path->string (path-join (path-temp-dir) "pi-auto-activate-default-model-test"))
+) ;define
+
 (define MODELS (path->string (path-join (path DIR) "models")))
+
 (define PROVIDERS (path->string (path-join (path MODELS) "providers.json")))
+
 (define KIMI (path->string (path-join (path MODELS) "kimi-coding.json")))
 
 (when (file-exists? DIR)
-  (rmtree DIR #t))
+  (rmtree DIR #t)
+) ;when
 (path-mkdir MODELS :parents #t :exist-ok #t)
 (path-write-text PROVIDERS "[\"kimi-coding\"]\n")
-(path-write-text KIMI
-  "{\"name\":\"Kimi Coding\",\"models\":[\"k3.1-pro\"]}\n"
-) ;path-write-text
+(path-write-text KIMI "{\"name\":\"Kimi Coding\",\"models\":[\"k3.1-pro\"]}\n")
 
 ;; 默认模型 k3 属于内置目录但不在 provider 白名单中：追加并落盘
-(check (pi-auto-activate-default-model! DIR (pi-settings "kimi-coding" "k3")) => #t)
+(check (pi-auto-activate-default-model! DIR (pi-settings "kimi-coding" "k3"))
+  =>
+  #t
+) ;check
 (check (string-contains (path-read-text KIMI) "\"k3\"") => #t)
 (check (string-contains (path-read-text KIMI) "\"k3.1-pro\"") => #t)
 
 ;; 已经激活后再次调用不再写入
-(check (pi-auto-activate-default-model! DIR (pi-settings "kimi-coding" "k3")) => #f)
+(check (pi-auto-activate-default-model! DIR (pi-settings "kimi-coding" "k3"))
+  =>
+  #f
+) ;check
 
 ;; 不存在的模型不写入
-(check (pi-auto-activate-default-model! DIR (pi-settings "kimi-coding" "no-such-model")) => #f)
+(check (pi-auto-activate-default-model! DIR
+         (pi-settings "kimi-coding" "no-such-model")
+       ) ;pi-auto-activate-default-model!
+  =>
+  #f
+) ;check
 
 (rmtree DIR #t)
 

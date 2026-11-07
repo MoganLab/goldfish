@@ -15,9 +15,7 @@
 ;; list?
 ;; 密钥记录列表。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 

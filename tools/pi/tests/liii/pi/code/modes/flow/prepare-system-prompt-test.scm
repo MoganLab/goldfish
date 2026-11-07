@@ -18,11 +18,7 @@
 ;; string
 ;; 完整的系统提示词文本。
 
-(import (scheme base)
-  (liii check)
-  (liii string)
-  (liii pi code modes flow)
-) ;import
+(import (scheme base) (liii check) (liii string) (liii pi code modes flow))
 
 (check-set-mode! 'report-failed)
 
@@ -34,22 +30,34 @@
   (check-true (string-contains? prompt "<cwd>"))
   (check-true (string-contains? prompt "<session_budget>"))
   (check-true (string-contains? prompt "Session Timeout: None"))
-  (check-true (string-contains? prompt "Max Turns: Unlimited")))
+  (check-true (string-contains? prompt "Max Turns: Unlimited"))
+) ;let
 
 ;; 2. --system-prompt 覆盖：仅保留覆盖文本，不再拼接工具段落
-(let ((prompt (prepare-system-prompt CFG (list (cons 'system-prompt "CUSTOM PROMPT")))))
+(let ((prompt (prepare-system-prompt CFG (list (cons 'system-prompt "CUSTOM PROMPT")))
+      ) ;prompt
+     ) ;
   (check-true (string-contains? prompt "CUSTOM PROMPT"))
-  (check-false (string-contains? prompt "<tools>")))
+  (check-false (string-contains? prompt "<tools>"))
+) ;let
 
 ;; 3. --append-system-prompt：追加 addendum 段落
-(let ((prompt (prepare-system-prompt CFG (list (cons 'append-system-prompt '("EXTRA ONE"))))))
+(let ((prompt
+        (prepare-system-prompt CFG (list (cons 'append-system-prompt '("EXTRA ONE"))))
+      ) ;prompt
+     ) ;
   (check-true (string-contains? prompt "<addendum>"))
-  (check-true (string-contains? prompt "EXTRA ONE")))
+  (check-true (string-contains? prompt "EXTRA ONE"))
+) ;let
 
 ;; 4. 会话预算：session-timeout 与 max-turns 生效
 (let ((prompt (prepare-system-prompt CFG
-                (list (cons 'session-timeout 30) (cons 'max-turns 5)))))
+                (list (cons 'session-timeout 30) (cons 'max-turns 5))
+              ) ;prepare-system-prompt
+      ) ;prompt
+     ) ;
   (check-true (string-contains? prompt "Session Timeout: 30 seconds"))
-  (check-true (string-contains? prompt "Max Turns: 5 turns")))
+  (check-true (string-contains? prompt "Max Turns: 5 turns"))
+) ;let
 
 (check-report)

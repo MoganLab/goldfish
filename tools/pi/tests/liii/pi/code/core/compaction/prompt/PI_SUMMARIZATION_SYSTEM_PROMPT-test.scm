@@ -14,9 +14,7 @@
 ;; string
 ;; 固定的提示词文本常量。
 
-(import (liii check)
-  (liii pi code core compaction prompt)
-) ;import
+(import (liii check) (liii pi code core compaction prompt))
 
 (check-set-mode! 'report-failed)
 

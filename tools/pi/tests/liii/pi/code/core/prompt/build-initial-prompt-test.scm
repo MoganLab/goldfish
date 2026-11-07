@@ -25,38 +25,58 @@
 
 ;; build-initial-prompt
 ;; 组装脚本模式初始提示词与后续消息队列。
-(let-values (((prompt rest) (build-initial-prompt #f "" '("message 1" "message 2"))))
+(let-values (((prompt rest) (build-initial-prompt #f "" '("message 1"
+                                                          "message 2"))))
   (check prompt => "message 1")
-  (check rest => '("message 2")))
+  (check rest => '("message 2"))
+) ;let-values
 
 (let-values (((prompt rest) (build-initial-prompt "stdin content\n" "" '("first message"))))
   (check prompt => "stdin content\nfirst message")
-  (check rest => '()))
+  (check rest => '())
+) ;let-values
 
 (let-values (((prompt rest)
               (build-initial-prompt "stdin content\n"
-                                   "<file name=\"/foo\">bar</file>\n"
-                                   '("do something" "followup"))))
+                "<file name=\"/foo\">bar</file>\n"
+                '("do something" "followup")
+              ) ;build-initial-prompt
+             ) ;
+            ) ;
   (check prompt => "stdin content\n<file name=\"/foo\">bar</file>\ndo something")
-  (check rest => '("followup")))
+  (check rest => '("followup"))
+) ;let-values
 
-(let-values (((prompt rest)
-              (build-initial-prompt #f "<file name=\"/foo\">bar</file>\n" '())))
+(let-values (((prompt rest) (build-initial-prompt #f "<file name=\"/foo\">bar</file>\n" '()))
+            ) ;
   (check prompt => "<file name=\"/foo\">bar</file>\n")
-  (check rest => '()))
+  (check rest => '())
+) ;let-values
 
 (let-values (((prompt rest) (build-initial-prompt #f "" '())))
   (check prompt => "")
-  (check rest => '()))
+  (check rest => '())
+) ;let-values
 
 ;; 结合 parse-pi-args 与 build-initial-prompt 进行完整 prompt 组装测试
-(let* ((parsed (parse-pi-args '("--model" "gemini-3.8-flash" "--" "-h" "second message")))
-       (messages (pi-args-ref parsed 'messages)))
+(let* ((parsed (parse-pi-args '("--model" "gemini-3.8-flash" "--" "-h"
+                                "second message"))
+       ) ;parsed
+       (messages (pi-args-ref parsed 'messages))
+      ) ;
   (let-values (((initial rest)
                 (build-initial-prompt "stdin text\n"
-                                      "<file name=\"/abs/path\">\nfile content\n</file>\n"
-                                      messages)))
-    (check initial => "stdin text\n<file name=\"/abs/path\">\nfile content\n</file>\n-h")
-    (check rest => '("second message"))))
+                  "<file name=\"/abs/path\">\nfile content\n</file>\n"
+                  messages
+                ) ;build-initial-prompt
+               ) ;
+              ) ;
+    (check initial
+      =>
+      "stdin text\n<file name=\"/abs/path\">\nfile content\n</file>\n-h"
+    ) ;check
+    (check rest => '("second message"))
+  ) ;let-values
+) ;let*
 
 (check-report)

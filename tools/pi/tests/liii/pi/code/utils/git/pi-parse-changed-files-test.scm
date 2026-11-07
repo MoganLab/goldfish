@@ -15,21 +15,17 @@
 ;; list?
 ;; 包含 path 与 status 字段的文件 alist 列表。
 
-(import (liii check)
-        (liii pi code utils git)
-) ;import
+(import (liii check) (liii pi code utils git))
 
 (check-set-mode! 'report-failed)
 
 ;; 解析 git diff --name-status 输出。
 (check (pi-parse-changed-files "") => '())
 
-(let* ((out (string-append "M\tsrc/app.ts\n"
-             "A\tsrc/new.py\n"
-             "R100\told/name.ts\tnew/name.ts\n"
-             "C75\tsrc/a.ts\tsrc/b.ts\n"
-             "D\tremoved.ts\n"
-           ) ;string-append
+(let* ((out (string-append "M\tsrc/app.ts\n" "A\tsrc/new.py\n"
+              "R100\told/name.ts\tnew/name.ts\n" "C75\tsrc/a.ts\tsrc/b.ts\n"
+              "D\tremoved.ts\n"
+            ) ;string-append
        ) ;out
        (files (pi-parse-changed-files out))
       ) ;
@@ -47,6 +43,7 @@
 ;; 空行与未知状态忽略
 (let ((files (pi-parse-changed-files "\n\nX\tweird.ts\n\nM\ta.ts\n")))
   (check (length files) => 1)
-  (check (cdr (assoc 'path (car files))) => "a.ts"))
+  (check (cdr (assoc 'path (car files))) => "a.ts")
+) ;let
 
 (check-report)

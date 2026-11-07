@@ -1,7 +1,3 @@
-(import (liii check) (liii pi code core tools grep format))
-
-(check-set-mode! 'report-failed)
-
 ;; %format-grep-matches
 ;; 将 grep 匹配位置及文件行缓存格式化为带上下文的文本结果。
 ;;
@@ -29,9 +25,13 @@
 ;; string
 ;; 匹配行使用冒号分隔，上下文行使用连字符分隔，末尾附必要的截断或跳过提示。
 ;;
-;; 示例
+;; 说明
 ;; ----
 ;; (%format-grep-matches '(("a.scm" 2)) cache 1 100 #f '())
+
+(import (liii check) (liii pi code core tools grep format))
+
+(check-set-mode! 'report-failed)
 
 (let ((cache '(("a.scm" "one" "two" "three"))))
   (check (%format-grep-matches '(("a.scm" 2)) cache 1 100 #f '())

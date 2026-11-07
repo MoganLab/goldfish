@@ -15,10 +15,7 @@
 ;; string?
 ;; 拼接好的范围描述文本。
 
-(import (liii check)
-        (liii string)
-        (liii pi simplify scope)
-) ;import
+(import (liii check) (liii string) (liii pi simplify scope))
 
 (check-set-mode! 'report-failed)
 
@@ -31,13 +28,16 @@
 ) ;define
 
 ;; 1. 多区间：相邻数字折叠成 start-end，单行只写数字
-(check (pi-build-scope-lines (list (file "src/calc.ts" "modified"
-                                           '(((start . 21) (end . 33))
-                                             ((start . 40) (end . 40)))
-                                           #t
-                                         ) ;list
-                                   ) ;list
-       ) ;pi-build-scope-lines
+(check
+  (pi-build-scope-lines
+    (list
+      (file "src/calc.ts"
+        "modified"
+        '(((start . 21) (end . 33)) ((start . 40) (end . 40)))
+        #t
+      ) ;file
+    ) ;list
+  ) ;pi-build-scope-lines
   =>
   "- src/calc.ts (modified; changed lines: 21-33, 40)"
 ) ;check
@@ -61,23 +61,23 @@
 ) ;check
 
 ;; 5. 重命名 / 复制保留状态名
-(check (pi-build-scope-lines (list (file "src/new.ts" "renamed"
-                                           '(((start . 5) (end . 5)))
-                                           #t
-                                         ) ;list
-                                   ) ;list
-       ) ;pi-build-scope-lines
+(check
+  (pi-build-scope-lines
+    (list
+      (file "src/new.ts" "renamed" '(((start . 5) (end . 5))) #t)
+    ) ;list
+  ) ;pi-build-scope-lines
   =>
   "- src/new.ts (renamed; changed lines: 5)"
 ) ;check
 
 ;; 6. 多文件以换行连接；空列表为空串
-(check (pi-build-scope-lines (list (file "a.ts" "added" #f #t)
-                                   (file "b.ts" "modified" '(((start . 2) (end . 3)))
-                                         #t
-                                       ) ;list
-                             ) ;list
-       ) ;pi-build-scope-lines
+(check
+  (pi-build-scope-lines
+    (list (file "a.ts" "added" #f #t)
+      (file "b.ts" "modified" '(((start . 2) (end . 3))) #t)
+    ) ;list
+  ) ;pi-build-scope-lines
   =>
   "- a.ts (added; entire file is in scope)\n- b.ts (modified; changed lines: 2-3)"
 ) ;check

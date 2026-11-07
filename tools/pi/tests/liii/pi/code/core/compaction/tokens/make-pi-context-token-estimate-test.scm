@@ -20,9 +20,7 @@
 ;; token 估算结果 record。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 
@@ -31,6 +29,7 @@
   (check-true (pi-context-token-estimate? estimate))
   (check (pi-context-token-estimate-tokens estimate) => 102)
   (check (pi-context-token-estimate-usage-tokens estimate) => 100)
-  (check (pi-context-token-estimate-trailing-tokens estimate) => 2))
+  (check (pi-context-token-estimate-trailing-tokens estimate) => 2)
+) ;let
 
 (check-report)

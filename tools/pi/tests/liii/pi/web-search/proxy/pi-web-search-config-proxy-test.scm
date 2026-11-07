@@ -15,25 +15,26 @@
 ;; (or string? #f)
 ;; 代理地址字符串，未配置时返回 #f。
 
-(import (liii check)
-        (liii pi web-search proxy)
-) ;import
+(import (liii check) (liii pi web-search proxy))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. httpProxy 字段
 (check (pi-web-search-config-proxy '(("httpProxy" . "http://proxy:7890")))
-  => "http://proxy:7890"
+  =>
+  "http://proxy:7890"
 ) ;check
 
 ;; 2. proxy 字段
 (check (pi-web-search-config-proxy '(("proxy" . "http://proxy-alt:7890")))
-  => "http://proxy-alt:7890"
+  =>
+  "http://proxy-alt:7890"
 ) ;check
 
 ;; 3. http-proxy 字段
 (check (pi-web-search-config-proxy '(("http-proxy" . "http://proxy-dash:7890")))
-  => "http://proxy-dash:7890"
+  =>
+  "http://proxy-dash:7890"
 ) ;check
 
 ;; 4. 未配置或空串时返回 #f

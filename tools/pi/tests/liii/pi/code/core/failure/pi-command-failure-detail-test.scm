@@ -24,10 +24,11 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 诊断文本为字符串且已去除尾部空白
-(let ((detail (pi-command-failure-detail (make-process-error 1 "boom\n" "" "false"))))
+(let ((detail (pi-command-failure-detail (make-process-error 1 "boom\n" "" "false")))
+     ) ;
   (check-true (string? detail))
   (check-true (> (string-length detail) 0))
   (check-true (string-contains? detail "boom"))
-) ;let*
+) ;let
 
 (check-report)

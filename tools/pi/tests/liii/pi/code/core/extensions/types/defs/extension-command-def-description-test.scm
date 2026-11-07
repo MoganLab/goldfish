@@ -16,14 +16,15 @@
 ;; 描述字符串。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((cmd (make-extension-command-def "c" "d" (lambda (a x) 1))))
-  (check (extension-command-def-description cmd) => "d"))
+  (check (extension-command-def-description cmd) => "d")
+) ;let
 
 (check-report)

@@ -15,17 +15,14 @@
 ;; (or pi-key-pool? #f)
 ;; 绑定的密钥池记录，未绑定时返回 #f。
 
-(import (liii check)
-        (liii pi multikey pool)
-        (liii pi multikey policy)
-) ;import
+(import (liii check) (liii pi multikey pool) (liii pi multikey policy))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 配置中绑定密钥池时返回该池
 (let ((pool (pi-key-pool "google")))
   (check (pi-multikey-pool-of (list (cons 'multikey-pool pool))) => pool)
-) ;let*
+) ;let
 
 ;; 2. 未绑定密钥池时返回 #f
 (check (pi-multikey-pool-of '()) => #f)

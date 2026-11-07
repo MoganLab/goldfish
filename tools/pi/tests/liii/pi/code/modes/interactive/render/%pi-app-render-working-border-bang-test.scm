@@ -37,47 +37,61 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 尚无整帧渲染缓存：返回 #f（调用方回退整帧渲染）
-(let ((app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)
-                   :handler (lambda (a m) #t))))
+(let ((app (make-pi-app
+             :terminal (make-virtual-terminal :width 80 :height 24)
+             :handler  (lambda (a m) #t)
+           ) ;make-pi-app
+      ) ;app
+     ) ;
   (check (%pi-app-render-working-border! app) => #f)
 ) ;let
 
 ;; 2. 渲染后：仅替换 Working 边框行，其余行保持不变
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
-       (q (pi-app-queue app)))
+       (q (pi-app-queue app))
+      ) ;
   (pi-app-render! app)
   (pi-queue-set-busy! q)
   (pi-app-render! app)
   (let* ((row (%pi-app-working-border-row app))
-         (before (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
+         (before (map strip-ansi (alt-screen-lines (pi-app-screen app))))
+        ) ;
     ;; 推进 spinner 帧，使边框行内容发生变化
     (working-advance! (pi-app-working app))
     (check (%pi-app-render-working-border! app) => #t)
     (let ((after (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
       (check-true (string-contains? (list-ref after row) "⠙ Working"))
-      (let loop ((i 0))
+      (let loop
+        ((i 0))
         (when (< i (length after))
           (when (not (= i row))
             (check (list-ref after i) => (list-ref before i))
           ) ;when
           (loop (+ i 1))
-        ) ;loop
+        ) ;when
       ) ;let
     ) ;let
-  ) ;let
+  ) ;let*
 ) ;let*
 
 ;; 3. 选择器激活时回退整帧渲染：返回 #f
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
-       (q (pi-app-queue app)))
+       (q (pi-app-queue app))
+      ) ;
   (pi-app-render! app)
   (pi-queue-set-busy! q)
   (pi-app-render! app)
   (%pi-app-active-selector-set! app
-    (make-thinking-selector "off" pi-thinking-levels "off"
-      (lambda (lvl) #t) (lambda () #t) (lambda (lvl) #t)))
+    (make-thinking-selector "off"
+      pi-thinking-levels
+      "off"
+      (lambda (lvl) #t)
+      (lambda () #t)
+      (lambda (lvl) #t)
+    ) ;make-thinking-selector
+  ) ;%pi-app-active-selector-set!
   (check (%pi-app-render-working-border! app) => #f)
 ) ;let*
 

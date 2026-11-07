@@ -28,27 +28,31 @@
 (check-set-mode! 'report-failed)
 
 ;; 统计字符串中的换行符个数
+
 (define (count-newlines s)
   (let loop
     ((i 0) (n 0))
     (if (>= i (string-length s))
       n
       (loop (+ i 1) (if (char=? (string-ref s i) #\newline) (+ n 1) n))
-    ) ;loop
+    ) ;if
   ) ;let
 ) ;define
 
 ;; 1. session 事件：输出单行 JSON，含事件类型与工作目录
-(let* ((out (with-output-to-string (lambda () (emit-json-event 'session "/tmp/workdir"))))
+(let* ((out (with-output-to-string (lambda () (emit-json-event 'session "/tmp/workdir")))
+       ) ;out
        (obj (string->json (string-trim out)))
       ) ;
   (check (cdr (assoc "type" obj)) => "session")
   (check (cdr (assoc "cwd" obj)) => "/tmp/workdir")
   ;; 单行输出：整段 JSON 只占一行
-  (check (count-newlines out) => 1))
+  (check (count-newlines out) => 1)
+) ;let*
 
 ;; 2. 未知事件类型：不输出任何内容
 (let ((out (with-output-to-string (lambda () (emit-json-event 'unknown_event "x")))))
-  (check (string-length out) => 0))
+  (check (string-length out) => 0)
+) ;let
 
 (check-report)

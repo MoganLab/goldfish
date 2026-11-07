@@ -1,3 +1,19 @@
+;; stem-fmt-one
+;; 单个词干文件的格式化
+;; 真实 .stem 文件：stem 模式下格式化后 quote/unquote 保持原样
+
+;; 语法
+;; ----
+;; (stem-fmt-one ...)
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+;; 返回值
+;; ------
+;; 见各断言场景
+
 (import (liii check)
   (liii os)
   (liii goldfmt lang)
@@ -23,8 +39,6 @@
 
 ;; 按语言名查询后缀（gf fmt -e stem 走此路径）
 (check (extensions-for-lang-name "stem") => '(".stem"))
-
-;; 真实 .stem 文件：stem 模式下格式化后 quote/unquote 保持原样
 
 (define stem-text
   (call-with-stem-mode

@@ -21,9 +21,7 @@
 ;; 两个值
 ;; 合并后的配置与警告文本列表。
 
-(import (liii check)
-  (liii pi code session-state)
-) ;import
+(import (liii check) (liii pi code session-state))
 
 (check-set-mode! 'report-failed)
 
@@ -31,6 +29,6 @@
 (let-values (((cfg warnings) (pi-resolve-session-state '((provider . "kimi")) #f '())))
   (check cfg => '((provider . "kimi")))
   (check warnings => '())
-) ;let-values*
+) ;let-values
 
 (check-report)
