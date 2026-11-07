@@ -99,6 +99,18 @@
       (case-lambda
        ((start end) (numeric-range start end 1))
        ((start end step)
+        (unless (real? start)
+          (type-error "numeric-range: start must be a real number, got ~S" start)
+        ) ;unless
+        (unless (real? end)
+          (type-error "numeric-range: end must be a real number, got ~S" end)
+        ) ;unless
+        (unless (real? step)
+          (type-error "numeric-range: step must be a real number, got ~S" step)
+        ) ;unless
+        (when (zero? step)
+          (value-error "numeric-range: step must not be zero")
+        ) ;when
         (let ((len (exact (ceiling (max 0 (/ (- end start) step))))))
           (raw-range 0 len (lambda (n) (+ start (* n step))) 0)
         ) ;let

@@ -28,7 +28,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 start、end 或 step 不是实数时抛出。
+;; - value-error：当 step 为 0 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -59,6 +60,20 @@
   (check (range-ref r 0) => 5)
   (check (range-ref r 4) => 1)
 ) ;let
+
+;; start 与 end 相等时为空 range
+(check (range-length (numeric-range 5 5)) => 0)
+(check (range-length (numeric-range 5 0 1)) => 0)
+
+;; start、end 或 step 不是实数时抛出 type-error
+(check-catch 'type-error (numeric-range 'a 10))
+(check-catch 'type-error (numeric-range 0 'b))
+(check-catch 'type-error (numeric-range 0 10 'c))
+(check-catch 'type-error (numeric-range "0" 10))
+(check-catch 'type-error (numeric-range 0 10 #f))
+
+;; step 为 0 时抛出 value-error
+(check-catch 'value-error (numeric-range 0 10 0))
 
 
 (check-report)
