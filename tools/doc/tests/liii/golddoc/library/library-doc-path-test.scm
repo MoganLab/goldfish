@@ -39,14 +39,14 @@
   (let ((tests-root (find-tests-root-for-load-root load-root)))
     (check-true (string? tests-root))
     (check-true (path-dir? tests-root))
-    (check-true (path-file? (path-join tests-root "liii" "string-test.scm")))
+    (check-true (path-file? (path-join tests-root "liii" "string" "README.md")))
   ) ;let
 ) ;let
 
 (let ((doc-path (library-doc-path "liii/string")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "string-test.scm")
+  (check (path-name doc-path) => "README.md")
 ) ;let
 
 (check (library-doc-path "liii/not-a-real-library") => #f)
