@@ -187,6 +187,7 @@ gf doc scheme/base "函数名"
 - `bytevector-u8-ref` - 按索引取字节
 - `bytevector-u8-set!` - 按索引设置字节
 - `bytevector-copy` - 复制字节向量
+- `bytevector-copy!` - 把源字节向量区间复制到目标指定位置
 - `bytevector-append` - 连接字节向量
 - `utf8->string` - UTF-8 转字符串
 - `string->utf8` - 字符串转 UTF-8
