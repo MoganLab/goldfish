@@ -1,3 +1,20 @@
+;; parse-pi-args
+;; 验证扩展注册的动态参数定义参与解析。
+;;
+;; 语法
+;; ----
+;; (parse-pi-args argv)
+;;
+;; 参数
+;; ----
+;; argv : list
+;; 不包含可执行文件名称的字符串参数列表。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 解析后的参数字典。
+
 (import (liii check)
   (liii pi code cli args)
   (liii pi code core extensions)
