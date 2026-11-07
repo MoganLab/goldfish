@@ -1,3 +1,20 @@
+;; pi-compute-file-lists
+;; 根据文件操作记录汇总读取文件与修改文件列表。
+;;
+;; 语法
+;; ----
+;; (pi-compute-file-lists file-ops)
+;;
+;; 参数
+;; ----
+;; file-ops : pi-file-ops
+;; 文件操作记录。
+;;
+;; 返回值
+;; ----
+;; pi-file-lists
+;; 文件列表记录。
+
 (import (liii check) (liii pi code core compaction fileops))
 
 (check-set-mode! 'report-failed)

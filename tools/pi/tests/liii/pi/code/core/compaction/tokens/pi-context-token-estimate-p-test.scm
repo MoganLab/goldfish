@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-context-token-estimate?
 ;; 判断对象是否为上下文 token 估算结果 record。
 ;;
@@ -21,9 +15,13 @@
 ;; boolean
 ;; 仅对 pi-context-token-estimate record 返回 #t。
 ;;
-;; 示例
-;; ----
-;; (pi-context-token-estimate? '()) => #f
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core compaction tokens))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (pi-context-token-estimate? (make-pi-context-token-estimate 0 0 0)))
 (check-false (pi-context-token-estimate? #f))

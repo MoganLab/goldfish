@@ -1,3 +1,32 @@
+;; pi-append-compaction-entry!
+;; 向会话文件追加一条压缩记录条目。
+;;
+;; 语法
+;; ----
+;; (pi-append-compaction-entry! file-path summary first-kept-entry-id tokens-before details)
+;;
+;; 参数
+;; ----
+;; file-path : string
+;; 会话文件路径。
+;;
+;; summary : string
+;; 压缩摘要文本。
+;;
+;; first-kept-entry-id : string
+;; 保留段落的起始条目 ID。
+;;
+;; tokens-before : number
+;; 压缩前的 token 数。
+;;
+;; details : alist
+;; 压缩详情字段。
+;;
+;; 返回值
+;; ----
+;; string
+;; 新写入的压缩记录条目 ID。
+
 (import (scheme file)
         (liii check)
         (liii path)

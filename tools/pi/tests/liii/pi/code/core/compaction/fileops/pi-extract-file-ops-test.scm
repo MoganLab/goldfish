@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii string)
-  (liii pi ai message)
-  (liii pi code core compaction fileops)
-  (liii pi code core compaction)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-extract-file-ops
 ;; 从助手消息的工具调用中提取文件读取、写入和编辑路径。
 ;;
@@ -24,9 +15,16 @@
 ;; pi-file-ops
 ;; 包含 read、written、edited 字段，值为按出现顺序排列且不重复的路径列表。
 ;;
-;; 示例
-;; ----
-;; (pi-file-ops-read (pi-extract-file-ops messages)) => '("/a" "/d")
+
+(import (liii check)
+  (liii string)
+  (liii pi ai message)
+  (liii pi code core compaction fileops)
+  (liii pi code core compaction)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define (tc name path)
   (pi-tool-call-block (string-append "id-" name)
