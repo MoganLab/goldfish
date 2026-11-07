@@ -123,6 +123,18 @@
        ((len) (iota-range len 0 1))
        ((len start) (iota-range len start 1))
        ((len start step)
+        (unless (exact-integer? len)
+          (type-error "iota-range: len must be an exact integer, got ~S" len)
+        ) ;unless
+        (when (negative? len)
+          (value-error "iota-range: len must be a non-negative integer, got ~S" len)
+        ) ;when
+        (unless (real? start)
+          (type-error "iota-range: start must be a real number, got ~S" start)
+        ) ;unless
+        (unless (real? step)
+          (type-error "iota-range: step must be a real number, got ~S" step)
+        ) ;unless
         (raw-range 0
           len
           (cond ((and (zero? start) (= step 1)) (lambda (i) i))
