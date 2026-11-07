@@ -1,3 +1,18 @@
+;; snake-tick 吃食分支
+;; 验证吃到食物后蛇身增长、分数与最高分更新
+;;
+;; 语法
+;; ----
+;; (snake-tick game)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n蛇头与食物重合的游戏状态
+;;
+;; 返回值
+;; ------
+;; snake-game?\n蛇身增长且分数更新的游戏状态
+
 (import (liii check)
   (demo tui snake logic)
 ) ;import

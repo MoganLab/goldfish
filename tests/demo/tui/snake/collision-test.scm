@@ -1,3 +1,18 @@
+;; snake-tick 碰撞分支
+;; 验证撞墙与撞自身的游戏结束判定
+;;
+;; 语法
+;; ----
+;; (snake-tick game)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n贴边或自咬的游戏状态
+;;
+;; 返回值
+;; ------
+;; snake-game?\nstatus 变为 game-over 的游戏状态
+
 (import (liii check)
   (demo tui snake logic)
 ) ;import

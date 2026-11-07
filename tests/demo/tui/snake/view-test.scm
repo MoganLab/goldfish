@@ -1,3 +1,18 @@
+;; snake-game->view
+;; 将游戏状态渲染为 TUI 组件视图
+;;
+;; 语法
+;; ----
+;; (snake-game->view game)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n当前游戏状态
+;;
+;; 返回值
+;; ------
+;; component?\n可渲染的 TUI 组件
+
 (import (scheme base)
   (liii check)
   (liii tui component)

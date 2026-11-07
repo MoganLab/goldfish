@@ -1,3 +1,18 @@
+;; snake-compute-layout
+;; 按终端尺寸计算游戏区与侧栏的布局
+;;
+;; 语法
+;; ----
+;; (snake-compute-layout width height)
+;;
+;; 参数
+;; ----
+;; width, height : integer?\n终端列数与行数
+;;
+;; 返回值
+;; ------
+;; list?\n布局参数列表
+
 (import (liii check)
   (demo tui snake view)
 ) ;import

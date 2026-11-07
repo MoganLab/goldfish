@@ -1,3 +1,18 @@
+;; snake-tick 穿墙分支
+;; 验证开启穿墙模式时从边缘穿越到对侧
+;;
+;; 语法
+;; ----
+;; (snake-tick game)
+;;
+;; 参数
+;; ----
+;; game : snake-game?\n蛇头贴边且开启穿墙的游戏状态
+;;
+;; 返回值
+;; ------
+;; snake-game?\n蛇头出现在对侧边缘的游戏状态
+
 (import (liii check)
   (demo tui snake logic)
 ) ;import

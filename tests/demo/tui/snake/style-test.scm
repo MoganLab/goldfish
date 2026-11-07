@@ -1,3 +1,18 @@
+;; snake-style
+;; 贪吃蛇 TUI 渲染的配色与样式定义
+;;
+;; 语法
+;; ----
+;; (snake-style)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ------
+;; list?\n样式定义
+
 (import (scheme base)
   (scheme process-context)
   (liii check)
