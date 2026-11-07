@@ -1,3 +1,23 @@
+;; pi-summarization-failure
+;; 根据模型响应生成压缩摘要失败的错误描述。
+;;
+;; 语法
+;; ----
+;; (pi-summarization-failure response label)
+;;
+;; 参数
+;; ----
+;; response : (or message alist)
+;; 模型响应对象。
+;;
+;; label : string
+;; 失败场景标签。
+;;
+;; 返回值
+;; ----
+;; string
+;; 失败原因描述文本。
+
 (import (liii check)
   (liii string)
   (liii pi ai message)

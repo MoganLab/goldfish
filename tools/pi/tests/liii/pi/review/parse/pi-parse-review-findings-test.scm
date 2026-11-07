@@ -1,12 +1,26 @@
+;; pi-parse-review-findings
+;; 解析模型返回的结构化代码审查问题 JSON 文本。
+;;
+;; 语法
+;; ----
+;; (pi-parse-review-findings text)
+;;
+;; 参数
+;; ----
+;; text : string?
+;; 模型输出的原始文本或 Markdown 代码块。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 解析出的问题字典列表。
+
 (import (liii check)
         (liii string)
         (liii pi review parse)
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; pi-parse-review-findings
-;; 解析模型返回的 JSON findings。
 
 ;; 1. 完整字段
 (let* ((text "{\"findings\":[{\"severity\":\"CRITICAL\",\"file\":\"a.ts\",\"line\":42,\"category\":\"security\",\"message\":\"bad\",\"suggestion\":\"fix it\"}]}")

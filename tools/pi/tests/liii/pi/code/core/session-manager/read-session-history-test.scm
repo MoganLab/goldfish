@@ -1,3 +1,20 @@
+;; read-session-history
+;; 读取会话文件中的历史记录。
+;;
+;; 语法
+;; ----
+;; (read-session-history file-path)
+;;
+;; 参数
+;; ----
+;; file-path : (or string path)
+;; 会话文件路径。
+;;
+;; 返回值
+;; ----
+;; list
+;; 解析后的会话历史条目列表。
+
 (import (liii check)
   (liii path)
   (liii json)

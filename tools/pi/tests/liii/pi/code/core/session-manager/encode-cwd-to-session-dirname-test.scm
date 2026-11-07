@@ -1,3 +1,20 @@
+;; encode-cwd-to-session-dirname
+;; 将工作目录路径编码为会话目录名。
+;;
+;; 语法
+;; ----
+;; (encode-cwd-to-session-dirname cwd)
+;;
+;; 参数
+;; ----
+;; cwd : string
+;; 工作目录路径。
+;;
+;; 返回值
+;; ----
+;; string
+;; 编码后的会话目录名。
+
 (import (liii check)
   (liii pi code core session-manager)
 ) ;import

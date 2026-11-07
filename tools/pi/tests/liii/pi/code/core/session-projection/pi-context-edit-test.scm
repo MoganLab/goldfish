@@ -1,3 +1,20 @@
+;; pi-context-edit
+;; 解析会话中的上下文编辑条目。
+;;
+;; 语法
+;; ----
+;; (pi-context-edit entry)
+;;
+;; 参数
+;; ----
+;; entry : alist
+;; 会话条目字典。
+;;
+;; 返回值
+;; ----
+;; (or alist #f)
+;; 解析出的上下文编辑内容，非编辑条目返回 #f。
+
 (import (scheme base)
   (scheme file)
   (liii check)

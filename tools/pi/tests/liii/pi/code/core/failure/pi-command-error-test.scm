@@ -1,3 +1,23 @@
+;; pi-command-error
+;; 将子进程失败转换为工具调用错误。
+;;
+;; 语法
+;; ----
+;; (pi-command-error tool-name err)
+;;
+;; 参数
+;; ----
+;; tool-name : string
+;; 工具名称。
+;;
+;; err : process-error
+;; 子进程错误信息。
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 抛出 error 异常。
+
 (import (liii check)
   (liii subprocess)
   (liii pi code core failure)

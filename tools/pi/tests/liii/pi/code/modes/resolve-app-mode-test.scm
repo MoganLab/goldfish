@@ -1,3 +1,29 @@
+;; resolve-app-mode
+;; 根据命令行参数与终端状态解析运行模式。
+;;
+;; 语法
+;; ----
+;; (resolve-app-mode mode-option print-flag stdin-tty stdout-tty)
+;;
+;; 参数
+;; ----
+;; mode-option : (or string symbol #f)
+;; 命令行指定的运行模式。
+;;
+;; print-flag : boolean
+;; 是否使用 print 模式。
+;;
+;; stdin-tty : boolean
+;; 标准输入是否为终端。
+;;
+;; stdout-tty : boolean
+;; 标准输出是否为终端。
+;;
+;; 返回值
+;; ----
+;; symbol
+;; 解析出的运行模式。
+
 (import (liii check) (liii pi code modes))
 
 (check-set-mode! 'report-failed)

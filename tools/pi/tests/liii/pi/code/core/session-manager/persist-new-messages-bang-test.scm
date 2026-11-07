@@ -1,3 +1,23 @@
+;; persist-new-messages!
+;; 将新产生的消息持久化到会话文件。
+;;
+;; 语法
+;; ----
+;; (persist-new-messages! file-path . opt-msgs)
+;;
+;; 参数
+;; ----
+;; file-path : (or string path)
+;; 会话文件路径。
+;;
+;; opt-msgs : list
+;; 待持久化的消息列表。
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 直接向会话文件追加消息条目。
+
 (import (liii check)
   (liii path)
   (liii json)

@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-info-path
 ;; 返回会话摘要中的 JSONL 文件路径。
 ;;
@@ -21,9 +15,13 @@
 ;; string
 ;; 会话文件路径。
 ;;
-;; 示例
-;; ----
-;; (pi-session-info-path info) => "/tmp/session.jsonl"
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-list))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
               #f "created" "modified" 0 "(no messages)" "")))

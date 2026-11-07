@@ -1,3 +1,32 @@
+;; setup-session-file
+;; 创建会话文件并写入头部条目。
+;;
+;; 语法
+;; ----
+;; (setup-session-file session-dir session-id timestamp-iso cwd . opt-session-file)
+;;
+;; 参数
+;; ----
+;; session-dir : (or string path)
+;; 会话目录。
+;;
+;; session-id : string
+;; 会话 ID。
+;;
+;; timestamp-iso : string
+;; 会话创建时间戳。
+;;
+;; cwd : string
+;; 会话工作目录。
+;;
+;; opt-session-file : string（可选）
+;; 显式指定的会话文件路径。
+;;
+;; 返回值
+;; ----
+;; string
+;; 会话文件路径。
+
 (import (scheme base)
   (scheme file)
   (scheme time)

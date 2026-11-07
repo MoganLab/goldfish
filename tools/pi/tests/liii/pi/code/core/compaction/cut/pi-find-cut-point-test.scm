@@ -1,3 +1,26 @@
+;; pi-find-cut-point
+;; 在会话条目中查找合适的压缩切分点。
+;;
+;; 语法
+;; ----
+;; (pi-find-cut-point entries keep-recent-tokens . opt-start)
+;;
+;; 参数
+;; ----
+;; entries : list
+;; 会话条目列表。
+;;
+;; keep-recent-tokens : integer
+;; 需要保留的最近 token 数。
+;;
+;; opt-start : integer（可选）
+;; 查找起始下标，缺省为 0。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 first-kept-index 与 is-split-turn 字段的结果字典。
+
 (import (liii check) (liii pi code core compaction))
 
 (check-set-mode! 'report-failed)

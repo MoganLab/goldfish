@@ -1,7 +1,3 @@
-(import (scheme base) (liii check) (liii pi code core extensions install))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-parse-git-extension-name
 ;; 从 Git URL、SSH 地址或本地路径推断扩展目录名称。
 ;;
@@ -19,10 +15,11 @@
 ;; string | #f
 ;; 返回最后一个路径段并去除末尾 .git；非字符串或空白输入返回 #f。
 ;;
-;; 示例
-;; ----
-;; (pi-parse-git-extension-name "git@github.com:org/pi-plugin.git")
-;; => "pi-plugin"
+
+(import (scheme base) (liii check) (liii pi code core extensions install))
+
+(check-set-mode! 'report-failed)
+
 
 (check (pi-parse-git-extension-name "https://github.com/org/pi-plugin.git")
   =>

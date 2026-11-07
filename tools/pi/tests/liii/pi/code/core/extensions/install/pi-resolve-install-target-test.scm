@@ -1,4 +1,25 @@
+;; pi-resolve-install-target
+;; 解析扩展安装的目标目录路径。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-install-target name . opts)
+;;
+;; 参数
+;; ----
+;; name : string
+;; 扩展名，必须符合命名规范。
+;;
+;; opts : list?
+;; 可选关键字参数，支持 :local?、:agent-dir、:cwd 等。
+;;
+;; 返回值
+;; ----
+;; string
+;; 目标目录绝对路径。
+
 (import (scheme base)
+        (liii check)
   (scheme process-context)
   (liii check)
   (liii path)

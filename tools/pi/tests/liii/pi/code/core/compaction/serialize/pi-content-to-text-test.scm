@@ -1,3 +1,20 @@
+;; pi-content->text
+;; 提取消息内容中的全部文本并拼接为字符串。
+;;
+;; 语法
+;; ----
+;; (pi-content->text content)
+;;
+;; 参数
+;; ----
+;; content : any
+;; 消息内容，支持字符串、文本块列表与 JSON 解出的向量。
+;;
+;; 返回值
+;; ----
+;; string
+;; 拼接后的文本。
+
 (import (scheme base)
   (liii check)
   (liii pi ai message)

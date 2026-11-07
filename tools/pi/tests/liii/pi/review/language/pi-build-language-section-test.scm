@@ -1,3 +1,20 @@
+;; pi-build-language-section
+;; 汇总指定语言集合的代码审查清单段落文本。
+;;
+;; 语法
+;; ----
+;; (pi-build-language-section langs)
+;;
+;; 参数
+;; ----
+;; langs : list?
+;; 语言标识字符串列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 拼接去重后的分语言检查清单 Markdown 文本。
+
 (import (liii check)
         (liii string)
         (liii pi review language)
@@ -5,7 +22,6 @@
 
 (check-set-mode! 'report-failed)
 
-;; pi-build-language-section
 ;; 生成与原生扩展等价的分语言检查清单段落。
 (check (pi-build-language-section '()) => "")
 

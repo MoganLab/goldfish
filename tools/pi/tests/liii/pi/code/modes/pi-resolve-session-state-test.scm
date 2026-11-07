@@ -1,3 +1,26 @@
+;; pi-resolve-session-state
+;; 解析会话的恢复状态。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-session-state parsed cfg cwd)
+;;
+;; 参数
+;; ----
+;; parsed : list?
+;; 命令行解析后的参数 alist。
+;;
+;; cfg : list?
+;; Agent 配置 alist。
+;;
+;; cwd : string
+;; 当前工作目录。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 会话状态字典。
+
 (import (scheme base)
   (scheme file)
   (liii check)

@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction fileops))
-
-(check-set-mode! 'report-failed)
-
 ;; make-pi-file-lists
 ;; 构造压缩摘要使用的只读与已修改文件列表 record。
 ;;
@@ -23,10 +17,13 @@
 ;; pi-file-lists
 ;; 文件列表 record。
 ;;
-;; 示例
-;; ----
-;; (pi-file-lists-read-files
-;;   (make-pi-file-lists '("a.scm") '("b.scm"))) => '("a.scm")
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core compaction fileops))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((lists (make-pi-file-lists '("a.scm") '("b.scm" "c.scm"))))
   (check-true (pi-file-lists? lists))

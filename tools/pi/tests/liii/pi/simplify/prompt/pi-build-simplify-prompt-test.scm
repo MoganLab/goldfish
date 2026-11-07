@@ -1,3 +1,20 @@
+;; pi-build-simplify-prompt
+;; 构建只读模式下的代码简化提示词。
+;;
+;; 语法
+;; ----
+;; (pi-build-simplify-prompt files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 变更文件及其上下文信息列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 组装好的只读提示词文本。
+
 (import (liii check)
         (liii string)
         (liii pi simplify prompt)
@@ -25,7 +42,6 @@
   ) ;string-append
 ) ;define
 
-;; pi-build-simplify-prompt
 ;; 只读模式提示词：四原则 + Scope + Process + JSON 契约 + 改动行上下文。
 
 (let* ((files (list (file "src/calc.ts" "modified"

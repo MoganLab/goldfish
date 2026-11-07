@@ -1,3 +1,20 @@
+;; pi-load-web-search-config
+;; 从配置目录读取 web-search.json 配置文件。
+;;
+;; 语法
+;; ----
+;; (pi-load-web-search-config . opts)
+;;
+;; 参数
+;; ----
+;; opts : list?
+;; 可选关键字参数，支持 :config-dir、:env 等。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 解析后的配置 alist，未配置时返回空列表。
+
 (import (scheme base)
         (scheme process-context)
         (liii check)
@@ -11,7 +28,7 @@
 
 (check-set-mode! 'report-failed)
 
-;; pi-load-web-search-config
+;; 读取 web-search.json 配置文件。
 ;; 从显式路径加载
 (define (find-web-search-fixture)
   (let loop ((candidates '("tools/pi/tests/fixtures/web-search.json"

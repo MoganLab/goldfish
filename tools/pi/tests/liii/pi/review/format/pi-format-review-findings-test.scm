@@ -1,3 +1,20 @@
+;; pi-format-review-findings
+;; 将审查发现的问题列表格式化为易读的 Markdown 文本展示。
+;;
+;; 语法
+;; ----
+;; (pi-format-review-findings findings)
+;;
+;; 参数
+;; ----
+;; findings : list?
+;; 审查发现的问题字典列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 格式化后的 Markdown 字符串。
+
 (import (liii check)
         (liii string)
         (liii pi review format)
@@ -19,7 +36,6 @@
   ) ;append
 ) ;define
 
-;; pi-format-review-findings
 ;; 无问题时输出固定文案。
 (check (pi-format-review-findings '()) => "Code review complete: no issues found. Code looks clean."
 ) ;check

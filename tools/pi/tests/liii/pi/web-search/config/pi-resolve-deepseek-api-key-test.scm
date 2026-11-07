@@ -1,10 +1,33 @@
+;; pi-resolve-deepseek-api-key
+;; 解析 deepseek 联网搜索使用的 API Key。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-deepseek-api-key config opt-key . opt-env)
+;;
+;; 参数
+;; ----
+;; config : list?
+;; 会话配置 alist。
+;;
+;; opt-key : (or string? boolean?)
+;; 显式传入的 API Key。
+;;
+;; opt-env : (or list? boolean?)（可选）
+;; 环境变量 alist（测试可控）。
+;;
+;; 返回值
+;; ----
+;; (or string? #f)
+;; 生效的 API Key 字符串，未配置时返回 #f。
+
 (import (liii check)
         (liii pi web-search config)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; pi-resolve-deepseek-api-key
+;; 解析 deepseek 联网搜索使用的 API Key。
 (check (pi-resolve-deepseek-api-key '() "opt-key") => "opt-key")
 (check (pi-resolve-deepseek-api-key '() "  ") => #f) ; 空白 opt 视为未设置
 (check (pi-resolve-deepseek-api-key '((provider . "deepseek") (api-key . "cfg-key")) #f) => "cfg-key")

@@ -1,3 +1,20 @@
+;; process-file-arguments
+;; 处理命令行中的文件参数，展开目录与 @file 引用。
+;;
+;; 语法
+;; ----
+;; (process-file-arguments paths)
+;;
+;; 参数
+;; ----
+;; paths : list
+;; 文件或目录路径列表。
+;;
+;; 返回值
+;; ----
+;; list
+;; 处理后的文件内容块列表。
+
 (import (liii check)
   (liii string)
   (liii pi code cli args)

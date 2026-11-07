@@ -1,0 +1,40 @@
+;; pi-mask-key
+;; 对日志与错误摘要中的密钥做脱敏处理。
+;;
+;; 语法
+;; ----
+;; (pi-mask-key k)
+;;
+;; 参数
+;; ----
+;; k : (or string? #f)
+;; 待脱敏的密钥字符串。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 脱敏后的字符串，短密钥整体打码为 "***"。
+
+(import (liii check) (liii pi multikey pool))
+
+(check-set-mode! 'report-failed)
+
+;; 日志/错误摘要脱敏：key 仅保留前 6 个与后 4 个字符，中间以 … 代替。
+;; 短 key（<= 10 字符）整体打码为 ***。
+
+;; 1. 常规长度 key：前 6 + … + 后 4
+(check (pi-mask-key "sk-kimi-abcdefghij8ByO") => "sk-kim…8ByO")
+(check (pi-mask-key "sk-pool-alpha-0001") => "sk-poo…0001")
+
+;; 2. 边界：11 字符仍可脱敏（前 6 + ... + 后 4 有重叠语义但不泄露中间）
+(check (pi-mask-key "12345678901") => "123456…8901")
+
+;; 3. 短 key（<= 10 字符）：整体 ***
+(check (pi-mask-key "1234567890") => "***")
+(check (pi-mask-key "short") => "***")
+
+;; 4. 非字符串 / 空值兜底
+(check (pi-mask-key "") => "***")
+(check (pi-mask-key #f) => "***")
+
+(check-report)

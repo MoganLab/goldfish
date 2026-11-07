@@ -1,3 +1,20 @@
+;; pi-compaction-summary-message
+;; 将压缩摘要包装为会话消息。
+;;
+;; 语法
+;; ----
+;; (pi-compaction-summary-message summary)
+;;
+;; 参数
+;; ----
+;; summary : string
+;; 压缩摘要文本。
+;;
+;; 返回值
+;; ----
+;; message
+;; 包装后的会话消息对象。
+
 (import (liii check)
   (liii string)
   (liii pi ai message)

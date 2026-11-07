@@ -1,3 +1,20 @@
+;; pi-scan-extension-dir
+;; 扫描扩展目录，返回其中的扩展入口脚本路径。
+;;
+;; 语法
+;; ----
+;; (pi-scan-extension-dir dir)
+;;
+;; 参数
+;; ----
+;; dir : (or string path)
+;; 待扫描的扩展目录。
+;;
+;; 返回值
+;; ----
+;; list
+;; 扩展入口脚本绝对路径列表，按字典序排列。
+
 (import (liii check)
   (liii path)
   (liii os)

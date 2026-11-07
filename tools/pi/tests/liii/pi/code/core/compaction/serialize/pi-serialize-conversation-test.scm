@@ -1,3 +1,20 @@
+;; pi-serialize-conversation
+;; 将会话消息列表序列化为纯文本。
+;;
+;; 语法
+;; ----
+;; (pi-serialize-conversation msgs)
+;;
+;; 参数
+;; ----
+;; msgs : list
+;; 会话消息列表。
+;;
+;; 返回值
+;; ----
+;; string
+;; 序列化后的会话文本。
+
 (import (liii check)
   (liii string)
   (liii pi ai message)

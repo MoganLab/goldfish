@@ -1,3 +1,19 @@
+;; get-session-dir
+;; 获取当前工作目录对应的会话目录路径。
+;;
+;; 语法
+;; ----
+;; (get-session-dir)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; string
+;; 会话目录路径。
+
 (import (liii check)
   (liii os)
   (liii string)
