@@ -1,3 +1,23 @@
+;; pi-compact-session!
+;; 对会话执行一次压缩流程的端到端验证。
+;;
+;; 语法
+;; ----
+;; (pi-compact-session! session-file . opt-opts)
+;;
+;; 参数
+;; ----
+;; session-file : string
+;; 会话文件路径。
+;;
+;; opt-opts : list（可选）
+;; 压缩流程的可选参数。
+;;
+;; 返回值
+;; ----
+;; any
+;; 压缩流程的执行结果。
+
 (import (scheme process-context)
   (liii check)
   (liii string)

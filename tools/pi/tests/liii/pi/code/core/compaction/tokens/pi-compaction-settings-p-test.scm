@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-compaction-settings?
 ;; 判断对象是否为自动压缩设置 record。
 ;;
@@ -21,9 +15,13 @@
 ;; boolean
 ;; 仅对 pi-compaction-settings record 返回 #t。
 ;;
-;; 示例
-;; ----
-;; (pi-compaction-settings? '()) => #f
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core compaction tokens))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (pi-compaction-settings? (make-pi-compaction-settings #t 16384 20000)))
 (check-false (pi-compaction-settings? #f))

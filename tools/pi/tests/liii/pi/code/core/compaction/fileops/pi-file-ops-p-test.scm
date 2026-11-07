@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction fileops))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-file-ops?
 ;; 判断对象是否为文件操作分组 record。
 ;;
@@ -21,9 +15,13 @@
 ;; boolean
 ;; 仅对 pi-file-ops record 返回 #t。
 ;;
-;; 示例
-;; ----
-;; (pi-file-ops? '()) => #f
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core compaction fileops))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (pi-file-ops? (make-pi-file-ops '() '() '())))
 (check-false (pi-file-ops? #f))

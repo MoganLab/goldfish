@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii string)
-  (liii subprocess)
-  (liii pi ai message)
-  (liii pi code core compaction summary)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-generate-summary
 ;; 请求模型将会话消息压缩为摘要，并返回摘要文本及 token 用量。
 ;;
@@ -31,10 +22,16 @@
 ;; 包含 summary 和 usage 两项。模型请求失败、返回空摘要或尝试调用工具时，
 ;; 抛出 summarization-error。
 ;;
-;; 示例
-;; ----
-;; (pi-generate-summary config messages #f 30)
-;; => ((summary . "摘要文本") (usage . ...))
+
+(import (liii check)
+  (liii string)
+  (liii subprocess)
+  (liii pi ai message)
+  (liii pi code core compaction summary)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define (parse-port-line line)
   (if (and (string? line) (string-starts? line "PORT:"))

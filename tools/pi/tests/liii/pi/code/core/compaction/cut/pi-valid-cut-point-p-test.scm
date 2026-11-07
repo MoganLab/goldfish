@@ -1,3 +1,20 @@
+;; pi-valid-cut-point?
+;; 判断会话条目是否可作为压缩切分点。
+;;
+;; 语法
+;; ----
+;; (pi-valid-cut-point? entry)
+;;
+;; 参数
+;; ----
+;; entry : alist
+;; 会话条目字典。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 是可切分点时返回 #t，否则返回 #f。
+
 (import (liii check) (liii pi code core compaction))
 
 (check-set-mode! 'report-failed)
