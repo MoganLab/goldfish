@@ -1,3 +1,20 @@
+;; handle-print-result
+;; 输出 print 模式的最终结果并返回退出状态码。
+;;
+;; 语法
+;; ----
+;; (handle-print-result last-msg)
+;;
+;; 参数
+;; ----
+;; last-msg : any
+;; 最后一条响应消息，可为消息对象、alist 或 #f。
+;;
+;; 返回值
+;; ----
+;; integer
+;; 正常输出返回 0，请求失败返回 1。
+
 (import (liii check)
         (liii pi ai message) (liii pi code modes output) (liii pi code core tools)
         (liii pi code modes))
