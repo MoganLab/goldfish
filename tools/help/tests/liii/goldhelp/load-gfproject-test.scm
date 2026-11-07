@@ -1,5 +1,20 @@
+;; load-gfproject
+;; 加载 gfproject.json 工具注册表
 ;; 添加 tools/help 到 load path，以便导入 (liii goldhelp)
 ;; 注意：假设运行测试时工作目录是项目根目录
+
+;; 语法
+;; ----
+;; (load-gfproject ...)
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+;; 返回值
+;; ------
+;; 见各断言场景
+
 (set! *load-path* (cons "tools/help" *load-path*))
 
 (import (liii check)

@@ -1,7 +1,3 @@
-(import (liii check) (liii goldcode) (liii path) (liii string))
-
-(check-set-mode! 'report-failed)
-
 ;; profile-settings-path
 ;; 根据配置名生成对应的 Claude Code settings 文件路径。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; string?
 ;; 返回 ~/.claude/settings.json.<profile> 的绝对路径。
+
+(import (liii check) (liii goldcode) (liii path) (liii string))
+
+(check-set-mode! 'report-failed)
 
 (define home-dot-claude (path->string (path-join (path-home) (path ".claude"))))
 

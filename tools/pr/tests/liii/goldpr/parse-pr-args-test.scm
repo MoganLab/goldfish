@@ -1,7 +1,3 @@
-(import (liii check) (liii goldpr))
-
-(check-set-mode! 'report-failed)
-
 ;; parse-pr-args
 ;; 解析 gf pr 命令行参数，提取 PR 编号。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; string? 或 #f
 ;; 参数合法（恰好一个纯数字编号）时返回编号字符串，否则返回 #f。
+
+(import (liii check) (liii goldpr))
+
+(check-set-mode! 'report-failed)
 
 (check (parse-pr-args '("bin/gf" "pr" "933")) => "933")
 (check (parse-pr-args '("bin/gf" "pr" "1")) => "1")

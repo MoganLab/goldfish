@@ -1,7 +1,3 @@
-(import (liii check) (liii goldcode))
-
-(check-set-mode! 'report-failed)
-
 ;; parse-profile-args
 ;; 解析 gf code 命令行参数，提取 --profile / -p 指定的配置名。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; string? 或 #f
 ;; 指定了 --profile NAME 或 -p NAME 时返回 NAME，否则返回 #f。
+
+(import (liii check) (liii goldcode))
+
+(check-set-mode! 'report-failed)
 
 ;; --profile 长选项
 (check (parse-profile-args '("bin/gf" "code" "--profile" "bigmodel"))
