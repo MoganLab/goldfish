@@ -1,3 +1,26 @@
+;; append-session-state-entry!
+;; 向会话文件追加一条状态记录条目。
+;;
+;; 语法
+;; ----
+;; (append-session-state-entry! sfile type fields)
+;;
+;; 参数
+;; ----
+;; sfile : (or string path)
+;; 会话文件路径。
+;;
+;; type : string
+;; 状态记录类型。
+;;
+;; fields : list
+;; 状态记录字段列表。
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 直接向会话文件追加状态条目。
+
 (import (liii check)
   (liii path)
   (liii json)

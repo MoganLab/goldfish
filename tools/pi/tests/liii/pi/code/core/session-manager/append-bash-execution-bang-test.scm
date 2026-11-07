@@ -1,3 +1,23 @@
+;; append-bash-execution!
+;; 向会话文件追加一条 bash 执行记录。
+;;
+;; 语法
+;; ----
+;; (append-bash-execution! file-path . opt-fields)
+;;
+;; 参数
+;; ----
+;; file-path : (or string path)
+;; 会话文件路径。
+;;
+;; opt-fields : list
+;; bash 执行记录字段列表。
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 直接向会话文件追加 bash 执行条目。
+
 (import (scheme base)
         (scheme file)
         (liii check)

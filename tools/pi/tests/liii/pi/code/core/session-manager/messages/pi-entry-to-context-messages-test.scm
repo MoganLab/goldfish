@@ -1,3 +1,20 @@
+;; pi-entry-to-context-messages
+;; 将会话条目映射为上下文消息。
+;;
+;; 语法
+;; ----
+;; (pi-entry-to-context-messages entry)
+;;
+;; 参数
+;; ----
+;; entry : alist
+;; 会话条目字典。
+;;
+;; 返回值
+;; ----
+;; (or message #f)
+;; 映射后的上下文消息，非消息条目返回 #f。
+
 (import (liii check)
   (liii string)
   (liii pi ai message)

@@ -1,3 +1,20 @@
+;; pi-read-session-info
+;; 读取会话文件并解析为会话信息记录。
+;;
+;; 语法
+;; ----
+;; (pi-read-session-info file-path)
+;;
+;; 参数
+;; ----
+;; file-path : (or string path)
+;; 会话文件路径。
+;;
+;; 返回值
+;; ----
+;; (or pi-session-info #f)
+;; 会话信息记录，文件不存在或格式非法时返回 #f。
+
 (import (scheme base)
   (scheme file)
   (liii check)

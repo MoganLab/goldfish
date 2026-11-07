@@ -1,3 +1,23 @@
+;; pi-list-session-infos
+;; 列出会话目录中的全部会话信息记录。
+;;
+;; 语法
+;; ----
+;; (pi-list-session-infos session-dir . opt-recursive)
+;;
+;; 参数
+;; ----
+;; session-dir : (or string path)
+;; 会话目录。
+;;
+;; opt-recursive : boolean（可选）
+;; 是否递归扫描子目录，缺省为 #f。
+;;
+;; 返回值
+;; ----
+;; list
+;; 按修改时间倒序排列的会话信息记录列表。
+
 (import (scheme base)
   (scheme file)
   (liii check)

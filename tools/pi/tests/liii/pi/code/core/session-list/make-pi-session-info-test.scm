@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
-
-(check-set-mode! 'report-failed)
-
 ;; make-pi-session-info
 ;; 构造会话选择器使用的会话摘要 record。
 ;;
@@ -34,11 +28,13 @@
 ;; pi-session-info
 ;; 字段可通过对应访问器读取的会话摘要 record。
 ;;
-;; 示例
-;; ----
-;; (pi-session-info-id
-;;   (make-pi-session-info "s.jsonl" "id-1" "/work" #f "c" "m" 0 "" ""))
-;; => "id-1"
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-list))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
               "Demo" "2026-10-20T08:00:00.000Z" "2026-10-20T08:00:02.000Z"

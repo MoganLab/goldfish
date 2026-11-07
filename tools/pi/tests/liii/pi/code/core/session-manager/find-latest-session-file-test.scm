@@ -1,3 +1,20 @@
+;; find-latest-session-file
+;; 查找会话目录中最近修改的会话文件。
+;;
+;; 语法
+;; ----
+;; (find-latest-session-file session-dir)
+;;
+;; 参数
+;; ----
+;; session-dir : (or string path)
+;; 会话目录。
+;;
+;; 返回值
+;; ----
+;; (or string #f)
+;; 最近修改的会话文件路径，目录为空时返回 #f。
+
 (import (liii check)
   (liii path)
   (liii pi code core session-manager)
