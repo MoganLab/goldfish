@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-info-id
 ;; 返回会话摘要中的会话标识。
 ;;
@@ -21,9 +15,13 @@
 ;; string
 ;; 会话标识。
 ;;
-;; 示例
-;; ----
-;; (pi-session-info-id info) => "session-1"
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-list))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
               #f "created" "modified" 0 "(no messages)" "")))

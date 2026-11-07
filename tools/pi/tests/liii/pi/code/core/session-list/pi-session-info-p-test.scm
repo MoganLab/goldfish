@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-info?
 ;; 判断对象是否为会话摘要 record。
 ;;
@@ -21,9 +15,13 @@
 ;; boolean
 ;; 仅对 pi-session-info record 返回 #t。
 ;;
-;; 示例
-;; ----
-;; (pi-session-info? '()) => #f
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-list))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
               #f "created" "modified" 0 "(no messages)" "")))

@@ -1,3 +1,23 @@
+;; pi-session-info-newer?
+;; 判断一个会话信息记录是否比另一个更新。
+;;
+;; 语法
+;; ----
+;; (pi-session-info-newer? a b)
+;;
+;; 参数
+;; ----
+;; a : pi-session-info
+;; 会话信息记录。
+;;
+;; b : pi-session-info
+;; 会话信息记录。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; a 更新时返回 #t，否则返回 #f。
+
 (import (scheme base)
   (liii check)
   (liii pi code core session-list)

@@ -1,3 +1,23 @@
+;; resolve-resume-session-file
+;; 解析需要恢复的会话文件路径。
+;;
+;; 语法
+;; ----
+;; (resolve-resume-session-file parsed sdir)
+;;
+;; 参数
+;; ----
+;; parsed : list?
+;; 命令行解析后的参数 alist。
+;;
+;; sdir : (or string path)
+;; 会话目录。
+;;
+;; 返回值
+;; ----
+;; (or string #f)
+;; 需要恢复的会话文件路径，新会话时返回 #f。
+
 (import (scheme base)
   (liii check)
   (liii path)

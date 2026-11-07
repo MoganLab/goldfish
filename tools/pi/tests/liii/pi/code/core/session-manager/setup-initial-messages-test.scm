@@ -1,3 +1,23 @@
+;; setup-initial-messages
+;; 将会话初始消息写入会话文件。
+;;
+;; 语法
+;; ----
+;; (setup-initial-messages file-path . opt-msgs)
+;;
+;; 参数
+;; ----
+;; file-path : (or string path)
+;; 会话文件路径。
+;;
+;; opt-msgs : list
+;; 会话初始消息列表。
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 直接向会话文件写入初始消息条目。
+
 (import (scheme base)
   (liii check)
   (liii path)

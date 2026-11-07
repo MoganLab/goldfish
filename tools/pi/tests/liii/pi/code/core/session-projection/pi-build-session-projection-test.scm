@@ -1,19 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii shutil)
-  (liii string)
-  (liii list)
-  (liii json)
-  (srfi srfi-13)
-  (liii pi ai message)
-  (liii pi code core session-manager)
-  (liii pi code core session-projection)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-build-session-projection
 ;; 投影入口：组装 1201-1203 的三级能力，返回消息列表、状态与诊断。
 ;;
@@ -35,6 +19,23 @@
 ;;   thinkingLevel / thinkingLevelEntryId / model / modelEntryId（见 1209）
 ;; diagnostics : alist，键为 path-reason / trim-reason / skipped-unknown-types，
 ;;   值为 #f（无异常）或诊断信息（skipped-unknown-types 为条目类型列表）
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii shutil)
+  (liii string)
+  (liii list)
+  (liii json)
+  (srfi srfi-13)
+  (liii pi ai message)
+  (liii pi code core session-manager)
+  (liii pi code core session-projection)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 ;; 建一个 user message 条目：parentId 为字符串或 'null
 

@@ -1,3 +1,19 @@
+;; get-sessions-root
+;; 获取会话根目录路径。
+;;
+;; 语法
+;; ----
+;; (get-sessions-root)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; string
+;; 会话根目录路径。
+
 (import (scheme base)
   (liii check)
   (liii os)

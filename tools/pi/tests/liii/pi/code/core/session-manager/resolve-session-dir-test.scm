@@ -1,3 +1,23 @@
+;; resolve-session-dir
+;; 解析当前会话使用的会话目录。
+;;
+;; 语法
+;; ----
+;; (resolve-session-dir parsed . opt-cfg)
+;;
+;; 参数
+;; ----
+;; parsed : list?
+;; 命令行解析后的参数 alist。
+;;
+;; opt-cfg : list（可选）
+;; Agent 配置 alist。
+;;
+;; 返回值
+;; ----
+;; string
+;; 会话目录路径。
+
 (import (scheme base)
         (scheme file)
         (liii check)

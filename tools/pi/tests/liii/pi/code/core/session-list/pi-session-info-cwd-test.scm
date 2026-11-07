@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-info-cwd
 ;; 返回会话记录的工作目录。
 ;;
@@ -21,9 +15,13 @@
 ;; string
 ;; 工作目录路径。
 ;;
-;; 示例
-;; ----
-;; (pi-session-info-cwd info) => "/tmp/project"
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-list))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
               #f "created" "modified" 0 "(no messages)" "")))
