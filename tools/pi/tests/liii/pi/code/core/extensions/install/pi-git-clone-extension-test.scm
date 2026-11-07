@@ -1,4 +1,28 @@
+;; pi-git-clone-extension
+;; 将 Git 仓库克隆到扩展目录。
+;;
+;; 语法
+;; ----
+;; (pi-git-clone-extension url dest-dir-str . opts)
+;;
+;; 参数
+;; ----
+;; url : string
+;; Git 仓库地址。
+;;
+;; dest-dir-str : string
+;; 克隆目标目录。
+;;
+;; opts : list?
+;; 可选关键字参数，支持 :timeout 等。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 克隆成功返回 #t。
+
 (import (scheme base)
+        (liii check)
   (liii check)
   (liii path)
   (liii os)

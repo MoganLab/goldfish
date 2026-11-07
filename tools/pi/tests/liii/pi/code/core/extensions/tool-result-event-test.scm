@@ -1,4 +1,28 @@
+;; tool-result-event
+;; 验证工具执行结果事件的派发行为。
+;;
+;; 语法
+;; ----
+;; (pi-emit! target event-type payload)
+;;
+;; 参数
+;; ----
+;; target : (or extension-registry extension-api extension-context)
+;; 事件所属的扩展对象。
+;;
+;; event-type : (or symbol string)
+;; 事件名称。
+;;
+;; payload : any
+;; 传给监听器的数据。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 action 与 payload 字段的事件派发结果。
+
 (import (scheme base)
+        (liii check)
   (liii check)
   (liii pi code core extensions)
   (liii pi agent tools)
