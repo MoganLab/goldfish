@@ -223,8 +223,19 @@
 
     (define range=?
       (case-lambda
-       ((equal ra rb) (%range=?-2 equal ra rb))
+       ((equal ra rb)
+        (unless (procedure? equal)
+          (type-error "range=?: equal must be a procedure, got ~S" equal)
+        ) ;unless
+        (%check-range "range=?" ra)
+        (%check-range "range=?" rb)
+        (%range=?-2 equal ra rb)
+       ) ;
        ((equal . rs)
+        (unless (procedure? equal)
+          (type-error "range=?: equal must be a procedure, got ~S" equal)
+        ) ;unless
+        (for-each (lambda (r) (%check-range "range=?" r)) rs)
         (let ((ra (car rs)))
           (every (lambda (rb) (%range=?-2 equal ra rb)) (cdr rs))
         ) ;let
