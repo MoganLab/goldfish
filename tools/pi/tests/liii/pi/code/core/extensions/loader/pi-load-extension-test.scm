@@ -1,3 +1,26 @@
+;; pi-load-extension
+;; 加载单个扩展脚本并返回加载结果。
+;;
+;; 语法
+;; ----
+;; (pi-load-extension path-or-entry api . opt-context)
+;;
+;; 参数
+;; ----
+;; path-or-entry : (or string path)
+;; 扩展脚本路径。
+;;
+;; api : (or extension-api extension-registry)
+;; 扩展宿主 API 或注册表记录。
+;;
+;; opt-context : extension-context（可选）
+;; 传给扩展工厂的上下文。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 status、path 与 value 或 error 字段的加载结果。
+
 (import (liii check)
   (liii pi code core extensions)
 ) ;import

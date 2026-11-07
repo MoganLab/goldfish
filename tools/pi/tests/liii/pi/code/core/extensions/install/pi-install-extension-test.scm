@@ -1,4 +1,25 @@
+;; pi-install-extension
+;; 从 Git 仓库地址安装扩展到扩展目录。
+;;
+;; 语法
+;; ----
+;; (pi-install-extension url . opts)
+;;
+;; 参数
+;; ----
+;; url : string
+;; Git 仓库地址。
+;;
+;; opts : list?
+;; 可选关键字参数，支持 :local?、:agent-dir、:cwd、:timeout 等。
+;;
+;; 返回值
+;; ----
+;; string
+;; 安装后的扩展目录绝对路径。
+
 (import (scheme base)
+        (liii check)
   (liii check)
   (liii path)
   (liii os)
