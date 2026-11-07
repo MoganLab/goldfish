@@ -28,6 +28,6 @@
 (check (pi-load-session-state '((no-session . #t)) '()) => #f)
 
 ;; 2. 无恢复来源时返回 #f
-(check (pi-load-session-state '() '()) => #f)
+(check (pi-load-session-state '() '((agent-dir . "/tmp/pi-agent-load-state"))) => #f)
 
 (check-report)

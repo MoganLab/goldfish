@@ -29,7 +29,7 @@
 (when (path-exists? tmp-file) (path-unlink tmp-file))
 
 ;; 1. 文件不存在时返回 #f
-(check (pi-session-state-of tmp-file) => #f)
+(check (pi-session-state-of (path->string tmp-file)) => #f)
 (check (pi-session-state-of #f) => #f)
 
 ;; 2. 读取只含头部条目的会话（无状态条目）
@@ -37,7 +37,7 @@
   tmp-file
   "{\"type\":\"session\",\"version\":3,\"id\":\"sid\"}\n"
 ) ;path-write-text
-(check (pi-session-state-of tmp-file) => #f)
+(check (pi-session-state-of (path->string tmp-file)) => #f)
 
 (when (path-exists? tmp-file) (path-unlink tmp-file))
 
