@@ -20,7 +20,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 r 不是 range，或 index 不是精确整数时抛出。
+;; - value-error：当 index 为负或超出 range 长度时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -56,6 +57,23 @@
     (check (range-ref left 9) => 9)
   ) ;let-values
 ) ;let
+
+;; index 不是精确整数时抛出 type-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'type-error (range-split-at r 'a))
+  (check-catch 'type-error (range-split-at r "4"))
+  (check-catch 'type-error (range-split-at r 1.5))
+) ;let
+
+;; index 为负或超出 range 长度时抛出 value-error
+(let ((r (numeric-range 0 10)))
+  (check-catch 'value-error (range-split-at r -1))
+  (check-catch 'value-error (range-split-at r 11))
+) ;let
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range-split-at 42 1))
+(check-catch 'type-error (range-split-at "r" 1))
 
 
 (check-report)

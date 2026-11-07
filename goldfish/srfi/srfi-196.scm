@@ -254,6 +254,14 @@
     ;; ; Iteration
 
     (define (range-split-at r index)
+      (%check-range "range-split-at" r)
+      (%check-index "range-split-at" index)
+      (unless (<= index (range-length r))
+        (value-error "range-split-at: index out of range, index ~S, range-length ~S"
+          index
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (cond ((= index 0) (values (%empty-range-from r) r))
             ((= index (range-length r)) (values r (%empty-range-from r)))
             (else
@@ -267,6 +275,18 @@
     ) ;define
 
     (define (subrange r start end)
+      (%check-range "subrange" r)
+      (%check-index "subrange" start)
+      (%check-index "subrange" end)
+      (unless (<= start end)
+        (value-error "subrange: start must not exceed end, start ~S, end ~S" start end)
+      ) ;unless
+      (unless (<= end (range-length r))
+        (value-error "subrange: end out of range, end ~S, range-length ~S"
+          end
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (if (and (zero? start) (= end (range-length r)))
         r
         (raw-range (+ (range-start-index r) start)
@@ -278,6 +298,11 @@
     ) ;define
 
     (define (range-segment r k)
+      (%check-range "range-segment" r)
+      (%check-index "range-segment" k)
+      (unless (> k 0)
+        (value-error "range-segment: segment size must be positive, got ~S" k)
+      ) ;unless
       (let ((len (range-length r))
             (%subrange-no-check
               (lambda (s e)
@@ -300,6 +325,14 @@
     ) ;define
 
     (define (range-take r count)
+      (%check-range "range-take" r)
+      (%check-index "range-take" count)
+      (unless (<= count (range-length r))
+        (value-error "range-take: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (cond ((zero? count) (%empty-range-from r))
             ((= count (range-length r)) r)
             (else (raw-range (range-start-index r) count (range-indexer r) (range-complexity r))
@@ -308,6 +341,14 @@
     ) ;define
 
     (define (range-take-right r count)
+      (%check-range "range-take-right" r)
+      (%check-index "range-take-right" count)
+      (unless (<= count (range-length r))
+        (value-error "range-take-right: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (cond ((zero? count) (%empty-range-from r))
             ((= count (range-length r)) r)
             (else
@@ -321,6 +362,14 @@
     ) ;define
 
     (define (range-drop r count)
+      (%check-range "range-drop" r)
+      (%check-index "range-drop" count)
+      (unless (<= count (range-length r))
+        (value-error "range-drop: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (if (zero? count)
         r
         (raw-range (+ (range-start-index r) count)
@@ -332,6 +381,14 @@
     ) ;define
 
     (define (range-drop-right r count)
+      (%check-range "range-drop-right" r)
+      (%check-index "range-drop-right" count)
+      (unless (<= count (range-length r))
+        (value-error "range-drop-right: count out of range, count ~S, range-length ~S"
+          count
+          (range-length r)
+        ) ;value-error
+      ) ;unless
       (if (zero? count)
         r
         (raw-range (range-start-index r)
