@@ -17,7 +17,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; - type-error：当 r 不是 range 时抛出。
 
 (import (liii check) (srfi srfi-196))
 
@@ -46,5 +46,11 @@
   (check (range->vector r) => #(a b c d e))
 ) ;let
 
+
+
+;; r 不是 range 时抛出 type-error
+(check-catch 'type-error (range->vector 42))
+(check-catch 'type-error (range->vector "not-a-range"))
+(check-catch 'type-error (range->vector '(0 1 2)))
 
 (check-report)

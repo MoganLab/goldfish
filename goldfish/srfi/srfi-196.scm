@@ -650,10 +650,12 @@
     ;; ; Conversion
 
     (define (range->list r)
+      (%check-range "range->list" r)
       (range-fold-right cons '() r)
     ) ;define
 
     (define (range->vector r)
+      (%check-range "range->vector" r)
       (let ((len (range-length r)))
         (let ((vec (make-vector len)))
           (let lp
@@ -667,6 +669,7 @@
     ) ;define
 
     (define (range->string r)
+      (%check-range "range->string" r)
       (let ((res (make-string (range-length r))))
         (range-fold (lambda (i c) (string-set! res i c) (+ i 1)) 0 r)
         res
@@ -678,6 +681,7 @@
     ) ;define
 
     (define (range->generator r)
+      (%check-range "range->generator" r)
       (let ((i 0) (len (range-length r)))
         (lambda ()
           (if (>= i len)
