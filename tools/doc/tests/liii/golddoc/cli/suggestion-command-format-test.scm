@@ -1,5 +1,18 @@
 ;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
+
+;; 语法
+;; ----
+;; (suggestion-command-format ...)
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+;; 返回值
+;; ------
+;; 见各断言场景
+
 (set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii check) (liii os) (liii path) (liii string) (liii sys))

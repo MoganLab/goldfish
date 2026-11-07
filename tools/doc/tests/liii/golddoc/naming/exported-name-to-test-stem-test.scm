@@ -1,5 +1,18 @@
 ;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
+
+;; 语法
+;; ----
+;; (exported-name-to-test-stem name)
+
+;; 参数
+;; ----
+;; name : string?，导出函数名
+
+;; 返回值
+;; ------
+;; string?，对应测试文件名词干
+
 (set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii check) (liii golddoc))

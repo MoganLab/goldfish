@@ -1,5 +1,20 @@
+;; parse-doc-args
+;; 解析 gf doc 命令行参数，区分库查询与函数查询
 ;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
+
+;; 语法
+;; ----
+;; (parse-doc-args args)
+
+;; 参数
+;; ----
+;; args : list?，完整命令行参数列表
+
+;; 返回值
+;; ------
+;; list?，'(library query) 等结构
+
 (set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii check) (liii golddoc))

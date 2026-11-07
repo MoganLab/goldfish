@@ -1,5 +1,18 @@
 ;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
+
+;; 语法
+;; ----
+;; (bounded-levenshtein-distance s t max)
+
+;; 参数
+;; ----
+;; s, t : string?，待比较串；max : integer?，编辑距离上限
+
+;; 返回值
+;; ------
+;; integer? 或 #f，未超限返回距离，超限返回 #f
+
 (set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii check) (liii golddoc))
