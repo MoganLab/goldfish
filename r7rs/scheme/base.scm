@@ -43,6 +43,7 @@
     abs
     ;; - 数值函数
     square
+    expt
     exact
     inexact
     max

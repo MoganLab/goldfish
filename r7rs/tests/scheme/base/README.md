@@ -66,6 +66,7 @@ gf doc scheme/base "函数名"
 - `number->string` - 数字转字符串
 - `string->number` - 字符串转数字
 - `square` - 平方
+- `expt` - 幂运算
 - `floor-quotient` - 向下取整的商
 - `floor-remainder` - 向下取整的余数
 - `floor/` - 向下取整除法（返回商和余数）
