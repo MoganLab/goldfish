@@ -1,3 +1,20 @@
+;; pi-edited-files-from-tool-calls
+;; 从工具调用列表中提取由 write 或 edit 修改的文件路径与语言信息。
+;;
+;; 语法
+;; ----
+;; (pi-edited-files-from-tool-calls calls)
+;;
+;; 参数
+;; ----
+;; calls : list?
+;; 工具调用字典列表。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 去重后的变更文件信息字典列表。
+
 (import (liii check)
         (liii pi ai message)
         (liii pi review auto)
@@ -5,7 +22,6 @@
 
 (check-set-mode! 'report-failed)
 
-;; pi-edited-files-from-tool-calls
 ;; 只提取 write/edit 的 path，忽略其它工具；重复路径去重。
 (define (tool-call name args)
   (list (cons "type" "toolCall")

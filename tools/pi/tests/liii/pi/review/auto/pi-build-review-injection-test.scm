@@ -1,3 +1,20 @@
+;; pi-build-review-injection
+;; 构建自动审查注入文本块，提示模型检查修改过的文件。
+;;
+;; 语法
+;; ----
+;; (pi-build-review-injection files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 变更文件信息列表。
+;;
+;; 返回值
+;; ----
+;; string? 或 #f
+;; 若存在修改文件返回组装好的提示词注入块，否则返回 #f。
+
 (import (liii check)
         (liii string)
         (liii pi review auto)
@@ -9,7 +26,6 @@
   (list (cons 'path path) (cons 'language lang))
 ) ;define
 
-;; pi-build-review-injection
 ;; 空编辑列表不注入。
 (check (pi-build-review-injection '()) => #f)
 

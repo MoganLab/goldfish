@@ -1,3 +1,20 @@
+;; pi-build-review-prompt
+;; 构建结构化代码审查提示词，包含 JSON 输出契约与语言规则清单。
+;;
+;; 语法
+;; ----
+;; (pi-build-review-prompt files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 待审查文件记录列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 组装好的结构化审查提示词文本。
+
 (import (liii check)
         (liii string)
         (liii pi review prompt)
@@ -9,7 +26,6 @@
   (list (cons 'path path) (cons 'language lang) (cons 'content content))
 ) ;define
 
-;; pi-build-review-prompt
 ;; 含 JSON 结构化输出契约、严重级说明、空 findings 约定、分语言清单与文件列表。
 (let* ((files (list (file-entry "src/app.ts" "typescript" "const x = 1;")
                     (file-entry "notes.txt" #f "hello")
