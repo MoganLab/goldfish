@@ -307,22 +307,21 @@
     ) ;define
 
     ;; 解析结果缓存：同一文件的库结构会被重导出检查反复解析，
-    ;; 命中缓存可避免重复读文件。
-    (define *struct-cache* #f)
+    ;; 命中缓存可避免重复读文件。用 assoc-list 而非 hash-table：
+    ;; 库结构中不含 #f 元素，assoc+string=? 查重不会歧义，且 assoc-list
+    ;; 是纯 pair 结构，对 worker 会话序列化安全。
+    (define *struct-cache* '())
 
     (define (parse-library-structure source-path)
-      (if (not *struct-cache*)
-        (set! *struct-cache*
-          (make-hash-table (make-comparator string? string=? #f string-hash))
-        ) ;set!
-      ) ;if
-      (hash-table-ref/default *struct-cache*
-        source-path
-        (let ((struct (%parse-structure-uncached source-path)))
-          (hash-table-set! *struct-cache* source-path struct)
-          struct
-        ) ;let
-      ) ;hash-table-ref/default
+      (let ((hit (assoc source-path *struct-cache* string=?)))
+        (if hit
+          (cdr hit)
+          (let ((struct (%parse-structure-uncached source-path)))
+            (set! *struct-cache* (cons (cons source-path struct) *struct-cache*))
+            struct
+          ) ;let
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (lib-spec->relative-source-path spec)
