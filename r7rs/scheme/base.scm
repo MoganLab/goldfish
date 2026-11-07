@@ -639,48 +639,131 @@
       (apply throw #t args)
     ) ;define
 
+    ;; guard 的卫生基础设施（Issue 1341）。
+    ;;
+    ;; 旧 define-macro 实现的展开产物里含裸的 cond/else/apply/throw，会被使用点
+    ;; 同名局部绑定遮蔽（如 (guard (cond ...) ...) 直接崩溃）。本层把 guard 的
+    ;; 全部运行时机制封装进以下闭包：自由标识符在本库定义环境中解析，
+    ;; 对使用点遮蔽免疫；宏展开产物只嵌入对这些闭包的过程对象引用，
+    ;; 不携带任何裸的特殊形式或过程名。
+    ;;
+    ;; 异常协议：body 正常 → 值原样透传（含多值）；异常 → 打包为
+    ;; (list %guard-tag args)，作为唯一返回值与正常路径区分。
+
+    (define %guard-tag (list 'guard 'tag))
+
+    ;; 执行 body：异常时打包标记。S7 会复用/改写 catch handler 的参数列表，
+    ;; 且内层 payload 列表与异常结构共享（跨求值步骤会被改写为循环结构），
+    ;; 故逐层拷贝两层结构。
+    (define (%guard-try body-thunk)
+      (catch #t
+        body-thunk
+        (lambda args
+          (list %guard-tag
+            (map (lambda (x) (if (pair? x) (list-copy x) x)) (list-copy args))
+          ) ;list
+        ) ;lambda
+      ) ;catch
+    ) ;define
+
+    ;; 消费 %guard-try 结果：正常 → 原样透传；打包值 → 交 dispatch 分发，
+    ;; 其返回值为 guard 表达式的值；dispatch 未匹配时应重新抛出原异常。
+    (define (%guard-run body-thunk dispatch)
+      (call-with-values (lambda () (%guard-try body-thunk))
+        (lambda vals
+          (if (and (pair? vals)
+                (null? (cdr vals))
+                (pair? (car vals))
+                (eq? (caar vals) %guard-tag)
+              ) ;and
+            (dispatch (cadr (car vals)))
+            (apply values vals)
+          ) ;if
+        ) ;lambda
+      ) ;call-with-values
+    ) ;define
+
+    ;; 从打包的异常参数中提取条件值：caught-args 形如 (tag (payload ...))，
+    ;; guard 变量绑定到首个 payload（raise 'b → b；error 'k "m" 42 → "m"）。
+    (define (%guard-condition caught-args)
+      (if (and (pair? caught-args) (pair? (cdr caught-args)) (pair? (cadr caught-args)))
+        (car (cadr caught-args))
+        (if (pair? caught-args) (car caught-args) caught-args)
+      ) ;if
+    ) ;define
+
+    ;; 恢复并重新抛出打包的异常参数（re-raise 语义）。
+    ;; caught-args 形如 (tag (payload ...))，还原为原始 (throw tag payload ...)。
+    (define (%guard-reraise caught-args)
+      (apply throw (car caught-args) (cadr caught-args))
+    ) ;define
+
+    ;; 按序驱动子句链：clauses 是扁平列表 (test1 handler1 test2 handler2 ...)，
+    ;; test 是 (lambda (var) ...)，var 为条件值；test 求值 #f 则链下一子句；
+    ;; test 非假时把 test 值与异常参数一并传给 handler（=> 子句用 test 值，
+    ;; 普通子句忽略）；链尾 reraise。
+    ;; 全部控制流（if/apply/throw）在本闭包内，免疫使用点遮蔽。
+    (define (%guard-dispatch caught-args clauses)
+      (if (null? clauses)
+        (%guard-reraise caught-args)
+        (let ((t ((car clauses) (%guard-condition caught-args))))
+          (if t
+           ((cadr clauses) caught-args t)
+           (%guard-dispatch caught-args (cddr clauses))
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
     (define-macro (guard results . body)
       (unless (and (pair? results) (symbol? (car results)))
         (error 'syntax-error "guard: malformed results specification" results)
       ) ;unless
       (let* ((var (car results))
              (clauses (cdr results))
-             (has-else?
-               (let loop
-                 ((cls clauses))
-                 (cond ((null? cls) #f)
-                       ((and (pair? (car cls)) (eq? (caar cls) 'else)) #t)
-                       (else (loop (cdr cls)))
-                 ) ;cond
-               ) ;let
-             ) ;has-else?
-             (tag (gensym "guard-tag-"))
-             (vals (gensym "guard-vals-"))
-             (type (gensym "guard-type-"))
-             (info (gensym "guard-info-"))
+             (dispatcher %guard-dispatch)
+             (runner %guard-run)
             ) ;
-        ;; 正常路径的值原样透传；异常被打包为 (tag type . info) 的单元素列表以区分。
-        ;; handler 内必须 list-copy info：S7 会复用 handler 的参数列表，跨求值步骤持有引用会被改写
-        `(call-with-values (lambda ,()
-                             (catch #t
-                               (lambda ,() ,@body)
-                               (lambda (,type ,info)
-                                 (cons (quote ,tag)
-                                   (cons ,type (list-copy ,info))))))
-           (lambda ,vals
-             (if (and (pair? ,vals)
-                   (null? (cdr ,vals))
-                   (pair? (car ,vals))
-                   (eq? (caar ,vals) (quote ,tag)))
-               (let ((,type (cadr (car ,vals))) (,info (cddr (car ,vals))))
-                 (let ((,var (if (pair? ,info) (car ,info) ,info)))
-                   (cond ,@clauses
-                         ,@(if has-else?
-                             '()
-                             `((else (apply throw ,type ,info)))))))
-               (if (and (pair? ,vals) (null? (cdr ,vals)))
-                 (car ,vals)
-                 (apply values ,vals)))))
+        ;; 每个子句编译为 (test-lambda handler-lambda) 两元素，全部子句拼成
+        ;; 扁平列表 (list t1 h1 t2 h2 ...)。特殊形式（=> / else）在编译期
+        ;; 归一化：else → 测试恒真；=> → handler 内调用 receiver。
+        ;; 闭包体内只引用宏改名的 var 与用户表达式，控制流全部交给 dispatcher。
+        (define (compile-one-clause clause)
+          (cond
+           ((eq? (car clause) 'else)
+            (list
+              `(lambda (,var) #t)
+              `(lambda (caught-args t)
+                 ((lambda (,var) ,@(cdr clause))
+                  (,%guard-condition caught-args)))
+            ) ;list
+           ) ;
+           ((and (pair? (cdr clause)) (eq? (cadr clause) '=>))
+            (list
+              `(lambda (,var) ,(car clause))
+              `(lambda (caught-args t)
+                 ((lambda (,var) (,(caddr clause) t))
+                  (,%guard-condition caught-args)))
+            ) ;list
+           ) ;
+           (else
+             (list
+               `(lambda (,var) ,(car clause))
+               `(lambda (caught-args t)
+                  ((lambda (,var) (begin ,@(cdr clause)))
+                   (,%guard-condition caught-args)))
+             ) ;list
+           ) ;else
+          ) ;cond
+        ) ;define
+        (define (compile-clauses cls)
+          (if (null? cls) ''() `(list ,@(apply append
+                                          (map compile-one-clause cls))))
+        ) ;define
+        `(,runner
+          (lambda ,() ,@body)
+          (lambda (caught-args)
+            (,dispatcher caught-args ,(compile-clauses clauses))))
       ) ;let*
     ) ;define-macro
 
