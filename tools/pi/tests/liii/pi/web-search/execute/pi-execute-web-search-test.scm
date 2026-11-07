@@ -1,3 +1,23 @@
+;; pi-execute-web-search
+;; 执行联网搜索工具调用，校验参数、鉴权并返回搜索结果。
+;;
+;; 语法
+;; ----
+;; (pi-execute-web-search args . opts)
+;;
+;; 参数
+;; ----
+;; args : list?
+;; web_search 工具参数 alist。
+;;
+;; opts : list?
+;; 可选关键字参数，支持 :api-key、:provider、:config 等。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含 text、content 与 sources 字段的搜索结果 alist。
+
 (import (scheme base)
         (scheme process-context)
         (liii check)

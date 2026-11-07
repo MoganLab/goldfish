@@ -1,8 +1,24 @@
+;; pi-validate-web-search-args
+;; 校验 web_search 工具参数的合法性与取值范围。
+;;
+;; 语法
+;; ----
+;; (pi-validate-web-search-args args)
+;;
+;; 参数
+;; ----
+;; args : list?
+;; web_search 工具参数 alist。
+;;
+;; 返回值
+;; ----
+;; boolean?
+;; 参数合法时返回 #t。
+
 (import (liii check) (liii list) (liii pi web-search schema))
 
 (check-set-mode! 'report-failed)
 
-;; pi-validate-web-search-args
 ;; 校验 web_search 工具参数：query 必填非空字符串，urls 可选字符串列表且最多 20 项。
 
 ;; 合法参数

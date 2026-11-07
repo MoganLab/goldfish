@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii pi web-search config))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-resolve-search-proxy-url
 ;; 解析用于 web_search 联网搜索的 HTTP/HTTPS 代理 URL。
 ;;
@@ -34,8 +30,9 @@
 ;; (or string? #f)
 ;; 生效的代理 URL 字符串（如 "http://127.0.0.1:7890"）；若无需代理或无配置则返回 #f。
 ;;
-;; 决策优先级
+;; 说明
 ;; ----
+;; 决策优先级：
 ;; 1. 显式 opt-proxy 字符串
 ;; 2. web-search.json 中的 httpProxy / proxy 字段
 ;; 3. 会话自身配置（若未显式指定 provider 且会话带 proxy-url，或会话 provider 与搜索一致）
@@ -46,14 +43,10 @@
 ;; 6. 环境变量 ALL_PROXY
 ;; 7. 全局 settings.json 中的 httpProxy
 ;; 8. 直连（返回 #f）
-;;
-;; 示例
-;; ----
-;; (pi-resolve-search-proxy-url '() "http://127.0.0.1:7890")
-;; ;=> "http://127.0.0.1:7890"
-;;
-;; (pi-resolve-search-proxy-url '() #f '(("httpProxy" . "http://127.0.0.1:7890")))
-;; ;=> "http://127.0.0.1:7890"
+
+(import (liii check) (liii path) (liii pi web-search proxy))
+
+(check-set-mode! 'report-failed)
 
 (let* ((empty-dir (path-join (path-temp-dir) "pi-web-search-empty-dir"))
        (clean-env `(("HTTPS_PROXY" . "")
