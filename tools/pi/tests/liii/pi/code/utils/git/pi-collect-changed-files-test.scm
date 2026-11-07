@@ -1,11 +1,27 @@
+;; pi-collect-changed-files
+;; 收集 git 变更文件列表，支持注入 runner 避免单测依赖真实仓库状态。
+;;
+;; 语法
+;; ----
+;; (pi-collect-changed-files . opts)
+;;
+;; 参数
+;; ----
+;; opts : list?
+;; 关键字参数，支持 :ref :staged :files :runner :timeout :max-files 等。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含 entries、paths、total、source 等字段的 alist。
+
 (import (liii check)
         (liii string)
-        (liii pi review files)
+        (liii pi code utils git)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; pi-collect-changed-files
 ;; 用注入的 runner 模拟 git 命令，避免单测依赖真实仓库状态。
 
 (define (make-runner table calls-box)
