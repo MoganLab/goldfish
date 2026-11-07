@@ -15,9 +15,7 @@
 ;; any
 ;; 最后一条消息，空列表返回 #f。
 
-(import (liii check)
-  (liii pi code modes output)
-) ;import
+(import (liii check) (liii pi code modes output))
 
 (check-set-mode! 'report-failed)
 
@@ -27,6 +25,6 @@
 ;; 2. 返回最后一条消息
 (let ((msgs (list "first" "middle" "last")))
   (check (pi-last-message msgs) => "last")
-) ;let*
+) ;let
 
 (check-report)

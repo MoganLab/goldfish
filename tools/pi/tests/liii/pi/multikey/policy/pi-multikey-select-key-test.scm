@@ -18,7 +18,11 @@
 ;; (or pi-pool-key? #f)
 ;; 选中的密钥记录，全部冷却时返回 #f。
 
-(import (liii check) (liii pi multikey pool) (liii pi multikey load) (liii pi multikey policy))
+(import (liii check)
+  (liii pi multikey pool)
+  (liii pi multikey load)
+  (liii pi multikey policy)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -61,7 +65,8 @@
   (pi-multikey-select-key pool now)
   (pi-multikey-mark-cooldown! alpha 429 now pool)
   (let ((sel1 (pi-multikey-select-key pool now))
-        (sel2 (pi-multikey-select-key pool (+ now 1))))
+        (sel2 (pi-multikey-select-key pool (+ now 1)))
+       ) ;
     (check (pi-pool-key-key sel1) => "sk-pool-beta-00002")
     (check (pi-pool-key-key sel2) => "sk-pool-beta-00002")
   ) ;let

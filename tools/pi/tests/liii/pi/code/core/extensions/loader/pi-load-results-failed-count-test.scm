@@ -16,14 +16,17 @@
 ;; 加载失败的扩展数量，报告缺字段时返回 0。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions loader)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions loader)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(check (pi-load-results-failed-count '((total . 3) (success . 2) (failed . 1))) => 1)
+(check (pi-load-results-failed-count '((total . 3) (success . 2) (failed . 1)))
+  =>
+  1
+) ;check
 (check (pi-load-results-failed-count '((total . 3))) => 0)
 (check (pi-load-results-failed-count '()) => 0)
 

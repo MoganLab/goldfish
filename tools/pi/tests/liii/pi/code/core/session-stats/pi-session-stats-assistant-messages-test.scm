@@ -16,14 +16,24 @@
 ;; role 为 assistant 的消息数量。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(let ((stats (make-pi-session-stats #f #f #f 2 0 2 0 0
-               (make-pi-session-token-stats 0 0 0 0) 0)))
-  (check (pi-session-stats-assistant-messages stats) => 2))
+(let ((stats (make-pi-session-stats #f
+               #f
+               #f
+               2
+               0
+               2
+               0
+               0
+               (make-pi-session-token-stats 0 0 0 0)
+               0
+             ) ;make-pi-session-stats
+      ) ;stats
+     ) ;
+  (check (pi-session-stats-assistant-messages stats) => 2)
+) ;let
 
 (check-report)

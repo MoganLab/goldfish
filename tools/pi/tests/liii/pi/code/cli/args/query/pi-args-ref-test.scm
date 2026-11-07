@@ -21,9 +21,7 @@
 ;; any
 ;; 键对应的取值。
 
-(import (liii check)
-  (liii pi code cli args query)
-) ;import
+(import (liii check) (liii pi code cli args query))
 
 (check-set-mode! 'report-failed)
 

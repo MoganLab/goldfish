@@ -15,9 +15,7 @@
 ;; any
 ;; 向量转为列表，非向量原样返回。
 
-(import (liii check)
-  (liii pi code config user-fs)
-) ;import
+(import (liii check) (liii pi code config user-fs))
 
 (check-set-mode! 'report-failed)
 

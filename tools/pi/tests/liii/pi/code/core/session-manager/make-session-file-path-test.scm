@@ -21,10 +21,7 @@
 ;; string
 ;; 会话文件路径。
 
-(import (liii check)
-  (liii string)
-  (liii pi code core session-manager)
-) ;import
+(import (liii check) (liii string) (liii pi code core session-manager))
 
 (check-set-mode! 'report-failed)
 
@@ -33,6 +30,6 @@
   (check-true (string? p))
   (check-true (string-ends? p "sid-1.jsonl"))
   (check-true (string-contains? p "2026-01-02T03-04-05-678"))
-) ;let*
+) ;let
 
 (check-report)

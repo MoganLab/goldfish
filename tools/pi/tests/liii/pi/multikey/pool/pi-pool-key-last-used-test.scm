@@ -15,9 +15,7 @@
 ;; number?
 ;; 最近使用时间（毫秒），初始值为 0。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 
@@ -28,6 +26,6 @@
 (let ((pk (pi-pool-key "sk-alpha")))
   (pi-pool-key-set-last-used! pk 1234)
   (check (pi-pool-key-last-used pk) => 1234)
-) ;let*
+) ;let
 
 (check-report)

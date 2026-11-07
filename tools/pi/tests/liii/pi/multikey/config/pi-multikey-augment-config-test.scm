@@ -18,8 +18,11 @@
 ;; list?
 ;; 增强后的配置 alist。
 
-(import (liii check) (liii pi ai keyring)
-  (liii pi multikey pool) (liii pi multikey config))
+(import (liii check)
+  (liii pi ai keyring)
+  (liii pi multikey pool)
+  (liii pi multikey config)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -43,10 +46,10 @@
 
 ;; 1. 命中 pool：api-key 换成首个池内 key，注入钩子，其余条目保留
 (let* ((base (list (cons 'agent-dir fixture-dir)
-                   (cons 'provider "kimi-coding")
-                   (cons 'api-key "auth-json-key")
-                   (cons 'model-id "kimi-k2")
-              ) ;list
+               (cons 'provider "kimi-coding")
+               (cons 'api-key "auth-json-key")
+               (cons 'model-id "kimi-k2")
+             ) ;list
        ) ;base
        (cfg (pi-multikey-augment-config base '()))
       ) ;
@@ -60,16 +63,19 @@
   (check-true (pi-key-rotation? cfg))
   (check (pi-request-api-key cfg) => "sk-pool-alpha-0001")
   ;; 429 轮换到下一可用 key
-  (check (pi-rotate-api-key! cfg "sk-pool-alpha-0001" 429) => "sk-pool-beta-00002")
+  (check (pi-rotate-api-key! cfg "sk-pool-alpha-0001" 429)
+    =>
+    "sk-pool-beta-00002"
+  ) ;check
 ) ;let*
 
 ;; 1.1 config-dir 优先：JSON 配置文件目录（~/.gf/agent 等）中的 multikey.json 生效
 (let* ((base (list (cons 'config-dir fixture-dir)
-                   (cons 'agent-dir nopool-dir)
-                   (cons 'provider "kimi-coding")
-                   (cons 'api-key "auth-json-key")
-                   (cons 'model-id "kimi-k2")
-              ) ;list
+               (cons 'agent-dir nopool-dir)
+               (cons 'provider "kimi-coding")
+               (cons 'api-key "auth-json-key")
+               (cons 'model-id "kimi-k2")
+             ) ;list
        ) ;base
        (cfg (pi-multikey-augment-config base '()))
       ) ;
@@ -79,9 +85,9 @@
 
 ;; 2. 无 multikey.json 或 provider 无 pool：cfg 原样返回，不注入钩子
 (let* ((base (list (cons 'agent-dir nopool-dir)
-                   (cons 'provider "google")
-                   (cons 'api-key "auth-json-key")
-              ) ;list
+               (cons 'provider "google")
+               (cons 'api-key "auth-json-key")
+             ) ;list
        ) ;base
        (cfg (pi-multikey-augment-config base '()))
       ) ;
@@ -94,7 +100,8 @@
 
 ;; 3. provider 缺失或 cfg 非法：安全回退原样返回
 (check (pi-multikey-augment-config (list (cons 'api-key "k")) '())
-  => (list (cons 'api-key "k"))
+  =>
+  (list (cons 'api-key "k"))
 ) ;check
 (check-true (eq? (pi-multikey-augment-config 'foo '()) 'foo))
 

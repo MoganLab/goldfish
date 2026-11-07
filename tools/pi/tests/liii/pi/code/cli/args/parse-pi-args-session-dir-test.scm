@@ -15,9 +15,7 @@
 ;; alist
 ;; 解析后的参数字典。
 
-(import (liii check)
-  (liii pi code cli args)
-) ;import
+(import (liii check) (liii pi code cli args))
 
 (check-set-mode! 'report-failed)
 
@@ -27,18 +25,21 @@
 (check (pi-args-ref (parse-pi-args '()) 'session-dir) => #f)
 
 ;; 2. 空格传参
-(check (pi-args-ref (parse-pi-args '("--session-dir" "/tmp/my-sessions"))
-         'session-dir)
-  => "/tmp/my-sessions")
+(check (pi-args-ref (parse-pi-args '("--session-dir" "/tmp/my-sessions")) 'session-dir)
+  =>
+  "/tmp/my-sessions"
+) ;check
 
 ;; 3. 不吞掉后续位置参数
 (let ((parsed (parse-pi-args '("--session-dir" "/tmp/s" "hello"))))
   (check (pi-args-ref parsed 'session-dir) => "/tmp/s")
-  (check (pi-args-ref parsed 'messages) => '("hello")))
+  (check (pi-args-ref parsed 'messages) => '("hello"))
+) ;let
 
 ;; 4. 位于 -- 之后时作为普通消息，不触发选项解析
 (let ((parsed (parse-pi-args '("--" "--session-dir"))))
   (check (pi-args-ref parsed 'session-dir) => #f)
-  (check (pi-args-ref parsed 'messages) => '("--session-dir")))
+  (check (pi-args-ref parsed 'messages) => '("--session-dir"))
+) ;let
 
 (check-report)

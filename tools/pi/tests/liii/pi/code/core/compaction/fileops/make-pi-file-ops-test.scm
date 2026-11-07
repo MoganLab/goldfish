@@ -20,9 +20,7 @@
 ;; 文件操作分组 record。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction fileops))
+(import (scheme base) (liii check) (liii pi code core compaction fileops))
 
 (check-set-mode! 'report-failed)
 
@@ -31,6 +29,7 @@
   (check-true (pi-file-ops? ops))
   (check (pi-file-ops-read ops) => '("a.scm"))
   (check (pi-file-ops-written ops) => '("b.scm"))
-  (check (pi-file-ops-edited ops) => '("c.scm")))
+  (check (pi-file-ops-edited ops) => '("c.scm"))
+) ;let
 
 (check-report)

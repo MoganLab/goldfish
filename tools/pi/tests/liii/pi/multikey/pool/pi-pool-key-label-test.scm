@@ -15,9 +15,7 @@
 ;; string?
 ;; 标签字符串，未设置时为空字符串。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 
@@ -25,6 +23,9 @@
 (check (pi-pool-key-label (pi-pool-key "sk-alpha")) => "")
 
 ;; 2. 提供标签时返回该标签
-(check (pi-pool-key-label (pi-pool-key "sk-alpha" "alpha-label")) => "alpha-label")
+(check (pi-pool-key-label (pi-pool-key "sk-alpha" "alpha-label"))
+  =>
+  "alpha-label"
+) ;check
 
 (check-report)

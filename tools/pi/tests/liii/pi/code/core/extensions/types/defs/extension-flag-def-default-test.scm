@@ -16,14 +16,15 @@
 ;; 默认值。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((f (make-extension-flag-def "--my-flag" "desc")))
-  (check (extension-flag-def-default f) => #f))
+  (check (extension-flag-def-default f) => #f)
+) ;let
 
 (check-report)

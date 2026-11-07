@@ -38,10 +38,10 @@
   (pi-app-render! app)
   ;; 软件光标：光标列处的字符被反显包裹
   (let ((line (find (lambda (l) (string-contains? l "a\x1b;[7mb\x1b;[0mc"))
-                 (alt-screen-lines (pi-app-screen app))
-               ) ;find
+                (alt-screen-lines (pi-app-screen app))
+              ) ;find
         ) ;line
-    ) ;let
+       ) ;
     (check-true (string? line))
   ) ;let
   ;; 硬件光标定位到插入点（"a" 后的列 1），但保持隐藏
@@ -57,10 +57,10 @@
   (pi-app-render! app)
   ;; 空行光标渲染为反显空格
   (let ((line (find (lambda (l) (string-contains? l "\x1b;[7m \x1b;[0m"))
-                 (alt-screen-lines (pi-app-screen app))
-               ) ;find
+                (alt-screen-lines (pi-app-screen app))
+              ) ;find
         ) ;line
-    ) ;let
+       ) ;
     (check-true (string? line))
   ) ;let
   (check (terminal-cursor-visible? vterm) => #f)

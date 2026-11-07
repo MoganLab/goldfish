@@ -18,27 +18,30 @@
 ;; string?
 ;; 生效的基础 URL 字符串，未配置时回退 Google 官方地址。
 
-(import (liii check)
-        (liii pi web-search config)
-) ;import
+(import (liii check) (liii pi web-search config))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 显式传入的基础 URL 优先
-(check (pi-resolve-search-base-url '() "http://localhost:9999") => "http://localhost:9999")
+(check (pi-resolve-search-base-url '() "http://localhost:9999")
+  =>
+  "http://localhost:9999"
+) ;check
 
 ;; 2. provider 为 google 时读取 model-meta 中的 base-url
-(check (pi-resolve-search-base-url
-         '((provider . "google")
-           (model-meta (base-url . "http://meta-base:8080")))
-         #f
-       ) ;pi-resolve-search-base-url
-  => "http://meta-base:8080"
+(check
+  (pi-resolve-search-base-url '((provider . "google")
+                                (model-meta (base-url . "http://meta-base:8080")))
+    #f
+  ) ;pi-resolve-search-base-url
+  =>
+  "http://meta-base:8080"
 ) ;check
 
 ;; 3. 未配置时回退默认地址
 (check (pi-resolve-search-base-url '() #f)
-  => "https://generativelanguage.googleapis.com/v1beta"
+  =>
+  "https://generativelanguage.googleapis.com/v1beta"
 ) ;check
 
 (check-report)

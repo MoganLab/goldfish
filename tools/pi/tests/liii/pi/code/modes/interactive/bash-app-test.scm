@@ -31,6 +31,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 构造 1..n 的多行输出文本
+
 (define (%nums-text n)
   (string-join (map number->string (iota n 1)) "\n")
 ) ;define
@@ -41,31 +42,36 @@
 
 ;; 8. 输入 "!" 后编辑器边框变绿，删除后恢复 thinking 色
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
-       (app (make-pi-app :terminal vt
-              :handler      (lambda (a m) #t)
+       (app (make-pi-app
+              :terminal vt
+              :handler  (lambda (a m) #t)
               ;; 注入同步 bash 执行器，避免测试进程派生后台 go 线程
               :bash-handler (lambda (cmd) (values "" 0))
             ) ;make-pi-app
-           )
+       ) ;app
        (ed (pi-app-editor app))
        (screen (pi-app-screen app))
       ) ;
   (pi-app-render! app)
   ;; 初始边框为 thinking off 灰色，不含 bash 绿
   ;; （全屏布局：对话记录视口 35 行，输入区上边框位于第 35 行）
-  (check-false (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
+  (check-false (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134")
+  ) ;check-false
   ;; 输入 !ls → 边框变绿
   (component-handle-input ed "!")
   (pi-app-render! app)
-  (check-true (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
+  (check-true (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134")
+  ) ;check-true
   ;; 前导空格 + ! 同样进入 bash mode（对齐 pi 的 trimStart 语义）
   (editor-set-text! ed "  !ls")
   (pi-app-render! app)
-  (check-true (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
+  (check-true (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134")
+  ) ;check-true
   ;; 删除全部字符 → 恢复 thinking 色
   (editor-set-text! ed "")
   (pi-app-render! app)
-  (check-false (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
+  (check-false (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134")
+  ) ;check-false
 ) ;let*
 
 ;; 9. 提交 !cmd：执行 bash 卡片入 chat，不进消息队列，边框恢复
@@ -110,13 +116,16 @@
   ;; 不执行 bash，而是作为普通消息进入 agent 队列
   (check agent-called => '("!"))
   (check (editor-text ed) => "")
-  (check-true (not (string-contains? (string-join (alt-screen-lines screen) "\n") "$ !")))
+  (check-true
+    (not (string-contains? (string-join (alt-screen-lines screen) "\n") "$ !"))
+  ) ;check-true
 ) ;let*
 
 ;; 11. Ctrl+O 全局切换：折叠卡片展开显示全部行，再按恢复折叠
 (let* ((vt (make-virtual-terminal :width 100 :height 60))
        (bash-exec (lambda (cmd) (values (%nums-text 35) 0)))
-       (app (make-pi-app :terminal vt :handler (lambda (a m) #t) :bash-handler bash-exec))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t) :bash-handler bash-exec)
+       ) ;app
        (ed (pi-app-editor app))
        (screen (pi-app-screen app))
       ) ;
@@ -164,13 +173,17 @@
 ;; 13. !cmd：同步 bash-handler 路径完成后调用 record-sink（命令、输出、退出码）
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (recorded '())
-       (app (make-pi-app :terminal vt
-              :handler      (lambda (a m) #t)
-              :bash-handler (lambda (cmd) (values "out-13" 0))
-              :record-sink  (lambda (command text code)
-                              (set! recorded (cons (list command text code) recorded)))
-            ) ;make-pi-app
-           )
+       (app
+         (make-pi-app
+           :terminal     vt
+           :handler      (lambda (a m) #t)
+           :bash-handler (lambda (cmd) (values "out-13" 0))
+           :record-sink
+           (lambda (command text code)
+             (set! recorded (cons (list command text code) recorded))
+           ) ;lambda
+         ) ;make-pi-app
+       ) ;app
        (ed (pi-app-editor app))
       ) ;
   (component-handle-input ed "!echo hi")
@@ -182,15 +195,16 @@
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (recorded '())
        (bash-calls '())
-       (app (make-pi-app :terminal vt
-              :handler      (lambda (a m) #t)
-              :bash-handler (lambda (cmd)
-                              (set! bash-calls (cons cmd bash-calls))
-                              (values "hidden" 0))
-              :record-sink  (lambda (command text code)
-                              (set! recorded (cons command recorded)))
-            ) ;make-pi-app
-           )
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a m) #t)
+           :bash-handler
+           (lambda (cmd) (set! bash-calls (cons cmd bash-calls)) (values "hidden" 0))
+           :record-sink
+           (lambda (command text code) (set! recorded (cons command recorded)))
+         ) ;make-pi-app
+       ) ;app
        (ed (pi-app-editor app))
        (screen (pi-app-screen app))
       ) ;
@@ -213,12 +227,14 @@
 ;; 15. 单个 "!!"：命令为空，回退为普通消息提交（对齐 pi fall-through）
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (agent-called '())
-       (app (make-pi-app :terminal vt
-              :handler      (lambda (a m) (set! agent-called (cons m agent-called)))
-              :bash-handler (lambda (cmd) (values "should-not-run" 0))
-              :record-sink  (lambda args (error 'sink "must not be called"))
-            ) ;make-pi-app
-           )
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a m) (set! agent-called (cons m agent-called)))
+           :bash-handler (lambda (cmd) (values "should-not-run" 0))
+           :record-sink  (lambda args (error 'sink "must not be called"))
+         ) ;make-pi-app
+       ) ;app
        (ed (pi-app-editor app))
       ) ;
   (component-handle-input ed "!!")
@@ -228,34 +244,40 @@
 
 ;; 16. 默认 record-sink：bash 完成后投递 (bash_record 命令 输出 退出码) 到 jobs-chan
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
-       (app (make-pi-app :terminal vt
+       (app (make-pi-app
+              :terminal     vt
               :handler      (lambda (a m) #t)
               :bash-handler (lambda (cmd) (values "out-16" 0))
             ) ;make-pi-app
-           )
+       ) ;app
        (ed (pi-app-editor app))
       ) ;
   (component-handle-input ed "!echo hi")
   (component-handle-input ed 'enter)
-  (check (chan-try-recv! (pi-app-jobs-chan app) #f) => '(bash_record "echo hi" "out-16" 0))
+  (check (chan-try-recv! (pi-app-jobs-chan app) #f)
+    =>
+    '(bash_record "echo hi" "out-16" 0)
+  ) ;check
 ) ;let*
 
 ;; 17. 生产路径（无 bash-handler）：经后台 pi-bash-worker 协程执行并回填卡片。
 ;; 复现曾出现的卡片永远停在 Running...：worker 与事件轮询链路必须闭环
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
-       (app (make-pi-app :terminal vt
+       (app (make-pi-app
+              :terminal vt
               ;; 只设 agent handler（阻止 agent worker 派生），
               ;; 不设 bash-handler → 启动真实后台 bash worker
               :handler (lambda (a m) #t)
             ) ;make-pi-app
-           )
+       ) ;app
        (bash-card #f)
       ) ;
   (pi-app-run-bash! app "echo worker-ok")
   (set! bash-card (cdr (car (%pi-app-bash-cards app))))
   ;; 轮询事件直至完成：以“不再显示 Running...”为准（命令文本本身含 worker-ok，
   ;; 不能作为完成信号），最长 ~3s
-  (let loop ((i 0))
+  (let loop
+    ((i 0))
     (pi-app-poll-events! app)
     (let ((text (string-join (map strip-ansi (component-render bash-card 80)) "\n")))
       (unless (or (not (string-contains? text "Running...")) (>= i 100))

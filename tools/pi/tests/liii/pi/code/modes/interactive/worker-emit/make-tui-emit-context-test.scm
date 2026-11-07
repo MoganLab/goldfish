@@ -34,7 +34,10 @@
 (let* ((ch (make-chan 16))
        (emit (make-tui-emit ch 1048576))
        (usage '((input . 100) (output . 50)))
-       (msg '((role . "assistant") (content . "hi") (usage . ((input . 100) (output . 50)))))
+       (msg '((role . "assistant")
+              (content . "hi")
+              (usage (input . 100) (output . 50)))
+       ) ;msg
       ) ;
   (emit 'message_end msg)
   (check (recv-ev! ch) => '(message_usage ((input . 100) (output . 50)) 1048576))
@@ -44,7 +47,7 @@
 ;; 2. 未提供上下文窗口时事件负载为 #f
 (let* ((ch (make-chan 16))
        (emit (make-tui-emit ch))
-       (msg '((role . "assistant") (content . "hi") (usage . ((input . 1)))))
+       (msg '((role . "assistant") (content . "hi") (usage (input . 1))))
       ) ;
   (emit 'message_end msg)
   (check (recv-ev! ch) => '(message_usage ((input . 1)) #f))

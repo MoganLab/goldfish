@@ -15,10 +15,7 @@
 ;; list?
 ;; 该语言专属的审查检查点描述字符串列表。
 
-(import (liii check)
-        (liii string)
-        (liii pi review language)
-) ;import
+(import (liii check) (liii string) (liii pi review language))
 
 (check-set-mode! 'report-failed)
 

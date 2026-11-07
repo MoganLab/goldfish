@@ -17,10 +17,7 @@
 ;; number | #f
 ;; 百分比（0-100+）；窗口缺失或非正数时返回 #f。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core context-usage)
-) ;import
+(import (scheme base) (liii check) (liii pi code core context-usage))
 
 (check-set-mode! 'report-failed)
 

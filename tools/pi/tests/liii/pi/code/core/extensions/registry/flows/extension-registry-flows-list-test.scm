@@ -16,17 +16,19 @@
 ;; 流程定义记录列表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry flows)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry flows)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((reg (make-extension-registry)))
   (check (extension-registry-flows-list reg) => '())
-  (register-flow! reg (make-extension-flow-def 'f (lambda (p) #t) (lambda (a b c d) 0)))
+  (register-flow! reg
+    (make-extension-flow-def 'f (lambda (p) #t) (lambda (a b c d) 0))
+  ) ;register-flow!
   (check (length (extension-registry-flows-list reg)) => 1)
-) ;let*
+) ;let
 
 (check-report)

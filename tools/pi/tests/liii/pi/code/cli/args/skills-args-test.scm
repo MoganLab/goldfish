@@ -16,28 +16,29 @@
 ;; alist
 ;; 解析结果（skill-paths 累加、no-skills 布尔）。
 
-(import
-  (scheme base)
-  (liii check)
-  (liii pi code cli args))
+(import (scheme base) (liii check) (liii pi code cli args))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 默认状态：skill-paths 为空列表，no-skills 为 #f
 (let ((res (parse-pi-args '())))
   (check (pi-args-ref res 'skill-paths) => '())
-  (check (pi-args-ref res 'no-skills) => #f))
+  (check (pi-args-ref res 'no-skills) => #f)
+) ;let
 
 ;; 2. 解析单个 --skill 参数
 (let ((res (parse-pi-args '("--skill" "/custom/skills/dir"))))
-  (check (pi-args-ref res 'skill-paths) => '("/custom/skills/dir")))
+  (check (pi-args-ref res 'skill-paths) => '("/custom/skills/dir"))
+) ;let
 
 ;; 3. 解析 --skills 与多个累加路径
 (let ((res (parse-pi-args '("--skill" "/path1" "--skills" "/path2"))))
-  (check (pi-args-ref res 'skill-paths) => '("/path1" "/path2")))
+  (check (pi-args-ref res 'skill-paths) => '("/path1" "/path2"))
+) ;let
 
 ;; 4. 解析 --no-skills 开关
 (let ((res (parse-pi-args '("--no-skills"))))
-  (check (pi-args-ref res 'no-skills) => #t))
+  (check (pi-args-ref res 'no-skills) => #t)
+) ;let
 
 (check-report)

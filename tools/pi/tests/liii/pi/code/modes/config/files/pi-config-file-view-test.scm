@@ -37,7 +37,9 @@
 ) ;define
 
 (define (ref alist key)
-  (let ((pair (assoc key alist))) (and pair (cdr pair)))
+  (let ((pair (assoc key alist)))
+    (and pair (cdr pair))
+  ) ;let
 ) ;define
 
 (define (p-index st id)

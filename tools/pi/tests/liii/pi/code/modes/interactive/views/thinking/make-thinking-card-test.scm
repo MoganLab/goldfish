@@ -63,7 +63,10 @@
 ;; 初始及流式追加的 thinking 文本都必须清理终端控制序列。
 (let ((card (make-thinking-card "before\x1b;cafter")))
   (thinking-card-append-line! card "next\x1b;[?1000lline")
-  (check (map strip-ansi (component-render card 80)) => '(" beforeafter" " nextline" ""))
+  (check (map strip-ansi (component-render card 80))
+    =>
+    '(" beforeafter" " nextline" "")
+  ) ;check
 ) ;let
 
 ;; 零宽及负宽终端不渲染，避免异常尺寸下产生无效行。

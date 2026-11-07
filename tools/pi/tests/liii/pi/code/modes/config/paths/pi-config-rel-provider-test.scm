@@ -15,9 +15,7 @@
 ;; string
 ;; 相对配置目录的配置文件路径。
 
-(import (liii check)
-  (liii pi code modes config paths)
-) ;import
+(import (liii check) (liii pi code modes config paths))
 
 (check-set-mode! 'report-failed)
 

@@ -15,10 +15,7 @@
 ;; list
 ;; 三列宽度组成的整数列表，第三列宽度为 0 表示隐藏。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code modes config layout)
-) ;import
+(import (scheme base) (liii check) (liii pi code modes config layout))
 
 (check-set-mode! 'report-failed)
 

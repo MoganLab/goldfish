@@ -21,10 +21,12 @@
 
 ;; 1. 默认统计字符串
 (let ((ft (make-pi-footer)))
-  (check (pi-footer-stats ft) => "0.0%/1.0M (auto)"))
+  (check (pi-footer-stats ft) => "0.0%/1.0M (auto)")
+) ;let
 
 ;; 2. 构造时指定统计字符串
 (let ((ft (make-pi-footer :stats "↑100 ↓50 1.2%/200k")))
-  (check (pi-footer-stats ft) => "↑100 ↓50 1.2%/200k"))
+  (check (pi-footer-stats ft) => "↑100 ↓50 1.2%/200k")
+) ;let
 
 (check-report)

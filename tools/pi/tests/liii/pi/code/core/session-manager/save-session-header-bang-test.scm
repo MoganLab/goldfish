@@ -36,7 +36,9 @@
   (path-join (path-temp-dir) "pi-save-session-header-test.jsonl")
 ) ;define
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 ;; 1. 写入的头部条目包含会话元信息
 (save-session-header! tmp-file "sid-1" "2026-01-02T03:04:05Z" "/tmp/work")
@@ -45,8 +47,10 @@
   (check-true (string-contains? (car lines) "\"type\":\"session\""))
   (check-true (string-contains? (car lines) "\"id\":\"sid-1\""))
   (check-true (string-contains? (car lines) "\"cwd\""))
-) ;let*
+) ;let
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 (check-report)

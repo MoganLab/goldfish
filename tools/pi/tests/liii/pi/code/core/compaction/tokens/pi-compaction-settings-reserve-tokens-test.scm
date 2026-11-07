@@ -16,14 +16,15 @@
 ;; 触发压缩时从上下文窗口中扣除的预留量。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-compaction-settings-reserve-tokens
-         (make-pi-compaction-settings #t 16384 20000)) => 16384)
+(check (pi-compaction-settings-reserve-tokens (make-pi-compaction-settings #t 16384 20000)
+       ) ;pi-compaction-settings-reserve-tokens
+  =>
+  16384
+) ;check
 
 (check-report)

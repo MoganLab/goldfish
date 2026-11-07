@@ -31,49 +31,58 @@
 
 ;; 1. 一轮 assistant 响应后，页脚显示真实上下文占比
 (let* ((app (make-pi-app
-              :terminal (make-virtual-terminal 100 40)
-              :handler  (lambda (a m) #t)
+              :terminal       (make-virtual-terminal 100 40)
+              :handler        (lambda (a m) #t)
               :context-window 1000000
             ) ;make-pi-app
-           ) ;app
+       ) ;app
        (emit (make-tui-emit (pi-app-event-chan app) 1000000))
        (cfg '((provider . "test") (tools) (settings)))
-       (usage '((input . 100000) (output . 20000) (cacheRead . 0) (cacheWrite . 0)
-                 (totalTokens . 120000)))
+       (usage '((input . 100000)
+                (output . 20000)
+                (cacheRead . 0)
+                (cacheWrite . 0)
+                (totalTokens . 120000))
+       ) ;usage
        (msg (pi-assistant-message (list (pi-text-block "ok")) :usage usage))
-       (request-fn (lambda (provider config msgs sys-prompt tools on-ev timeout) msg)
-       ) ;request-fn
+       (request-fn (lambda (provider config msgs sys-prompt tools on-ev timeout) msg))
       ) ;
   (run-agent-loop cfg '() "sys" emit 10 5 600 #f request-fn #f)
   (pi-app-poll-events! app)
   (check (pi-footer-stats (%pi-app-footer app))
-    => "↑100k ↓20k 12.0%/1.0M (auto)")
+    =>
+    "↑100k ↓20k 12.0%/1.0M (auto)"
+  ) ;check
 ) ;let*
 
 ;; 2. 压缩事件后占比未知，显示 "?"
 (let* ((app (make-pi-app
-              :terminal (make-virtual-terminal 100 40)
-              :handler  (lambda (a m) #t)
+              :terminal       (make-virtual-terminal 100 40)
+              :handler        (lambda (a m) #t)
               :context-window 1000000
             ) ;make-pi-app
-           ) ;app
+       ) ;app
        (emit (make-tui-emit (pi-app-event-chan app) 1000000))
        (cfg '((provider . "test") (tools) (settings)))
-       (usage '((input . 100000) (output . 20000) (cacheRead . 0) (cacheWrite . 0)
-                 (totalTokens . 120000)))
+       (usage '((input . 100000)
+                (output . 20000)
+                (cacheRead . 0)
+                (cacheWrite . 0)
+                (totalTokens . 120000))
+       ) ;usage
        (msg (pi-assistant-message (list (pi-text-block "ok")) :usage usage))
-       (request-fn (lambda (provider config msgs sys-prompt tools on-ev timeout) msg)
-       ) ;request-fn
+       (request-fn (lambda (provider config msgs sys-prompt tools on-ev timeout) msg))
       ) ;
   (run-agent-loop cfg '() "sys" emit 10 5 600 #f request-fn #f)
   (pi-app-poll-events! app)
   (check (pi-footer-stats (%pi-app-footer app))
-    => "↑100k ↓20k 12.0%/1.0M (auto)")
+    =>
+    "↑100k ↓20k 12.0%/1.0M (auto)"
+  ) ;check
   ;; 上下文重建：占比未知
   (chan-send! (pi-app-event-chan app) (list 'compaction))
   (pi-app-poll-events! app)
-  (check (pi-footer-stats (%pi-app-footer app))
-    => "↑100k ↓20k ?/1.0M (auto)")
+  (check (pi-footer-stats (%pi-app-footer app)) => "↑100k ↓20k ?/1.0M (auto)")
 ) ;let*
 
 (check-report)

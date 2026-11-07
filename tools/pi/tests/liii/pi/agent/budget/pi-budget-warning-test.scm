@@ -36,9 +36,7 @@
 (let ((w (pi-budget-warning 8 10 300.0 1700000300 600)))
   (check-true (string? w))
   (check-true (string-contains w "<budget_warning>"))
-  (check-true (string-contains w
-                "WARNING: Approaching maximum turn limit (<= 3 turns left)."
-              ) ;string-contains
+  (check-true (string-contains w "WARNING: Approaching maximum turn limit (<= 3 turns left).")
   ) ;check-true
   (check-true (string-contains w "</budget_warning>"))
   (check-false (string-contains w "CRITICAL"))
@@ -88,7 +86,7 @@
 ;;     逐轮内容一致，前缀缓存最多只断一次
 (let ((w1 (pi-budget-warning 8 10 300.0 1700000300 600))
       (w2 (pi-budget-warning 9 10 300.0 1700000300 600))
-     ) ;let
+     ) ;
   (check (string=? w1 w2) => #t)
 ) ;let
 

@@ -39,24 +39,32 @@
   (path-join (path-temp-dir) "pi-save-session-message-test.jsonl")
 ) ;define
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 ;; 1. 写入的消息条目包含 ID 与父条目 ID
-(save-session-message! tmp-file "{\"role\":\"user\",\"content\":\"hi\"}" "m1" "sess-1" "2026-01-02T03:04:05Z")
+(save-session-message! tmp-file "{\"role\":\"user\",\"content\":\"hi\"}" "m1"
+  "sess-1" "2026-01-02T03:04:05Z"
+) ;save-session-message!
 (let ((lines (path-read-lines tmp-file)))
   (check (length lines) => 1)
   (check-true (string-contains? (car lines) "\"type\":\"message\""))
   (check-true (string-contains? (car lines) "\"id\":\"m1\""))
   (check-true (string-contains? (car lines) "\"parentId\":\"sess-1\""))
-) ;let*
+) ;let
 
 ;; 2. 父条目为 #f 时写入 null
-(save-session-message! tmp-file "{\"role\":\"user\",\"content\":\"hi\"}" "m2" #f "2026-01-02T03:04:06Z")
+(save-session-message! tmp-file "{\"role\":\"user\",\"content\":\"hi\"}" "m2" #f
+  "2026-01-02T03:04:06Z"
+) ;save-session-message!
 (let ((lines (path-read-lines tmp-file)))
   (check (length lines) => 2)
   (check-true (string-contains? (cadr lines) "\"parentId\":null"))
-) ;let*
+) ;let
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 (check-report)

@@ -15,10 +15,7 @@
 ;; boolean
 ;; 占比已知返回 #t，未知返回 #f。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core context-usage)
-) ;import
+(import (scheme base) (liii check) (liii pi code core context-usage))
 
 (check-set-mode! 'report-failed)
 

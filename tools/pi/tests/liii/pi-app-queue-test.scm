@@ -1,3 +1,18 @@
+;; pi-app-queue
+;; 应用层消息队列聚合测试：跨多个库函数验证队列状态机流转
+;;
+;; 语法
+;; ----
+;; (pi-app-queue ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
 (import (scheme base)
   (liii go)
   (liii check)
@@ -86,7 +101,10 @@
   ;; 等待队列（items）不再接收；steering 显示列表与通道各就各位
   (check processed => '())
   (check (pi-queue-length (pi-app-queue app)) => 0)
-  (check (%pi-app-steering-pending app) => '("运行中插话 1" "运行中插话 2"))
+  (check (%pi-app-steering-pending app)
+    =>
+    '("运行中插话 1" "运行中插话 2")
+  ) ;check
   (check (chan-try-recv! (pi-app-steering-chan app) #f) => "运行中插话 1")
   (check (chan-try-recv! (pi-app-steering-chan app) #f) => "运行中插话 2")
 
@@ -97,7 +115,7 @@
   ;; 用户卡片已上屏（深蓝背景色码）
   (let* ((screen (pi-app-screen app))
          (full-text (string-join (alt-screen-lines screen) "\n"))
-        ) ;let*
+        ) ;
     (check (string-contains? full-text "运行中插话 1") => #t)
     (check (string-contains? full-text "Steering: 运行中插话 2") => #t)
   ) ;let*
@@ -109,7 +127,8 @@
   (check (chan-try-recv! (pi-app-follow-up-chan app) #f) => "结束后再做")
 
   ;; 5. ESC 撤回：steering → follow-up 合并返回并清空显示
-  (check (pi-app-restore-queues! app) => '("运行中插话 2" "结束后再做"))
+  (check (pi-app-restore-queues! app) => '("运行中插话 2"
+                                           "结束后再做"))
   (check (%pi-app-steering-pending app) => '())
   (check (%pi-app-follow-up-pending app) => '())
 ) ;let*

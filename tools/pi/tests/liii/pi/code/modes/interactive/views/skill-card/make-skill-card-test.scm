@@ -29,11 +29,10 @@
 
 (check-set-mode! 'report-failed)
 
-(let* ((card
-         (make-skill-card "pdf-tools"
-           "References are relative to /path.\n\n# PDF Guide\nDetails."
-         ) ;make-skill-card
-       )
+(let* ((card (make-skill-card "pdf-tools"
+               "References are relative to /path.\n\n# PDF Guide\nDetails."
+             ) ;make-skill-card
+       ) ;card
        (w 60)
       ) ;
   (check-true (component? card))

@@ -17,29 +17,37 @@
 ;; alist
 ;; 解析后的运行配置。
 
-(set! *load-path*
-  (append (list "tools/pi" ".") *load-path*))
+(set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
 (import (scheme process-context)
-        (liii check)
-        (liii string)
-        (liii os)
-        (liii pi code cli args) (liii pi code config) (liii pi code core session-manager)
-        (liii pi code cli args)
-        (liii pi code config))
+  (liii check)
+  (liii string)
+  (liii os)
+  (liii pi code cli args)
+  (liii pi code config)
+  (liii pi code core session-manager)
+  (liii pi code cli args)
+  (liii pi code config)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define CONFIG_DIR
   (if (file-exists? "tests/fixtures/config")
-      "tests/fixtures/config"
-      "tools/pi/tests/fixtures/config"))
+    "tests/fixtures/config"
+    "tools/pi/tests/fixtures/config"
+  ) ;if
+) ;define
+
 (define CONFIG_EMPTY_DIR
   (if (file-exists? "tests/fixtures/config-empty")
-      "tests/fixtures/config-empty"
-      "tools/pi/tests/fixtures/config-empty"))
+    "tests/fixtures/config-empty"
+    "tools/pi/tests/fixtures/config-empty"
+  ) ;if
+) ;define
 
 ;; 真实进程环境污染项：注入后解析结果必须保持不变
+
 (define POLLUTION
   '(("PI_CODING_AGENT_DIR" . "/tmp/pi-polluted-agent-dir")
     ("ANTHROPIC_BASE_URL" . "https://polluted.example.com/anthropic")
@@ -55,21 +63,24 @@
     ("GLM_MODEL" . "polluted-glm-model")
     ("GLM_API_KEY" . "polluted-glm-key")
     ("KIMI_API_KEY" . "polluted-openai-key")
-    ("GEMINI_API_KEY" . "polluted-gemini-key")))
+    ("GEMINI_API_KEY" . "polluted-gemini-key"))
+) ;define
 
 (define (with-env-vars vars thunk)
   "把 vars（(名称 . 值) 列表）临时写入真实进程环境，执行 thunk 后完整还原。"
-  (let ((saved (map (lambda (kv) (cons (car kv) (get-environment-variable (car kv))))
-                    vars)))
+  (let ((saved
+          (map
+            (lambda (kv) (cons (car kv) (get-environment-variable (car kv))))
+            vars
+          ) ;map
+        ) ;saved
+       ) ;
     (for-each (lambda (kv) (putenv (car kv) (cdr kv))) vars)
     (let ((result (catch #t thunk (lambda args (apply throw args)))))
-      (for-each (lambda (kv)
-                  (if (cdr kv)
-                    (putenv (car kv) (cdr kv))
-                    (unsetenv (car kv))
-                  ) ;if
-                ) ;for-each
-               saved)
+      (for-each
+        (lambda (kv) (if (cdr kv) (putenv (car kv) (cdr kv)) (unsetenv (car kv))))
+        saved
+      ) ;for-each
       result
     ) ;let
   ) ;let
@@ -78,8 +89,10 @@
 ;; 1. deepseek 端点由自建 fixture 钉死（models-store.json 覆盖内置目录）
 (let* ((args (parse-pi-args '("--provider" "deepseek")))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)
-              ("DEEPSEEK_API_KEY" . "ds-key-xyz-789")))
-       (cfg (resolve-pi-config args env)))
+              ("DEEPSEEK_API_KEY" . "ds-key-xyz-789"))
+       ) ;env
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "deepseek")
   (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-pro")
   (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
@@ -88,61 +101,82 @@
     (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
     (check (cdr (assoc 'name meta)) => "DeepSeek V4 Pro (fixture)")
     (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 384000)))
+    (check (cdr (assoc 'max-tokens meta)) => 384000)
+  ) ;let
+) ;let*
 
 ;; 2. zai-coding-cn 端点由自建 fixture 钉死（models/zai-coding-cn.json）
 (let* ((args (parse-pi-args '("--provider" "zai-coding-cn")))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)
-              ("GLM_API_KEY" . "glm-token-xyz-123")))
-       (cfg (resolve-pi-config args env)))
+              ("GLM_API_KEY" . "glm-token-xyz-123"))
+       ) ;env
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
   (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
   (check (cdr (assoc 'api-key cfg)) => "glm-token-xyz-123")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-    (check (cdr (assoc 'name meta)) => "GLM 5.3 (fixture)")))
+    (check (cdr (assoc 'name meta)) => "GLM 5.3 (fixture)")
+  ) ;let
+) ;let*
 
 ;; 3. kimi-coding 端点由自建 fixture 钉死（baseUrl 归一化为 /coding/v1）
 (let* ((args (parse-pi-args '("--provider" "kimi-coding")))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)
-              ("KIMI_API_KEY" . "kimi-key-xyz-123")))
-       (cfg (resolve-pi-config args env)))
+              ("KIMI_API_KEY" . "kimi-key-xyz-123"))
+       ) ;env
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "kimi-coding")
   (check (cdr (assoc 'model-id cfg)) => "kimi-for-coding")
   (check (cdr (assoc 'api-key cfg)) => "kimi-key-xyz-123")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
-    (check (cdr (assoc 'name meta)) => "Kimi K2.7 Code (fixture)")))
+    (check (cdr (assoc 'name meta)) => "Kimi K2.7 Code (fixture)")
+  ) ;let
+) ;let*
 
 ;; 4. 凭据由自建 fixture 的 auth.json 提供（字面量 key，不做 $VAR 插值）
 (let* ((args (parse-pi-args '()))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)))
-       (cfg (resolve-pi-config args env)))
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
   (check (cdr (assoc 'api-key cfg)) => "fixture-google-key-051")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'name meta)) => "Gemini 3.8 Flash (fixture)")
-    (check (cdr (assoc 'base-url meta)) => "https://generativelanguage.googleapis.com/v1beta")))
+    (check (cdr (assoc 'base-url meta))
+      =>
+      "https://generativelanguage.googleapis.com/v1beta"
+    ) ;check
+  ) ;let
+) ;let*
 
 ;; 5. config-empty fixture 等价于「无用户配置」
 (let* ((args (parse-pi-args '()))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)))
-       (cfg (resolve-pi-config args env)))
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
   (check (cdr (assoc 'api-key cfg)) => #f)
-  (check (cdr (assoc 'thinking-level cfg)) => "medium"))
+  (check (cdr (assoc 'thinking-level cfg)) => "medium")
+) ;let*
 
 ;; 6. 污染环境下解析结果不变（防回归：真实进程环境不得影响配置解析）
-(let ((cfg (with-env-vars POLLUTION
-             (lambda ()
-               (resolve-pi-config (parse-pi-args '("--provider" "deepseek"))
-                 `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)
-                   ("DEEPSEEK_API_KEY" . "ds-key-xyz-789")))
-             ) ;lambda
-           ) ;with-env-vars
-       )) ;
+(let ((cfg
+        (with-env-vars POLLUTION
+          (lambda ()
+            (resolve-pi-config (parse-pi-args '("--provider" "deepseek"))
+              `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)
+                ("DEEPSEEK_API_KEY" . "ds-key-xyz-789"))
+            ) ;resolve-pi-config
+          ) ;lambda
+        ) ;with-env-vars
+      ) ;cfg
+     ) ;
   (check (cdr (assoc 'provider cfg)) => "deepseek")
   (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-pro")
   (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
@@ -150,30 +184,39 @@
     (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
     (check (cdr (assoc 'name meta)) => "DeepSeek V4 Pro (fixture)")
     (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 384000)))
+    (check (cdr (assoc 'max-tokens meta)) => 384000)
+  ) ;let
+) ;let
 
 ;; 6.1 污染环境下默认 provider 仍取自 fixture（不走真实 HOME 下的 ~/.pi/agent）
-(let ((cfg (with-env-vars POLLUTION
-             (lambda ()
-               (resolve-pi-config (parse-pi-args '())
-                 `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)))
-             ) ;lambda
-           ) ;with-env-vars
-       )) ;
+(let ((cfg
+        (with-env-vars POLLUTION
+          (lambda ()
+            (resolve-pi-config (parse-pi-args '()) `(("PI_CODING_AGENT_DIR"
+                                                      . ,CONFIG_DIR)))
+          ) ;lambda
+        ) ;with-env-vars
+      ) ;cfg
+     ) ;
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'api-key cfg)) => "fixture-google-key-051"))
+  (check (cdr (assoc 'api-key cfg)) => "fixture-google-key-051")
+) ;let
 
 ;; 6.2 污染环境下 config-empty fixture 仍等价于「无用户配置」
-(let ((cfg (with-env-vars POLLUTION
-             (lambda ()
-               (resolve-pi-config (parse-pi-args '())
-                 `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)))
-             ) ;lambda
-           ) ;with-env-vars
-       )) ;
+(let ((cfg
+        (with-env-vars POLLUTION
+          (lambda ()
+            (resolve-pi-config (parse-pi-args '())
+              `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR))
+            ) ;resolve-pi-config
+          ) ;lambda
+        ) ;with-env-vars
+      ) ;cfg
+     ) ;
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'api-key cfg)) => #f)
-  (check (cdr (assoc 'thinking-level cfg)) => "medium"))
+  (check (cdr (assoc 'thinking-level cfg)) => "medium")
+) ;let
 
 (check-report)

@@ -16,13 +16,17 @@
 ;; input、output、cache-read 与 cache-write 之和。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(check (pi-session-token-stats-total (make-pi-session-token-stats 3000 500 1200 100)) => 4800)
-(check (pi-session-token-stats-total (make-pi-session-token-stats 0 0 0 0)) => 0)
+(check (pi-session-token-stats-total (make-pi-session-token-stats 3000 500 1200 100))
+  =>
+  4800
+) ;check
+(check (pi-session-token-stats-total (make-pi-session-token-stats 0 0 0 0))
+  =>
+  0
+) ;check
 
 (check-report)

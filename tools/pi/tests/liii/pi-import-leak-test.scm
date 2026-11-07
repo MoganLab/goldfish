@@ -7,14 +7,27 @@
 ;; 未导入 (liii raw-string) 时的 #"" 原始字符串、或未闭合字符串），错误处理路径
 ;; 会再次抛错，s7 在构造 stacktrace 时段错误。提示扫描现在只做文本层面的
 ;; s-expression 扫描，必须能跳过坏文件并继续给出提示。
+
+;; 语法
+;; ----
+;; (pi-import-leak ...)
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+;; 返回值
+;; ------
+;; 见各断言场景
+
 (import (liii check)
-        (liii either)
-        (liii os)
-        (liii path)
-        (liii string)
-        (liii subprocess)
-        (liii sys)
-        )
+  (liii either)
+  (liii os)
+  (liii path)
+  (liii string)
+  (liii subprocess)
+  (liii sys)
+) ;import
 (check-set-mode! 'report-failed)
 
 (define (pi-import-leak-cleanup base)
@@ -40,30 +53,30 @@
 
 (define (pi-import-leak-load-path-args)
   ;; 优先用 bin/gf 所在仓库的 tools/pi；找不到时退回当前目录。
-  (let* ((repo-root (path-parent (path-parent (path (executable)))))
+  (let* ((repo-root
+           (path-parent (path-parent (path (executable))))
+         ) ;repo-root
          (tools-dir (path-join repo-root "tools" "pi"))
         ) ;
-    (if (path-dir? tools-dir)
-      (list "-I" (path->string tools-dir))
-      (list "-I" ".")
-    ) ;if
+    (if (path-dir? tools-dir) (list "-I" (path->string tools-dir)) (list "-I" "."))
   ) ;let*
 ) ;define
 
 (define (pi-import-leak-run-script script-path)
   (run-either (append (list (executable))
-                 (pi-import-leak-load-path-args)
-                 (list "-m" "r7rs" (path->string script-path))
-               ) ;append
-    :stdout 'capture
-    :stderr 'stdout
+                (pi-import-leak-load-path-args)
+                (list "-m" "r7rs" (path->string script-path))
+              ) ;append
+    :stdout  'capture
+    :stderr  'stdout
     :timeout 120
   ) ;run-either
 ) ;define
 
-(let* ((base (path-join (path-temp-dir)
-               (string-append "gf-pi-import-leak-" (number->string (getpid)))
-             ) ;path-join
+(let* ((base
+         (path-join (path-temp-dir)
+           (string-append "gf-pi-import-leak-" (number->string (getpid)))
+         ) ;path-join
        ) ;base
        (libroot (path-join base "libroot"))
        (bad-dir (path-join libroot "bad"))
@@ -96,8 +109,7 @@
     ) ;string-append
   ) ;path-write-text
 
-  (dynamic-wind
-    (lambda () #f)
+  (dynamic-wind (lambda () #f)
     (lambda ()
       ;; 进程内：语义必须是 unbound-variable 结构化错误，不能静默成功
       (check-catch 'unbound-variable (get-environment-variable "PATH"))
@@ -109,8 +121,9 @@
                (output (process-error-stdout process-error))
               ) ;
           (check (number? code) => #t)
-        (check-true (string-contains? output "unbound variable get-environment-variable"))
-        (check-true (string-contains? output "Hint:"))
+          (check-true (string-contains? output "unbound variable get-environment-variable")
+          ) ;check-true
+          (check-true (string-contains? output "Hint:"))
           (check-true (string-contains? output "(fixture process)"))
         ) ;let*
       ) ;let

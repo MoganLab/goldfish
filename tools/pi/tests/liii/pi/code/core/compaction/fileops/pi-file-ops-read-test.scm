@@ -16,14 +16,15 @@
 ;; 去重后的读取路径列表。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction fileops))
+(import (scheme base) (liii check) (liii pi code core compaction fileops))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-file-ops-read (make-pi-file-ops '("a.scm") '("b.scm") '("c.scm"))) => '("a.scm"))
+(check (pi-file-ops-read (make-pi-file-ops '("a.scm") '("b.scm") '("c.scm")))
+  =>
+  '("a.scm")
+) ;check
 (check (pi-file-ops-read (make-pi-file-ops '() '() '())) => '())
 
 (check-report)

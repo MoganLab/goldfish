@@ -15,14 +15,12 @@
 ;; string
 ;; 技能名称。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core skills types)
-) ;import
+(import (scheme base) (liii check) (liii pi code core skills types))
 
 (check-set-mode! 'report-failed)
 
 (let ((skill (%make-pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f)))
-  (check (pi-skill-name skill) => "pdf-tools"))
+  (check (pi-skill-name skill) => "pdf-tools")
+) ;let
 
 (check-report)

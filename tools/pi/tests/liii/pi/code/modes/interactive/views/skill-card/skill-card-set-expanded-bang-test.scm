@@ -28,6 +28,7 @@
   (skill-card-set-expanded! card #t)
   (check-true (skill-card-expanded? card))
   (skill-card-set-expanded! card #f)
-  (check-false (skill-card-expanded? card))) ;let
+  (check-false (skill-card-expanded? card))
+) ;let
 
 (check-report)

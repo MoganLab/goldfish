@@ -15,10 +15,7 @@
 ;; string?
 ;; 格式化后的 Markdown 字符串。
 
-(import (liii check)
-        (liii string)
-        (liii pi simplify format)
-) ;import
+(import (liii check) (liii string) (liii pi simplify format))
 
 (check-set-mode! 'report-failed)
 
@@ -43,9 +40,9 @@
 
 ;; 标题含条数；条目按文件与行号排序。
 (let* ((ss (list (suggestion "b.ts" 5 "clarity" "simplify b5" "try this")
-                 (suggestion "a.ts" 20 "naming" "rename x" "use count")
-                 (suggestion "a.ts" 3 "dead-code" "remove dead branch" "delete")
-               ) ;list
+             (suggestion "a.ts" 20 "naming" "rename x" "use count")
+             (suggestion "a.ts" 3 "dead-code" "remove dead branch" "delete")
+           ) ;list
        ) ;ss
        (out (pi-format-simplify-suggestions ss))
       ) ;

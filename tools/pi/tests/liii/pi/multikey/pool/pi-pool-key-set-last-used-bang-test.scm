@@ -18,9 +18,7 @@
 ;; 不返回
 ;; 直接更新密钥记录的就近使用时间。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 
@@ -30,6 +28,6 @@
   (check (pi-pool-key-last-used pk) => 100)
   (pi-pool-key-set-last-used! pk 200)
   (check (pi-pool-key-last-used pk) => 200)
-) ;let*
+) ;let
 
 (check-report)

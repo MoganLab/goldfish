@@ -15,10 +15,7 @@
 ;; string?
 ;; 格式化后的 Markdown 字符串。
 
-(import (liii check)
-        (liii string)
-        (liii pi review format)
-) ;import
+(import (liii check) (liii string) (liii pi review format))
 
 (check-set-mode! 'report-failed)
 
@@ -37,19 +34,22 @@
 ) ;define
 
 ;; 无问题时输出固定文案。
-(check (pi-format-review-findings '()) => "Code review complete: no issues found. Code looks clean."
+(check (pi-format-review-findings '())
+  =>
+  "Code review complete: no issues found. Code looks clean."
 ) ;check
 
 ;; 标题含各严重级计数，条目按严重级降序
 (let* ((fs (list (finding "INFO" "c.ts" 3 "style" "minor")
-                 (finding "HIGH" "b.ts" 2 "bug" "oops" "wrap it")
-                 (finding "CRITICAL" "a.ts" 1 "security" "bad" "fix now")
-                 (finding "HIGH" "d.ts" 4 "type-safety" "any")
-               ) ;list
+             (finding "HIGH" "b.ts" 2 "bug" "oops" "wrap it")
+             (finding "CRITICAL" "a.ts" 1 "security" "bad" "fix now")
+             (finding "HIGH" "d.ts" 4 "type-safety" "any")
+           ) ;list
        ) ;fs
        (out (pi-format-review-findings fs))
       ) ;
-  (check-true (string-starts? out "## Code Review Findings (1 CRITICAL, 2 HIGH, 1 INFO)"))
+  (check-true (string-starts? out "## Code Review Findings (1 CRITICAL, 2 HIGH, 1 INFO)")
+  ) ;check-true
   ;; 按严重级降序：用分割前缀长度比较首次出现位置
   (define (prefix-len text marker)
     (string-length (car (string-split text marker)))
@@ -75,7 +75,8 @@
 ) ;let*
 
 ;; 单一级别
-(let* ((fs (list (finding "HIGH" "a.ts" 1 "bug" "x") (finding "HIGH" "b.ts" 2 "bug" "y")))
+(let* ((fs (list (finding "HIGH" "a.ts" 1 "bug" "x") (finding "HIGH" "b.ts" 2 "bug" "y"))
+       ) ;fs
        (out (pi-format-review-findings fs))
       ) ;
   (check-true (string-starts? out "## Code Review Findings (2 HIGH)"))

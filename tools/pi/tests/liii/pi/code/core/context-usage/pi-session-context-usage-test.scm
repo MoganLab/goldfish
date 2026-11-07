@@ -59,16 +59,14 @@
 ) ;let*
 
 ;; 2. 压缩之后尚无新响应：占比未知
-(pi-append-compaction-entry! SESSION-FILE "summary" "msg-assistant-1" 2100 '()
-) ;append-compaction-entry!
+(pi-append-compaction-entry! SESSION-FILE "summary" "msg-assistant-1" 2100 '())
 (let* ((ctx (pi-session-context-usage SESSION-FILE 10000)))
   (check-false (pi-context-usage-known? ctx))
   (check (pi-format-context-usage ctx) => "?/10k (auto)")
 ) ;let*
 
 ;; 3. 压缩之后出现新的 assistant usage：占比恢复
-(save-session-message! SESSION-FILE
-  "{\"role\":\"user\",\"content\":\"next\"}"
+(save-session-message! SESSION-FILE "{\"role\":\"user\",\"content\":\"next\"}"
   "msg-user-2" "msg-assistant-1" "2026-10-23T08:00:03.000Z"
 ) ;save-session-message!
 (save-session-message! SESSION-FILE

@@ -15,7 +15,12 @@
 ;; (or string? #f)
 ;; 本次请求使用的密钥字符串，无可用密钥时返回 #f。
 
-(import (liii check) (liii pi ai time) (liii pi multikey pool) (liii pi multikey load) (liii pi multikey policy))
+(import (liii check)
+  (liii pi ai time)
+  (liii pi multikey pool)
+  (liii pi multikey load)
+  (liii pi multikey policy)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -31,11 +36,10 @@
 ) ;define
 
 ;; 1. 无 pool：原样返回 config 的 api-key
-(check (pi-multikey-request-key (list (cons 'multikey-pool #f)
-                                   (cons 'api-key "auth-json-key")
-                                 ) ;list
+(check (pi-multikey-request-key (list (cons 'multikey-pool #f) (cons 'api-key "auth-json-key"))
        ) ;pi-multikey-request-key
-  => "auth-json-key"
+  =>
+  "auth-json-key"
 ) ;check
 
 ;; 2. 有 pool：正常连续请求固定使用 key-1

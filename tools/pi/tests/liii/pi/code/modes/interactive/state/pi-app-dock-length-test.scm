@@ -31,7 +31,8 @@
 
 ;; 2. 整帧渲染后记录 dock 行数（页脚 + 输入区，至少 2 行）
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vt :handler (lambda (a m) #t))))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+      ) ;
   (pi-app-render! app)
   (check-true (exact-integer? (pi-app-dock-length app)))
   (check-true (> (pi-app-dock-length app) 0))

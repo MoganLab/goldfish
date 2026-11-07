@@ -15,10 +15,7 @@
 ;; string
 ;; 提取出的文本。
 
-(import (liii check)
-  (liii pi ai message)
-  (liii pi code modes output)
-) ;import
+(import (liii check) (liii pi ai message) (liii pi code modes output))
 
 (check-set-mode! 'report-failed)
 

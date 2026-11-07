@@ -24,7 +24,11 @@
 ;; any
 ;; 匹配流程的执行结果。
 
-(import (liii check) (liii pi code cli args) (liii pi code modes) (liii pi code core extensions))
+(import (liii check)
+  (liii pi code cli args)
+  (liii pi code modes)
+  (liii pi code core extensions)
+) ;import
 
 (check-set-mode! 'report-failed)
 

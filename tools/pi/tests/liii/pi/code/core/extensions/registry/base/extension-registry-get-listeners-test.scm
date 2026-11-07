@@ -19,17 +19,19 @@
 ;; 监听器列表，未注册时返回空列表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry base)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry base)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((reg (make-extension-registry)))
-  (set-extension-registry-listeners! reg (list (list 'session_start (lambda (p c) 1))))
+  (set-extension-registry-listeners! reg
+    (list (list 'session_start (lambda (p c) 1)))
+  ) ;set-extension-registry-listeners!
   (check (length (extension-registry-get-listeners reg 'session_start)) => 1)
   (check (extension-registry-get-listeners reg 'unknown) => '())
-) ;let*
+) ;let
 
 (check-report)

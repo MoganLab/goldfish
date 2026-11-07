@@ -43,47 +43,60 @@
 ) ;define
 
 ;; 统计指定类型事件的派发次数
+
 (define (count-events evs type)
   (let loop
     ((rest evs) (n 0))
-    (if (null? rest)
-      n
-      (loop (cdr rest) (if (eq? (car rest) type) (+ n 1) n))
-    ) ;loop
+    (if (null? rest) n (loop (cdr rest) (if (eq? (car rest) type) (+ n 1) n)))
   ) ;let
 ) ;define
 
 ;; 1. 会话超时为负数：立即以超时错误结算，不发起模型请求
 (let* ((parsed (list (cons 'session-timeout -1)))
-       (res (run-agent-loop-with-timeout CFG (list (pi-user-message "hi")) "" #f parsed))
+       (res (run-agent-loop-with-timeout CFG (list (pi-user-message "hi")) "" #f parsed)
+       ) ;res
       ) ;
   (check (length res) => 2)
   (check-true (pi-user-message? (car res)))
   (check-true (pi-assistant-message? (cadr res)))
   (check (pi-assistant-message-stop-reason (cadr res)) => "error")
   (check (pi-assistant-message-error-message (cadr res))
-    => "Session timeout exceeded: total execution deadline reached"))
+    =>
+    "Session timeout exceeded: total execution deadline reached"
+  ) ;check
+) ;let*
 
 ;; 2. 事件派发：初始消息上屏与错误结算事件均已派发
 (let* ((evs '())
        (emit (lambda (ev-type . args) (set! evs (cons ev-type evs))))
        (parsed (list (cons 'session-timeout -1)))
-       (res (run-agent-loop-with-timeout CFG (list (pi-user-message "hi")) "" emit parsed))
+       (res (run-agent-loop-with-timeout CFG (list (pi-user-message "hi")) "" emit parsed)
+       ) ;res
       ) ;
   (check (length res) => 2)
   (check-true (pair? (member 'agent_start evs)))
   (check-true (pair? (member 'message_start evs)))
   (check-true (pair? (member 'message_end evs)))
-  (check-true (pair? (member 'agent_end evs))))
+  (check-true (pair? (member 'agent_end evs)))
+) ;let*
 
 ;; 3. emit-initial? 为 #f 时不派发初始消息的上屏事件（仅剩错误消息一条）
 (let* ((evs '())
        (emit (lambda (ev-type . args) (set! evs (cons ev-type evs))))
        (parsed (list (cons 'session-timeout -1)))
-       (res (run-agent-loop-with-timeout CFG (list (pi-user-message "hi")) "" emit parsed #f #f))
+       (res (run-agent-loop-with-timeout CFG
+              (list (pi-user-message "hi"))
+              ""
+              emit
+              parsed
+              #f
+              #f
+            ) ;run-agent-loop-with-timeout
+       ) ;res
        (msg-starts (count-events evs 'message_start))
       ) ;
   (check (length res) => 2)
-  (check msg-starts => 1))
+  (check msg-starts => 1)
+) ;let*
 
 (check-report)

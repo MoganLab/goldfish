@@ -1,3 +1,18 @@
+;; pi-web-search-agent-loop
+;; 联网搜索端到端集成测试：跨 Agent 循环与多库函数
+;;
+;; 语法
+;; ----
+;; (pi-web-search-agent-loop ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
 (import (scheme base)
@@ -74,16 +89,15 @@
       (unless (path-exists? d)
         (path-mkdir d :parents #t :exist-ok #t)
       ) ;unless
-      (for-each (lambda (name)
-                  (let ((sp (path-join s (path name)))
-                        (dp (path-join d (path name)))
-                       ) ;
-                    (if (path-stat-dir? (path-stat (path->string sp)))
-                      (copy-tree sp dp)
-                      (path-copy sp dp)
-                    ) ;if
-                  ) ;let
-                ) ;lambda
+      (for-each
+        (lambda (name)
+          (let ((sp (path-join s (path name))) (dp (path-join d (path name))))
+            (if (path-stat-dir? (path-stat (path->string sp)))
+              (copy-tree sp dp)
+              (path-copy sp dp)
+            ) ;if
+          ) ;let
+        ) ;lambda
         (vector->list (listdir (path->string s)))
       ) ;for-each
     ) ;define

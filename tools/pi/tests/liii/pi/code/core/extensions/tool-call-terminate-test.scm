@@ -22,7 +22,7 @@
 ;; 包含 action 与 payload 字段的事件派发结果。
 
 (import (scheme base)
-        (liii check)
+  (liii check)
   (liii check)
   (liii pi ai message)
   (liii pi code core extensions)
@@ -34,71 +34,105 @@
 
 
 ;; 构造注入了扩展事件桥接与工具执行器的 agent config
+
 (define (make-agent-test-config)
-  (list (cons 'emit-extension-event
-          (lambda (ev payload)
-            (let ((reg (or (current-extension-registry) (default-extension-registry))))
-              (pi-emit! reg ev payload))))
-    (cons 'execute-tool-call execute-tool-call)))
+  (list
+    (cons 'emit-extension-event
+      (lambda (ev payload)
+        (let ((reg (or (current-extension-registry) (default-extension-registry))))
+          (pi-emit! reg ev payload)
+        ) ;let
+      ) ;lambda
+    ) ;cons
+    (cons 'execute-tool-call execute-tool-call)
+  ) ;list
+) ;define
 
 
 ;; 1. pi-emit! 正确识别 block + terminate
 (let* ((ctx (make-extension-context)))
-  (pi-on! ctx 'tool_call
+  (pi-on! ctx
+    'tool_call
     (lambda (payload)
       ;; 形式 1: '((block . #t) (reason . "Stop now") (terminate . #t))
-      '((block . #t) (reason . "Stop now") (terminate . #t))))
+      '((block . #t) (reason . "Stop now") (terminate . #t))
+    ) ;lambda
+  ) ;pi-on!
   (let ((res (pi-emit! ctx 'tool_call '((tool . "test")))))
     (check (cdr (assq 'action res)) => 'block)
     (check (cdr (assq 'reason res)) => "Stop now")
-    (check (cdr (assq 'terminate res)) => #t)))
+    (check (cdr (assq 'terminate res)) => #t)
+  ) ;let
+) ;let*
 
 ;; 2. 形式 2: '(block (reason . "Terminating via block") (terminate . #t))
 (let* ((ctx (make-extension-context)))
-  (pi-on! ctx 'tool_call
-    (lambda (payload)
-      '(block (reason . "Terminating via block") (terminate . #t))))
+  (pi-on! ctx
+    'tool_call
+    (lambda (payload) '(block (reason . "Terminating via block")
+                         (terminate . #t)))
+  ) ;pi-on!
   (let ((res (pi-emit! ctx 'tool_call '((tool . "test")))))
     (check (cdr (assq 'action res)) => 'block)
     (check (cdr (assq 'reason res)) => "Terminating via block")
-    (check (cdr (assq 'terminate res)) => #t)))
+    (check (cdr (assq 'terminate res)) => #t)
+  ) ;let
+) ;let*
 
 ;; 3. 批量执行中发生 terminate：截断批次后续未执行的工具，并生成 skipped 消息
-(let* ((reg (make-extension-registry))
-       (tool2-executed? #f))
+(let* ((reg (make-extension-registry)) (tool2-executed? #f))
   (register-tool! reg
-    (make-extension-tool-def "t1" "T1" '() (lambda (args) "t1 ok")))
+    (make-extension-tool-def "t1" "T1" '() (lambda (args) "t1 ok"))
+  ) ;register-tool!
   (register-tool! reg
-    (make-extension-tool-def "t2" "T2" '()
-      (lambda (args)
-        (set! tool2-executed? #t)
-        "t2 ok")))
+    (make-extension-tool-def "t2"
+      "T2"
+      '()
+      (lambda (args) (set! tool2-executed? #t) "t2 ok")
+    ) ;make-extension-tool-def
+  ) ;register-tool!
 
-  (pi-on! reg 'tool_call
+  (pi-on! reg
+    'tool_call
     (lambda (payload)
       (if (string=? (cdr (assq 'tool payload)) "t1")
         '((block . #t) (reason . "Blocked with terminate") (terminate . #t))
-        'continue)))
+        'continue
+      ) ;if
+    ) ;lambda
+  ) ;pi-on!
 
   (with-extension-registry reg
     (lambda ()
-      (let* ((calls '(((id . "c1") (name . "t1") (arguments . ()))
-                      ((id . "c2") (name . "t2") (arguments . ()))))
-            )
+      (let* ((calls '(((id . "c1") (name . "t1") (arguments))
+                      ((id . "c2") (name . "t2") (arguments)))
+             ) ;calls
+            ) ;
         (let-values (((res terminated?)
-                      (pi-execute-tool-calls-with-status calls #f 10 (make-agent-test-config))))
+                      (pi-execute-tool-calls-with-status calls #f 10 (make-agent-test-config))
+                     ) ;
+                    ) ;
           ;; 整个批次被标记为 terminated
           (check terminated? => #t)
           (check (length res) => 2)
           ;; 第一个工具被 block 并带有报错
           (let ((m1 (car res)))
             (check (pi-tool-result-message-is-error m1) => #t)
-            (check (pi-extract-tool-result-text m1) => "Blocked with terminate"))
+            (check (pi-extract-tool-result-text m1) => "Blocked with terminate")
+          ) ;let
           ;; 第二个工具被跳过，没有实际执行，带有 skipped 提示
           (let ((m2 (cadr res)))
             (check (pi-tool-result-message-is-error m2) => #t)
             (check tool2-executed? => #f)
             (check (pi-extract-tool-result-text m2)
-                   => "Tool call skipped: previous tool call terminated the run")))))))
+              =>
+              "Tool call skipped: previous tool call terminated the run"
+            ) ;check
+          ) ;let
+        ) ;let-values
+      ) ;let*
+    ) ;lambda
+  ) ;with-extension-registry
+) ;let*
 
 (check-report)

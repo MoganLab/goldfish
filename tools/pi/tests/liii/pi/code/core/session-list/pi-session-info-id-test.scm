@@ -16,15 +16,17 @@
 ;; 会话标识。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
+(import (scheme base) (liii check) (liii pi code core session-list))
 
 (check-set-mode! 'report-failed)
 
 
-(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
-              #f "created" "modified" 0 "(no messages)" "")))
-  (check (pi-session-info-id info) => "session-1"))
+(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1"
+              "/tmp/project" #f "created" "modified" 0 "(no messages)" ""
+            ) ;make-pi-session-info
+      ) ;info
+     ) ;
+  (check (pi-session-info-id info) => "session-1")
+) ;let
 
 (check-report)

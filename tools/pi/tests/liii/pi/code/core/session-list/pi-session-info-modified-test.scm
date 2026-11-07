@@ -16,15 +16,18 @@
 ;; 最近一条消息的时间戳，无消息时为创建时间戳。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
+(import (scheme base) (liii check) (liii pi code core session-list))
 
 (check-set-mode! 'report-failed)
 
 
-(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
-              #f "created" "2026-10-20T08:00:02.000Z" 0 "(no messages)" "")))
-  (check (pi-session-info-modified info) => "2026-10-20T08:00:02.000Z"))
+(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1"
+              "/tmp/project" #f "created" "2026-10-20T08:00:02.000Z" 0
+              "(no messages)" ""
+            ) ;make-pi-session-info
+      ) ;info
+     ) ;
+  (check (pi-session-info-modified info) => "2026-10-20T08:00:02.000Z")
+) ;let
 
 (check-report)

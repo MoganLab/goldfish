@@ -14,9 +14,7 @@
 ;; list?
 ;; 按降序排列的严重级别字符串列表。
 
-(import (liii check)
-        (liii pi review parse)
-) ;import
+(import (liii check) (liii pi review parse))
 
 (check-set-mode! 'report-failed)
 

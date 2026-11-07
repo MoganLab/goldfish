@@ -16,10 +16,10 @@
 ;; 最大输出 token 数。
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii path)
-        (liii pi code modes config state)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -39,7 +39,9 @@
   (pi-config-provider st id)
 ) ;define
 
-(check (pi-config-model-max-tokens (car (pi-config-provider-models (prov "kimi-coding"))))
+(check
+  (pi-config-model-max-tokens (car (pi-config-provider-models (prov "kimi-coding")))
+  ) ;pi-config-model-max-tokens
   =>
   131072
 ) ;check

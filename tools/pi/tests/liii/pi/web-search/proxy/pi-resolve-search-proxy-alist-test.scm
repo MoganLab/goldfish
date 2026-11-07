@@ -15,15 +15,14 @@
 ;; list?
 ;; 包含 http 与 https 协议键的代理 alist，无代理时返回空列表。
 
-(import (liii check)
-        (liii pi web-search proxy)
-) ;import
+(import (liii check) (liii pi web-search proxy))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 有效代理地址同时映射 http 与 https
 (check (pi-resolve-search-proxy-alist "http://127.0.0.1:7890")
-  => '(("http" . "http://127.0.0.1:7890") ("https" . "http://127.0.0.1:7890"))
+  =>
+  '(("http" . "http://127.0.0.1:7890") ("https" . "http://127.0.0.1:7890"))
 ) ;check
 
 ;; 2. 无效或空代理返回空列表

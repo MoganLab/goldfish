@@ -16,14 +16,15 @@
 ;; 参数模式。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((tool (make-extension-tool-def "t" "d" '((type . "object")) (lambda (a c) 1))))
-  (check (extension-tool-def-parameters tool) => '((type . "object"))))
+  (check (extension-tool-def-parameters tool) => '((type . "object")))
+) ;let
 
 (check-report)

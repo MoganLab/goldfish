@@ -15,10 +15,7 @@
 ;; string?
 ;; 拼接去重后的分语言检查清单 Markdown 文本。
 
-(import (liii check)
-        (liii string)
-        (liii pi review language)
-) ;import
+(import (liii check) (liii string) (liii pi review language))
 
 (check-set-mode! 'report-failed)
 
@@ -28,14 +25,17 @@
 (let ((s (pi-build-language-section '("typescript"))))
   (check-true (string-starts? s "\n\n### Typescript\n"))
   (check-true (string-contains? s "- Type safety:"))
-  (check-false (string-contains? s "### Python")))
+  (check-false (string-contains? s "### Python"))
+) ;let
 
 (let* ((langs '("typescript" "python" "typescript"))
-       (s (pi-build-language-section langs)))
+       (s (pi-build-language-section langs))
+      ) ;
   (check-true (string-contains? s "### Typescript"))
   (check-true (string-contains? s "### Python"))
   ;; 去重：只出现一次
-  (check (- (length (string-split s "### Typescript")) 1) => 1))
+  (check (- (length (string-split s "### Typescript")) 1) => 1)
+) ;let*
 
 ;; 未知语言不产生段落
 (check (pi-build-language-section '("cobol")) => "")

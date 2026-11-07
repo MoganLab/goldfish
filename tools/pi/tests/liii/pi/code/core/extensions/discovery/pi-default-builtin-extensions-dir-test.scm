@@ -15,9 +15,9 @@
 ;; 内置扩展目录路径。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions discovery)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions discovery)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -25,6 +25,6 @@
 (let ((dir (pi-default-builtin-extensions-dir)))
   (check-true (string? dir))
   (check-true (> (string-length dir) 0))
-) ;let*
+) ;let
 
 (check-report)

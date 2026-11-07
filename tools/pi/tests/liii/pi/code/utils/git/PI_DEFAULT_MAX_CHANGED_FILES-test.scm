@@ -14,9 +14,7 @@
 ;; integer?
 ;; 默认最大文件变更数，数值为 10。
 
-(import (liii check)
-        (liii pi code utils git)
-) ;import
+(import (liii check) (liii pi code utils git))
 
 (check-set-mode! 'report-failed)
 

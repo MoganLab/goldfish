@@ -27,15 +27,16 @@
 ;; pi-session-stats
 ;; 完整的会话统计 record。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
 (let* ((tokens (make-pi-session-token-stats 3000 500 1200 100))
-       (stats (make-pi-session-stats "/tmp/session.jsonl" "session-1" "Demo"
-                5 1 2 2 1 tokens 0.5)))
+       (stats (make-pi-session-stats "/tmp/session.jsonl" "session-1" "Demo" 5 1
+                2 2 1 tokens 0.5
+              ) ;make-pi-session-stats
+       ) ;stats
+      ) ;
   (check-true (pi-session-stats? stats))
   (check (pi-session-stats-session-file stats) => "/tmp/session.jsonl")
   (check (pi-session-stats-session-id stats) => "session-1")
@@ -46,6 +47,7 @@
   (check (pi-session-stats-tool-calls stats) => 2)
   (check (pi-session-stats-tool-results stats) => 1)
   (check (pi-session-stats-tokens stats) => tokens)
-  (check (pi-session-stats-cost stats) => 0.5))
+  (check (pi-session-stats-cost stats) => 0.5)
+) ;let*
 
 (check-report)

@@ -28,18 +28,22 @@
 
 ;; 1. 优先从 steering 队列中移除
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vterm)))
+       (app (make-pi-app :terminal vterm))
+      ) ;
   (pi-app-queue-steering! app "task A")
   (check (member "task A" (%pi-app-steering-pending app)) => '("task A"))
   (pi-app-remove-pending-message! app "task A")
-  (check (member "task A" (%pi-app-steering-pending app)) => #f))
+  (check (member "task A" (%pi-app-steering-pending app)) => #f)
+) ;let*
 
 ;; 2. steering 无匹配时从 follow-up 移除
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vterm)))
+       (app (make-pi-app :terminal vterm))
+      ) ;
   (pi-app-queue-follow-up! app "task B")
   (check (member "task B" (%pi-app-follow-up-pending app)) => '("task B"))
   (pi-app-remove-pending-message! app "task B")
-  (check (member "task B" (%pi-app-follow-up-pending app)) => #f))
+  (check (member "task B" (%pi-app-follow-up-pending app)) => #f)
+) ;let*
 
 (check-report)

@@ -15,9 +15,9 @@
 ;; 新建的空注册表记录。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types core)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types core)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -32,6 +32,6 @@
   (check (extension-registry-validators reg) => '())
   (check (extension-registry-augmenters reg) => '())
   (check (extension-registry-prompt-injectors reg) => '())
-) ;let*
+) ;let
 
 (check-report)

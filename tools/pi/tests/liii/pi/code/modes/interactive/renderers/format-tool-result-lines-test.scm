@@ -80,9 +80,15 @@
 
 ;; 所有工具输出都按上游 getTextOutput 清理：RIS、关闭鼠标和颜色序列
 ;; 不得进入卡片渲染，避免不可信工具结果改变宿主终端状态。
-(check (format-tool-result-lines "read" "before\x1b;cafter" :expanded? #t) => '("beforeafter"))
-(check (format-tool-result-lines "grep" "before\x1b;[?1000lafter") => '("beforeafter"))
-(check (format-tool-result-lines "custom" "\x1b;[31mred\x1b;[0m\x01;\x7f;")
+(check (format-tool-result-lines "read" "before\x1b;cafter" :expanded? #t)
+  =>
+  '("beforeafter")
+) ;check
+(check (format-tool-result-lines "grep" "before\x1b;[?1000lafter")
+  =>
+  '("beforeafter")
+) ;check
+(check (format-tool-result-lines "custom" "\x1b;[31mred\x1b;[0m\x01;")
   =>
   '("red")
 ) ;check

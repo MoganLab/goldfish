@@ -18,9 +18,7 @@
 ;; integer
 ;; 生效的超时秒数，缺省为 600。
 
-(import (liii check)
-  (liii pi code cli args query)
-) ;import
+(import (liii check) (liii pi code cli args query))
 
 (check-set-mode! 'report-failed)
 

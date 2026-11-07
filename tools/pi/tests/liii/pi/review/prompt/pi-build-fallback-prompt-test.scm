@@ -15,10 +15,7 @@
 ;; string?
 ;; 组装好的非结构化提示词文本。
 
-(import (liii check)
-        (liii string)
-        (liii pi review prompt)
-) ;import
+(import (liii check) (liii string) (liii pi review prompt))
 
 (check-set-mode! 'report-failed)
 

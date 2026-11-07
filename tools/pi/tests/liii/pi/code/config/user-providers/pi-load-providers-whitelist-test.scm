@@ -31,7 +31,10 @@
   '("google" "kimi-coding" "custom-kimi")
 ) ;check
 
-(check (pi-load-providers-whitelist (string-append FIXTURE "/no-providers")) => #f)
+(check (pi-load-providers-whitelist (string-append FIXTURE "/no-providers"))
+  =>
+  #f
+) ;check
 
 ;; 语法错误拒绝启动
 (check-catch 'parse-error

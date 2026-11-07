@@ -18,9 +18,7 @@
 ;; 文件列表 record。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction fileops))
+(import (scheme base) (liii check) (liii pi code core compaction fileops))
 
 (check-set-mode! 'report-failed)
 
@@ -28,6 +26,7 @@
 (let ((lists (make-pi-file-lists '("a.scm") '("b.scm" "c.scm"))))
   (check-true (pi-file-lists? lists))
   (check (pi-file-lists-read-files lists) => '("a.scm"))
-  (check (pi-file-lists-modified-files lists) => '("b.scm" "c.scm")))
+  (check (pi-file-lists-modified-files lists) => '("b.scm" "c.scm"))
+) ;let
 
 (check-report)

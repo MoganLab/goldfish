@@ -35,15 +35,18 @@
 ;; 4. 切换触发 on-save-hide-thinking 持久化回调
 ;; 5. 切换后新建的 thinking 卡片继承当前状态
 (let* ((buf (open-output-string))
-       (term (make-standard-terminal :output-port buf
-               :detect-size-fn (lambda () '(80 24))))
+       (term (make-standard-terminal :output-port buf :detect-size-fn (lambda () '(80
+                                                                                   24)))
+       ) ;term
        (saved '())
-       (app (make-pi-app :terminal term
-              :handler (lambda (a m) #t)
-              :hide-thinking #t
-              :on-save-hide-thinking (lambda (hide) (set! saved (cons hide saved)))
-            ) ;make-pi-app
-           )
+       (app
+         (make-pi-app
+           :terminal              term
+           :handler               (lambda (a m) #t)
+           :hide-thinking         #t
+           :on-save-hide-thinking (lambda (hide) (set! saved (cons hide saved)))
+         ) ;make-pi-app
+       ) ;app
        (screen (pi-app-screen app))
       ) ;
   (check (pi-app-hide-thinking? app) => #t)
@@ -103,13 +106,17 @@
 
 ;; 默认显示：不带 :hide-thinking 构造的 app 思考内容直接可见
 (let* ((buf (open-output-string))
-       (term (make-standard-terminal :output-port buf
-               :detect-size-fn (lambda () '(80 24))))
+       (term (make-standard-terminal :output-port buf :detect-size-fn (lambda () '(80
+                                                                                   24)))
+       ) ;term
        (app (make-pi-app :terminal term :handler (lambda (a m) #t)))
        (screen (pi-app-screen app))
       ) ;
   (check (pi-app-hide-thinking? app) => #f)
-  (chan-send! (pi-app-event-chan app) '(assistant_thinking_line "直出思考") 1000)
+  (chan-send! (pi-app-event-chan app)
+    '(assistant_thinking_line "直出思考")
+    1000
+  ) ;chan-send!
   (pi-app-poll-events! app)
   (pi-app-render! app)
   (let ((text (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
@@ -124,8 +131,9 @@
 ;; 无状态提示：多次切换、中间插入新卡片后再切换，
 ;; chat 中始终不出现任何状态卡片（Thinking blocks: ... 提示已移除）
 (let* ((buf (open-output-string))
-       (term (make-standard-terminal :output-port buf
-               :detect-size-fn (lambda () '(80 24))))
+       (term (make-standard-terminal :output-port buf :detect-size-fn (lambda () '(80
+                                                                                   24)))
+       ) ;term
        (app (make-pi-app :terminal term :handler (lambda (a m) #t)))
        (screen (pi-app-screen app))
       ) ;
@@ -136,7 +144,8 @@
   (pi-app-render! app)
   (check
     (length (filter status-card? (container-children (%pi-app-chat app))))
-    => 0
+    =>
+    0
   ) ;check
   (let ((text (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
     (check-false (string-contains? text "Thinking blocks:"))

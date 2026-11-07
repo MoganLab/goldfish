@@ -28,8 +28,13 @@
 
 ;; 1. 排入 steering 消息
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vterm)))
+       (app (make-pi-app :terminal vterm))
+      ) ;
   (pi-app-queue-steering! app "please focus on tests")
-  (check (member "please focus on tests" (%pi-app-steering-pending app)) => '("please focus on tests")))
+  (check (member "please focus on tests" (%pi-app-steering-pending app))
+    =>
+    '("please focus on tests")
+  ) ;check
+) ;let*
 
 (check-report)

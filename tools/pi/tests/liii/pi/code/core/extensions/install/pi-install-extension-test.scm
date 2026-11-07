@@ -19,7 +19,7 @@
 ;; 安装后的扩展目录绝对路径。
 
 (import (scheme base)
-        (liii check)
+  (liii check)
   (liii check)
   (liii path)
   (liii os)
@@ -31,19 +31,27 @@
 
 (define (rmdir-rec d)
   (when (path-dir? d)
-    (for-each (lambda (e)
-                (let ((full (path-join d e)))
-                  (if (path-dir? full) (rmdir-rec full) (remove (path->string full)))
-                ) ;let
-              ) ;lambda
+    (for-each
+      (lambda (e)
+        (let ((full (path-join d e)))
+          (if (path-dir? full) (rmdir-rec full) (remove (path->string full)))
+        ) ;let
+      ) ;lambda
       (vector->list (path-list d))
     ) ;for-each
     (rmdir (path->string d))
   ) ;when
 ) ;define
 
-(let* ((temp-dir (path-join (path-temp-dir) (string-append "gf-install-flow-" (number->string (getpid))))))
-  (when (path-exists? temp-dir) (rmdir-rec temp-dir))
+(let* ((temp-dir
+         (path-join (path-temp-dir)
+           (string-append "gf-install-flow-" (number->string (getpid)))
+         ) ;path-join
+       ) ;temp-dir
+      ) ;
+  (when (path-exists? temp-dir)
+    (rmdir-rec temp-dir)
+  ) ;when
   (path-mkdir temp-dir :parents #t :exist-ok #t)
 
   (let* ((source-repo (path-join temp-dir "sample-plugin"))
@@ -56,27 +64,68 @@
     (path-mkdir source-repo :parents #t :exist-ok #t)
     (run-either (list "git" "init") :cwd source-repo-str :timeout 30)
     (path-write-text (path-join source-repo "index.scm") ";; sample\n")
-    (run-either (list "git" "config" "user.name" "Test") :cwd source-repo-str :timeout 30)
-    (run-either (list "git" "config" "user.email" "test@example.com") :cwd source-repo-str :timeout 30)
+    (run-either (list "git" "config" "user.name" "Test")
+      :cwd     source-repo-str
+      :timeout 30
+    ) ;run-either
+    (run-either (list "git" "config" "user.email" "test@example.com")
+      :cwd     source-repo-str
+      :timeout 30
+    ) ;run-either
     (run-either (list "git" "add" ".") :cwd source-repo-str :timeout 30)
-    (run-either (list "git" "commit" "-m" "initial") :cwd source-repo-str :timeout 30)
+    (run-either (list "git" "commit" "-m" "initial")
+      :cwd     source-repo-str
+      :timeout 30
+    ) ;run-either
 
     ;; 1. 执行全局安装
-    (let ((installed (pi-install-extension source-repo-str :local? #f :agent-dir agent-dir-str :cwd project-dir-str :timeout 30)))
+    (let ((installed (pi-install-extension source-repo-str
+                       :local?    #f
+                       :agent-dir agent-dir-str
+                       :cwd       project-dir-str
+                       :timeout   30
+                     ) ;pi-install-extension
+          ) ;installed
+         ) ;
       (check-true (string? installed))
       (check-true (path-exists? (path installed)))
       ;; 验证能被 pi-discover-extensions 发现
-      (let ((discovered (pi-discover-extensions :agent-dir agent-dir-str :cwd project-dir-str)))
-        (check-true (pair? (member (path->string (path-resolve (path-join (path installed) "index.scm"))) discovered)))
+      (let ((discovered (pi-discover-extensions :agent-dir agent-dir-str :cwd project-dir-str)
+            ) ;discovered
+           ) ;
+        (check-true
+          (pair?
+            (member
+              (path->string (path-resolve (path-join (path installed) "index.scm")))
+              discovered
+            ) ;member
+          ) ;pair?
+        ) ;check-true
       ) ;let
     ) ;let
 
     ;; 2. 执行项目局部安装 (--local)
-    (let ((local-installed (pi-install-extension source-repo-str :local? #t :agent-dir agent-dir-str :cwd project-dir-str :timeout 30)))
+    (let ((local-installed (pi-install-extension source-repo-str
+                             :local?    #t
+                             :agent-dir agent-dir-str
+                             :cwd       project-dir-str
+                             :timeout   30
+                           ) ;pi-install-extension
+          ) ;local-installed
+         ) ;
       (check-true (string? local-installed))
       (check-true (path-exists? (path local-installed)))
-      (let ((discovered (pi-discover-extensions :agent-dir agent-dir-str :cwd project-dir-str)))
-        (check-true (pair? (member (path->string (path-resolve (path-join (path local-installed) "index.scm"))) discovered)))
+      (let ((discovered (pi-discover-extensions :agent-dir agent-dir-str :cwd project-dir-str)
+            ) ;discovered
+           ) ;
+        (check-true
+          (pair?
+            (member
+              (path->string (path-resolve (path-join (path local-installed) "index.scm")))
+              discovered
+            ) ;member
+          ) ;pair?
+        ) ;check-true
       ) ;let
     ) ;let
   ) ;let*

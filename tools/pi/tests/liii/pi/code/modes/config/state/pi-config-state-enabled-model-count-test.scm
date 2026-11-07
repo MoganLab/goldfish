@@ -16,10 +16,10 @@
 ;; 可用模型数量。
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii path)
-        (liii pi code modes config state)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -39,8 +39,7 @@
   (pi-config-provider st id)
 ) ;define
 
-(check
-  (pi-config-state-enabled-model-count st)
+(check (pi-config-state-enabled-model-count st)
   =>
   (+ 2 (length (pi-config-provider-models (prov "google"))))
 ) ;check

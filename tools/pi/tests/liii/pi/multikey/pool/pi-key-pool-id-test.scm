@@ -15,9 +15,7 @@
 ;; string?
 ;; 密钥池标识字符串。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 

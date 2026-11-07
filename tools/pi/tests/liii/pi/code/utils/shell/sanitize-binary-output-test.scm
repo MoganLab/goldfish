@@ -27,9 +27,7 @@
 ;; ----
 ;; type-error 当 str 不是字符串时。
 
-(import (liii check)
-        (liii string)
-        (liii pi code utils shell))
+(import (liii check) (liii string) (liii pi code utils shell))
 
 (check-set-mode! 'report-failed)
 
@@ -37,7 +35,8 @@
 ;; 只剩 e5 a5）或二进制垃圾；与上游 JS TextDecoder 一致，替换为 U+FFFD
 ;; 而不是抛错（否则整个工具输出丢失，消息卡片显示 value-error）
 ;; （用 byte-vector->string 构造含非法字节的原始字符串）
-(check (sanitize-binary-output (string-append "你好" (byte-vector->string #u8(229 165)) "..."))
+(check (sanitize-binary-output (string-append "你好" (byte-vector->string #u8(229 165)) "...")
+       ) ;sanitize-binary-output
   =>
   (string-append "你好" (utf8->string #u8(239 191 189)) "...")
 ) ;check
@@ -80,25 +79,33 @@
 ;; 注：十六进制转义必须用 ; 终结，否则会贪婪吞掉后续十六进制字符
 (check (sanitize-binary-output "a\x00;b") => "ab")
 (check (sanitize-binary-output "a\x01;b\x02;c") => "abc")
-(check (sanitize-binary-output "a\x07;b") => "ab")          ; BEL
-(check (sanitize-binary-output "a\x08;b") => "ab")          ; BS
-(check (sanitize-binary-output "a\x0b;b\x0c;c") => "abc")  ; VT / FF
-(check (sanitize-binary-output "a\x0e;b\x1f;c") => "abc")  ; SO .. US
-(check (sanitize-binary-output "a\x1b;b") => "ab")          ; ESC（裸 ESC 无 [ 或 ]）
-(check (sanitize-binary-output "a\x1b;cdone") => "adone")  ; RIS：ESC 与 c 一并删除
-(check (sanitize-binary-output "a\x7f;b") => "ab")          ; DEL
+(check (sanitize-binary-output "a\x07;b") => "ab")
+(check (sanitize-binary-output "a\bb") => "ab")
+(check (sanitize-binary-output "a\x0b;b\fc") => "abc")
+(check (sanitize-binary-output "a\x0e;b\x1f;c") => "abc")
+(check (sanitize-binary-output "a\x1b;b") => "ab")
+(check (sanitize-binary-output "a\x1b;cdone") => "adone")
+(check (sanitize-binary-output "ab") => "ab")
 (check (sanitize-binary-output (string-append "a" (utf8->string #u8(194 155)) "[31mb"))
   =>
   "ab"
-) ;check                                                         ; C1 CSI 及其载荷
+) ;check
 
 ;; 删除 U+FFF9..U+FFFB
-(check (sanitize-binary-output (string-append "a" (utf8->string #u8(239 191 185)) "b")) => "ab")
-(check (sanitize-binary-output (string-append "x" (utf8->string #u8(239 191 187)))) => "x")
+(check (sanitize-binary-output (string-append "a" (utf8->string #u8(239 191 185)) "b"))
+  =>
+  "ab"
+) ;check
+(check (sanitize-binary-output (string-append "x" (utf8->string #u8(239 191 187))))
+  =>
+  "x"
+) ;check
 
 ;; 保留相邻的合法 Unicode（U+FFFD 替换字符不受影响）
 (check (sanitize-binary-output (string-append "a" (utf8->string #u8(239 191 189)) "b"))
-  => (string-append "a" (utf8->string #u8(239 191 189)) "b"))
+  =>
+  (string-append "a" (utf8->string #u8(239 191 189)) "b")
+) ;check
 
 ;; 类型错误检查
 (check-catch 'type-error (sanitize-binary-output 123))

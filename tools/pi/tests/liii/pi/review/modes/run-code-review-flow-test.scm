@@ -21,10 +21,7 @@
 ;; integer?
 ;; 退出状态码，0 表示正常完成。
 
-(import (liii base)
-        (liii check)
-        (liii pi review modes)
-) ;import
+(import (liii base) (liii check) (liii pi review modes))
 
 (check-set-mode! 'report-failed)
 

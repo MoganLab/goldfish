@@ -19,17 +19,18 @@
 ;; thunk 的返回值。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry base)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry base)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
-       (saved (current-extension-registry)))
-  (check (with-extension-registry reg (lambda () (current-extension-registry))) => reg)
+(let* ((reg (make-extension-registry)) (saved (current-extension-registry)))
+  (check (with-extension-registry reg (lambda () (current-extension-registry)))
+    =>
+    reg
+  ) ;check
   (check (current-extension-registry) => saved)
 ) ;let*
 

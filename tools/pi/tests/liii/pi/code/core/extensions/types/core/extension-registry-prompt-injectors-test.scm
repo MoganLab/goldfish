@@ -16,14 +16,15 @@
 ;; 提示词注入器列表。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types core)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types core)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((reg (make-extension-registry)))
-  (check (extension-registry-prompt-injectors reg) => '()))
+  (check (extension-registry-prompt-injectors reg) => '())
+) ;let
 
 (check-report)

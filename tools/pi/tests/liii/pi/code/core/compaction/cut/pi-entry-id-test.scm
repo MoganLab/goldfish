@@ -15,9 +15,7 @@
 ;; string 或 #f
 ;; 条目 ID，缺失时为 #f。
 
-(import (liii check)
-  (liii pi code core compaction cut)
-) ;import
+(import (liii check) (liii pi code core compaction cut))
 
 (check-set-mode! 'report-failed)
 

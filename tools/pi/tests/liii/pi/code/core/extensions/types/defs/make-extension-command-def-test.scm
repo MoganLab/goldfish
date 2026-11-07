@@ -25,9 +25,9 @@
 ;; 新建的命令定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -38,6 +38,6 @@
   (check (extension-command-def-description cmd) => "d")
   (check-true (procedure? (extension-command-def-handler cmd)))
   (check (extension-command-def-params cmd) => '())
-) ;let*
+) ;let
 
 (check-report)

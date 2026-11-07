@@ -19,15 +19,16 @@
 ;; 直接向会话文件追加 bash 执行条目。
 
 (import (scheme base)
-        (scheme file)
-        (liii check)
-        (liii string)
-        (liii list)
-        (liii path)
-        (liii pi ai message)
-        (liii pi code core session-manager)
-        (liii pi code core compaction session)
-        (liii pi code core session-projection))
+  (scheme file)
+  (liii check)
+  (liii string)
+  (liii list)
+  (liii path)
+  (liii pi ai message)
+  (liii pi code core session-manager)
+  (liii pi code core compaction session)
+  (liii pi code core session-projection)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -35,7 +36,9 @@
   (path->string (path-join (path-temp-dir) "pi-bash-exec-session.jsonl"))
 ) ;define
 
-(when (file-exists? TARGET) (delete-file TARGET))
+(when (file-exists? TARGET)
+  (delete-file TARGET)
+) ;when
 (save-session-header! TARGET "test-sid" "2026-01-01T00:00:00.000Z" "/tmp")
 
 ;; ============================================================
@@ -44,6 +47,7 @@
 ;; ============================================================
 
 ;; 1. 常规写入：返回条目 id，消息字段完整
+
 (define first-id (append-bash-execution! TARGET "echo hi" "hi" 0))
 (let ((mid first-id))
   (check-true (string? mid))
@@ -84,7 +88,7 @@
   (check (length msgs) => 1)
   (check (pi-message-role (car msgs)) => "user")
   (check (pi-user-message-content (car msgs)) => "Ran `echo hi`\n```\nhi\n```")
-) ;let*
+) ;let*-values
 
 ;; 4. sfile 为 #f（--no-session）：静默无操作
 (check-false (append-bash-execution! #f "cmd" "out" 0))
@@ -92,8 +96,12 @@
 ;; 5. Windows 风格反斜杠 cwd：header 行为合法 JSON，读回不丢失（回归）
 (let* ((tmp (path->string (path-join (path-temp-dir) "pi-bash-exec-header-win.jsonl")))
       ) ;
-  (when (file-exists? tmp) (delete-file tmp))
-  (save-session-header! tmp "win-sid" "2026-01-01T00:00:00.000Z" "D:\\a\\goldfish\\tools\\pi")
+  (when (file-exists? tmp)
+    (delete-file tmp)
+  ) ;when
+  (save-session-header! tmp "win-sid" "2026-01-01T00:00:00.000Z"
+    "D:\\a\\goldfish\\tools\\pi"
+  ) ;save-session-header!
   (let ((entries (pi-read-session-entries tmp)))
     (check (length entries) => 1)
     (check (cdr (assoc "type" (car entries))) => "session")
@@ -108,7 +116,9 @@
 (let* ((long-out (string-join (map number->string (iota 3000 1)) "\n"))
        (tmp (path->string (path-join (path-temp-dir) "pi-bash-exec-trunc.jsonl")))
       ) ;
-  (when (file-exists? tmp) (delete-file tmp))
+  (when (file-exists? tmp)
+    (delete-file tmp)
+  ) ;when
   (save-session-header! tmp "trunc-sid" "2026-01-01T00:00:00.000Z" "/tmp")
   (append-bash-execution! tmp "seq 1 3000" long-out 0)
   (let* ((entries (pi-read-session-entries tmp))

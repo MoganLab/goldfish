@@ -34,6 +34,7 @@
 ) ;define
 
 ;; 结果写到系统临时目录，避免在仓库留下垃圾文件
+
 (define (%perf-out name)
   (string-append (os-temp-dir) (string (os-sep)) name)
 ) ;define
@@ -55,10 +56,17 @@
     (let ((cost (%ms start)))
       (call-with-output-file (%perf-out "render-perf-ascii.txt")
         (lambda (port)
-          (display (string-append "typing 40 ascii chars: "
-            (number->string cost) " ms total, "
-            (number->string (exact (inexact (/ cost 40)))) " ms/key") port))
-      )
+          (display
+            (string-append "typing 40 ascii chars: "
+              (number->string cost)
+              " ms total, "
+              (number->string (exact (inexact (/ cost 40))))
+              " ms/key"
+            ) ;string-append
+            port
+          ) ;display
+        ) ;lambda
+      ) ;call-with-output-file
       ;; 宽松上限（防严重性能回退）
       (check-true (< cost 2000))
     ) ;let
@@ -86,10 +94,17 @@
     (let ((cost (%ms start)))
       (call-with-output-file (%perf-out "render-perf-cjk.txt")
         (lambda (port)
-          (display (string-append "typing into 100-char CJK line (10 keys): "
-            (number->string cost) " ms total, "
-            (number->string (exact (inexact (/ cost 10)))) " ms/key") port))
-      )
+          (display
+            (string-append "typing into 100-char CJK line (10 keys): "
+              (number->string cost)
+              " ms total, "
+              (number->string (exact (inexact (/ cost 10))))
+              " ms/key"
+            ) ;string-append
+            port
+          ) ;display
+        ) ;lambda
+      ) ;call-with-output-file
       ;; 宽松上限
       (check-true (< cost 2000))
     ) ;let
@@ -123,10 +138,17 @@
     (let ((cost (%ms start)))
       (call-with-output-file (%perf-out "render-perf-history.txt")
         (lambda (port)
-          (display (string-append "typing with 50 long messages loaded (10 keys): "
-            (number->string cost) " ms total, "
-            (number->string (exact (inexact (/ cost 10)))) " ms/key") port))
-      )
+          (display
+            (string-append "typing with 50 long messages loaded (10 keys): "
+              (number->string cost)
+              " ms total, "
+              (number->string (exact (inexact (/ cost 10))))
+              " ms/key"
+            ) ;string-append
+            port
+          ) ;display
+        ) ;lambda
+      ) ;call-with-output-file
       ;; 宽松上限
       (check-true (< cost 3000))
     ) ;let

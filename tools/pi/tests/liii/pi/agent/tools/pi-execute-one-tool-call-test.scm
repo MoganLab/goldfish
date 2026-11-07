@@ -89,10 +89,9 @@
 ;; 3. 执行结果包含图片块时，生成的 toolResult 消息完整保留多模态图片块
 (let* ((mock-exec
          (lambda (name args . opts)
-           (pi-tool-result
-             (list (pi-text-block "Read image file [image/png]")
-                   (pi-image-block "aGVsbG8=" "image/png")
-             ) ;list
+           (pi-tool-result (list (pi-text-block "Read image file [image/png]")
+                             (pi-image-block "aGVsbG8=" "image/png")
+                           ) ;list
              #f
            ) ;pi-tool-result
          ) ;lambda

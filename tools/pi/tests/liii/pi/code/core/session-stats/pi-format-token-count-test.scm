@@ -17,10 +17,7 @@
 
 ;; 小于 1000：原数字
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats)
-) ;import
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 

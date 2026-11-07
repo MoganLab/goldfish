@@ -16,9 +16,9 @@
 ;; 提示词注入器列表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry prompt)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry prompt)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -27,6 +27,6 @@
   (check (extension-registry-prompt-injectors-list reg) => '())
   (register-prompt-injector! reg "INJECT")
   (check (length (extension-registry-prompt-injectors-list reg)) => 1)
-) ;let*
+) ;let
 
 (check-report)

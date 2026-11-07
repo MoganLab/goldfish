@@ -17,14 +17,21 @@
 ;; alist
 ;; 包含 ok、message 与 failed 的结果。
 
-(import (liii check) (liii path) (liii shutil) (liii pi code modes config json-write))
+(import (liii check)
+  (liii path)
+  (liii shutil)
+  (liii pi code modes config json-write)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-(define DIR (path->string (path-join (path-temp-dir) "pi-config-apply-writes-test")))
+(define DIR
+  (path->string (path-join (path-temp-dir) "pi-config-apply-writes-test"))
+) ;define
 
 (when (file-exists? DIR)
-  (rmtree DIR #t))
+  (rmtree DIR #t)
+) ;when
 (path-mkdir DIR :parents #t :exist-ok #t)
 
 ;; 直接传目录字符串
@@ -37,7 +44,9 @@
   (check (cdr (assoc "failed" res)) => #f)
 ) ;let
 
-(check (path-read-text (path->string (path-join (path DIR) (path "models/providers.json"))))
+(check
+  (path-read-text (path->string (path-join (path DIR) (path "models/providers.json")))
+  ) ;path-read-text
   =>
   "[\"google\"]\n"
 ) ;check

@@ -19,9 +19,9 @@
 ;; 更新后的注册表记录。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry prompt)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry prompt)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -30,6 +30,6 @@
   (register-prompt-injector! reg "INJECT")
   (check (length (extension-registry-prompt-injectors reg)) => 1)
   (check-catch 'type-error (register-prompt-injector! reg 123))
-) ;let*
+) ;let
 
 (check-report)

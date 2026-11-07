@@ -15,9 +15,9 @@
 ;; 默认注册表记录。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry base)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry base)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -25,6 +25,6 @@
 (let ((reg (default-extension-registry)))
   (check-true (extension-registry? reg))
   (check (default-extension-registry) => reg)
-) ;let*
+) ;let
 
 (check-report)

@@ -14,11 +14,7 @@
 ;; any
 ;; 视具体调用结果而定。
 
-(import (scheme base)
-  (liii check)
-  (liii string)
-  (liii tui)
-) ;import
+(import (scheme base) (liii check) (liii string) (liii tui))
 
 (check-set-mode! 'report)
 

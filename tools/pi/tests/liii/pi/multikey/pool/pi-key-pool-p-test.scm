@@ -15,9 +15,7 @@
 ;; boolean?
 ;; 是密钥池记录时返回 #t，否则返回 #f。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 

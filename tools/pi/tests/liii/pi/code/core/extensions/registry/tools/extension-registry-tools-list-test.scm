@@ -16,9 +16,9 @@
 ;; 工具定义记录列表。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry tools)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry tools)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -27,6 +27,6 @@
   (check (extension-registry-tools-list reg) => '())
   (register-tool! reg (make-extension-tool-def "calc" "d" '() (lambda (a c) 1)))
   (check (length (extension-registry-tools-list reg)) => 1)
-) ;let*
+) ;let
 
 (check-report)

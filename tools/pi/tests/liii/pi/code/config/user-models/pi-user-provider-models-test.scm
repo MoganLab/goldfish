@@ -29,13 +29,17 @@
 ) ;define
 
 ;; models 白名单只留 k3.1-pro
-(let ((models (pi-user-provider-models (string-append FIXTURE "/full") "kimi-coding")))
+(let ((models (pi-user-provider-models (string-append FIXTURE "/full") "kimi-coding"))
+     ) ;
   (check (length models) => 1)
   (check (cdr (assoc "id" (car models))) => "k3.1-pro")
 ) ;let
 
 ;; 无白名单时使用内置目录全量
-(check (> (length (pi-user-provider-models (string-append FIXTURE "/full") "google")) 10)
+(check
+  (> (length (pi-user-provider-models (string-append FIXTURE "/full") "google"))
+    10
+  ) ;>
   =>
   #t
 ) ;check

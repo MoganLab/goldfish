@@ -29,11 +29,13 @@
 
 (define (info path)
   (make-pi-session-info path path "/work" #f "created"
-    "2026-10-21T08:00:01.000Z" 1 path path)
+    "2026-10-21T08:00:01.000Z" 1 path path
+  ) ;make-pi-session-info
 ) ;define
 
-(let ((selector (make-session-selector (list (info "a")) '()
-                  (lambda (path) #f) (lambda () #f))))
+(let ((selector (make-session-selector (list (info "a")) '() (lambda (path) #f) (lambda () #f))
+      ) ;selector
+     ) ;
   (check (editor-text (session-selector-search selector)) => "")
   (component-handle-input selector "gold")
   (check (editor-text (session-selector-search selector)) => "gold")

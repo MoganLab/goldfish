@@ -1,7 +1,3 @@
-(import (liii check) (liii pi code core tools))
-
-(check-set-mode! 'report-failed)
-
 ;; parse-tools-selection
 ;; 解析工具选择字符串，支持完整列表以及在基础工具集上增减工具。
 ;;
@@ -22,10 +18,14 @@
 ;; 工具名列表；+name 追加不存在的工具，-name 删除工具。
 ;; spec 为 #f 或空白字符串时返回 base-names。
 ;;
-;; 示例
+;; 说明
 ;; ----
 ;; (parse-tools-selection "+grep,-edit")
 ;; => '("read" "bash" "write" "grep")
+
+(import (liii check) (liii pi code core tools))
+
+(check-set-mode! 'report-failed)
 
 (check (parse-tools-selection #f) => '("read" "bash" "edit" "write"))
 (check (parse-tools-selection "read,grep") => '("read" "grep"))

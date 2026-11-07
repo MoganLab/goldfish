@@ -18,26 +18,21 @@
 ;; list?
 ;; 扩展加载结果字典。
 
-(import (liii check)
-  (liii path)
-  (liii pi code core extensions)
-) ;import
+(import (liii check) (liii path) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 
 (define (get-review-path)
-  (cond
-    ((file-exists? "tools/pi/extensions/code-review.scm")
-     "tools/pi/extensions/code-review.scm")
-    ((file-exists? "extensions/code-review.scm")
-     "extensions/code-review.scm")
-    (else "../../extensions/code-review.scm")
+  (cond ((file-exists? "tools/pi/extensions/code-review.scm")
+         "tools/pi/extensions/code-review.scm"
+        ) ;
+        ((file-exists? "extensions/code-review.scm") "extensions/code-review.scm")
+        (else "../../extensions/code-review.scm")
   ) ;cond
 ) ;define
 
 ;; 1. 加载 code-review.scm 扩展
-(let* ((api (make-extension-api))
-       (res (pi-load-extension (get-review-path) api)))
+(let* ((api (make-extension-api)) (res (pi-load-extension (get-review-path) api)))
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'ok) => #t)
 
@@ -45,7 +40,8 @@
   (let ((flag-rev (find-extension-flag api "--code-review"))
         (flag-auto (find-extension-flag api "--auto-review"))
         (flag-staged (find-extension-flag api "--staged"))
-        (flag-ref (find-extension-flag api "--ref")))
+        (flag-ref (find-extension-flag api "--ref"))
+       ) ;
     (check (extension-flag-def? flag-rev) => #t)
     (check (extension-flag-def? flag-auto) => #t)
     (check (extension-flag-def? flag-staged) => #t)
@@ -56,8 +52,14 @@
   ;; 3. 验证 commands
   (check (extension-command-def? (find-extension-command api "/review")) => #t)
   (check (extension-command-def? (find-extension-command api "review")) => #t)
-  (check (extension-command-def? (find-extension-command api "/code-review")) => #t)
-  (check (extension-command-def? (find-extension-command api "code-review")) => #t)
+  (check (extension-command-def? (find-extension-command api "/code-review"))
+    =>
+    #t
+  ) ;check
+  (check (extension-command-def? (find-extension-command api "code-review"))
+    =>
+    #t
+  ) ;check
 
   ;; 4. 验证 flows
   (let ((flow (find-extension-flow api 'code-review)))
@@ -75,14 +77,13 @@
       ;; 正常合法参数通过
       (check (v '((code-review . #t) (staged . #t))) => (if #f #f))
       ;; --code-review 与 --auto-review 冲突
-      (check-catch 'pi-arg-error
-        (v '((code-review . #t) (auto-review . #t))))
+      (check-catch 'pi-arg-error (v '((code-review . #t) (auto-review . #t))))
       ;; --code-review 与 --simplify 冲突
-      (check-catch 'pi-arg-error
-        (v '((code-review . #t) (simplify . #t))))
+      (check-catch 'pi-arg-error (v '((code-review . #t) (simplify . #t))))
       ;; --staged 必须搭配 --code-review 或 --simplify
       (check-catch 'pi-arg-error
-        (v '((staged . #t) (code-review . #f) (simplify . #f))))
+        (v '((staged . #t) (code-review . #f) (simplify . #f)))
+      ) ;check-catch
     ) ;let
   ) ;let
 ) ;let*

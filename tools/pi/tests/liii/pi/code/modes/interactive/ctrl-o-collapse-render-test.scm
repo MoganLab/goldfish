@@ -31,16 +31,22 @@
 ;; 帧高度固定为终端高度，展开与折叠都只影响对话记录视口内的可见内容，
 ;; 不再出现 inline 模式下"内容收缩导致尾部残留"的问题。
 (let* ((buf (open-output-string))
-       (term (make-standard-terminal :output-port buf
-               :detect-size-fn (lambda () '(80 24))))
-       (bash-exec (lambda (cmd)
-                    (values
-                      (string-join
-                        (map (lambda (i) (string-append "line-" (number->string i)))
-                          (iota 40))
-                        "\n")
-                      0)))
-       (app (make-pi-app :terminal term :handler (lambda (a m) #t) :bash-handler bash-exec))
+       (term (make-standard-terminal :output-port buf :detect-size-fn (lambda () '(80
+                                                                                   24)))
+       ) ;term
+       (bash-exec
+         (lambda (cmd)
+           (values
+             (string-join
+               (map (lambda (i) (string-append "line-" (number->string i))) (iota 40))
+               "\n"
+             ) ;string-join
+             0
+           ) ;values
+         ) ;lambda
+       ) ;bash-exec
+       (app (make-pi-app :terminal term :handler (lambda (a m) #t) :bash-handler bash-exec)
+       ) ;app
        (ed (pi-app-editor app))
        (screen (pi-app-screen app))
       ) ;
@@ -72,7 +78,7 @@
       (check-true (string-contains? collapsed-text "ctrl+o to expand"))
       (check (string-contains? out "Tool output: collapsed") => #t)
     ) ;let*
-  ) ;let
+  ) ;let*
 ) ;let*
 
 (check-report)

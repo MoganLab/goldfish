@@ -16,14 +16,15 @@
 ;; 助手消息报告的 usage token 数，无有效 usage 时为 0。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-context-token-estimate-usage-tokens
-         (make-pi-context-token-estimate 102 100 2)) => 100)
+(check (pi-context-token-estimate-usage-tokens (make-pi-context-token-estimate 102 100 2)
+       ) ;pi-context-token-estimate-usage-tokens
+  =>
+  100
+) ;check
 
 (check-report)

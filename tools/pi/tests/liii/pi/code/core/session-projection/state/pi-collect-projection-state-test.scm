@@ -15,9 +15,7 @@
 ;; (or alist #f)
 ;; 投影状态字典，无相关状态时返回 #f。
 
-(import (liii check)
-  (liii pi code core session-projection state)
-) ;import
+(import (liii check) (liii pi code core session-projection state))
 
 (check-set-mode! 'report-failed)
 
@@ -26,15 +24,17 @@
 
 ;; 2. 汇总思考级别条目
 (let ((path (list (list (cons "id" "e1")
-                        (cons "type" "thinking_level_change")
-                        (cons "thinkingLevel" "high")
-                      )
-             ))) ;
+                    (cons "type" "thinking_level_change")
+                    (cons "thinkingLevel" "high")
+                  ) ;list
+            ) ;list
+      ) ;path
+     ) ;
   (let ((state (pi-collect-projection-state path)))
     (check-true (pair? state))
     (check (cdr (assoc 'thinkingLevel state)) => "high")
     (check (cdr (assoc 'thinkingLevelEntryId state)) => "e1")
   ) ;let
-) ;let*
+) ;let
 
 (check-report)

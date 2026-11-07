@@ -47,13 +47,15 @@
   (check-true (string-contains? xml "<skills>"))
   (check-true (string-contains? xml "<available_skills>"))
   (check-true (string-contains? xml "<name>pdf-tools</name>"))
-  (check-true (string-contains? xml "<location>/path/pdf-tools/SKILL.md</location>"))
+  (check-true (string-contains? xml "<location>/path/pdf-tools/SKILL.md</location>")
+  ) ;check-true
   (check-true (string-contains? xml "Use the read tool"))
   ;; disable-model-invocation 的 admin-task 不出现在提示词中
   (check-false (string-contains? xml "admin-task"))
   ;; XML 实体转义：& 与 <元数据>
   (check-true (string-contains? xml "&amp;"))
   (check-true (string-contains? xml "&lt;元数据&gt;"))
-  (check-false (string-contains? xml "& <元数据>")))
+  (check-false (string-contains? xml "& <元数据>"))
+) ;let
 
 (check-report)

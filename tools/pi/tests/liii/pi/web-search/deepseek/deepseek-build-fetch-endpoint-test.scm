@@ -15,20 +15,20 @@
 ;; string?
 ;; 抓取接口的完整 URL。
 
-(import (liii check)
-        (liii pi web-search deepseek)
-) ;import
+(import (liii check) (liii pi web-search deepseek))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 基础 URL 直接拼接抓取路径
 (check (deepseek-build-fetch-endpoint "https://api.deepseek.com")
-  => "https://api.deepseek.com/v1/tools/fetch"
+  =>
+  "https://api.deepseek.com/v1/tools/fetch"
 ) ;check
 
 ;; 2. 末尾斜杠被剥离
 (check (deepseek-build-fetch-endpoint "https://api.deepseek.com/")
-  => "https://api.deepseek.com/v1/tools/fetch"
+  =>
+  "https://api.deepseek.com/v1/tools/fetch"
 ) ;check
 
 (check-report)

@@ -27,9 +27,7 @@
 ;; extension-context
 ;; 新建的扩展上下文记录。
 
-(import (liii check)
-  (liii pi code core extensions)
-) ;import
+(import (liii check) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 
@@ -47,10 +45,13 @@
 (let* ((reg (make-extension-registry))
        (ctx (make-extension-context
               :session-id "sess-001"
-              :cwd "/tmp/test-project"
-              :model "kimi-k2"
-              :registry reg
-              :extra '((dry-run . #t)))))
+              :cwd        "/tmp/test-project"
+              :model      "kimi-k2"
+              :registry   reg
+              :extra      '((dry-run . #t))
+            ) ;make-extension-context
+       ) ;ctx
+      ) ;
   (check (extension-context? ctx) => #t)
   (check (extension-context-session-id ctx) => "sess-001")
   (check (extension-context-cwd ctx) => "/tmp/test-project")

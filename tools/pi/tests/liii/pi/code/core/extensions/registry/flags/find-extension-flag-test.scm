@@ -19,16 +19,16 @@
 ;; 匹配的标志定义记录，未找到时返回 #f。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry flags)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry flags)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
-       (flag (make-extension-flag-def "--verbose" "d" :aliases '("-v"))))
+(let* ((reg (make-extension-registry))
+       (flag (make-extension-flag-def "--verbose" "d" :aliases '("-v")))
+      ) ;
   (register-flag! reg flag)
   (check (find-extension-flag reg "--verbose") => flag)
   (check (find-extension-flag reg "-v") => flag)

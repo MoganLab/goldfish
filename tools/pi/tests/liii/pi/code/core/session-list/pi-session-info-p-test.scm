@@ -16,16 +16,18 @@
 ;; 仅对 pi-session-info record 返回 #t。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
+(import (scheme base) (liii check) (liii pi code core session-list))
 
 (check-set-mode! 'report-failed)
 
 
-(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
-              #f "created" "modified" 0 "(no messages)" "")))
-  (check-true (pi-session-info? info)))
+(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1"
+              "/tmp/project" #f "created" "modified" 0 "(no messages)" ""
+            ) ;make-pi-session-info
+      ) ;info
+     ) ;
+  (check-true (pi-session-info? info))
+) ;let
 
 (check-false (pi-session-info? #f))
 (check-false (pi-session-info? '()))

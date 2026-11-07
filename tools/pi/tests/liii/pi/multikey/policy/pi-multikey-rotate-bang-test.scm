@@ -24,7 +24,12 @@
 ;; (or string? symbol?)
 ;; 下一个可用密钥字符串，池耗尽时返回 'exhausted，无 pool 时返回 #f。
 
-(import (liii check) (liii pi ai time) (liii pi multikey pool) (liii pi multikey load) (liii pi multikey policy))
+(import (liii check)
+  (liii pi ai time)
+  (liii pi multikey pool)
+  (liii pi multikey load)
+  (liii pi multikey policy)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -94,13 +99,12 @@
 ) ;let*
 
 ;; 6. 无 pool：返回 #f，不改变任何状态
-(check (pi-multikey-rotate! (list (cons 'multikey-pool #f)
-                                (cons 'api-key "auth-json-key")
-                              ) ;list
+(check (pi-multikey-rotate! (list (cons 'multikey-pool #f) (cons 'api-key "auth-json-key"))
          "auth-json-key"
          429
        ) ;pi-multikey-rotate!
-  => #f
+  =>
+  #f
 ) ;check
 
 (check-report)

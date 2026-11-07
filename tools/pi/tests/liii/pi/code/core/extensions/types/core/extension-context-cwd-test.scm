@@ -16,14 +16,17 @@
 ;; 工作目录路径。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types core)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types core)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (check (extension-context-cwd (make-extension-context)) => ".")
-(check (extension-context-cwd (make-extension-context #f "/tmp/work")) => "/tmp/work")
+(check (extension-context-cwd (make-extension-context #f "/tmp/work"))
+  =>
+  "/tmp/work"
+) ;check
 
 (check-report)

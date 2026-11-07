@@ -34,9 +34,9 @@
 ;; 新建的工具定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types defs)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types defs)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -50,6 +50,6 @@
   (check (extension-tool-def-snippet tool) => "")
   (check (extension-tool-def-guidelines tool) => '())
   (check (extension-tool-def-default-active? tool) => #f)
-) ;let*
+) ;let
 
 (check-report)

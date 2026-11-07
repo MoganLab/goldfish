@@ -16,14 +16,18 @@
 ;; usage 基准与后续消息估算之和。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-context-token-estimate-tokens (make-pi-context-token-estimate 102 100 2)) => 102)
-(check (pi-context-token-estimate-tokens (make-pi-context-token-estimate 0 0 0)) => 0)
+(check (pi-context-token-estimate-tokens (make-pi-context-token-estimate 102 100 2))
+  =>
+  102
+) ;check
+(check (pi-context-token-estimate-tokens (make-pi-context-token-estimate 0 0 0))
+  =>
+  0
+) ;check
 
 (check-report)

@@ -14,9 +14,7 @@
 ;; list?
 ;; JSON Schema 定义的 alist。
 
-(import (liii check)
-  (liii pi web-search schema)
-) ;import
+(import (liii check) (liii pi web-search schema))
 
 (check-set-mode! 'report-failed)
 
@@ -31,17 +29,27 @@
   ;; query：必填 string
   (check (cdr (assoc "type" query)) => "string")
   (check (cdr (assoc "description" query))
-    => "The search query or question to answer"
+    =>
+    "The search query or question to answer"
   ) ;check
   ;; urls：可选 array<string>，最多 20 项
   (check (cdr (assoc "type" urls)) => "array")
   (check (cdr (assoc "maxItems" urls)) => 20)
-  (check (cdr (assoc "type" (cdr (assoc "items" urls)))) => "string")
+  (check
+    (cdr (assoc "type" (cdr (assoc "items" urls))))
+    =>
+    "string"
+  ) ;check
   (check (cdr (assoc "description" urls))
-    => "Additional URLs to analyze along with search (up to 20)"
+    =>
+    "Additional URLs to analyze along with search (up to 20)"
   ) ;check
   ;; urls 不在 required 中
-  (check-true (not (member "urls" (vector->list (cdr (assoc "required" schema))))))
+  (check-true
+    (not
+      (member "urls" (vector->list (cdr (assoc "required" schema))))
+    ) ;not
+  ) ;check-true
 ) ;let*
 
 ;; 三层导入均可用：直接引用同一个函数

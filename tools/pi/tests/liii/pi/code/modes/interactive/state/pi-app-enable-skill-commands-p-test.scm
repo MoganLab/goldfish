@@ -25,18 +25,16 @@
 
 (check-set-mode! 'report-failed)
 
-(check-true
-  (pi-app-enable-skill-commands?
-    (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24))
-  ) ;pi-app-enable-skill-commands?
+(check-true (pi-app-enable-skill-commands? (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24))
+            ) ;pi-app-enable-skill-commands?
 ) ;check-true
 
-(check-false
-  (pi-app-enable-skill-commands?
-    (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)
-      :enable-skill-commands #f
-    ) ;make-pi-app
-  ) ;pi-app-enable-skill-commands?
+(check-false (pi-app-enable-skill-commands? (make-pi-app
+                                              :terminal
+                                              (make-virtual-terminal :width 80 :height 24)
+                                              :enable-skill-commands #f
+                                            ) ;make-pi-app
+             ) ;pi-app-enable-skill-commands?
 ) ;check-false
 
 (check-report)

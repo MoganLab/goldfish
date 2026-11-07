@@ -19,9 +19,9 @@
 ;; 注册的配置增强过程。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry flows)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry flows)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -30,6 +30,6 @@
   (register-config-augmenter! reg (lambda (cfg) cfg))
   (check (length (extension-registry-augmenters reg)) => 1)
   (check-catch 'type-error (register-config-augmenter! reg "not-a-procedure"))
-) ;let*
+) ;let
 
 (check-report)

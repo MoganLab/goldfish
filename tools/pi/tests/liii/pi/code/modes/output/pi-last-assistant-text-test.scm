@@ -17,9 +17,7 @@
 ;; 查找会在命中后立即停止。
 ;;
 
-(import (liii check)
-  (liii pi code modes output)
-) ;import
+(import (liii check) (liii pi code modes output))
 
 (check-set-mode! 'report-failed)
 

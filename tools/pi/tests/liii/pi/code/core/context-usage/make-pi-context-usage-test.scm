@@ -19,10 +19,7 @@
 ;; pi-context-usage
 ;; 上下文占用 record。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core context-usage)
-) ;import
+(import (scheme base) (liii check) (liii pi code core context-usage))
 
 (check-set-mode! 'report-failed)
 
@@ -31,13 +28,15 @@
   (check-true (pi-context-usage? ctx))
   (check (pi-context-usage-percent ctx) => 12.3)
   (check (pi-context-usage-window ctx) => 1048576)
-  (check (pi-context-usage-known? ctx) => #t))
+  (check (pi-context-usage-known? ctx) => #t)
+) ;let
 
 ;; 2. 占比未知（压缩后尚无新响应）：百分比为 #f，窗口容量仍保留
 (let ((ctx (make-pi-context-usage #f 1048576 #f)))
   (check-true (pi-context-usage? ctx))
   (check (pi-context-usage-percent ctx) => #f)
   (check (pi-context-usage-window ctx) => 1048576)
-  (check (pi-context-usage-known? ctx) => #f))
+  (check (pi-context-usage-known? ctx) => #f)
+) ;let
 
 (check-report)

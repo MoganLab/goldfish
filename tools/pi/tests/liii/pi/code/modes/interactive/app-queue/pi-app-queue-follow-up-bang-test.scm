@@ -28,8 +28,13 @@
 
 ;; 1. 排入 follow-up 消息
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vterm)))
+       (app (make-pi-app :terminal vterm))
+      ) ;
   (pi-app-queue-follow-up! app "next please do refactor")
-  (check (member "next please do refactor" (%pi-app-follow-up-pending app)) => '("next please do refactor")))
+  (check (member "next please do refactor" (%pi-app-follow-up-pending app))
+    =>
+    '("next please do refactor")
+  ) ;check
+) ;let*
 
 (check-report)

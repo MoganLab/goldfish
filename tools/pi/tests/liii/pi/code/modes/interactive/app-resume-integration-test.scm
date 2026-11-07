@@ -56,7 +56,11 @@
 ) ;define
 
 (define (make-resume-test-app vterm handler)
-  (make-pi-app :terminal vterm :handler handler :resume-sessions empty-resume-sessions)
+  (make-pi-app
+    :terminal        vterm
+    :handler         handler
+    :resume-sessions empty-resume-sessions
+  ) ;make-pi-app
 ) ;define
 
 ;; 1. 命令识别：仅精确匹配 /resume；/resumes 等前缀不算命令
@@ -103,7 +107,9 @@
 (let* ((received '())
        (vterm (make-virtual-terminal :width 100 :height 40))
        (app
-         (make-resume-test-app vterm (lambda (a msg) (set! received (cons msg received))))
+         (make-resume-test-app vterm
+           (lambda (a msg) (set! received (cons msg received)))
+         ) ;make-resume-test-app
        ) ;app
        (ed (pi-app-editor app))
       ) ;
@@ -119,7 +125,7 @@
 
 ;; 4. Escape 取消选择器：无副作用（不投任务、不改会话名）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t)))
        (ed (pi-app-editor app))
       ) ;
   (%pi-app-session-name-set! app "原会话名")
@@ -134,7 +140,7 @@
 
 ;; 5. Ctrl+C 取消选择器：同样无副作用
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t)))
        (ed (pi-app-editor app))
       ) ;
   (pi-app-submit! app "/resume")
@@ -184,7 +190,7 @@
 
 ;; 7. busy 时拒绝切换：提示稍后重试，不开选择器、不投任务
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t)))
        (q (pi-app-queue app))
       ) ;
   (pi-queue-set-busy! q)
@@ -220,7 +226,7 @@
 
 ;; 8. 队列中有排队消息时同样拒绝（避免切换后消息串写）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t)))
        (q (pi-app-queue app))
       ) ;
   (pi-queue-enqueue! q "pending message")
@@ -231,13 +237,12 @@
 
 ;; 9. --no-session 时明确拒绝：不切换会话、不创建文件
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) #t)
-           :no-session?     #t
-           :resume-sessions empty-resume-sessions
-         ) ;make-pi-app
+       (app (make-pi-app
+              :terminal        vterm
+              :handler         (lambda (a msg) #t)
+              :no-session?     #t
+              :resume-sessions empty-resume-sessions
+            ) ;make-pi-app
        ) ;app
       ) ;
   (pi-app-submit! app "/resume")
@@ -260,7 +265,9 @@
 (let* ((received '())
        (vterm (make-virtual-terminal :width 100 :height 40))
        (app
-         (make-resume-test-app vterm (lambda (a msg) (set! received (cons msg received))))
+         (make-resume-test-app vterm
+           (lambda (a msg) (set! received (cons msg received)))
+         ) ;make-resume-test-app
        ) ;app
       ) ;
   (pi-app-submit! app "/resume now")
@@ -305,7 +312,9 @@
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (received '())
        (app
-         (make-resume-test-app vterm (lambda (a msg) (set! received (cons msg received))))
+         (make-resume-test-app vterm
+           (lambda (a msg) (set! received (cons msg received)))
+         ) ;make-resume-test-app
        ) ;app
        (ed (pi-app-editor app))
       ) ;

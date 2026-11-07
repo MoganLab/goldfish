@@ -24,9 +24,7 @@
 ;; pi-key-pool?
 ;; 新建的密钥池记录。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 
@@ -36,12 +34,10 @@
   (check (pi-key-pool-cooldown-ms pool) => 20000)
   (check (pi-key-pool-invalid-cooldown-ms pool) => 600000)
   (check (pi-key-pool-keys pool) => '())
-) ;let*
+) ;let
 
 ;; 2. 可选冷却时长与密钥列表
-(let* ((k (pi-pool-key "sk-alpha"))
-       (pool (pi-key-pool "google" 1000 2000 (list k)))
-      ) ;
+(let* ((k (pi-pool-key "sk-alpha")) (pool (pi-key-pool "google" 1000 2000 (list k))))
   (check (pi-key-pool-cooldown-ms pool) => 1000)
   (check (pi-key-pool-invalid-cooldown-ms pool) => 2000)
   (check (length (pi-key-pool-keys pool)) => 1)

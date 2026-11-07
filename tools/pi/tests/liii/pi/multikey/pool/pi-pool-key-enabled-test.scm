@@ -15,9 +15,7 @@
 ;; boolean?
 ;; 启用时返回 #t，禁用时返回 #f。
 
-(import (liii check)
-        (liii pi multikey pool)
-) ;import
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 

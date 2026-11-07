@@ -15,9 +15,7 @@
 ;; 不返回
 ;; 向标准错误端口输出文本并换行。
 
-(import (liii check)
-  (liii pi code modes output)
-) ;import
+(import (liii check) (liii pi code modes output))
 
 (check-set-mode! 'report-failed)
 

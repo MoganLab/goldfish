@@ -16,9 +16,7 @@
 ;; 仅对 pi-session-token-stats record 返回 #t。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 

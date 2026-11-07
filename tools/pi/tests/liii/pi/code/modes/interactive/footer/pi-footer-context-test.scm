@@ -37,6 +37,7 @@
 (check-set-mode! 'report-failed)
 
 ;; srfi-166 的着色返回惰性串，需经 show 展开为普通字符串
+
 (define (red s)
   (show #f (as-red s))
 ) ;define
@@ -46,57 +47,90 @@
 ) ;define
 
 ;; 1. 上下文 record 与 token 统计合并为左下角统计串
-(let ((ft (make-pi-footer))
-      (tokens (make-pi-session-token-stats 100 50 2000 0)))
-  (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage 12.3 1048576 #t))
-  (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% 12.3%/1.0M (auto)"))
+(let ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 100 50 2000 0)))
+  (pi-footer-set-token-stats! ft
+    tokens
+    95.2
+    (make-pi-context-usage 12.3 1048576 #t)
+  ) ;pi-footer-set-token-stats!
+  (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% 12.3%/1.0M (auto)")
+) ;let
 
 ;; 2. 压缩后尚无新响应：占比未知显示 "?"
-(let ((ft (make-pi-footer))
-      (tokens (make-pi-session-token-stats 100 50 2000 0)))
-  (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage #f 1048576 #f))
-  (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% ?/1.0M (auto)"))
+(let ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 100 50 2000 0)))
+  (pi-footer-set-token-stats! ft
+    tokens
+    95.2
+    (make-pi-context-usage #f 1048576 #f)
+  ) ;pi-footer-set-token-stats!
+  (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% ?/1.0M (auto)")
+) ;let
 
 ;; 3. 占比超过 90%：上下文段标红
-(let* ((ft (make-pi-footer))
-       (tokens (make-pi-session-token-stats 100 50 2000 0)))
-  (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage 95.0 1048576 #t))
+(let* ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 100 50 2000 0)))
+  (pi-footer-set-token-stats! ft
+    tokens
+    95.2
+    (make-pi-context-usage 95.0 1048576 #t)
+  ) ;pi-footer-set-token-stats!
   (let ((line2 (cadr (component-render ft 80))))
     (check-true (string-contains line2 (red "95.0%/1.0M (auto)")))
-    (check-false (string-contains line2 (yellow "95.0%/1.0M (auto)")))))
+    (check-false (string-contains line2 (yellow "95.0%/1.0M (auto)")))
+  ) ;let
+) ;let*
 
 ;; 4. 占比 70%~90%：上下文段标黄
-(let* ((ft (make-pi-footer))
-       (tokens (make-pi-session-token-stats 100 50 2000 0)))
-  (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage 75.0 1048576 #t))
+(let* ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 100 50 2000 0)))
+  (pi-footer-set-token-stats! ft
+    tokens
+    95.2
+    (make-pi-context-usage 75.0 1048576 #t)
+  ) ;pi-footer-set-token-stats!
   (let ((line2 (cadr (component-render ft 80))))
     (check-true (string-contains line2 (yellow "75.0%/1.0M (auto)")))
-    (check-false (string-contains line2 (red "75.0%/1.0M (auto)")))))
+    (check-false (string-contains line2 (red "75.0%/1.0M (auto)")))
+  ) ;let
+) ;let*
 
 ;; 5. 占比低于 70%：不着色
-(let* ((ft (make-pi-footer))
-       (tokens (make-pi-session-token-stats 100 50 2000 0)))
-  (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage 12.3 1048576 #t))
+(let* ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 100 50 2000 0)))
+  (pi-footer-set-token-stats! ft
+    tokens
+    95.2
+    (make-pi-context-usage 12.3 1048576 #t)
+  ) ;pi-footer-set-token-stats!
   (let ((line2 (cadr (component-render ft 80))))
     (check-true (string-contains line2 "12.3%/1.0M (auto)"))
     (check-false (string-contains line2 (red "12.3%/1.0M (auto)")))
-    (check-false (string-contains line2 (yellow "12.3%/1.0M (auto)")))))
+    (check-false (string-contains line2 (yellow "12.3%/1.0M (auto)")))
+  ) ;let
+) ;let*
 
 ;; 6. 未知占比切换后按记忆的窗口显示 "?"
-(let* ((ft (make-pi-footer))
-       (tokens (make-pi-session-token-stats 100 50 2000 0)))
-  (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage 12.3 200000 #t))
+(let* ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 100 50 2000 0)))
+  (pi-footer-set-token-stats! ft
+    tokens
+    95.2
+    (make-pi-context-usage 12.3 200000 #t)
+  ) ;pi-footer-set-token-stats!
   (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% 12.3%/200k (auto)")
   (pi-footer-set-context-unknown! ft)
-  (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% ?/200k (auto)"))
+  (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% ?/200k (auto)")
+) ;let*
 
 ;; 7. 上下文窗口缺失时沿用最近一次已知容量，不退化为 0
 (let* ((ft (make-pi-footer :context-window 1048576))
-       (tokens (make-pi-session-token-stats 100 50 2000 0)))
-  (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage 12.3 1048576 #t))
+       (tokens (make-pi-session-token-stats 100 50 2000 0))
+      ) ;
+  (pi-footer-set-token-stats! ft
+    tokens
+    95.2
+    (make-pi-context-usage 12.3 1048576 #t)
+  ) ;pi-footer-set-token-stats!
   (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% 12.3%/1.0M (auto)")
   (pi-footer-set-token-stats! ft tokens 95.2 (make-pi-context-usage #f #f #t))
   (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% 0.0%/1.0M (auto)")
-  (check (pi-footer-context-window ft) => 1048576))
+  (check (pi-footer-context-window ft) => 1048576)
+) ;let*
 
 (check-report)

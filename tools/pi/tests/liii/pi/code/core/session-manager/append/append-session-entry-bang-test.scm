@@ -30,19 +30,23 @@
   (path-join (path-temp-dir) "pi-append-session-entry-test.jsonl")
 ) ;define
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 ;; 1. 追加条目后可读回该条目
 (append-session-entry! tmp-file "{\"type\":\"message\",\"id\":\"m1\"}")
 (let ((lines (path-read-lines tmp-file)))
   (check (length lines) => 1)
   (check-true (string-contains? (car lines) "\"id\":\"m1\""))
-) ;let*
+) ;let
 
 ;; 2. 连续追加保留原有条目
 (append-session-entry! tmp-file "{\"type\":\"message\",\"id\":\"m2\"}")
 (check (length (path-read-lines tmp-file)) => 2)
 
-(when (path-exists? tmp-file) (path-unlink tmp-file))
+(when (path-exists? tmp-file)
+  (path-unlink tmp-file)
+) ;when
 
 (check-report)

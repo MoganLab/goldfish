@@ -29,7 +29,8 @@
   (liii pi ai config record)
   (liii pi code cli args)
   (liii pi code config)
-  (liii pi code session-state))
+  (liii pi code session-state)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -52,15 +53,18 @@
 ;; (values 合并后的 cfg 警告列表)
 
 (define TMP-AGENT-DIR
-  (path->string (path-join (path-temp-dir) "pi-resolve-session-state-test")))
+  (path->string (path-join (path-temp-dir) "pi-resolve-session-state-test"))
+) ;define
 
 ;; 清理旧运行残留，保证测试可重复
 (when (file-exists? TMP-AGENT-DIR)
-  (rmtree TMP-AGENT-DIR))
+  (rmtree TMP-AGENT-DIR)
+) ;when
 
 (path-mkdir TMP-AGENT-DIR :parents #t :exist-ok #t)
 (path-write-text (path->string (path-join (path TMP-AGENT-DIR) (path "auth.json")))
-  "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-google-key\"},\"minimax-cn\":{\"type\":\"api_key\",\"key\":\"fixture-minimax-key\"}}")
+  "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-google-key\"},\"minimax-cn\":{\"type\":\"api_key\",\"key\":\"fixture-minimax-key\"}}"
+) ;path-write-text
 
 (define ENV (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)))
 
@@ -79,7 +83,7 @@
        (state (list (cons 'thinkingLevel "high")
                 (cons 'model (state-model "minimax-cn" "MiniMax-M3.1-Flash"))
               ) ;list
-       ) ;
+       ) ;state
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
     (check (cdr (assoc 'provider merged)) => "minimax-cn")
@@ -96,12 +100,14 @@
 ;; 二、显式 --provider/--model 覆盖状态模型；显式 --thinking 覆盖状态等级
 ;; ------------------------------------------------------------
 ;; cfg 由同一份 parsed 解析而来，显式参数已体现在 cfg 中，状态不得再改写
-(let* ((parsed (parse-pi-args '("--provider" "minimax-cn" "--model" "MiniMax-M3.1-Flash")))
+(let* ((parsed (parse-pi-args '("--provider" "minimax-cn" "--model"
+                                "MiniMax-M3.1-Flash"))
+       ) ;parsed
        (cfg (resolve-pi-config parsed ENV))
        (state (list (cons 'thinkingLevel "high")
                 (cons 'model (state-model "google" "gemini-2.5-pro"))
               ) ;list
-       ) ;
+       ) ;state
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
     (check (cdr (assoc 'provider merged)) => "minimax-cn")
@@ -144,7 +150,10 @@
   ) ;let-values
   ;; 只有 thinkingLevel，模型维度保持 cfg
   (let-values (((merged warnings)
-                (pi-resolve-session-state cfg (list (cons 'thinkingLevel "medium")) (parse-pi-args '()))
+                (pi-resolve-session-state cfg
+                  (list (cons 'thinkingLevel "medium"))
+                  (parse-pi-args '())
+                ) ;pi-resolve-session-state
                ) ;
               ) ;
     (check (cdr (assoc 'provider merged)) => "google")
@@ -161,7 +170,10 @@
                ) ;
               ) ;
     (check (cdr (assoc 'provider merged)) => "minimax-cn")
-    (check (cdr (assoc 'thinking-level merged)) => (cdr (assoc 'thinking-level cfg)))
+    (check (cdr (assoc 'thinking-level merged))
+      =>
+      (cdr (assoc 'thinking-level cfg))
+    ) ;check
     (check warnings => '())
   ) ;let-values
 ) ;let*
@@ -169,9 +181,7 @@
 ;; ------------------------------------------------------------
 ;; 四、无凭证 / 模型不可用：保留 cfg 并给出警告
 ;; ------------------------------------------------------------
-(let* ((cfg (base-cfg))
-       (state (list (cons 'model (state-model "openai" "gpt-5"))))
-      ) ;
+(let* ((cfg (base-cfg)) (state (list (cons 'model (state-model "openai" "gpt-5")))))
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
     (check (cdr (assoc 'provider merged)) => "google")
     (check (cdr (assoc 'model-id merged)) => "gemini-3.8-flash")
@@ -192,9 +202,7 @@
 ;; ------------------------------------------------------------
 ;; 五、思考等级非法或模型不支持思考：收敛为 off 并警告
 ;; ------------------------------------------------------------
-(let* ((cfg (base-cfg))
-       (state (list (cons 'thinkingLevel "ludicrous")))
-      ) ;
+(let* ((cfg (base-cfg)) (state (list (cons 'thinkingLevel "ludicrous"))))
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
     (check (cdr (assoc 'thinking-level merged)) => "off")
     (check (length warnings) => 1)
@@ -204,19 +212,19 @@
 ;; 构造一个 reasoning 为 #f 的模型条目，验证不支持思考时收敛为 off
 (let* ((cfg (base-cfg))
        (plain-models-store
-         (list (cons "google"
-                 (list (cons "models"
-                         (list (list (cons "id" "plain-1") (cons "reasoning" #f)))
-                       ) ;cons
-                 ) ;list
-               ) ;cons
+         (list
+           (cons "google"
+             (list
+               (cons "models" (list (list (cons "id" "plain-1") (cons "reasoning" #f))))
+             ) ;list
+           ) ;cons
          ) ;list
-       ) ;
+       ) ;plain-models-store
        (cfg (cons (cons 'models-store plain-models-store) cfg))
        (state (list (cons 'thinkingLevel "high")
                 (cons 'model (state-model "google" "plain-1"))
               ) ;list
-       ) ;
+       ) ;state
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
     (check (cdr (assoc 'model-id merged)) => "plain-1")

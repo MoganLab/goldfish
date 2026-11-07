@@ -16,17 +16,17 @@
 ;; 直接记录初始化过程。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry base)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry base)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* (
-       (reg (make-extension-registry))
+(let* ((reg (make-extension-registry))
        (saved (default-extension-registry))
-       (seen '()))
+       (seen '())
+      ) ;
   (set-default-extension-registry! reg)
   (add-registry-initializer! (lambda (r) (set! seen (cons r seen))))
   (check (length seen) => 1)

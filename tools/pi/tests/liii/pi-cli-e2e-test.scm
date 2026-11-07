@@ -1,3 +1,18 @@
+;; pi-cli-e2e
+;; CLI 端到端集成测试：覆盖多轮请求与退出码
+;;
+;; 语法
+;; ----
+;; (pi-cli-e2e ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
 (import (scheme process-context)

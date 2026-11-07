@@ -15,10 +15,7 @@
 ;; list?
 ;; 包含 entries、paths、total、source 等字段的 alist。
 
-(import (liii check)
-        (liii string)
-        (liii pi code utils git)
-) ;import
+(import (liii check) (liii string) (liii pi code utils git))
 
 (check-set-mode! 'report-failed)
 
@@ -28,10 +25,7 @@
   (lambda (cmd timeout)
     (vector-set! calls-box 0 (cons cmd (vector-ref calls-box 0)))
     (let ((entry (assoc cmd table)))
-      (if entry
-        (values (cadr entry) (caddr entry))
-        (values "" #t)
-      ) ;if
+      (if entry (values (cadr entry) (caddr entry)) (values "" #t))
     ) ;let
   ) ;lambda
 ) ;define
@@ -46,8 +40,7 @@
 
 ;; 1. 主命令成功且有变更
 (let* ((box (make-calls-box))
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD" "M\tsrc/app.ts\nA\tsrc/new.py\n" #f))
+       (runner (make-runner (list (list "git diff --name-status HEAD" "M\tsrc/app.ts\nA\tsrc/new.py\n" #f))
                  box
                ) ;make-runner
        ) ;runner
@@ -63,10 +56,9 @@
 
 ;; 2. 主命令失败时回退 HEAD~1
 (let* ((box (make-calls-box))
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD" "" #t)
-                       (list "git diff --name-status HEAD~1" "M\tfallback.ts\n" #f)
-                 ) ;list
+       (runner (make-runner (list (list "git diff --name-status HEAD" "" #t)
+                              (list "git diff --name-status HEAD~1" "M\tfallback.ts\n" #f)
+                            ) ;list
                  box
                ) ;make-runner
        ) ;runner
@@ -79,10 +71,9 @@
 
 ;; 3. 主命令成功但无变更，也回退
 (let* ((box (make-calls-box))
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD" "" #f)
-                       (list "git diff --name-status HEAD~1" "A\told.ts\n" #f)
-                 ) ;list
+       (runner (make-runner (list (list "git diff --name-status HEAD" "" #f)
+                              (list "git diff --name-status HEAD~1" "A\told.ts\n" #f)
+                            ) ;list
                  box
                ) ;make-runner
        ) ;runner
@@ -104,8 +95,7 @@
 
 ;; 5. --staged 使用 --cached 命令
 (let* ((box (make-calls-box))
-       (runner (make-runner
-                 (list (list "git diff --name-status --cached" "M\tstaged.ts\n" #f))
+       (runner (make-runner (list (list "git diff --name-status --cached" "M\tstaged.ts\n" #f))
                  box
                ) ;make-runner
        ) ;runner
@@ -116,18 +106,13 @@
 ) ;let*
 
 ;; 6. 超过上限截断并给出提示
-(let* ((many (string-append
-               "M\tf01.ts\nM\tf02.ts\nM\tf03.ts\nM\tf04.ts\nM\tf05.ts\n"
+(let* ((many (string-append "M\tf01.ts\nM\tf02.ts\nM\tf03.ts\nM\tf04.ts\nM\tf05.ts\n"
                "M\tf06.ts\nM\tf07.ts\nM\tf08.ts\nM\tf09.ts\nM\tf10.ts\n"
                "M\tf11.ts\nM\tf12.ts\n"
              ) ;string-append
        ) ;many
        (box (make-calls-box))
-       (runner (make-runner
-                 (list (list "git diff --name-status HEAD" many #f))
-                 box
-               ) ;make-runner
-       ) ;runner
+       (runner (make-runner (list (list "git diff --name-status HEAD" many #f)) box))
        (res (pi-collect-changed-files :runner runner))
       ) ;
   (check (length (cdr (assoc 'paths res))) => 10)
@@ -139,7 +124,8 @@
 ;; 7. 显式文件列表：不调用 git
 (let* ((box (make-calls-box))
        (runner (make-runner '() box))
-       (res (pi-collect-changed-files :runner runner :files '("src/a.ts" "src/b.py")))
+       (res (pi-collect-changed-files :runner runner :files '("src/a.ts"
+                                                              "src/b.py")))
       ) ;
   (check (cdr (assoc 'source res)) => "explicit")
   (check (cdr (assoc 'paths res)) => '("src/a.ts" "src/b.py"))
@@ -148,8 +134,7 @@
 
 ;; 8. 自定义 ref
 (let* ((box (make-calls-box))
-       (runner (make-runner
-                 (list (list "git diff --name-status main" "M\tfrom-main.ts\n" #f))
+       (runner (make-runner (list (list "git diff --name-status main" "M\tfrom-main.ts\n" #f))
                  box
                ) ;make-runner
        ) ;runner

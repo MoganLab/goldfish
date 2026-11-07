@@ -16,14 +16,15 @@
 ;; usage 基准之后尾随消息的估算 token 数。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
 
 (check-set-mode! 'report-failed)
 
 
-(check (pi-context-token-estimate-trailing-tokens
-         (make-pi-context-token-estimate 102 100 2)) => 2)
+(check (pi-context-token-estimate-trailing-tokens (make-pi-context-token-estimate 102 100 2)
+       ) ;pi-context-token-estimate-trailing-tokens
+  =>
+  2
+) ;check
 
 (check-report)

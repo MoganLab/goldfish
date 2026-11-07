@@ -16,27 +16,26 @@
 ;; 规范化后的命令定义记录。
 
 (import (scheme base)
-        (liii check)
-        (liii pi code core extensions registry commands)
-        (liii pi code core extensions types)
+  (liii check)
+  (liii pi code core extensions registry commands)
+  (liii pi code core extensions types)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((cmd (make-extension-command-def "c" "d" (lambda (a x) 1))))
   (check (normalize-command-def cmd) => cmd)
-) ;let*
+) ;let
 
-(let ((cmd (normalize-command-def (list (cons 'name "c")
-                                          (cons 'description "d")
-                                          (cons 'handler (lambda (a x) 1))
-                                        ) ;list
-              ) ;normalize-command-def
-            )
-      ) ;
+(let ((cmd
+        (normalize-command-def
+          (list (cons 'name "c") (cons 'description "d") (cons 'handler (lambda (a x) 1)))
+        ) ;normalize-command-def
+      ) ;cmd
+     ) ;
   (check-true (extension-command-def? cmd))
   (check (extension-command-def-name cmd) => "c")
   (check (extension-command-def-description cmd) => "d")
-) ;let*
+) ;let
 
 (check-report)

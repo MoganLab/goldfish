@@ -120,10 +120,19 @@
              ) ;osc-item
             ) ;
         (check-true (string? osc-item))
-        (let ((b64 (substring osc-item (string-length "\x1b;]52;c;") (- (string-length osc-item) 1))))
+        (let ((b64 (substring osc-item
+                     (string-length "\x1b;]52;c;")
+                     (- (string-length osc-item) 1)
+                   ) ;substring
+              ) ;b64
+             ) ;
           (check (string-base64-decode b64) => expected-text)
         ) ;let
-        (check-true (string? (find (lambda (s) (and (string? s) (string-contains s "Copied!"))) raw)))
+        (check-true
+          (string?
+            (find (lambda (s) (and (string? s) (string-contains s "Copied!"))) raw)
+          ) ;string?
+        ) ;check-true
       ) ;let*
     ) ;let*
   ) ;let-values
@@ -137,7 +146,9 @@
   (virtual-terminal-push-key! vt 'ctrl-d)
   (check (pi-app-run app) => #t)
   (let ((raw (virtual-terminal-raw vt)))
-    (check-false (find (lambda (s) (and (string? s) (string-contains s "\x1b;]52;c;"))) raw))
+    (check-false
+      (find (lambda (s) (and (string? s) (string-contains s "\x1b;]52;c;"))) raw)
+    ) ;check-false
   ) ;let
 ) ;let*
 

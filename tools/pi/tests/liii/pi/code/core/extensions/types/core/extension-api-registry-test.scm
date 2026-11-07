@@ -16,16 +16,14 @@
 ;; 绑定的注册表记录。
 
 (import (scheme base)
-        (liii check)
-        (liii check)
-        (liii pi code core extensions types core)
+  (liii check)
+  (liii check)
+  (liii pi code core extensions types core)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* ((reg (make-extension-registry))
-       (api (make-extension-api reg))
-      ) ;
+(let* ((reg (make-extension-registry)) (api (make-extension-api reg)))
   (check (extension-api-registry api) => reg)
 ) ;let*
 

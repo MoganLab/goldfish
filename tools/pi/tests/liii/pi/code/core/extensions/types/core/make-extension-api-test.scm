@@ -15,9 +15,7 @@
 ;; extension-api
 ;; 新建的扩展 API 记录。
 
-(import (liii check)
-  (liii pi code core extensions)
-) ;import
+(import (liii check) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 
@@ -28,8 +26,7 @@
 ) ;let
 
 ;; 2. 指定已有的 Registry 创建 ExtensionAPI
-(let* ((reg (make-extension-registry))
-       (api (make-extension-api reg)))
+(let* ((reg (make-extension-registry)) (api (make-extension-api reg)))
   (check (extension-api? api) => #t)
   (check (eq? (extension-api-registry api) reg) => #t)
 ) ;let*
