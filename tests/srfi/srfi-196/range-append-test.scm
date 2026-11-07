@@ -63,6 +63,8 @@
 ;; 任一参数不是 range 时抛出 type-error
 (check-catch 'type-error (range-append '(0 1) (numeric-range 0 3)))
 (check-catch 'type-error (range-append (numeric-range 0 3) 42))
-(check-catch 'type-error (range-append (numeric-range 0 2) "r" (numeric-range 0 3)))
+(check-catch 'type-error
+  (range-append (numeric-range 0 2) "r" (numeric-range 0 3))
+) ;check-catch
 
 (check-report)
