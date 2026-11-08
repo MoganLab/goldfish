@@ -94,13 +94,13 @@
 
 ## 文档查询
 
-`bin/gf doc` 可以查看各算子的文档与测试示例（文档来源于测试文件头部注释）：
+`gf doc` 可以查看各算子的文档与测试示例（文档来源于测试文件头部注释）：
 
 ```bash
-bin/gf doc liii/lang                    # 查看库概览与算子白名单
-bin/gf doc liii/lang '$'                # 查看核心宏 $ 的文档（$ 需单引号防 shell 展开）
-bin/gf doc liii/lang 'list%head'        # 查看指定算子的文档
-bin/gf doc 'string%take'                # 在所有库中模糊查找算子
+gf doc liii/lang                    # 查看库概览与算子白名单
+gf doc liii/lang '$'                # 查看核心宏 $ 的文档（$ 需单引号防 shell 展开）
+gf doc liii/lang 'list%head'        # 查看指定算子的文档
+gf doc liii/lang 'string%take'      # 算子未导出时需指定库名前缀查询
 ```
 
 注意：`$` 在 shell 中需用单引号包裹（`'$'`）防止变量展开。
