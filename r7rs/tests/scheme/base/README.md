@@ -66,10 +66,13 @@ gf doc scheme/base "函数名"
 - `number->string` - 数字转字符串
 - `string->number` - 字符串转数字
 - `square` - 平方
+- `expt` - 幂运算
 - `floor-quotient` - 向下取整的商
 - `floor-remainder` - 向下取整的余数
 - `floor/` - 向下取整除法（返回商和余数）
 - `truncate/` - 截断除法（返回商和余数）
+- `truncate-quotient` - 向零取整的商
+- `truncate-remainder` - 截断除法余数（符号随被除数）
 
 ### 二、类型判断 (R7RS 6.1 Equivalence predicates + 类型判断)
 - `number?` - 是否为数值
@@ -152,6 +155,7 @@ gf doc scheme/base "函数名"
 - `string-ref` - 按索引取字符
 - `string-set!` - 按索引设置字符
 - `string-copy` - 复制字符串
+- `string-copy!` - 把源串区间复制到目标串指定位置
 - `string-append` - 连接多个字符串
 - `substring` - 提取子字符串
 - `string-fill!` - 用字符填充字符串
@@ -183,6 +187,7 @@ gf doc scheme/base "函数名"
 - `bytevector-u8-ref` - 按索引取字节
 - `bytevector-u8-set!` - 按索引设置字节
 - `bytevector-copy` - 复制字节向量
+- `bytevector-copy!` - 把源字节向量区间复制到目标指定位置
 - `bytevector-append` - 连接字节向量
 - `utf8->string` - UTF-8 转字符串
 - `string->utf8` - 字符串转 UTF-8
@@ -230,6 +235,7 @@ gf doc scheme/base "函数名"
 - `read` - 读取对象
 - `read-line` - 读取一行
 - `write` - 写入对象
+- `write-string` - 按 display 风格写入字符串
 
 ### 十二、异常处理 (R7RS 6.11 Exceptions)
 - `raise` - 抛出异常

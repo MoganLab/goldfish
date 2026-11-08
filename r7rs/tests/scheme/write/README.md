@@ -4,6 +4,8 @@
 包括可读性输出 (write)、用户友好展示 (display) 以及共享结构处理
 (write-shared, write-simple) 等功能。
 
+注：`write-string` 属于 `(scheme base)`，参见 `gf doc scheme/base`。
+
 ## 常见用法示例
 
 ```scheme
@@ -39,7 +41,6 @@ gf doc scheme/write "函数名"
 ### 一、基本输出
 
 - `write` - 按可读回的 Scheme 表示写入对象
-- `write-string` - 按 display 风格写入字符串
 - `display` - 按用户友好的方式写入对象
 
 ### 二、共享结构处理

@@ -43,6 +43,7 @@
     abs
     ;; - 数值函数
     square
+    expt
     exact
     inexact
     max
@@ -52,6 +53,8 @@
     ceiling
     truncate
     truncate/
+    truncate-quotient
+    truncate-remainder
     round
     floor-quotient
     floor-remainder
@@ -139,6 +142,7 @@
     string-append
     substring
     string-fill!
+    string-copy!
     string->list
     list->string
     string=?
@@ -168,6 +172,7 @@
     bytevector-u8-ref
     bytevector-u8-set!
     bytevector-copy
+    bytevector-copy!
     bytevector-append
     utf8->string
     string->utf8
@@ -201,6 +206,7 @@
     read-string
     read
     write-char
+    write-string
     newline
     flush-output-port
     eof-object?
@@ -423,6 +429,28 @@
       ) ;let*
     ) ;define
 
+    (define (truncate-quotient x y)
+      (when (or (not (real? x)) (not (real? y)))
+        (error 'type-error "truncate-quotient: parameters must be real numbers")
+      ) ;when
+      (when (zero? y)
+        (error 'division-by-zero "truncate-quotient: division by zero")
+      ) ;when
+      (truncate (/ x y))
+    ) ;define
+
+    (define (truncate-remainder x y)
+      (when (or (not (real? x)) (not (real? y)))
+        (error 'type-error "truncate-remainder: parameters must be reals")
+      ) ;when
+      (when (zero? y)
+        (error 'division-by-zero "truncate-remainder: division by zero")
+      ) ;when
+      (let* ((q (truncate (/ x y))) (r (- x (* q y))))
+        r
+      ) ;let*
+    ) ;define
+
     (define (modulo x y)
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "modulo: parameters must be reals")
@@ -530,6 +558,55 @@
           ) ;if
         ) ;let
       ) ;let
+    ) ;define*
+
+    ;; R7RS 6.9：(bytevector-copy! to at from [start [end]]) 把 from 的
+    ;; [start, end) 区间复制到 to 的 at 起始位置。源与目标重叠时按
+    ;; “先拷入临时字节向量再拷入目标”的语义处理。
+    (define*
+      (bytevector-copy! to
+        at
+        from
+        (start 0)
+        (end (and (bytevector? from) (bytevector-length from)))
+      ) ;bytevector-copy!
+      (unless (bytevector? to)
+        (error 'type-error "bytevector-copy!: 'to' must be a bytevector" to)
+      ) ;unless
+      (unless (integer? at)
+        (error 'type-error "bytevector-copy!: 'at' must be an integer" at)
+      ) ;unless
+      (unless (bytevector? from)
+        (error 'type-error "bytevector-copy!: 'from' must be a bytevector" from)
+      ) ;unless
+      (unless (and (integer? start) (integer? end))
+        (error 'type-error "bytevector-copy!: 'start' and 'end' must be integers")
+      ) ;unless
+      (if
+        (or (< at 0)
+          (> at (bytevector-length to))
+          (< start 0)
+          (> start (bytevector-length from))
+          (< end 0)
+          (> end (bytevector-length from))
+          (> start end)
+          (> (+ at (- end start)) (bytevector-length to))
+        ) ;or
+        (error 'out-of-range "bytevector-copy!")
+        ;; 先拷到临时字节向量，再写入目标，天然满足重叠语义
+        (let ((tmp (bytevector-copy from start end)))
+          (let loop
+            ((to-i at) (from-i 0))
+            (if (>= from-i (bytevector-length tmp))
+              to
+              (begin
+                (bytevector-u8-set! to to-i (bytevector-u8-ref tmp from-i))
+                (loop (+ to-i 1) (+ from-i 1))
+              ) ;begin
+            ) ;if
+          ) ;let
+        ) ;let
+      ) ;if
     ) ;define*
 
     (define (bytevector-append . args)
@@ -934,6 +1011,55 @@
                       (loop (+ to-i 1) (+ from-i 1))
                     ) ;begin
                   ) ;if
+                ) ;let
+              ) ;if
+            ) ;if
+          ) ;if
+        ) ;if
+      ) ;if
+    ) ;define*
+
+    ;; R7RS 6.7：(string-copy! to at from [start [end]]) 把 from 的
+    ;; [start, end) 区间复制到 to 的 at 起始位置。源与目标重叠时按
+    ;; “先拷入临时串再拷入目标”的语义处理。
+    (define*
+      (string-copy! to
+        at
+        from
+        (start 0)
+        (end (and (string? from) (string-length from)))
+      ) ;string-copy!
+      (if (not (string? to))
+        (error 'type-error "string-copy!: 'to' must be a string")
+        (if (not (integer? at))
+          (error 'type-error "string-copy!: 'at' must be an integer")
+          (if (not (string? from))
+            (error 'type-error "string-copy!: 'from' must be a string")
+            (if (or (not (integer? start)) (not (integer? end)))
+              (error 'type-error "string-copy!: 'start' and 'end' must be integers")
+              (if
+                (or (< at 0)
+                  (> at (string-length to))
+                  (< start 0)
+                  (> start (string-length from))
+                  (< end 0)
+                  (> end (string-length from))
+                  (> start end)
+                  (> (+ at (- end start)) (string-length to))
+                ) ;or
+                (error 'out-of-range "string-copy!")
+                ;; 先拷到临时串，再写入目标，天然满足重叠语义
+                (let ((tmp (substring from start end)))
+                  (let loop
+                    ((to-i at) (from-i 0))
+                    (if (>= from-i (string-length tmp))
+                      to
+                      (begin
+                        (string-set! to to-i (string-ref tmp from-i))
+                        (loop (+ to-i 1) (+ from-i 1))
+                      ) ;begin
+                    ) ;if
+                  ) ;let
                 ) ;let
               ) ;if
             ) ;if

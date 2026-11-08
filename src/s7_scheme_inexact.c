@@ -1276,7 +1276,12 @@ s7_pointer expt_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer pw)
             }
         }
 
-      if (s7_is_complex(n))
+      /* s7_is_complex covers all numbers (R7RS complex? = number?), so here we
+       * check the actual imaginary part: real bases with an integer exponent
+       * must fall through to the pow() path even when HAVE_COMPLEX_NUMBERS is 0
+       * (e.g. MSVC builds); only true complex operands are rejected there.
+       * See https://github.com/MoganLab/goldfish/issues/1263 */
+      if (s7_is_complex(n) && (s7_imag_part(n) != 0.0))
         {
 #if HAVE_COMPLEX_NUMBERS
           if ((s7_real_part(n) == 0.0) &&
