@@ -16,8 +16,8 @@
 ;; indent : integer? 可选，默认值为 -1
 ;; 标记的缩进量（空格数）。-1 表示缩进尚未确认。
 ;;
-;; children : vector? 可选，默认值为 (vector)
-;; 子环境列表，元素为 env 记录。
+;; children : (or vector? proper-list? #f) 可选，默认值为 (vector)
+;; 子环境列表，元素为 env 记录；传入完整列表时会被转换为向量。
 ;;
 ;; left-line : integer? 可选，默认值为 0
 ;; 左侧标记所在的行号，0 表示行号未确定。
@@ -67,5 +67,8 @@
 (check-catch 'value-error (make-env :right-line -1))
 (check-catch 'value-error (make-env :tag-name 42))
 (check-catch 'value-error (make-env :children "not-a-vector"))
+;; 点对列表不是完整列表，也应抛出 value-error
+(check-catch 'value-error (make-env :children '(1 . 2)))
+(check-catch 'value-error (make-env :children 42))
 
 (check-report)

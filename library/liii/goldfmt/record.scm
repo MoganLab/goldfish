@@ -137,7 +137,8 @@
           (value-error "make-env in liii/goldfmt record: indent must be >= -1")
         ) ;when
         (when (not (or (vector? children) (eq? children #f)))
-          (value-error "make-env in liii/goldfmt record: children must be a vector or #f")
+          (value-error "make-env in liii/goldfmt record: children must be a vector, a proper list, or #f"
+          ) ;value-error
         ) ;when
         (when (not (integer? left-line))
           (value-error "make-env in liii/goldfmt record: left-line must be an integer")
