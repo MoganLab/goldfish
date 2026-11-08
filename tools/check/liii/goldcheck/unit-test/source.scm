@@ -46,6 +46,7 @@
             ((string=? name "<=") "le")
             ((string=? name ">") "gt")
             ((string=? name ">=") "ge")
+            ((string=? name "$") "dollar")
             (else #f)
       ) ;cond
     ) ;define
