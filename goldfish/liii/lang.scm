@@ -17,8 +17,6 @@
 (define-library (liii lang)
   (import (scheme base)
     (scheme char)
-    (srfi srfi-1)
-    (srfi srfi-133)
     (liii list)
     (liii vector)
     (liii string-cursor)
