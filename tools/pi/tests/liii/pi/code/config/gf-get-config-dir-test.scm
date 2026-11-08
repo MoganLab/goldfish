@@ -63,7 +63,9 @@
 (define (%normalize dir)
   (if (os-windows?)
     (string-replace (path->string dir) "\\" "/")
-    (path->string dir)
+    ;; ; [1265] path-resolve 现解析符号链接：统一用 realpath 形态比对，
+    ;; ; 避免 $TMPDIR（/var vs /private/var）逻辑/物理路径不一致导致误报
+    (path->string (path-resolve dir))
   ) ;if
 ) ;define
 

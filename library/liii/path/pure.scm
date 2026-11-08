@@ -18,6 +18,7 @@
   (export path-name path-stem path-suffix path-suffixes path-with-name
     path-with-stem path-with-suffix path-relative-to path-starts-with? path-join
     path-parent path-parents path-absolute path-expanduser path-resolve
+    path-realpath
   ) ;export
   (import (scheme base)
     (liii base)
@@ -31,8 +32,8 @@
   ) ;import
   (begin
 
-    ;; ; 规范化绝对路径:消除 . 段、折叠 .. 段。
-    ;; ; 不解析符号链接(无 realpath 原语,与 pathlib strict 语义有差异)。
+    ;; ; 规范化绝对路径:消除 . 段、折叠 .. 段。内部辅助,path-resolve 已改用
+    ;; ; g_realpath 原语解析符号链接。
     (define (normalize-absolute p)
       (let* ((pp (path-absolute p))
              (segs (vector->list (path-record-parts pp)))
@@ -300,11 +301,24 @@
       ) ;let*
     ) ;define
 
-    ;; ; 对齐 pathlib.Path.resolve(strict=False) 简化版
-    ;; ; 差异:绝对化 + 折叠 . / .. 段;不解析符号链接(无 realpath 原语)。
-    ;; ; Windows 与 posix 均适用,基于 path-absolute 取 cwd 作种子。
-    (define (path-resolve p)
-      (normalize-absolute p)
+    ;; ; 对齐 pathlib.Path.resolve(strict=False)
+    ;; ; 解析符号链接并折叠 . / .. 段，返回物理绝对路径。
+    ;; ; 非strict:路径不存在时尽可能解析已存在前缀，剩余段保持原样;
+    ;; ; strict:路径不存在时抛 file-not-found-error。
+    ;; ; Windows 无 realpath(3)：仅折叠段，不解析符号链接(与 Python 在 Windows 的行为一致)。
+    (define (path-resolve p . rest)
+      (let* ((pp (path p))
+             (strict (if (pair? rest) (car rest) #f))
+             (s (g_realpath (path->string pp) strict))
+            ) ;
+        (path s)
+      ) ;let*
+    ) ;define
+
+    ;; ; 对齐 os.path.realpath(path)
+    ;; ; 别名:Python 侧 os.path.realpath 等价于 Path.resolve(strict=False)。
+    (define (path-realpath p)
+      (path-resolve p #f)
     ) ;define
 
   ) ;begin
