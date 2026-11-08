@@ -115,7 +115,7 @@ R7RS-small 规范定义的库及其在仓库中的对应关系：
 | `(scheme file)` | 文件输入输出 | 已实现 |
 | `(scheme inexact)` | 精确/非精确数值转换 | 已实现 |
 | `(scheme lazy)` | `delay` / `delay-force` / `force` / `make-promise` / `promise?` | 已实现 |
-| `(scheme load)` | `load` | 待实现 |
+| `(scheme load)` | `load` | 已实现 |
 | `(scheme process-context)` | `command-line` / `exit` / `get-environment-variable` | 已实现 |
 | `(scheme read)` | `read` | 已实现 |
 | `(scheme repl)` | `interaction-environment` | 待实现 |
