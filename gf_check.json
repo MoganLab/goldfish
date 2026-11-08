@@ -220,6 +220,10 @@
       {
         "path": "r7rs/scheme/boot.scm",
         "reason": "Goldfish 系统自举入口与环境初始化"
+      },
+      {
+        "path": "r7rs/scheme/write.scm",
+        "reason": "write-shared 两遍图扫描实现（引用计数+回边标记+标注输出），嵌套源于图遍历本质结构"
       }
     ]
   }

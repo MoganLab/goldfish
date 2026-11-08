@@ -226,6 +226,9 @@
     values
     call-with-values
     dynamic-wind
+    ;; Parameter objects
+    make-parameter
+    parameterize
     ;; Exception
     raise
     guard
@@ -847,6 +850,73 @@
     (define (read-error? obj)
       (eq? (car obj) 'read-error)
     ) ;define
+
+    ;; R7RS 4.2.2 参数对象：参数对象是过程，零参调用返回当前值。
+    ;;
+    ;; (make-parameter init converter?) 依 R7RS-small：converter 存在时
+    ;; 必须是单参过程，init 与后续写入的新值都先经 converter 转换。
+    ;; SRFI-39 语义兼容：一参调用 (param obj) 直接修改参数值（同样过
+    ;; converter）。
+    ;;
+    ;; 内部协议（仅供 parameterize 使用）：
+    ;;   (param v '%parameter-convert)   → (convert v)，不写入：预先转换新值
+    ;;   (param v '%parameter-exchange)  → 原子换入 v（不再经 converter），
+    ;;                                     返回旧值：parameterize 进入/退出
+    ;;                                     各调一次即恢复，旧值不做二次转换
+    (define* (make-parameter init (converter #f))
+      (let* ((convert (or converter (lambda (x) x))) (value (convert init)))
+        (lambda args
+          (cond ((null? args) value)
+                ((null? (cdr args)) (set! value (convert (car args))))
+                ((and (null? (cddr args)) (eq? (cadr args) '%parameter-convert))
+                 (convert (car args))
+                ) ;
+                ((and (null? (cddr args)) (eq? (cadr args) '%parameter-exchange))
+                 (let ((old value))
+                   (set! value (car args))
+                   old
+                 ) ;let
+                ) ;
+                (else (error 'wrong-number-of-args "make-parameter: invalid arguments"))
+          ) ;cond
+        ) ;lambda
+      ) ;let*
+    ) ;define*
+
+    ;; R7RS 4.2.2 (parameterize ((param value) ...) body ...)：动态作用域内
+    ;; 临时替换参数值，退出时恢复。基于 dynamic-wind，展开为卫生的
+    ;; syntax-rules（取代 s7 原版 define-macro 实现，免疫使用点遮蔽）。
+    ;;
+    ;; 语义要点：
+    ;; 1. 先求值全部 param/value 表达式并逐个经 converter 转换，
+    ;;    转换失败时外层绑定不受影响；
+    ;; 2. 全部新值就绪后才替换任何参数（后面的 value 看到的是旧值）；
+    ;; 3. 进入/退出各执行一次 exchange：写入已转换的新值、取回旧值，
+    ;;    旧值不经 converter 二次转换，call/cc 重入时行为仍正确。
+    (define-syntax parameterize
+      (syntax-rules ()
+        ((parameterize () body ...) (let () body ...))
+        ((parameterize ((param value) ...)
+           body
+           ...
+         ) ;parameterize
+         (let ((parameters (list param ...)) (inputs (list value ...)))
+           (let ((bindings (map (lambda (p v) (p v '%parameter-convert)) parameters inputs)))
+             (let ((exchange
+                     (lambda ()
+                       (set! bindings
+                         (map (lambda (p v) (p v '%parameter-exchange)) parameters bindings)
+                       ) ;set!
+                     ) ;lambda
+                   ) ;exchange
+                  ) ;
+               (dynamic-wind exchange (lambda () body ...) exchange)
+             ) ;let
+           ) ;let
+         ) ;let
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
 
     (define (file-error? obj)
       (eq? (car obj) 'io-error)
