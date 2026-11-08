@@ -16,15 +16,27 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：参数非流或内层元素非流分别报错。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; 参数不是流，或流的元素不是流
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-concat (stream-concat "four"))
-(check (stream->list (stream-concat (stream (stream 1 2 3)))) => '(1 2 3))
-(check (stream->list (stream-concat (stream (stream 1 2 3) (stream 1 2 3))))
-  => '(1 2 3 1 2 3))
+(check-catch 'type-error (stream-concat "four"))
+(check
+  (stream->list (stream-concat (stream (stream 1 2 3))))
+  =>
+  '(1 2 3)
+) ;check
+(check
+  (stream->list (stream-concat (stream (stream 1 2 3) (stream 1 2 3))))
+  =>
+  '(1 2 3 1 2 3)
+) ;check
 
 (check-report)

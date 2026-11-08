@@ -18,25 +18,42 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：proc 非过程/无流参数/非流参数分别报错。
 ;; 任一流到尽头即停止。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; proc 不是过程或任一 strm 不是流
+;; value-error
+;; 没有提供流参数
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-for-each (stream-for-each "four" (stream 1)))
-(check-catch 'stream-for-each (stream-for-each display))
-(check-catch 'stream-for-each (stream-for-each display "four"))
-(check (let ((sum 0))
-          (stream-for-each (lambda (x) (set! sum (+ sum x))) (stream 1 2 3))
-          sum)
-  => 6)
-(check (let ((pairs '()))
-          (stream-for-each
-            (lambda (a b) (set! pairs (cons (list a b) pairs)))
-            (stream 1 2 3) (stream 10 20 30))
-          (reverse pairs))
-  => '((1 10) (2 20) (3 30)))
+(check-catch 'type-error (stream-for-each "four" (stream 1)))
+(check-catch 'value-error (stream-for-each display))
+(check-catch 'type-error (stream-for-each display "four"))
+(check
+  (let ((sum 0))
+    (stream-for-each (lambda (x) (set! sum (+ sum x))) (stream 1 2 3))
+    sum
+  ) ;let
+  =>
+  6
+) ;check
+(check
+  (let ((pairs '()))
+    (stream-for-each
+      (lambda (a b) (set! pairs (cons (list a b) pairs)))
+      (stream 1 2 3)
+      (stream 10 20 30)
+    ) ;stream-for-each
+    (reverse pairs)
+  ) ;let
+  =>
+  '((1 10) (2 20) (3 30))
+) ;check
 
 (check-report)

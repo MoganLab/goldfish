@@ -20,7 +20,14 @@
 ;; 说明
 ;; ----
 ;; result 约定：(value) 提供元素、#f 跳过、() 终止该流。
-;; 错误：gen 非过程报错。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; gen 不是过程
+;; value-error
+;; gen 返回的结果槽不满足 (value) / #f / () 约定
 
 (import (liii check) (srfi srfi-41))
 
@@ -33,16 +40,30 @@
         (let ((n (car x)) (s (cdr x)))
           (if (zero? n)
             (values 'dummy '())
-            (values (cons (- n 1) (stream-cdr s)) (list (stream-car s))))))
-      (cons 5 (stream-from 0))))
-  => '(0 1 2 3 4))
-(let-values (((a b) (stream-unfolds
-                      (lambda (seed)
-                        (if (= seed 4)
-                          (values (+ seed 1) '() '())
-                          (values (+ seed 1) (list seed) (list (* 2 seed)))))
-                      0)))
+            (values (cons (- n 1) (stream-cdr s)) (list (stream-car s)))
+          ) ;if
+        ) ;let
+      ) ;lambda
+      (cons 5 (stream-from 0))
+    ) ;stream-unfolds
+  ) ;stream->list
+  =>
+  '(0 1 2 3 4)
+) ;check
+(let-values (((a b)
+              (stream-unfolds
+                (lambda (seed)
+                  (if (= seed 4)
+                    (values (+ seed 1) '() '())
+                    (values (+ seed 1) (list seed) (list (* 2 seed)))
+                  ) ;if
+                ) ;lambda
+                0
+              ) ;stream-unfolds
+             ) ;
+            ) ;
   (check (stream->list a) => '(0 1 2 3))
-  (check (stream->list b) => '(0 2 4 6)))
+  (check (stream->list b) => '(0 2 4 6))
+) ;let-values
 
 (check-report)

@@ -25,22 +25,29 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：三个过程参数任一非过程分别报错。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; mapper / pred? / generator 任一不是过程
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-unfold (stream-unfold "four" odd? + 0))
-(check-catch 'stream-unfold (stream-unfold + "four" + 0))
-(check-catch 'stream-unfold (stream-unfold + odd? "four" 0))
+(check-catch 'type-error (stream-unfold "four" odd? + 0))
+(check-catch 'type-error (stream-unfold + "four" + 0))
+(check-catch 'type-error (stream-unfold + odd? "four" 0))
 (check
-  (stream->list
-    (stream-unfold
-      (lambda (x) (* x x))
-      (lambda (x) (< x 10))
-      (lambda (x) (+ x 1))
-      0))
-  => '(0 1 4 9 16 25 36 49 64 81))
+  (stream->list (stream-unfold (lambda (x) (* x x))
+                  (lambda (x) (< x 10))
+                  (lambda (x) (+ x 1))
+                  0
+                ) ;stream-unfold
+  ) ;stream->list
+  =>
+  '(0 1 4 9 16 25 36 49 64 81)
+) ;check
 
 (check-report)

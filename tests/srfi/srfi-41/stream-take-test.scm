@@ -19,15 +19,22 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：非整数/负数/非流参数分别报错。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; n 不是整数或 strm 不是流
+;; value-error
+;; n 为负数
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-take (stream-take 5 "four"))
-(check-catch 'stream-take (stream-take "four" (stream 1)))
-(check-catch 'stream-take (stream-take -4 (stream 1)))
+(check-catch 'type-error (stream-take 5 "four"))
+(check-catch 'type-error (stream-take "four" (stream 1)))
+(check-catch 'value-error (stream-take -4 (stream 1)))
 (check (stream->list (stream-take 5 stream-null)) => '())
 (check (stream->list (stream-take 0 (stream 1 2 3))) => '())
 (check (stream->list (stream-take 2 (stream 1 2 3))) => '(1 2))

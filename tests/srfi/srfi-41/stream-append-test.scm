@@ -16,17 +16,24 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：任一参数非流报 non-stream argument。
 ;; 拼接在到达最后一个流之前是增量的。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; 任一参数不是流
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-append (stream-append "four"))
+(check-catch 'type-error (stream-append "four"))
 (check (stream->list (stream-append (stream 1 2 3))) => '(1 2 3))
 (check (stream->list (stream-append (stream 1 2 3) (stream 1 2 3)))
-  => '(1 2 3 1 2 3))
+  =>
+  '(1 2 3 1 2 3)
+) ;check
 (check (stream->list (stream-append (stream 1 2 3) stream-null)) => '(1 2 3))
 (check (stream->list (stream-append stream-null (stream 1 2 3))) => '(1 2 3))
 

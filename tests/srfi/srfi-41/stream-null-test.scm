@@ -17,6 +17,11 @@
 ;; ----
 ;; SRFI 41：全部空流的 force 结果共享同一记忆化内容。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)

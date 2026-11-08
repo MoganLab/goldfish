@@ -19,15 +19,20 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：谓词非过程或流参数非流分别报错。
 ;; 可安全用于无限流。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; pred? 不是过程或 strm 不是流
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-filter (stream-filter "four" (stream 1)))
-(check-catch 'stream-filter (stream-filter odd? '()))
+(check-catch 'type-error (stream-filter "four" (stream 1)))
+(check-catch 'type-error (stream-filter odd? '()))
 (check (stream-null? (stream-filter odd? (stream))) => #t)
 (check (stream->list (stream-filter odd? (stream 1 2 3))) => '(1 3))
 (check (stream->list (stream-filter even? (stream 1 2 3))) => '(2))

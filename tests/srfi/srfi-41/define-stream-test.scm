@@ -21,6 +21,11 @@
 ;; ----
 ;; SRFI 41：等价于 (define name (stream-lambda formals body ...))。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
@@ -31,9 +36,15 @@
       (define-stream (double strm)
         (if (stream-null? strm)
           stream-null
-          (stream-cons (* 2 (stream-car strm)) (double (stream-cdr strm)))))
-      (double (stream 1 2 3))))
-  => '(2 4 6))
+          (stream-cons (* 2 (stream-car strm)) (double (stream-cdr strm)))
+        ) ;if
+      ) ;define-stream
+      (double (stream 1 2 3))
+    ) ;let
+  ) ;stream->list
+  =>
+  '(2 4 6)
+) ;check
 (define-stream (fibs a b) (stream-cons a (fibs b (+ a b))))
 (check (stream->list 8 (fibs 0 1)) => '(0 1 1 2 3 5 8 13))
 

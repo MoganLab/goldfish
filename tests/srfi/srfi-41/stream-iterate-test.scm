@@ -19,14 +19,27 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：proc 非过程报错。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; proc 不是过程
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-iterate (stream-iterate "four" 0))
-(check (stream->list 3 (stream-iterate (lambda (x) (+ x 1)) 1)) => '(1 2 3))
-(check (stream->list 4 (stream-iterate (lambda (x) (* 2 x)) 1)) => '(1 2 4 8))
+(check-catch 'type-error (stream-iterate "four" 0))
+(check
+  (stream->list 3 (stream-iterate (lambda (x) (+ x 1)) 1))
+  =>
+  '(1 2 3)
+) ;check
+(check
+  (stream->list 4 (stream-iterate (lambda (x) (* 2 x)) 1))
+  =>
+  '(1 2 4 8)
+) ;check
 
 (check-report)

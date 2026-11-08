@@ -22,16 +22,21 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：任一参数非数值报错。
 ;; 步长为 0 且 first≠past 时不终止。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; first / past / step 任一不是数值
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-range (stream-range "four" 0))
-(check-catch 'stream-range (stream-range 0 "four"))
-(check-catch 'stream-range (stream-range 1 2 "three"))
+(check-catch 'type-error (stream-range "four" 0))
+(check-catch 'type-error (stream-range 0 "four"))
+(check-catch 'type-error (stream-range 1 2 "three"))
 (check (stream->list (stream-range 0 5)) => '(0 1 2 3 4))
 (check (stream->list (stream-range 5 0)) => '(5 4 3 2 1))
 (check (stream->list (stream-range 0 5 2)) => '(0 2 4))

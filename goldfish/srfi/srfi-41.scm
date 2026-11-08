@@ -22,6 +22,9 @@
 ;;   R7RS 无标准 mutable pair，改用记录类型可变字段，可观察行为等价。
 ;; - stream-match-pattern 原用 syntax-case 宏，改写为纯 syntax-rules
 ;;   （通配符 _ 用字面量匹配实现）。
+;; - 错误处理遵循仓库约定：参数类型不符（非流、非过程、非整数、非数值、
+;;   非列表、非输入端口）抛 type-error；类型正确但取值非法（负数计数、
+;;   空流取 car/cdr、索引越界、模式全不匹配、缺少流参数）抛 value-error。
 
 (define-library (srfi srfi-41)
   (export stream-null stream-cons stream? stream-null? stream-pair? stream-car
@@ -135,15 +138,15 @@
     ) ;define-syntax
 
     (define (stream-car strm)
-      (cond ((not (stream? strm)) (error 'stream-car "non-stream"))
-            ((stream-null? strm) (error 'stream-car "null stream"))
+      (cond ((not (stream? strm)) (error 'type-error "stream-car: non-stream argument"))
+            ((stream-null? strm) (error 'value-error "stream-car: null stream"))
             (else (stream-force (stream-kar (stream-force strm))))
       ) ;cond
     ) ;define
 
     (define (stream-cdr strm)
-      (cond ((not (stream? strm)) (error 'stream-cdr "non-stream"))
-            ((stream-null? strm) (error 'stream-cdr "null stream"))
+      (cond ((not (stream? strm)) (error 'type-error "stream-cdr: non-stream argument"))
+            ((stream-null? strm) (error 'value-error "stream-cdr: null stream"))
             (else (stream-kdr (stream-force strm)))
       ) ;cond
     ) ;define
@@ -180,7 +183,7 @@
         ) ;stream-lambda
       ) ;define
       (if (not (list? objs))
-        (error 'list->stream "non-list argument")
+        (error 'type-error "list->stream: non-list argument")
         (list->stream objs)
       ) ;if
     ) ;define
@@ -195,7 +198,7 @@
       ) ;define
       (let ((p (if (null? port) (current-input-port) (car port))))
         (if (not (input-port? p))
-          (error 'port->stream "non-input-port argument")
+          (error 'type-error "port->stream: non-input-port argument")
           (port->stream p)
         ) ;if
       ) ;let
@@ -212,9 +215,11 @@
       (let ((n (if (= 1 (length args)) #f (car args)))
             (strm (if (= 1 (length args)) (car args) (cadr args)))
            ) ;
-        (cond ((not (stream? strm)) (error 'stream->list "non-stream argument"))
-              ((and n (not (integer? n))) (error 'stream->list "non-integer count"))
-              ((and n (negative? n)) (error 'stream->list "negative count"))
+        (cond ((not (stream? strm)) (error 'type-error "stream->list: non-stream argument"))
+              ((and n (not (integer? n)))
+               (error 'type-error "stream->list: non-integer count")
+              ) ;
+              ((and n (negative? n)) (error 'value-error "stream->list: negative count"))
               (else
                 (let loop
                   ((n (if n n -1)) (strm strm))
@@ -243,7 +248,7 @@
       ) ;define
       (cond ((null? strms) stream-null)
             ((%stream-exists (lambda (x) (not (stream? x))) strms)
-             (error 'stream-append "non-stream argument")
+             (error 'type-error "stream-append: non-stream argument")
             ) ;
             (else (stream-append strms))
       ) ;cond
@@ -254,7 +259,7 @@
         (stream-lambda (strms)
           (cond ((stream-null? strms) stream-null)
                 ((not (stream? (stream-car strms)))
-                 (error 'stream-concat "non-stream object in input stream")
+                 (error 'type-error "stream-concat: non-stream object in input stream")
                 ) ;
                 ((stream-null? (stream-car strms)) (stream-concat (stream-cdr strms)))
                 (else
@@ -266,7 +271,7 @@
         ) ;stream-lambda
       ) ;define
       (if (not (stream? strms))
-        (error 'stream-concat "non-stream argument")
+        (error 'type-error "stream-concat: non-stream argument")
         (stream-concat strms)
       ) ;if
     ) ;define
@@ -293,9 +298,9 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((not (integer? n)) (error 'stream-drop "non-integer argument"))
-            ((negative? n) (error 'stream-drop "negative argument"))
-            ((not (stream? strm)) (error 'stream-drop "non-stream argument"))
+      (cond ((not (integer? n)) (error 'type-error "stream-drop: non-integer argument"))
+            ((negative? n) (error 'value-error "stream-drop: negative argument"))
+            ((not (stream? strm)) (error 'type-error "stream-drop: non-stream argument"))
             (else (stream-drop n strm))
       ) ;cond
     ) ;define
@@ -309,8 +314,12 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((not (procedure? pred?)) (error 'stream-drop-while "non-procedural argument"))
-            ((not (stream? strm)) (error 'stream-drop-while "non-stream argument"))
+      (cond ((not (procedure? pred?))
+             (error 'type-error "stream-drop-while: non-procedural argument")
+            ) ;
+            ((not (stream? strm))
+             (error 'type-error "stream-drop-while: non-stream argument")
+            ) ;
             (else (stream-drop-while strm))
       ) ;cond
     ) ;define
@@ -326,15 +335,19 @@
           ) ;cond
         ) ;stream-lambda
       ) ;define
-      (cond ((not (procedure? pred?)) (error 'stream-filter "non-procedural argument"))
-            ((not (stream? strm)) (error 'stream-filter "non-stream argument"))
+      (cond ((not (procedure? pred?))
+             (error 'type-error "stream-filter: non-procedural argument")
+            ) ;
+            ((not (stream? strm)) (error 'type-error "stream-filter: non-stream argument"))
             (else (stream-filter strm))
       ) ;cond
     ) ;define
 
     (define (stream-fold proc base strm)
-      (cond ((not (procedure? proc)) (error 'stream-fold "non-procedural argument"))
-            ((not (stream? strm)) (error 'stream-fold "non-stream argument"))
+      (cond ((not (procedure? proc))
+             (error 'type-error "stream-fold: non-procedural argument")
+            ) ;
+            ((not (stream? strm)) (error 'type-error "stream-fold: non-stream argument"))
             (else
               (let loop
                 ((base base) (strm strm))
@@ -356,10 +369,12 @@
           ) ;begin
         ) ;if
       ) ;define
-      (cond ((not (procedure? proc)) (error 'stream-for-each "non-procedural argument"))
-            ((null? strms) (error 'stream-for-each "no stream arguments"))
+      (cond ((not (procedure? proc))
+             (error 'type-error "stream-for-each: non-procedural argument")
+            ) ;
+            ((null? strms) (error 'value-error "stream-for-each: no stream arguments"))
             ((%stream-exists (lambda (x) (not (stream? x))) strms)
-             (error 'stream-for-each "non-stream argument")
+             (error 'type-error "stream-for-each: non-stream argument")
             ) ;
             (else (stream-for-each strms))
       ) ;cond
@@ -372,8 +387,10 @@
         ) ;stream-lambda
       ) ;define
       (let ((delta (if (null? step) 1 (car step))))
-        (cond ((not (number? first)) (error 'stream-from "non-numeric starting number"))
-              ((not (number? delta)) (error 'stream-from "non-numeric step size"))
+        (cond ((not (number? first))
+               (error 'type-error "stream-from: non-numeric starting number")
+              ) ;
+              ((not (number? delta)) (error 'type-error "stream-from: non-numeric step size"))
               (else (stream-from first delta))
         ) ;cond
       ) ;let
@@ -384,14 +401,14 @@
         (stream-lambda (base) (stream-cons base (stream-iterate (proc base))))
       ) ;define
       (if (not (procedure? proc))
-        (error 'stream-iterate "non-procedural argument")
+        (error 'type-error "stream-iterate: non-procedural argument")
         (stream-iterate base)
       ) ;if
     ) ;define
 
     (define (stream-length strm)
       (if (not (stream? strm))
-        (error 'stream-length "non-stream argument")
+        (error 'type-error "stream-length: non-stream argument")
         (let loop
           ((len 0) (strm strm))
           (if (stream-null? strm) len (loop (+ len 1) (stream-cdr strm)))
@@ -418,10 +435,12 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((not (procedure? proc)) (error 'stream-map "non-procedural argument"))
-            ((null? strms) (error 'stream-map "no stream arguments"))
+      (cond ((not (procedure? proc))
+             (error 'type-error "stream-map: non-procedural argument")
+            ) ;
+            ((null? strms) (error 'value-error "stream-map: no stream arguments"))
             ((%stream-exists (lambda (x) (not (stream? x))) strms)
-             (error 'stream-map "non-stream argument")
+             (error 'type-error "stream-map: non-stream argument")
             ) ;
             (else (stream-map strms))
       ) ;cond
@@ -467,12 +486,16 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((not (number? first)) (error 'stream-range "non-numeric starting number"))
-            ((not (number? past)) (error 'stream-range "non-numeric ending number"))
+      (cond ((not (number? first))
+             (error 'type-error "stream-range: non-numeric starting number")
+            ) ;
+            ((not (number? past))
+             (error 'type-error "stream-range: non-numeric ending number")
+            ) ;
             (else
               (let ((delta (cond ((pair? step) (car step)) ((< first past) 1) (else -1))))
                 (if (not (number? delta))
-                  (error 'stream-range "non-numeric step size")
+                  (error 'type-error "stream-range: non-numeric step size")
                   (let ((lt? (if (< 0 delta) < >)))
                     (stream-range first past delta lt?)
                   ) ;let
@@ -483,13 +506,13 @@
     ) ;define
 
     (define (stream-ref strm n)
-      (cond ((not (stream? strm)) (error 'stream-ref "non-stream argument"))
-            ((not (integer? n)) (error 'stream-ref "non-integer argument"))
-            ((negative? n) (error 'stream-ref "negative argument"))
+      (cond ((not (stream? strm)) (error 'type-error "stream-ref: non-stream argument"))
+            ((not (integer? n)) (error 'type-error "stream-ref: non-integer argument"))
+            ((negative? n) (error 'value-error "stream-ref: negative argument"))
             (else
               (let loop
                 ((strm strm) (n n))
-                (cond ((stream-null? strm) (error 'stream-ref "beyond end of stream"))
+                (cond ((stream-null? strm) (error 'value-error "stream-ref: beyond end of stream"))
                       ((zero? n) (stream-car strm))
                       (else (loop (stream-cdr strm) (- n 1)))
                 ) ;cond
@@ -508,7 +531,7 @@
         ) ;stream-lambda
       ) ;define
       (if (not (stream? strm))
-        (error 'stream-reverse "non-stream argument")
+        (error 'type-error "stream-reverse: non-stream argument")
         (stream-reverse strm stream-null)
       ) ;if
     ) ;define
@@ -522,8 +545,10 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((not (procedure? proc)) (error 'stream-scan "non-procedural argument"))
-            ((not (stream? strm)) (error 'stream-scan "non-stream argument"))
+      (cond ((not (procedure? proc))
+             (error 'type-error "stream-scan: non-procedural argument")
+            ) ;
+            ((not (stream? strm)) (error 'type-error "stream-scan: non-stream argument"))
             (else (stream-scan base strm))
       ) ;cond
     ) ;define
@@ -537,9 +562,9 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((not (stream? strm)) (error 'stream-take "non-stream argument"))
-            ((not (integer? n)) (error 'stream-take "non-integer argument"))
-            ((negative? n) (error 'stream-take "negative argument"))
+      (cond ((not (stream? strm)) (error 'type-error "stream-take: non-stream argument"))
+            ((not (integer? n)) (error 'type-error "stream-take: non-integer argument"))
+            ((negative? n) (error 'value-error "stream-take: negative argument"))
             (else (stream-take n strm))
       ) ;cond
     ) ;define
@@ -555,8 +580,12 @@
           ) ;cond
         ) ;stream-lambda
       ) ;define
-      (cond ((not (stream? strm)) (error 'stream-take-while "non-stream argument"))
-            ((not (procedure? pred?)) (error 'stream-take-while "non-procedural argument"))
+      (cond ((not (stream? strm))
+             (error 'type-error "stream-take-while: non-stream argument")
+            ) ;
+            ((not (procedure? pred?))
+             (error 'type-error "stream-take-while: non-procedural argument")
+            ) ;
             (else (stream-take-while strm))
       ) ;cond
     ) ;define
@@ -570,9 +599,15 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((not (procedure? mapper)) (error 'stream-unfold "non-procedural mapper"))
-            ((not (procedure? pred?)) (error 'stream-unfold "non-procedural pred?"))
-            ((not (procedure? generator)) (error 'stream-unfold "non-procedural generator"))
+      (cond ((not (procedure? mapper))
+             (error 'type-error "stream-unfold: non-procedural mapper")
+            ) ;
+            ((not (procedure? pred?))
+             (error 'type-error "stream-unfold: non-procedural pred?")
+            ) ;
+            ((not (procedure? generator))
+             (error 'type-error "stream-unfold: non-procedural generator")
+            ) ;
             (else (stream-unfold base))
       ) ;cond
     ) ;define
@@ -599,7 +634,7 @@
              ) ;
              ((not result) (result-stream->output-stream (stream-cdr result-stream) i))
              ((null? result) stream-null)
-             (else (error 'stream-unfolds "can't happen"))
+             (else (error 'value-error "stream-unfolds: can't happen"))
             ) ;cond
           ) ;let
         ) ;stream-lambda
@@ -614,7 +649,7 @@
         ) ;let
       ) ;define
       (if (not (procedure? gen))
-        (error 'stream-unfolds "non-procedural argument")
+        (error 'type-error "stream-unfolds: non-procedural argument")
         (result-stream->output-streams (unfold-result-stream gen seed))
       ) ;if
     ) ;define
@@ -628,9 +663,9 @@
           ) ;if
         ) ;stream-lambda
       ) ;define
-      (cond ((null? strms) (error 'stream-zip "no stream arguments"))
+      (cond ((null? strms) (error 'value-error "stream-zip: no stream arguments"))
             ((%stream-exists (lambda (x) (not (stream? x))) strms)
-             (error 'stream-zip "non-stream argument")
+             (error 'type-error "stream-zip: non-stream argument")
             ) ;
             (else (stream-zip strms))
       ) ;cond
@@ -647,10 +682,10 @@
       (syntax-rules ()
         ((stream-match strm-expr clause ...)
          (let ((strm strm-expr))
-           (cond ((not (stream? strm)) (error 'stream-match "non-stream argument"))
+           (cond ((not (stream? strm)) (error 'type-error "stream-match: non-stream argument"))
                  ((stream-match-test strm clause) => car)
                  ...
-                 (else (error 'stream-match "pattern failure"))
+                 (else (error 'value-error "stream-match: pattern failure"))
            ) ;cond
          ) ;let
         ) ;

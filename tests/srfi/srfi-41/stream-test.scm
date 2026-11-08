@@ -18,6 +18,11 @@
 ;; ----
 ;; SRFI 41：(stream) 等价于 stream-null。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)

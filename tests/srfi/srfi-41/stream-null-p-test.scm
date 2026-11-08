@@ -18,6 +18,11 @@
 ;; ----
 ;; SRFI 41：非流参数返回 #f 而不是报错。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)

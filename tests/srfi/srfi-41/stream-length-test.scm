@@ -16,14 +16,19 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：非流参数报 non-stream argument。
 ;; 无限流会不终止。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; strm 不是流
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-length (stream-length "four"))
+(check-catch 'type-error (stream-length "four"))
 (check (stream-length (stream)) => 0)
 (check (stream-length (stream 1 2 3)) => 3)
 (check (stream-length (list->stream '(a b c d))) => 4)

@@ -16,13 +16,18 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：非流参数报 non-stream argument。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; strm 不是流
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-reverse (stream-reverse '()))
+(check-catch 'type-error (stream-reverse '()))
 (check (stream->list (stream-reverse (stream))) => '())
 (check (stream->list (stream-reverse (stream 1 2 3))) => '(3 2 1))
 

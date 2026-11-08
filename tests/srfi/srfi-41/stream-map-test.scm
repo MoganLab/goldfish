@@ -19,17 +19,27 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：proc 非过程/无流参数/非流参数分别报错。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; proc 不是过程或任一 strm 不是流
+;; value-error
+;; 没有提供流参数
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-map (stream-map "four" (stream 1)))
-(check-catch 'stream-map (stream-map odd?))
-(check-catch 'stream-map (stream-map odd? "four"))
+(check-catch 'type-error (stream-map "four" (stream 1)))
+(check-catch 'value-error (stream-map odd?))
+(check-catch 'type-error (stream-map odd? "four"))
 (check (stream->list (stream-map - (stream 1 2 3))) => '(-1 -2 -3))
 (check (stream->list (stream-map + (stream 1 2 3) (stream 1 2 3))) => '(2 4 6))
-(check (stream->list 3 (stream-map * (stream-from 1) (stream-from 1))) => '(1 4 9))
+(check (stream->list 3 (stream-map * (stream-from 1) (stream-from 1)))
+  =>
+  '(1 4 9)
+) ;check
 
 (check-report)

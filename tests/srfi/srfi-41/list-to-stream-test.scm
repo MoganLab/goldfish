@@ -16,13 +16,18 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：非列表参数报 non-list argument。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; 参数不是列表
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'list->stream (list->stream "four"))
+(check-catch 'type-error (list->stream "four"))
 (check (stream->list (list->stream '())) => '())
 (check (stream->list (list->stream '(1 2 3))) => '(1 2 3))
 

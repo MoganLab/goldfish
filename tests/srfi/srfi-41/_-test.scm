@@ -18,12 +18,17 @@
 ;; SRFI 41 要求导出 _ 以便 stream-match 模式中引用统一标识符；
 ;; Goldfish 实现里匹配由 syntax-rules 字面量完成，此导出仅为规范兼容。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
 ;; 通配符行为由 stream-match 测试覆盖：
-(check (stream-match (stream 1) ((_ ) 'ok)) => 'ok)
+(check (stream-match (stream 1) ((_) 'ok)) => 'ok)
 (check (stream-match (stream 1 2 3) ((a . _) a)) => 1)
 
 (check-report)

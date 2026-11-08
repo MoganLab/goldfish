@@ -21,6 +21,11 @@
 ;; ----
 ;; SRFI 41：stream-lambda 体在每次调用产出新的惰性流，是定义无限流的基础。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
@@ -31,11 +36,21 @@
                (stream-lambda (strm)
                  (if (stream-null? strm)
                    stream-null
-                   (stream-cons
-                     (* 2 (stream-car strm))
-                     (double (stream-cdr strm)))))))
-      (double (stream 1 2 3))))
-  => '(2 4 6))
-(check (stream-ref ((stream-lambda () (stream-from 5))) 2) => 7)
+                   (stream-cons (* 2 (stream-car strm)) (double (stream-cdr strm)))
+                 ) ;if
+               ) ;stream-lambda
+             ) ;double
+            ) ;
+      (double (stream 1 2 3))
+    ) ;letrec
+  ) ;stream->list
+  =>
+  '(2 4 6)
+) ;check
+(check
+  (stream-ref ((stream-lambda () (stream-from 5))) 2)
+  =>
+  7
+) ;check
 
 (check-report)

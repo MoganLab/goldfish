@@ -16,14 +16,22 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：非流参数或空流分别报 non-stream / null stream。
+;; 强制求值流对的头元素 promise 并返回记忆化的值。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; 参数不是流
+;; value-error
+;; 参数是空流
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-car (stream-car "four"))
-(check-catch 'stream-car (stream-car stream-null))
+(check-catch 'type-error (stream-car "four"))
+(check-catch 'value-error (stream-car stream-null))
 (check (stream-car (stream 1 2 3)) => 1)
 (check (stream-car (stream-from 0)) => 0)
 

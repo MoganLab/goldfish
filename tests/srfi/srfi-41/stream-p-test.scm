@@ -18,6 +18,11 @@
 ;; ----
 ;; SRFI 41：流包括空流与流对。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)

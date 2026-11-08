@@ -18,6 +18,11 @@
 ;; ----
 ;; SRFI 41：等价于 (and (stream? obj) (not (stream-null? obj)))。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)

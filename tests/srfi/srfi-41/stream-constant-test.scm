@@ -18,6 +18,11 @@
 ;; ----
 ;; SRFI 41：元素循环出现，(stream-constant 1 2) 即 1 2 1 2 ...。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)

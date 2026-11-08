@@ -25,6 +25,20 @@ SRFI 41 提供 Scheme 的实用流（stream）库：惰性、记忆化的函数�
 (stream->list 8 (fibs 0 1))               ; => (0 1 1 2 3 5 8 13)
 ```
 
+## 错误处理约定
+
+参数校验错误统一使用两类错误符号（见各函数测试文档的「错误处理」小节）：
+
+- `type-error`：参数类型不符——非流、非过程、非整数、非数值、非列表、非输入端口
+- `value-error`：类型正确但取值非法——负数计数、空流取 `car`/`cdr`、索引越界、
+  模式全不匹配、缺少流参数
+
+```scheme
+(import (liii check) (srfi srfi-41))
+(check-catch 'type-error  (stream-car "four"))
+(check-catch 'value-error (stream-car stream-null))
+```
+
 ## 查看函数文档
 
 使用以下命令查看函数文档和测试用例：

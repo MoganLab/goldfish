@@ -21,6 +21,11 @@
 ;; ----
 ;; SRFI 41：obj 与 strm 仅在 stream-car/stream-cdr 被调用时求值。
 
+;;
+;; 错误处理
+;; ----
+;; 无
+
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)

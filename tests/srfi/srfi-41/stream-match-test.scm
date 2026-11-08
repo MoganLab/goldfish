@@ -22,20 +22,31 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：参数非流报 non-stream argument；全部子句失败报 pattern failure。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; strm-expr 结果不是流
+;; value-error
+;; 全部模式子句匹配失败
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-match (stream-match '(1 2 3) (_ 'ok)))
-(check-catch 'stream-match (stream-match (stream 1 2 3) (() 42)))
+(check-catch 'type-error (stream-match '(1 2 3) (_ 'ok)))
+(check-catch 'value-error (stream-match (stream 1 2 3) (() 42)))
 (check (stream-match stream-null (() 'ok)) => 'ok)
 (check (stream-match (stream 1) (() 'no) ((a) a)) => 1)
 (check (stream-match (stream 1) (() 'no) ((_) 'ok)) => 'ok)
 (check (stream-match (stream 1 2 3) ((a b c) (list a b c))) => '(1 2 3))
 (check (stream-match (stream 1 2 3) ((a . _) a)) => 1)
-(check (stream-match (stream 1 2 3) ((a b . c) (list a b (stream-car c)))) => '(1 2 3))
+(check
+  (stream-match (stream 1 2 3) ((a b . c) (list a b (stream-car c))))
+  =>
+  '(1 2 3)
+) ;check
 (check (stream-match (stream 1 2 3) (s (stream->list s))) => '(1 2 3))
 (check (stream-match (stream 1 2 3) ((a . _) (= a 1) 'ok)) => 'ok)
 (check (stream-match (stream 1 2 3) ((a . _) (= a 2) 'yes) (_ 'no)) => 'no)

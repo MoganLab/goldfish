@@ -22,14 +22,19 @@
 ;;
 ;; 说明
 ;; ----
-;; 错误：proc 非过程或 strm 非流分别报错。
+
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; proc 不是过程或 strm 不是流
 
 (import (liii check) (srfi srfi-41))
 
 (check-set-mode! 'report-failed)
 
-(check-catch 'stream-scan (stream-scan "four" 0 (stream 1)))
-(check-catch 'stream-scan (stream-scan + 0 '()))
+(check-catch 'type-error (stream-scan "four" 0 (stream 1)))
+(check-catch 'type-error (stream-scan + 0 '()))
 (check (stream->list (stream-scan + 0 (stream 1 2 3))) => '(0 1 3 6))
 (check (stream->list 3 (stream-scan * 1 (stream-from 1))) => '(1 1 2))
 
