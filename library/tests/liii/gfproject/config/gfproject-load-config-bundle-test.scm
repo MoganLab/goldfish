@@ -30,16 +30,10 @@
   (check-true (pair? (bundle-ref bundle "merged_config")))
   ;; 路径键为字符串或 #f
   (let ((lib-path (bundle-ref bundle "lib_path")))
-    (if lib-path
-      (check-true (string? lib-path))
-      (check-true #t)
-    ) ;if
+    (if lib-path (check-true (string? lib-path)) (check-true #t))
   ) ;let
   (let ((local-path (bundle-ref bundle "local_path")))
-    (if local-path
-      (check-true (string? local-path))
-      (check-true #t)
-    ) ;if
+    (if local-path (check-true (string? local-path)) (check-true #t))
   ) ;let
 ) ;let
 

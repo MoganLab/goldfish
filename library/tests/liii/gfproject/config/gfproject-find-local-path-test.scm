@@ -27,7 +27,7 @@
     (begin
       (check-true (string? path))
       (check-true (string-ends? path "gfproject.json"))
-    )
+    ) ;begin
     (check-true #t)
   ) ;if
 ) ;let

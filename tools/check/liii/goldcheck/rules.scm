@@ -42,12 +42,11 @@
       (newline)
       (display "Options:")
       (newline)
-      (display "  -h, --help             显示此帮助信息")
-      (newline)
-      (display "      --changed-since REV    仅检查自 REV 以来变更的 .scm 文件"
+      (display "  -h, --help             显示此帮助信息\n")
+      (display "      --all                  检查全仓所有文件\n")
+      (display "      --changed-since REV    仅检查自 REV 以来变更的 .scm 文件（默认：main）\n"
       ) ;display
-      (newline)
-      (display "      --only RULE            只检查指定规则（如 layer-order）"
+      (display "      --only RULE            只检查指定规则（如 layer-order）\n"
       ) ;display
       (newline)
       (newline)

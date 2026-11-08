@@ -66,6 +66,7 @@
         (parser :add-argument '((name . "help")
                                 (short . "h")
                                 (action . store-true)))
+        (parser :add-argument '((name . "all") (action . store-true)))
         (parser :add-argument '((name . "changed-since") (type . string)))
         (parser :add-argument '((name . "only") (type . string)))
         parser

@@ -24,6 +24,7 @@
     (liii os)
     (liii path)
     (liii sys)
+    (liii gfproject config)
     (liii goldtest-args)
     (liii goldtest-route)
     (liii goldtest-runner)
@@ -59,7 +60,7 @@
           (let ((entries (listdir dir)))
             (for-each
               (lambda (entry)
-                (let ((full-path (test-path-join dir entry)))
+                (let ((full-path (normalize-test-file-path (test-path-join dir entry))))
                   (cond
                    ((path-dir? full-path) (set! files (append files (find-test-files full-path))))
                    ((and (path-file? full-path) (string-ends? entry "-test.scm"))
@@ -77,19 +78,17 @@
     ) ;define
 
     (define (filter-test-files test-files arg-type arg-value)
-      (case arg-type
-       ((file) (list arg-value))
-       ((dir)
-        (let ((dir-pattern (if (os-windows?) (string-replace arg-value "/" "\\") arg-value)))
-          (filter (lambda (file) (string-starts? file dir-pattern)) test-files)
-        ) ;let
-       ) ;
-       ((filename)
-        (filter (lambda (file) (string=? (path-name file) arg-value)) test-files)
-       ) ;
-       ((pattern) (filter (lambda (file) (string-contains file arg-value)) test-files))
-       (else test-files)
-      ) ;case
+      (let ((norm-val (normalize-test-file-path arg-value)))
+        (case arg-type
+         ((file) (list norm-val))
+         ((dir) (filter (lambda (file) (string-starts? file norm-val)) test-files))
+         ((filename)
+          (filter (lambda (file) (string=? (path-name file) arg-value)) test-files)
+         ) ;
+         ((pattern) (filter (lambda (file) (string-contains file arg-value)) test-files))
+         (else test-files)
+        ) ;case
+      ) ;let
     ) ;define
 
     (define (normalize-test-file-path file)
@@ -161,6 +160,26 @@
       ) ;let
     ) ;define
 
+    (define (find-all-domain-test-files)
+      (let* ((domains (gfproject-domains-list))
+             (test-dirs
+               (map (lambda (d) (cdr (assq 'tests d))) domains)
+             ) ;test-dirs
+             (test-dirs (if (member "tests" test-dirs string=?) test-dirs (cons "tests" test-dirs))
+             ) ;test-dirs
+             (all-files
+               (apply append
+                 (map
+                   (lambda (d) (if (path-dir? (path d)) (find-test-files d) '()))
+                   test-dirs
+                 ) ;map
+               ) ;apply
+             ) ;all-files
+            ) ;
+        (list-sort string<? all-files)
+      ) ;let*
+    ) ;define
+
     (define (run-goldtest)
       (let* ((raw-args (command-line))
              (args (check-and-switch-to-target raw-args))
@@ -177,7 +196,7 @@
              ) ;route-res
              (final-since (if route-res (car route-res) changed-since))
              (need-run-all (if route-res (cdr route-res) #f))
-             (all-tests (list-sort string<? (find-test-files "tests")))
+             (all-tests (find-all-domain-test-files))
              (filtered (filter-test-files all-tests arg-type arg-value))
              (test-files (resolve-test-files filtered final-since need-run-all))
             ) ;

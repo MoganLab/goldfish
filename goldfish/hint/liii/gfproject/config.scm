@@ -45,9 +45,12 @@
     ;; JSON 配置统一使用 any?，避免把空配置 '(()) 误标为普通 alist。
     (define hint-gfproject-read-file '((any? -> any?)))
     (define hint-gfproject-extract-tools '((any? -> any?)))
+    (define hint-gfproject-extract-domains '((any? -> any?)))
     (define hint-gfproject-deep-merge '((any? any? -> any?)))
     (define hint-gfproject-load-config-bundle '((-> list?) (string? -> list?)))
     (define hint-gfproject-load-config '((-> any?) (string? -> any?)))
+    (define hint-gfproject-domains '((-> any?) (string? -> any?)))
+    (define hint-gfproject-domains-list '((-> list?) (string? -> list?)))
 
     ;; bundle-ref : (alist? any? -> any?)
     ;; 命中返回 cdr 值，未命中返回 #f；(or #f any?) 等价于 any?
@@ -62,9 +65,12 @@
        ((gfproject-find-local-path) hint-gfproject-find-local-path)
        ((gfproject-read-file) hint-gfproject-read-file)
        ((gfproject-extract-tools) hint-gfproject-extract-tools)
+       ((gfproject-extract-domains) hint-gfproject-extract-domains)
        ((gfproject-deep-merge) hint-gfproject-deep-merge)
        ((gfproject-load-config-bundle) hint-gfproject-load-config-bundle)
        ((gfproject-load-config) hint-gfproject-load-config)
+       ((gfproject-domains) hint-gfproject-domains)
+       ((gfproject-domains-list) hint-gfproject-domains-list)
        ((bundle-ref) hint-bundle-ref)
        (else #f)
       ) ;case

@@ -77,6 +77,8 @@ jobs:
         run: bin/gf test r7rs/tests/
       - name: run library tests
         run: bin/gf test library/tests/
+      - name: run goldfish tests
+        run: bin/gf test goldfish/tests/
       - name: run tools/fmt tests
         run: bin/gf test tools/fmt/tests
       - name: run tools/check tests
@@ -89,6 +91,4 @@ jobs:
         run: bin/gf test tools/pi/tests
       - name: run tools/repl tests
         run: bin/gf test tools/repl/tests
-      - name: run tests --all
-        run: bin/gf test --all
 

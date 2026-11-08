@@ -133,32 +133,32 @@
     (define (switch-dir-if-target target args)
       (let ((tests-target (split-tests-target target)))
         (cond
-          (tests-target
-            (let ((parent (car tests-target)) (tests-path (cdr tests-target)))
-              (if (path-dir? parent)
-                (begin
-                  (chdir parent)
-                  (cons (car args)
-                    (map (lambda (arg) (if (equal? arg target) tests-path arg)) (cdr args))
-                  ) ;cons
-                ) ;begin
-                args
-              ) ;if
-            ) ;let
-          ) ;tests-target
-          ((and (path-dir? target)
-             (path-dir? (if (os-windows?)
-                          (string-append target "\\tests")
-                          (string-append target "/tests")
-                        ) ;if
-             ) ;path-dir?
-           ) ;and
-           (chdir target)
-           (cons (car args)
-             (map (lambda (arg) (if (equal? arg target) "tests" arg)) (cdr args))
-           ) ;cons
-          ) ;
-          (else args)
+         ((and tests-target (not (string=? (car tests-target) "goldfish")))
+          (let ((parent (car tests-target)) (tests-path (cdr tests-target)))
+            (if (path-dir? parent)
+              (begin
+                (chdir parent)
+                (cons (car args)
+                  (map (lambda (arg) (if (equal? arg target) tests-path arg)) (cdr args))
+                ) ;cons
+              ) ;begin
+              args
+            ) ;if
+          ) ;let
+         ) ;
+         ((and (path-dir? target)
+            (path-dir? (if (os-windows?)
+                         (string-append target "\\tests")
+                         (string-append target "/tests")
+                       ) ;if
+            ) ;path-dir?
+          ) ;and
+          (chdir target)
+          (cons (car args)
+            (map (lambda (arg) (if (equal? arg target) "tests" arg)) (cdr args))
+          ) ;cons
+         ) ;
+         (else args)
         ) ;cond
       ) ;let
     ) ;define

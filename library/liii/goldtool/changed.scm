@@ -65,8 +65,35 @@
       (filter (lambda (line) (not (string-null? line))) (string-split text "\n"))
     ) ;define
 
-    (define (changed-files-since since . maybe-path)
+    (define (git-ref-exists? ref)
       (let* ((output-path (changed-output-path))
+             (cmd (string-append "git rev-parse --verify "
+                    (shell-quote ref)
+                    " > "
+                    (shell-quote output-path)
+                    " 2>&1"
+                  ) ;string-append
+             ) ;cmd
+             (status (run-shell cmd))
+            ) ;
+        (path-unlink output-path #t)
+        (zero? status)
+      ) ;let*
+    ) ;define
+
+    (define (resolve-since-ref since)
+      (if (and (string=? since "main")
+            (not (git-ref-exists? "main"))
+            (git-ref-exists? "origin/main")
+          ) ;and
+        "origin/main"
+        since
+      ) ;if
+    ) ;define
+
+    (define (changed-files-since since . maybe-path)
+      (let* ((actual-since (resolve-since-ref since))
+             (output-path (changed-output-path))
              (scope (if (null? maybe-path) #f (car maybe-path)))
              (scope-part
                (if (and scope (not (string=? scope "")))
@@ -75,7 +102,7 @@
                ) ;if
              ) ;scope-part
              (command (string-append "git diff --name-only --relative "
-                        (shell-quote since)
+                        (shell-quote actual-since)
                         " --"
                         scope-part
                         " > "

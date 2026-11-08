@@ -18,6 +18,7 @@
   (import (scheme base)
     (scheme file)
     (liii base)
+    (liii list)
     (liii string)
     (liii error)
     (liii json)
@@ -125,6 +126,44 @@
       ) ;let
     ) ;define
 
+    (define (%valid-layer? l)
+      (let ((n (json-ref l "name")) (libs (json-ref l "libs")))
+        (and (string? n)
+          (not (string=? n ""))
+          (json-array? libs)
+          (> (vector-length libs) 0)
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (%extract-domain-layers ds name)
+      (if (and ds (not (json-null? ds)) (json-object? ds) (json-contains-key? ds name))
+        (let ((raw (json-ref ds name)))
+          (if (json-array? raw)
+            (map (lambda (l) (%parse-layer l name))
+              (filter %valid-layer? (vector->list raw))
+            ) ;map
+            '()
+          ) ;if
+        ) ;let
+        '()
+      ) ;if
+    ) ;define
+
+    (define (%proj-domain->domain pd ds)
+      (let* ((name (cdr (assq 'name pd)))
+             (root (cdr (assq 'root pd)))
+             (deps (list->vector (cdr (assq 'depends-on pd))))
+             (layers (%extract-domain-layers ds name))
+            ) ;
+        (list (cons 'name name)
+          (cons 'root root)
+          (cons 'depends-on deps)
+          (cons 'layers layers)
+        ) ;list
+      ) ;let*
+    ) ;define
+
     (define (%parse-domain d)
       (let ((name (json-ref d "name"))
             (root (json-ref d "root"))
@@ -137,9 +176,6 @@
         (unless (string? root)
           (type-error "domain ~A root must be a string" name)
         ) ;unless
-        (unless (and (json-array? layers) (> (vector-length layers) 0))
-          (value-error "domain ~A needs a non-empty layers array" name)
-        ) ;unless
         (unless (or (not deps) (json-null? deps) (json-array? deps))
           (type-error "domain ~A depends-on must be an array" name)
         ) ;unless
@@ -147,7 +183,12 @@
           (cons 'root root)
           (cons 'depends-on (if (or (not deps) (json-null? deps)) #() deps))
           (cons 'layers
-            (vector->list (vector-map (lambda (l) (%parse-layer l name)) layers))
+            (if (and layers (not (json-null? layers)) (json-array? layers))
+              (map (lambda (l) (%parse-layer l name))
+                (filter %valid-layer? (vector->list layers))
+              ) ;map
+              '()
+            ) ;if
           ) ;cons
         ) ;list
       ) ;let
@@ -208,14 +249,31 @@
     ) ;define
 
     (define (layer-domains-parse cfg)
-      "从 cfg 的 rules.layer-order.domains 解析域表并自检：\ndepends-on 引用存在、域名唯一、域依赖图无环。返回域列表。"
-      (let* ((raw (%raw-domains cfg)) (domains (map %parse-domain raw)))
-        (%check-unique-names! domains)
-        (%check-deps-exist! domains)
-        (for-each (lambda (d) (%check-acyclic-from! domains (domain-name-of d)))
+      "从 cfg 或 gfproject.json 解析域表并自检：\ndepends-on 引用存在、域名唯一、域依赖图无环。返回域列表。"
+      (let* ((rule (%layer-rule cfg))
+             (ds (and rule (not (json-null? rule)) (json-ref rule "domains")))
+            ) ;
+        (let ((domains
+                (cond
+                  ;; 1. cfg 提供显式 domain 数组（旧格式/测试桩）
+                  ((and ds (not (json-null? ds)) (json-array? ds))
+                   (map %parse-domain (vector->list ds))
+                  ) ;
+                  ;; 2. cfg 为 #f 或未配置 layer-order 且 cfg 明确是测试桩（如 '((rules)))
+                  ((and cfg (equal? cfg '((rules)))) '())
+                  ((not cfg) '())
+                  ;; 3. 从 gfproject.json 加载 domains
+                  (else (map (lambda (pd) (%proj-domain->domain pd ds)) (gfproject-domains-list)))
+                ) ;cond
+              ) ;domains
+             ) ;
+          (%check-unique-names! domains)
+          (%check-deps-exist! domains)
+          (for-each (lambda (d) (%check-acyclic-from! domains (domain-name-of d)))
+            domains
+          ) ;for-each
           domains
-        ) ;for-each
-        domains
+        ) ;let
       ) ;let*
     ) ;define
 

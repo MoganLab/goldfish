@@ -36,6 +36,7 @@
     (liii subprocess)
     (liii format base)
     (liii format color)
+    (liii gfproject config)
   ) ;import
   (export ESC color GREEN RED YELLOW RESET goldfish-cmd run-test-file
     display-fail-log cleanup-log run-tests-parallel failed-test-files
@@ -55,8 +56,43 @@
     (define YELLOW (color 33))
     (define RESET (color 0))
 
-    (define (goldfish-cmd)
-      (string-append (executable) " -m r7rs ")
+    (define (%tool-domain-inc d test-file)
+      (let* ((tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
+        (if (not (string-starts? test-file prefix))
+          #f
+          (let ((root (cdr (assq 'root d))))
+            (if (member root '("" "goldfish/" "r7rs/" "library/") string=?)
+              ""
+              (let ((clean
+                      (if (string-ends? root "/") (substring root 0 (- (string-length root) 1)) root)
+                    ) ;clean
+                   ) ;
+                (string-append "-I " clean " ")
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (tool-inc-for-test-file test-file)
+      (let loop
+        ((ds (gfproject-domains-list)))
+        (if (null? ds)
+          ""
+          (let ((inc (%tool-domain-inc (car ds) test-file)))
+            (if inc inc (loop (cdr ds)))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (goldfish-cmd . maybe-test-file)
+      (let* ((test-file (if (null? maybe-test-file) #f (car maybe-test-file)))
+             (inc (if test-file (tool-inc-for-test-file test-file) ""))
+            ) ;
+        (string-append (executable) " -m r7rs " inc)
+      ) ;let*
     ) ;define
 
     ;; 单个测试文件超时秒数：GOLDFISH_TEST_TIMEOUT 环境变量可覆盖
@@ -95,7 +131,7 @@
     ) ;define
 
     (define (run-test-file test-file)
-      (let ((cmd (string-append (goldfish-cmd) test-file)))
+      (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
         (display "----------->")
         (newline)
         (display cmd)
@@ -201,21 +237,17 @@
                (lambda (pair)
                  (let ((idx (car pair)) (test-file (cadr pair)))
                    (%print-progress-marker idx total test-file)
-                   (let ((res
-                           (catch #t
-                             (lambda ()
-                               (run-either (string-append exe " -m r7rs " test-file)
-                                 :stdin   'null
-                                 :stdout  'capture
-                                 :stderr  'capture
-                                 :timeout tmo
-                               ) ;run-either
-                             ) ;lambda
-                             (lambda args #f)
-                           ) ;catch
-                         ) ;res
-                        ) ;
-                     (%parallel-result res test-file tmo)
+                   (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
+                     (let ((res (catch #t
+                                  (lambda ()
+                                    (run-either cmd :stdin 'null :stdout 'capture :stderr 'capture :timeout tmo)
+                                  ) ;lambda
+                                  (lambda args #f)
+                                ) ;catch
+                           ) ;res
+                          ) ;
+                       (%parallel-result res test-file tmo)
+                     ) ;let
                    ) ;let
                  ) ;let
                ) ;lambda

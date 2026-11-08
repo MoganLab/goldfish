@@ -27,7 +27,8 @@
   (export gfproject-root gfproject-get-gf-lib gfproject-find-lib-path
     gfproject-find-local-path gfproject-extract-tools gfproject-deep-merge
     gfproject-load-config-bundle gfproject-load-config gfproject-read-file
-    gfproject--opt-gf-lib bundle-ref
+    gfproject--opt-gf-lib bundle-ref gfproject-extract-domains gfproject-domains
+    gfproject-domains-list
   ) ;export
   (begin
 
@@ -91,6 +92,15 @@
       ) ;if
     ) ;define
 
+    (define (gfproject-extract-domains config)
+      (if (and (json-object? config) (json-contains-key? config "domains"))
+        (let ((domains (json-ref config "domains")))
+          (if (json-object? domains) domains '(()))
+        ) ;let
+        '(())
+      ) ;if
+    ) ;define
+
     (define (gfproject-deep-merge base overlay)
       (cond ((equal? base '(())) overlay)
             ((equal? overlay '(())) base)
@@ -122,14 +132,30 @@
              (lib-tools (gfproject-extract-tools lib-config))
              (local-tools (gfproject-extract-tools local-config))
              (merged-tools (gfproject-deep-merge lib-tools local-tools))
+             (lib-domains (gfproject-extract-domains lib-config))
+             (local-domains (gfproject-extract-domains local-config))
+             (merged-domains (gfproject-deep-merge lib-domains local-domains))
              (merged-config
-               (if (equal? lib-config '(()))
-                 (if (equal? merged-tools '(())) '(()) (list (cons "tools" merged-tools)))
-                 (if (json-contains-key? lib-config "tools")
-                   (json-set lib-config "tools" merged-tools)
-                   (json-push lib-config "tools" merged-tools)
-                 ) ;if
-               ) ;if
+               (let* ((c1 (gfproject-deep-merge lib-config local-config))
+                      (c2 (if (equal? merged-tools '(()))
+                            c1
+                            (if (json-contains-key? c1 "tools")
+                              (json-set c1 "tools" merged-tools)
+                              (json-push c1 "tools" merged-tools)
+                            ) ;if
+                          ) ;if
+                      ) ;c2
+                      (c3 (if (equal? merged-domains '(()))
+                            c2
+                            (if (json-contains-key? c2 "domains")
+                              (json-set c2 "domains" merged-domains)
+                              (json-push c2 "domains" merged-domains)
+                            ) ;if
+                          ) ;if
+                      ) ;c3
+                     ) ;
+                 c3
+               ) ;let*
              ) ;merged-config
             ) ;
         (list (cons "lib_config" lib-config)
@@ -140,12 +166,66 @@
           (cons "lib_tools" lib-tools)
           (cons "local_tools" local-tools)
           (cons "merged_tools" merged-tools)
+          (cons "lib_domains" lib-domains)
+          (cons "local_domains" local-domains)
+          (cons "merged_domains" merged-domains)
         ) ;list
       ) ;let*
     ) ;define
 
     (define (gfproject-load-config . opt-gf-lib)
       (bundle-ref (apply gfproject-load-config-bundle opt-gf-lib) "merged_config")
+    ) ;define
+
+    (define (gfproject-domains . opt-gf-lib)
+      (let* ((bundle (apply gfproject-load-config-bundle opt-gf-lib))
+             (merged-domains (bundle-ref bundle "merged_domains"))
+            ) ;
+        (if (or (not merged-domains) (equal? merged-domains '(()))) '() merged-domains)
+      ) ;let*
+    ) ;define
+
+    (define (%domain-tests-dir root)
+      (cond ((or (string=? root "") (string=? root ".")) "tests")
+            ((string-ends? root "/") (string-append root "tests"))
+            (else (string-append root "/tests"))
+      ) ;cond
+    ) ;define
+
+    (define (gfproject-domains-list . opt-gf-lib)
+      (let ((d-obj (apply gfproject-domains opt-gf-lib)))
+        (if (or (null? d-obj) (equal? d-obj '(())))
+          (list (list (cons 'name "default")
+                  (cons 'root "")
+                  (cons 'depends-on '())
+                  (cons 'tests "tests")
+                ) ;list
+          ) ;list
+          (map
+            (lambda (name)
+              (let* ((d (json-ref d-obj name))
+                     (root (if (and (json-object? d) (json-contains-key? d "root")) (json-ref d "root") "")
+                     ) ;root
+                     (deps
+                       (if (and (json-object? d) (json-contains-key? d "depends-on"))
+                         (let ((v (json-ref d "depends-on")))
+                           (if (json-array? v) (vector->list v) '())
+                         ) ;let
+                         '()
+                       ) ;if
+                     ) ;deps
+                    ) ;
+                (list (cons 'name name)
+                  (cons 'root root)
+                  (cons 'depends-on deps)
+                  (cons 'tests (%domain-tests-dir root))
+                ) ;list
+              ) ;let*
+            ) ;lambda
+            (json-keys d-obj)
+          ) ;map
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin

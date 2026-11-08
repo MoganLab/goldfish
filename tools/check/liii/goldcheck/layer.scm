@@ -171,7 +171,9 @@
       (let ((il (%locate domains imp)))
         (cond ((not il) (%violation file-path (string-append "unknown lib: (" imp ")")))
               ((string=? (domain-name-of (car il)) (domain-name-of self-domain))
-               (and (not (<= (caddr il) self-idx))
+               (and self-layer
+                 (cadr il)
+                 (not (<= (caddr il) self-idx))
                  (%violation file-path
                    (string-append "imports ("
                      imp
@@ -215,22 +217,24 @@
     (define (%check-file-in-domain file-path cfg domains self)
       (let ((self-domain (%domain-for-path domains file-path)))
         (cond ((not self-domain) '())
-              ((not (%locate-layer-in domains self-domain self))
+              ((and (domain-layers-of self-domain)
+                 (not (null? (domain-layers-of self-domain)))
+                 (not (%locate-layer-in domains self-domain self))
+               ) ;and
                (list (%violation file-path (string-append "lib not registered: " self)))
               ) ;
               (else
-                (let ((loc (%locate-layer-in domains self-domain self)))
-                  (let ((self-layer (car loc)) (self-idx (cdr loc)))
-                    (let ((imports
-                            (filter (lambda (l) (not (string-starts? l "scheme ")))
-                              (file-imports file-path)
-                            ) ;filter
-                          ) ;imports
-                         ) ;
-                      (%loop-imports file-path self-domain self-layer self-idx domains imports)
-                    ) ;let
-                  ) ;let
-                ) ;let
+                (let* ((loc (%locate-layer-in domains self-domain self))
+                       (self-layer (and loc (car loc)))
+                       (self-idx (if loc (cdr loc) 0))
+                       (imports
+                         (filter (lambda (l) (not (string-starts? l "scheme ")))
+                           (file-imports file-path)
+                         ) ;filter
+                       ) ;imports
+                      ) ;
+                  (%loop-imports file-path self-domain self-layer self-idx domains imports)
+                ) ;let*
               ) ;else
         ) ;cond
       ) ;let

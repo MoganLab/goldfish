@@ -18,6 +18,8 @@
   (import (scheme base)
     (liii base)
     (liii string)
+    (liii path)
+    (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck layer-config)
   ) ;import
@@ -63,13 +65,47 @@
       ) ;if
     ) ;define
 
+    (define (%locate-by-filesystem domains lib)
+      (let* ((parts (string-split lib " "))
+             (rel1 (string-append (string-join parts "/") ".scm"))
+             (rel2
+               (if (and (>= (length parts) 2) (string=? (car parts) "srfi"))
+                 (string-append "srfi/srfi-" (string-join (cdr parts) "-") ".scm")
+                 #f
+               ) ;if
+             ) ;rel2
+             (root (or (gfproject-root) "."))
+            ) ;
+        (let loop
+          ((ds domains))
+          (if (null? ds)
+            #f
+            (let* ((d (car ds))
+                   (droot (domain-root-of d))
+                   (has-layers?
+                     (and (domain-layers-of d) (not (null? (domain-layers-of d))))
+                   ) ;has-layers?
+                   (full1 (path-join root droot rel1))
+                   (full2 (if rel2 (path-join root droot rel2) #f))
+                  ) ;
+              (cond (has-layers? (loop (cdr ds)))
+                    ((path-file? full1) (list d #f 0))
+                    ((and full2 (path-file? full2)) (list d #f 0))
+                    (else (loop (cdr ds)))
+              ) ;cond
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
     ;; 穷举匹配：按特异性（精确 > 家族前缀 > 尾通配）三轮扫描，
     ;; 库名在域表中首个命中的 (domain layer idx)
     (define (%locate domains lib)
       (let loop-rank
         ((ranks '(3 2 1)))
         (if (null? ranks)
-          #f
+          (%locate-by-filesystem domains lib)
           (let loop-d
             ((ds domains))
             (if (null? ds)
@@ -85,7 +121,7 @@
 
     (define (layer-name-of-lib domains lib)
       (let ((loc (%locate domains lib)))
-        (if loc (layer-name-of (cadr loc)) #f)
+        (if (and loc (cadr loc)) (layer-name-of (cadr loc)) #f)
       ) ;let
     ) ;define
 

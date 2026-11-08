@@ -48,7 +48,7 @@
                ) ;find-imported-export-for-stem
         ) ;found
        ) ;
-    (check found => '("hello-world" . "tests/test-mod"))
+    (check found => '("hello-world" . "goldfish/tests/test-mod"))
   ) ;let
   (check
     (find-imported-export-for-stem "not-found" '((test-mod))
