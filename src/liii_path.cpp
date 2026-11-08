@@ -890,6 +890,9 @@ glue_path_glob (s7_scheme* sc) {
 // ; strict=false 时尽可能解析已存在的前缀，剩余段词法折叠后附加。
 // ; 算法对齐 CPython _joinrealpath：逐段拼接，遇 .. 时对已解析部分
 // ; 回溯（遇到符号链接先解析再回溯）。
+// ; 依赖 POSIX realpath(3)/lstat(2)，Windows 下不参与编译
+// ; （f_realpath 在 Windows 走 _fullpath 词法折叠分支）。
+#if !defined(TB_CONFIG_OS_WINDOWS)
 static std::string
 path_realpath_join (const std::string& base, const std::string& rest) {
   std::vector<std::string> parts;
@@ -998,6 +1001,7 @@ path_realpath_join (const std::string& base, const std::string& rest) {
   }
   return result;
 }
+#endif // !TB_CONFIG_OS_WINDOWS
 
 static s7_pointer
 f_realpath (s7_scheme* sc, s7_pointer args) {
