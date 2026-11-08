@@ -1,14 +1,29 @@
 # (liii lang) 模块函数分类索引
 
-`(liii lang)` 是纯语法糖库：`$` 为原生 `syntax-rules` 宏，把 Scala 式链式调用
-在**宏展开期**降解为 `(liii list)` / `(liii vector)` 原生函数的嵌套调用，
-零装箱、零闭包对象、零方法分发。
-
 使用时导入：
 
 ```scheme
 (import (liii lang))
 ```
+
+## 文档查询
+
+`gf doc` 可以查看各算子的文档与测试示例（文档来源于测试文件头部注释）：
+
+```bash
+gf doc liii/lang                    # 查看库概览与算子白名单
+gf doc liii/lang '$'                # 查看核心宏 $ 的文档（$ 需单引号防 shell 展开）
+gf doc liii/lang 'list%head'        # 查看指定算子的文档
+gf doc liii/lang 'string%take'      # 算子未导出时需指定库名前缀查询
+```
+
+注意：`$` 在 shell 中需用单引号包裹（`'$'`）防止变量展开。
+
+## 库简介
+
+`(liii lang)` 是纯语法糖库：`$` 为原生 `syntax-rules` 宏，把 Scala 式链式调用
+在**宏展开期**降解为 `(liii list)` / `(liii vector)` 原生函数的嵌套调用，
+零装箱、零闭包对象、零方法分发。
 
 ## 核心宏 `$`
 
@@ -48,7 +63,9 @@
   （子表达式内 `_` 也在第 1~3 位）；
 - 超出枚举位的形态报 `unbound variable _`，请改用显式 lambda。
 
-## 算子白名单（list / vector 双路径）
+## 算子
+
+### 集合路径（list / vector / string 三路径）
 
 | 类别 | 算子 | list 路径 | vector 路径 | string 路径 (UTF-8) |
 |---|---|---|---|---|
@@ -80,37 +97,23 @@
 | 索引区间 | `:indices` | `(0 1 ... len-1)` | `#(0 1 ... len-1)` | `(0 1 ... len-1)` |
 | 拼接转串 | `:mk-string` | 0/1/3 参拼接 | 0/1/3 参拼接 | — |
 | 多核并行 | `:par-map` / `:par-filter` / `:par-for-each` | CSP 多核加速 | 同构 | — |
-| Option管线 | `:map` / `:filter` / `:flat-map` / `:get-or-else` / `:or-else` / `:exists` / `:forall` / `:contains` | — | — | — |
 
 > `:take`/`:drop` 采用 `(liii list)` / `(liii vector)` 的宽容版
 > （越界/负数不抛错），与 Scala 语义逐项一致（Scala Oracle 验证）：
 > `take(10)` => 全部、`take(-1)` => 空、`drop(10)` => 空、`drop(-1)` => 全部。
 
-## 明确排除（by design）
+### Option 路径（对标 Scala Option 链式，仅作用于 option 值）
 
-- `:collect` —— 链尾已是裸值，无需拆箱（调用会得到未命中报错）；
-- `@` 位置参数部分应用 —— 属于 `(mogan oop)`，不在本库范围；
-- `for/yield`、`try` —— 不做（见 spec.md）。
+| 算子 | 语义 |
+|---|---|
+| `:map f` | 值存在时变换：`(some v) => (some (f v))`，`(none) => (none)` |
+| `:filter p` | 值存在且满足 `p` 时保留，否则 `(none)` |
+| `:flat-map f` | 值存在时展平 `(f v)` 的 option 结果 |
+| `:get-or-else d` | 值存在返回值，否则返回默认值 `d` |
+| `:or-else alt` | `(none)` 时回退到 `alt`，`(some v)` 原样返回 |
+| `:exists p` | 值存在且满足 `p` 为 `#t`，`(none)` 为 `#f` |
+| `:forall p` | `(none)` 为 `#t`，值存在时看 `p` |
+| `:contains e` | 值存在且等于 `e` 为 `#t`，否则 `#f` |
 
-## 文档查询
-
-`gf doc` 可以查看各算子的文档与测试示例（文档来源于测试文件头部注释）：
-
-```bash
-gf doc liii/lang                    # 查看库概览与算子白名单
-gf doc liii/lang '$'                # 查看核心宏 $ 的文档（$ 需单引号防 shell 展开）
-gf doc liii/lang 'list%head'        # 查看指定算子的文档
-gf doc liii/lang 'string%take'      # 算子未导出时需指定库名前缀查询
-```
-
-注意：`$` 在 shell 中需用单引号包裹（`'$'`）防止变量展开。
-
-## 测试组织
-
-本目录一算子一文件：`list%map-test.scm`、`vector%take-test.scm` 等；
-横切断言（卫生性、未命中报错、链式组合）在 `lang-test.scm`。
-
-```bash
-gf test tests/liii/lang/            # 全部
-gf test tests/liii/lang/list%map    # 单算子
-```
+> Option 不支持集合切片、排序、索引、求和等集合算子（如 `:take`、`:sum`），
+> 误用时宏会给出人性化报错。
