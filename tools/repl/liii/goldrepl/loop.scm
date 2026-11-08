@@ -167,7 +167,7 @@
       (when (or (string=? mode "liii") (string=? mode "default"))
         (catch #t
           (lambda ()
-            (eval '(import (scheme base) (liii base) (liii error) (liii string)) (rootlet))
+            (eval '(import (scheme base) (liii base) (liii error) (liii lang)) (rootlet))
           ) ;lambda
           (lambda (tag info) #f)
         ) ;catch

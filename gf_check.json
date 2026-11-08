@@ -116,6 +116,10 @@
         "reason": "Packrat 语法解析引擎核心实现"
       },
       {
+        "path": "goldfish/liii/lang.scm",
+        "reason": "$ 管道算子集单文件集中分派实现，拆分会破坏算子表完整性"
+      },
+      {
         "path": "library/liii/uri/record.scm",
         "reason": "URI 规范解析与记录模型"
       },
