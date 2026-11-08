@@ -469,4 +469,45 @@
   "(check (digit-value #\\\") => #f)\n\n(check-report)\n"
 ) ;check
 
+;; (liii lang) $ 语法格式化测试：
+;; 1. 短管道（算子数 <= 3 且总长 <= 80）：单行内联
+(check (format-string "($ xs :reverse)")
+  =>
+  "($ xs :reverse)\n"
+) ;check
+
+(check (format-string "($ (list 1 2 3) :map (+ _ 1) :filter odd?)")
+  =>
+  "($ (list 1 2 3) :map (+ _ 1) :filter odd?)\n"
+) ;check
+
+(check (format-string "($ '(1 2 3 4 5) :filter odd? :map (* _ 2) :sum)")
+  =>
+  "($ '(1 2 3 4 5) :filter odd? :map (* _ 2) :sum)\n"
+) ;check
+
+;; 2. 算子数 >= 4 触发换行：一行一个算子，冒号与数据左对齐，闭合为 ) ;$
+(check (format-string "($ xs :filter odd? :map (* _ 10) :take 3 :sum)")
+  =>
+  "($ xs\n   :filter odd?\n   :map (* _ 10)\n   :take 3\n   :sum\n) ;$\n"
+) ;check
+
+;; 3. 多参数算子 (:slice 2参数, :fold-left 2参数)
+(check (format-string "($ xs :slice 1 4 :fold-left 0 + :to-list :sum)")
+  =>
+  "($ xs\n   :slice 1 4\n   :fold-left 0 +\n   :to-list\n   :sum\n) ;$\n"
+) ;check
+
+;; 4. 函数体内的 $ 管道：缩进对齐首行数据
+(check (format-string "(define (top-3-even-squares nums) ($ nums :filter (lambda (n) (zero? (remainder n 2))) :map (* _ _) :sort-with > :take 3))")
+  =>
+  "(define (top-3-even-squares nums)\n  ($ nums\n     :filter (lambda (n) (zero? (remainder n 2)))\n     :map (* _ _)\n     :sort-with >\n     :take 3\n  ) ;$\n) ;define\n"
+) ;check
+
+;; 5. 算子数 <= 3 但总长度超 80 列触发换行
+(check (format-string "($ '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20) :filter (lambda (x) (> x 10)) :map (lambda (x) (* x 20)))")
+  =>
+  "($ '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)\n   :filter (lambda (x) (> x 10))\n   :map (lambda (x) (* x 20))\n) ;$\n"
+) ;check
+
 (check-report)

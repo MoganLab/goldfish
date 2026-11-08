@@ -22,6 +22,7 @@
     format-inline-atom-or-quote-at
   ) ;export
   (import (liii base)
+    (liii vector)
     (liii string)
     (liii list)
     (liii tree)
@@ -109,6 +110,16 @@
              #f
             ) ;
             ((second-child-tree-depth-exceeded? node) #f)
+            ((string=? (env-tag-name node) "$")
+             (and (<= (vector-count keyword-node? (env-children node)) 3)
+               (let ((candidate (format-inline node)))
+                 (and (not (string-contains? candidate "\n"))
+                   (<= (string-length candidate) max-inline-length)
+                   candidate
+                 ) ;and
+               ) ;let
+             ) ;and
+            ) ;
             (else
               (let ((candidate (format-inline node)))
                 (if (and (not (string-contains? candidate "\n"))
@@ -123,7 +134,7 @@
     ) ;define
 
     (define (can-inline? node)
-      (if (try-inline node) #t #f)
+      (and (try-inline node) #t)
     ) ;define
 
     (define (make-writer initial-column)
@@ -379,12 +390,7 @@
       ) ;cond
     ) ;define
 
-    (define (format-inline-atom-or-quote value)
-      (format-reader-datum value)
-    ) ;define
-
-    (define (format-inline-atom-or-quote-at value indent)
-      (format-reader-datum-at value indent)
-    ) ;define
+    (define format-inline-atom-or-quote format-reader-datum)
+    (define format-inline-atom-or-quote-at format-reader-datum-at)
   ) ;begin
 ) ;define-library

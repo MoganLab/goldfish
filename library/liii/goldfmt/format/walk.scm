@@ -21,6 +21,7 @@
     (liii goldfmt rule)
     (liii goldfmt format atom)
     (liii goldfmt format writer)
+    (liii goldfmt format dollar)
   ) ;import
   (begin
     (define (compute-keyword-block children start child-indent)
@@ -341,6 +342,7 @@
       (cond ((newline-node? node) (walk-env-newline! node writer column))
             ((quote-env? node) (walk-env-quote! node writer column))
             ((reader-prefix-env? node) (walk-env-reader-prefix! node writer column))
+            ((string=? (env-tag-name node) "$") (walk-env-dollar! node writer column walk!))
             (else (if (fill-eligible-children? (env-children node))
                     (walk-env-fill! node writer column)
                     (walk-env-general! node writer column)
