@@ -1257,7 +1257,7 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_pa
   }
 
   if (mode == "default" || mode == "liii") {
-    s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii string))");
+    s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii lang))");
   }
   else if (mode == "scheme") {
     s7_eval_c_string (sc, "(import (liii base) (liii error))");
