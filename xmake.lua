@@ -175,6 +175,12 @@ target ("goldfish") do
         add_cxxflags("/utf-8")
         add_cflags("/utf-8")
         add_syslinks("shell32")
+        -- PE 默认主线程栈仅 1MB（macOS/Linux 默认 8MB），s7 的 GC mark 递归
+        -- （mark_pair/mark_let）对深可达链约每 MB 栈只能扛 1.5 万层：
+        -- r7rs/tests/scheme/lazy/delay-force-test.scm 的 5 万元素流遍历
+        -- 需 ≥4MB 栈，1MB 下 GC 时爆栈（0xC0000409，CI windowsbuild 失败）。
+        -- 提升到 8MB 与 Unix 默认对齐（量化：1MB/2MB 崩溃，4MB/8MB 通过）。
+        add_ldflags("/STACK:8388608", {force = true})
     end
 
 
