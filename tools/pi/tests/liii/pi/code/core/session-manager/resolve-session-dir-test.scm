@@ -40,7 +40,12 @@
 ;; Windows 反斜杠归一化便于比对
 
 (define (norm p)
-  (if (os-windows?) (string-replace p "\\" "/") p)
+  (if (os-windows?)
+    (string-replace p "\\" "/")
+    ;; ; [1265] path-resolve 现解析符号链接：统一用 realpath 形态比对，
+    ;; ; 避免 $TMPDIR（/var vs /private/var）逻辑/物理路径不一致导致误报
+    (path->string (path-resolve p))
+  ) ;if
 ) ;define
 
 (define CWD "/home/da/git/goldfish")
@@ -60,7 +65,7 @@
     (resolve-session-dir (parse-pi-args '()) `((agent-dir . ,AGENT)) CWD '())
   ) ;norm
   =>
-  "/tmp/pi-agent-sd/sessions/--home-da-git-goldfish--"
+  (norm "/tmp/pi-agent-sd/sessions/--home-da-git-goldfish--")
 ) ;check
 
 ;; 2. settings 的 sessionDir 生效（record 形式）
@@ -132,7 +137,7 @@
   (check
     (norm (resolve-session-dir (parse-pi-args '("--session-dir" " ")) cfg CWD env))
     =>
-    "/tmp/pi-agent-sd/sessions/--home-da-git-goldfish--"
+    (norm "/tmp/pi-agent-sd/sessions/--home-da-git-goldfish--")
   ) ;check
 ) ;let*
 

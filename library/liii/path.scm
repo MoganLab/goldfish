@@ -24,7 +24,7 @@
     path-relative-to path-starts-with? path-equals? path=? path-absolute?
     path-relative? path-join path-parent path-parents path-list path-list-path
     path-rmdir path-unlink path-rename path-mkdir path-absolute path-expanduser
-    path-match path-as-posix path-resolve path-glob path-rglob
+    path-match path-as-posix path-resolve path-realpath path-glob path-rglob
   ) ;export
   (import (liii path record) (liii path pure) (liii path fs) (liii path glob))
 ) ;define-library

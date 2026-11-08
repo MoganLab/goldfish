@@ -77,6 +77,9 @@
           (let* ((gf-lib (gfproject--opt-gf-lib opt-gf-lib))
                  ;; ; [1131] 内置插件优先：cwd 下的同名目录仅作自定义工具的
                  ;; ; 兜底，不得遮蔽 gf-lib 侧的内置插件
+                 ;; ; [1265] 候选统一 realpath 归一化：gf-lib 可能来自环境变量
+                 ;; ; (逻辑路径)，cwd 候选为物理路径，未归一时返回形态取决于
+                 ;; ; 命中哪个候选，不可预测
                  (candidates (list (path-join gf-lib "tools" tool-name)
                                (path-join (path-parent gf-lib) "tools" tool-name)
                                (path-join (getcwd) "tools" tool-name)
@@ -84,7 +87,7 @@
                  ) ;candidates
                  (found (find path-dir? candidates))
                 ) ;
-            (and found (path->string found))
+            (and found (path->string (path-resolve found)))
           ) ;let*
         ) ;if
       ) ;let*
