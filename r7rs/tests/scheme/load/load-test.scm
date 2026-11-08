@@ -37,8 +37,11 @@
 (check-set-mode! 'report-failed)
 
 ;; 准备被加载的文件：写入 (define loaded-value 42)
-(define tmp-file "/tmp/r7rs-scheme-load-test.scm")
-(with-output-to-file tmp-file (lambda () (write-string "(define loaded-value 42)")))
+
+(define tmp-file "tests/scheme/load/test-load-target.scm")
+(with-output-to-file tmp-file
+  (lambda () (write-string "(define loaded-value 42)"))
+) ;with-output-to-file
 
 ;; 1. 基本行为：顶层环境中定义的绑定在 load 后可见
 (check-true (procedure? load))
@@ -46,13 +49,14 @@
 (check loaded-value => 42)
 
 ;; 2. 指定 environment 参数：定义进入该环境
+
 (define env (environment '(scheme base)))
 (load tmp-file env)
 (check (eval 'loaded-value env) => 42)
 
 ;; 3. 文件不存在时抛 file error
 (check-catch 'io-error
-  (load "/tmp/r7rs-scheme-load-nonexistent-1263.scm")
+  (load "tests/scheme/load/nonexistent-load-target-1263.scm")
 ) ;check-catch
 
 ;; 清理
