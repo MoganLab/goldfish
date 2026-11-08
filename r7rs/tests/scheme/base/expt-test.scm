@@ -33,6 +33,12 @@
 ;; 3. 精确底数与非精确指数混合
 ;;    (expt 4 1/2) => 2（实现定义，本实现返回精确数）
 ;;
+;; 已知限制（R7RS deviation）：
+;; 本实现无 bignum，整数结果以 int64 表示。当精确底数与精确整数
+;; 指数的幂超出 int64 范围时，结果回落为 double 近似而非精确数，
+;; 例如 (expt 10 30) => 1e+30（R7RS 要求精确结果，带 bignum 的
+;; 实现（如 Guile 3/GMP）返回精确整数）。
+;;
 ;; 错误处理
 ;; ----
 ;; division-by-zero
@@ -63,6 +69,10 @@
 (check (expt 2.0 3) => 8.0)
 (check (expt 2.0 -1) => 0.5)
 (check (expt 0.0 0) => 0.0)
+
+;; 已知限制：超出 int64 的精确幂回落为 double 近似（无 bignum）
+(check (exact? (expt 2 62)) => #t)
+(check (inexact? (expt 10 30)) => #t)
 
 ;; 错误场景
 (check-catch 'division-by-zero (expt 0 -1))
