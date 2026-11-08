@@ -99,6 +99,7 @@ eval_string (const char* code) {
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-216.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-26.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-39.scm\")");
+    s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-41.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-78.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-8.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-9.scm\")");
