@@ -215,6 +215,8 @@ gf doc scheme/base "函数名"
 - `let-syntax` - 局部语法关键字绑定
 - `letrec-syntax` - 局部递归语法关键字绑定
 - `define-values` - 定义多值
+- `make-parameter` - 创建参数对象
+- `parameterize` - 动态作用域临时替换参数值
 - `lambda` - 创建过程
 - `define-record-type` - 定义记录类型
 - `begin` - 顺序执行

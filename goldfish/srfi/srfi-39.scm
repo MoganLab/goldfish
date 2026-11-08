@@ -2,33 +2,14 @@
 ;; Bill Schottstaedt
 ;; from S7 source repo: r7rs.scm
 
+;; (srfi srfi-39) 是 R7RS (scheme base) 中参数对象的兼容入口。
+;;
+;; SRFI-39 "Parameter Objects" 的 make-parameter/parameterize 已被
+;; R7RS-small 收进 (scheme base)；本库仅重导出这两个绑定，保留原有
+;; import 路径可用。与 (scheme base) 同时导入时得到同一绑定，
+;; 不会产生重名冲突。
+
 (define-library (srfi srfi-39)
+  (import (scheme base))
   (export make-parameter parameterize)
-  (begin
-
-    ;; parameters
-    ;;   s7 has no built-in parameter objects
-    (define* (make-parameter init converter)
-      (let* ((convert (or converter (lambda (x) x))) (old-values ()) (value (convert init)))
-        (lambda () value)
-      ) ;let*
-    ) ;define*
-
-    (define-macro (parameterize vars . body)
-      `(dynamic-wind (lambda ,()
-                       ,@(map (lambda (var)
-                                `(with-let (funclet ,(car var))
-                                   (set! old-values (cons value old-values))
-                                   (set! value (convert ,(cadr var)))))
-                           vars))
-         (lambda ,() ,@body)
-         (lambda ,()
-           ,@(map (lambda (var)
-                    `(with-let (funclet ,(car var))
-                       (set! value (car old-values))
-                       (set! old-values (cdr old-values))))
-               vars)))
-    ) ;define-macro
-
-  ) ;begin
 ) ;define-library
