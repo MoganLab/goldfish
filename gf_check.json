@@ -55,7 +55,16 @@
         "reason": "type-hint 规则测试 fixture 使用虚构库名"
       }
     ],
-    "unit-test": [],
+    "unit-test": [
+      {
+        "path": "tests/liii/lang/lang-test.scm",
+        "reason": "模块横切测试，覆盖卫生性与链式组合，不针对单一导出函数"
+      },
+      {
+        "path": "tests/liii/lang/underscore-lift-test.scm",
+        "reason": "_ 占位符提升机制横切测试，不针对单一导出函数"
+      }
+    ],
     "no-glue": [
       "bench/",
       "r7rs/scheme/boot.scm",
@@ -114,6 +123,10 @@
       {
         "path": "library/liii/packrat.scm",
         "reason": "Packrat 语法解析引擎核心实现"
+      },
+      {
+        "path": "goldfish/liii/lang.scm",
+        "reason": "$ 管道算子集单文件集中分派实现，拆分会破坏算子表完整性"
       },
       {
         "path": "library/liii/uri/record.scm",

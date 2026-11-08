@@ -82,6 +82,7 @@
           "name": "application",
           "libs": [
             "liii alist",
+            "liii lang",
             "liii ascii",
             "liii bag",
             "liii bitwise",
