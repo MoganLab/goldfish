@@ -72,6 +72,7 @@
             "srfi srfi-26",
             "srfi srfi-267",
             "srfi srfi-39",
+            "srfi srfi-41",
             "srfi srfi-48",
             "srfi srfi-8",
             "srfi srfi-9"
@@ -107,6 +108,7 @@
             "liii set",
             "liii sort",
             "liii stack",
+            "liii streams",
             "liii string",
             "liii string-cursor",
             "liii syntax",
