@@ -9,10 +9,9 @@
 ;; ----
 ;; name : 标识符
 ;; 过程名。
-;;
 ;; formals : 形参列表
-;;
 ;; body : expression ...
+;;
 ;; 返回值
 ;; ----
 ;; 定义一个过程，调用返回流。
@@ -20,7 +19,6 @@
 ;; 说明
 ;; ----
 ;; SRFI 41：等价于 (define name (stream-lambda formals body ...))。
-
 ;;
 ;; 错误处理
 ;; ----

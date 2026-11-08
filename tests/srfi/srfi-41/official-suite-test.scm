@@ -1,5 +1,4 @@
 ;; (srfi srfi-41) 官方单元测试移植
-;;
 ;; 来源：SRFI 41 参考实现 r5rs-test.ss（Philip L. Bewig，MIT 许可）
 ;; 改编：assert 改为 (liii check) 的 check / check-catch。
 ;;
@@ -20,7 +19,6 @@
 ;; 覆盖 SRFI 41 全部导出标识符的官方行为：
 ;; 流类型判断、构造、变换、stream-match/stream-of 宏，
 ;; 以及错误分支（non-stream / non-procedural 等参数校验）。
-
 ;;
 ;; 错误处理
 ;; ----
