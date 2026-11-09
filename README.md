@@ -139,7 +139,7 @@ Goldfish Scheme uses subcommands for different operations:
 Without any command, it will print the help message:
 ```
 > gf
-Goldfish Scheme 18.11.53 by LiiiLabs
+Goldfish Scheme 18.11.54 by LiiiLabs
 
 Commands:
   help             Display help information for gf commands
@@ -162,7 +162,7 @@ Commands:
 `version` subcommand will print the Goldfish Scheme version and the underlying S7 Scheme version:
 ```
 > gf version
-Goldfish Scheme 18.11.53 by LiiiLabs
+Goldfish Scheme 18.11.54 by LiiiLabs
 based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
