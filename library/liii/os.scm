@@ -184,9 +184,12 @@
       ) ;if
     ) ;define
 
-    ;; raw mode 下 termios 标志位快照，用于验证 Ctrl+C 不会被转成 SIGINT。
-    ;; 返回 alist：(isig-disabled . bool) (icanon-disabled . bool)
-    ;;            (echo-disabled . bool) (ixon-disabled . bool) (raw-active . bool)
+    ;; raw mode 下终端标志位快照，用于验证 Ctrl+C 不会被转成信号。
+    ;; 返回 alist：(console-available . bool) (ctrl-c-swallowed . bool)
+    ;;            (processed-input-disabled . bool) (line-input-disabled . bool)
+    ;;            (echo-input-disabled . bool) (ixon-disabled . bool)
+    ;;            (echo-disabled . bool) (icanon-disabled . bool)
+    ;;            (isig-disabled . bool) (raw-active . bool)
     (define (console-raw-mode-state)
       (g_console_raw_mode_state)
     ) ;define

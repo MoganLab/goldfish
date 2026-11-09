@@ -15,6 +15,7 @@
 //
 
 #include "s7.h"
+#include <atomic>
 #include <cstdlib>
 #include <deque>
 #include <filesystem>
@@ -487,15 +488,31 @@ static HANDLE g_hIn_orig     = INVALID_HANDLE_VALUE;
 static DWORD  g_orig_in_mode = 0;
 static bool   g_has_orig_mode= false;
 // 当前是否处于 raw mode（与 POSIX 分支的同名变量语义一致）
-static bool            g_raw_mode_enabled= false;
-static std::deque<int> g_console_key_queue;
-static uint32_t        g_surrogate_hi= 0;
+static bool              g_raw_mode_enabled      = false;
+static bool              g_ctrl_handler_installed= false;
+static std::atomic<bool> g_pending_ctrl_c{false};
+static std::deque<int>   g_console_key_queue;
+static uint32_t          g_surrogate_hi= 0;
 // 上一次处于按下状态的鼠标按钮（SGR 编码：0=左 1=中 2=右，-1=无），
 // 用于在释放事件中还原按钮号
 static int g_mouse_prev_button= -1;
 
+static BOOL WINAPI
+windows_raw_ctrl_handler (DWORD ctrl_type) {
+  if (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT) {
+    g_pending_ctrl_c.store (true);
+    return TRUE;
+  }
+  return FALSE;
+}
+
 static void
 restore_windows_console_mode_at_exit () {
+  if (g_ctrl_handler_installed) {
+    SetConsoleCtrlHandler (windows_raw_ctrl_handler, FALSE);
+    g_ctrl_handler_installed= false;
+  }
+  g_pending_ctrl_c.store (false);
   if (g_has_orig_mode && g_hIn_orig != INVALID_HANDLE_VALUE) {
     SetConsoleMode (g_hIn_orig, g_orig_in_mode);
     g_raw_mode_enabled= false;
@@ -556,6 +573,9 @@ push_sgr_mouse (DWORD button_code, DWORD x, DWORD y, bool release) {
 
 static bool
 pump_console_input (HANDLE hIn, long timeout_ms) {
+  if (g_pending_ctrl_c.exchange (false)) {
+    g_console_key_queue.push_back (3);
+  }
   if (!g_console_key_queue.empty ()) {
     return true;
   }
@@ -575,6 +595,10 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
   }
 
   while (g_console_key_queue.empty ()) {
+    if (g_pending_ctrl_c.exchange (false)) {
+      g_console_key_queue.push_back (3);
+      return true;
+    }
     DWORD count= 0;
     if (!GetNumberOfConsoleInputEvents (hIn, &count)) {
       return false;
@@ -585,6 +609,10 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
       }
       ULONGLONG start_ms= GetTickCount64 ();
       DWORD     res     = WaitForSingleObject (hIn, (DWORD) timeout_ms);
+      if (g_pending_ctrl_c.exchange (false)) {
+        g_console_key_queue.push_back (3);
+        return true;
+      }
       if (res != WAIT_OBJECT_0) {
         return false;
       }
@@ -701,6 +729,17 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
 
     // 功能键/光标键处理（Alt 行扩展码：151/152/153/155/157/160/161/162/163/164）
     if (chr == 0) {
+      // Ctrl+字母合成规则（任务 1316）：UnicodeChar 为 0 且带 Ctrl 修饰位时显式映射为对应控制码
+      if (is_ctrl) {
+        if (virt >= 'A' && virt <= 'Z') {
+          g_console_key_queue.push_back (virt - 'A' + 1);
+          return true;
+        }
+        if (virt >= 'a' && virt <= 'z') {
+          g_console_key_queue.push_back (virt - 'a' + 1);
+          return true;
+        }
+      }
       switch (virt) {
       case VK_UP:
         push_seq (224, is_ctrl ? 141 : (alt_key ? 152 : 72));
@@ -806,7 +845,10 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
   }
   bool enable= (enable_arg == s7_t (sc));
   if (enable) {
-    if (!g_has_orig_mode && GetConsoleMode (hIn, &g_orig_in_mode)) {
+    if (!g_has_orig_mode) {
+      if (!GetConsoleMode (hIn, &g_orig_in_mode)) {
+        return s7_make_boolean (sc, false);
+      }
       g_has_orig_mode= true;
       g_hIn_orig     = hIn;
       atexit (restore_windows_console_mode_at_exit);
@@ -819,11 +861,27 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
      * 与 POSIX 终端的 ESC[<B;X;YM/m 序列统一，Scheme 层只需一条解析路径。 */
     raw_mode&= ~ENABLE_QUICK_EDIT_MODE;
     raw_mode|= ENABLE_EXTENDED_FLAGS | ENABLE_MOUSE_INPUT;
-    SetConsoleMode (hIn, raw_mode);
+    if (!SetConsoleMode (hIn, raw_mode)) {
+      SetConsoleMode (hIn, g_orig_in_mode);
+      g_raw_mode_enabled= false;
+      return s7_make_boolean (sc, false);
+    }
+    if (!g_ctrl_handler_installed) {
+      if (SetConsoleCtrlHandler (windows_raw_ctrl_handler, TRUE)) {
+        g_ctrl_handler_installed= true;
+      }
+    }
     g_raw_mode_enabled= true;
   }
   else if (g_has_orig_mode) {
-    SetConsoleMode (hIn, g_orig_in_mode);
+    if (g_ctrl_handler_installed) {
+      SetConsoleCtrlHandler (windows_raw_ctrl_handler, FALSE);
+      g_ctrl_handler_installed= false;
+    }
+    g_pending_ctrl_c.store (false);
+    if (!SetConsoleMode (hIn, g_orig_in_mode)) {
+      return s7_make_boolean (sc, false);
+    }
     g_raw_mode_enabled= false;
     g_console_key_queue.clear ();
   }
@@ -903,26 +961,43 @@ static s7_pointer
 f_console_raw_mode_state (s7_scheme* sc, s7_pointer args) {
   (void) args;
 #ifdef TB_CONFIG_OS_WINDOWS
-  bool isig_off  = true;
-  bool icanon_off= true;
-  bool echo_off  = true;
-  bool ixon_off  = true;
-  bool active    = g_raw_mode_enabled;
+  HANDLE hIn                = GetStdHandle (STD_INPUT_HANDLE);
+  DWORD  mode               = 0;
+  bool   console_avail      = (hIn != INVALID_HANDLE_VALUE && GetConsoleMode (hIn, &mode));
+  bool   processed_input_off= console_avail && ((mode & ENABLE_PROCESSED_INPUT) == 0);
+  bool   line_input_off     = console_avail && ((mode & ENABLE_LINE_INPUT) == 0);
+  bool   echo_input_off     = console_avail && ((mode & ENABLE_ECHO_INPUT) == 0);
+  bool   ctrl_c_swallowed   = g_ctrl_handler_installed;
+  bool   active             = g_raw_mode_enabled;
+  bool   isig_off           = processed_input_off;
+  bool   icanon_off         = line_input_off;
+  bool   echo_off           = echo_input_off;
+  bool   ixon_off           = console_avail;
 #else
   struct termios cur;
-  bool           ok        = (tcgetattr (STDIN_FILENO, &cur) == 0);
-  bool           isig_off  = ok && ((cur.c_lflag & ISIG) == 0);
-  bool           icanon_off= ok && ((cur.c_lflag & ICANON) == 0);
-  bool           echo_off  = ok && ((cur.c_lflag & ECHO) == 0);
-  bool           ixon_off  = ok && ((cur.c_iflag & IXON) == 0);
-  bool           active    = g_raw_mode_enabled;
+  bool           ok                 = (tcgetattr (STDIN_FILENO, &cur) == 0);
+  bool           isig_off           = ok && ((cur.c_lflag & ISIG) == 0);
+  bool           icanon_off         = ok && ((cur.c_lflag & ICANON) == 0);
+  bool           echo_off           = ok && ((cur.c_lflag & ECHO) == 0);
+  bool           ixon_off           = ok && ((cur.c_iflag & IXON) == 0);
+  bool           active             = g_raw_mode_enabled;
+  bool           console_avail      = isatty (STDIN_FILENO) != 0;
+  bool           processed_input_off= isig_off;
+  bool           line_input_off     = icanon_off;
+  bool           echo_input_off     = echo_off;
+  bool           ctrl_c_swallowed   = false;
 #endif
   s7_pointer res= s7_nil (sc);
-  // 逐项转换为 alist；数组遍历避免五段重复 cons 链与超长行造成的对齐跳变
+  // 逐项转换为 alist；数组遍历避免重复 cons 链与超长行造成的对齐跳变
   const struct {
     const char* key;
     bool        val;
-  } fields[]= {{"ixon-disabled", ixon_off},
+  } fields[]= {{"console-available", console_avail},
+               {"ctrl-c-swallowed", ctrl_c_swallowed},
+               {"processed-input-disabled", processed_input_off},
+               {"line-input-disabled", line_input_off},
+               {"echo-input-disabled", echo_input_off},
+               {"ixon-disabled", ixon_off},
                {"echo-disabled", echo_off},
                {"icanon-disabled", icanon_off},
                {"isig-disabled", isig_off},
