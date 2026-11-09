@@ -36,8 +36,26 @@
 
     (define (defining-library-test-dir-relative cand-path spec)
       ;; 符号定义库对应的测试目录（相对仓库根）；无法定位时退回按库标识符拼接。
-      (let* ((fallback (string-append "tests/" (string-join (map symbol->string spec) "/")))
+      (let* ((norm-cand (normalize-sep cand-path))
              (dir (find-test-dir-for-source cand-path))
+             (fallback
+               (let* ((sub (string-join (map symbol->string spec) "/"))
+                      (domains (gfproject-domains-list))
+                     ) ;
+                 (let loop
+                   ((ds domains))
+                   (if (null? ds)
+                     (string-append "tests/" sub)
+                     (let* ((d (car ds)) (root (normalize-sep (cdr (assq 'root d)))))
+                       (if (and (not (string=? root "")) (string-contains? norm-cand root))
+                         (string-append (cdr (assq 'tests d)) "/" sub)
+                         (loop (cdr ds))
+                       ) ;if
+                     ) ;let*
+                   ) ;if
+                 ) ;let
+               ) ;let*
+             ) ;fallback
             ) ;
         (if (not dir)
           fallback

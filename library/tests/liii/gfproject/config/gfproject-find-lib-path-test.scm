@@ -26,10 +26,7 @@
 
 ;; 默认库目录
 (let ((path (gfproject-find-lib-path)))
-  (if path
-    (check-true (string-ends? path "gfproject.json"))
-    (check-true #t)
-  ) ;if
+  (if path (check-true (string-ends? path "gfproject.json")) (check-true #t))
 ) ;let
 
 ;; 指定不存在的库目录时返回 #f

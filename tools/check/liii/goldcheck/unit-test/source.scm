@@ -120,35 +120,44 @@
       ) ;if
     ) ;define
 
+    (define (%find-legacy-tests-source norm)
+      (if (not (string-starts? norm "tests/"))
+        #f
+        (let* ((rest (string-split norm "/"))
+               (sub
+                 (if (and (pair? rest) (string=? (car rest) "tests")) (cdr rest) rest)
+               ) ;sub
+               (c1 (resolve-repo-file (string-append "goldfish/" (string-join sub "/") ".scm"))
+               ) ;c1
+               (c2 (resolve-repo-file (string-append (string-join sub "/") ".scm")))
+              ) ;
+          (cond ((path-file? (path c1)) c1)
+                ((path-file? (path c2)) c2)
+                (else #f)
+          ) ;cond
+        ) ;let*
+      ) ;if
+    ) ;define
+
     (define (find-tests-library-source norm)
-      ;; 仓库分为四个板块：r7rs/（R7RS 标准库）、goldfish/（语言层）、
-      ;; library/（标准库）、tools/（工具）。测试目录与源码目录的对应关系
-      ;; 统一为「<板块>/tests/<板块内路径>」：
-      ;;   r7rs/tests/scheme/base    <-> r7rs/scheme/base.scm
-      ;;   library/tests/liii/path   <-> library/liii/path.scm
-      ;;   tests/liii/foo            <-> goldfish/liii/foo.scm
-      (let* ((parts (string-split norm "/"))
-             (prefix (car parts))
-             (rest (cdr parts))
-             ;; 板块内测试目录形如 <板块>/tests/<子路径>，去掉中间的 tests 段
-             (sub
-               (if (and (pair? rest) (string=? (car rest) "tests")) (cdr rest) rest)
-             ) ;sub
-             (rel
-               (cond ((string=? prefix "r7rs") (string-append "r7rs/" (string-join sub "/")))
-                     ((string=? prefix "library") (string-append "library/" (string-join sub "/")))
-                     ((string=? prefix "tests") (string-append "goldfish/" (string-join rest "/")))
-                     (else #f)
-               ) ;cond
-             ) ;rel
-            ) ;
-        (if (not rel)
-          #f
-          (let ((candidate (resolve-repo-file (string-append rel ".scm"))))
-            (if (path-file? (path candidate)) candidate #f)
-          ) ;let
+      (let loop
+        ((ds (gfproject-domains-list)))
+        (if (null? ds)
+          (%find-legacy-tests-source norm)
+          (let* ((d (car ds)) (tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
+            (if (not (string-starts? norm prefix))
+              (loop (cdr ds))
+              (let* ((sub (substring norm (string-length prefix) (string-length norm)))
+                     (cand
+                       (resolve-repo-file (string-append (cdr (assq 'root d)) sub ".scm"))
+                     ) ;cand
+                    ) ;
+                (if (path-file? (path cand)) cand (loop (cdr ds)))
+              ) ;let*
+            ) ;if
+          ) ;let*
         ) ;if
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (find-fixture-library-source parent)
@@ -229,26 +238,39 @@
       (or (string-starts? norm "hint/") (string-contains? norm "/hint/"))
     ) ;define
 
+    (define (%domain-match-test-dir norm d)
+      (let ((root (cdr (assq 'root d))))
+        (cond
+         ((and (not (string=? root "")) (string-starts? norm root))
+          (let ((sub (substring norm (string-length root) (- (string-length norm) 4)))
+                (tdir (cdr (assq 'tests d)))
+               ) ;
+            (resolve-repo-file (string-append tdir "/" sub))
+          ) ;let
+         ) ;
+         ((and (string=? root "") (not (string-contains? norm "/")))
+          (let ((sub (substring norm 0 (- (string-length norm) 4))))
+            (resolve-repo-file (string-append "tests/" sub))
+          ) ;let
+         ) ;
+         (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (find-tests-test-dir norm)
-      ;; 源码路径 -> 测试目录：与 find-tests-library-source 互为逆映射。
-      (cond ((hint-source-path? norm) #f)
-            ((and (string-starts? norm "goldfish/") (string-ends? norm ".scm"))
-             (resolve-repo-file
-               (string-append "tests/" (substring norm 9 (- (string-length norm) 4)))
-             ) ;resolve-repo-file
-            ) ;
-            ((and (string-starts? norm "r7rs/") (string-ends? norm ".scm"))
-             (resolve-repo-file
-               (string-append "r7rs/tests/" (substring norm 5 (- (string-length norm) 4)))
-             ) ;resolve-repo-file
-            ) ;
-            ((and (string-starts? norm "library/") (string-ends? norm ".scm"))
-             (resolve-repo-file
-               (string-append "library/tests/" (substring norm 8 (- (string-length norm) 4)))
-             ) ;resolve-repo-file
-            ) ;
-            (else #f)
-      ) ;cond
+      (if (or (hint-source-path? norm) (not (string-ends? norm ".scm")))
+        #f
+        (let loop
+          ((ds (gfproject-domains-list)))
+          (if (null? ds)
+            #f
+            (let ((res (%domain-match-test-dir norm (car ds))))
+              (if res res (loop (cdr ds)))
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (find-fixture-test-dir src-path)

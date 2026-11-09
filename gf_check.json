@@ -37,7 +37,6 @@
         "goldfish",
         "r7rs",
         "library",
-        "tests",
         "tools",
         "demo",
         "src",
@@ -72,7 +71,7 @@
         "reason": "官方标准规范实现优先保证完整性与对照性"
       },
       {
-        "path": "tests/srfi/",
+        "path": "goldfish/tests/srfi/",
         "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
       },
       {
@@ -136,19 +135,15 @@
         "reason": "排版引擎字符串测试集包含大量长代码片段"
       },
       {
-        "path": "tests/liii/match/match-test.scm",
+        "path": "goldfish/tests/liii/match/match-test.scm",
         "reason": "模式匹配器全语法分支测试"
-      },
-      {
-        "path": "tests/liii/packrat-test.scm",
-        "reason": "Packrat 解析引擎语法规则测试用例"
       },
       {
         "path": "r7rs/tests/scheme/base/assoc-test.scm",
         "reason": "assoc 边界与各种键匹配完整测试集"
       },
       {
-        "path": "tests/goldfish/scheme/boot-test.scm",
+        "path": "goldfish/tests/goldfish/scheme/boot-test.scm",
         "reason": "自举环境各模块与全局符号加载测试"
       }
     ],

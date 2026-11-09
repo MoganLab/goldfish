@@ -21,9 +21,10 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((bundle (list (cons "lib_config" '(("a" . 1)))
-                   (cons "merged_tools" '(("x" . 2)))
-             ))) ;
+(let ((bundle
+        (list (cons "lib_config" '(("a" . 1))) (cons "merged_tools" '(("x" . 2))))
+      ) ;bundle
+     ) ;
   (check (bundle-ref bundle "lib_config") => '(("a" . 1)))
   (check (bundle-ref bundle "merged_tools") => '(("x" . 2)))
   ;; 键不存在

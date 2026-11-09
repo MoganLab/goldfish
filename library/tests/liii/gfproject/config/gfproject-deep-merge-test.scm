@@ -28,31 +28,35 @@
 (check-set-mode! 'report-failed)
 
 ;; 不同键：两者都保留
-(let ((merged (gfproject-deep-merge (string->json "{\"a\": 1}")
-                  (string->json "{\"b\": 2}")
-             ))) ;
+(let ((merged (gfproject-deep-merge (string->json "{\"a\": 1}") (string->json "{\"b\": 2}"))
+      ) ;merged
+     ) ;
   (check-true (json-object? merged))
   (check (json-ref merged "a") => 1)
   (check (json-ref merged "b") => 2)
-) ;let*
+) ;let
 
 ;; 同名键：overlay 覆盖 base
-(let ((merged (gfproject-deep-merge (string->json "{\"a\": 1}")
-                  (string->json "{\"a\": 2}")
-             ))) ;
+(let ((merged (gfproject-deep-merge (string->json "{\"a\": 1}") (string->json "{\"a\": 2}"))
+      ) ;merged
+     ) ;
   (check (json-ref merged "a") => 2)
-) ;let*
+) ;let
 
 ;; 同名对象键：递归合并
 (let ((merged (gfproject-deep-merge (string->json "{\"a\": {\"x\": 1}}")
-                  (string->json "{\"a\": {\"y\": 2}}")
-             ))) ;
+                (string->json "{\"a\": {\"y\": 2}}")
+              ) ;gfproject-deep-merge
+      ) ;merged
+     ) ;
   (check (json-ref merged "a") => '(("y" . 2) ("x" . 1)))
-) ;let*
+) ;let
 
 ;; base 为空对象时直接返回 overlay
 (check (gfproject-deep-merge (string->json "{}") (string->json "{\"a\": 1}"))
-  => '(("a" . 1)))
+  =>
+  '(("a" . 1))
+) ;check
 
 ;; overlay 为空列表时直接返回 overlay（空列表）
 (check (gfproject-deep-merge (string->json "{\"a\": 1}") '()) => '())

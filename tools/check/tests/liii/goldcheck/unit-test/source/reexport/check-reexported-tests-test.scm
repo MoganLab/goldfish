@@ -70,7 +70,7 @@
   (check (cadr (car viols)) => "tests/wrapper-lib/real-fn-test.scm")
   (check-true (string-contains? (list-ref (car viols) 3) "函数 real-fn 并非本库实现")
   ) ;check-true
-  (check-true (string-contains? (list-ref (car viols) 3) "应移动到 tests/src-lib/ 目录")
+  (check-true (string-contains? (list-ref (car viols) 3) "应移动到 goldfish/tests/src-lib/ 目录")
   ) ;check-true
 
   ;; 清理

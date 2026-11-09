@@ -1,4 +1,113 @@
 {
+  "domains": {
+    "r7rs": {
+      "root": "r7rs/",
+      "depends-on": []
+    },
+    "goldfish": {
+      "root": "goldfish/",
+      "depends-on": [
+        "r7rs"
+      ]
+    },
+    "library": {
+      "root": "library/",
+      "depends-on": [
+        "goldfish"
+      ]
+    },
+    "help": {
+      "root": "tools/help/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "source": {
+      "root": "tools/source/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "version": {
+      "root": "tools/version/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "doc": {
+      "root": "tools/doc/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "fmt": {
+      "root": "tools/fmt/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "fix": {
+      "root": "tools/fix/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "check": {
+      "root": "tools/check/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "json": {
+      "root": "tools/json/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "test": {
+      "root": "tools/test/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "repl": {
+      "root": "tools/repl/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "code": {
+      "root": "tools/code/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "pr": {
+      "root": "tools/pr/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
+    "pi": {
+      "root": "tools/pi/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    }
+  },
   "tools": {
     "help": {
       "organization": "liii",

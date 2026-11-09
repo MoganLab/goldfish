@@ -27,7 +27,7 @@
     (begin
       (check-true (string? root))
       (check-true (> (string-length root) 0))
-    )
+    ) ;begin
     (check-true #t)
   ) ;if
 ) ;let

@@ -32,7 +32,12 @@
 
 (check-set-mode! 'report-failed)
 
-(let* ((tmp-file "tests/resources/columnar-test-temp-from-file.txt")
+(let* ((tmp-file
+         (if (file-exists? "goldfish/tests/resources")
+           "goldfish/tests/resources/columnar-test-temp-from-file.txt"
+           "tests/resources/columnar-test-temp-from-file.txt"
+         ) ;if
+       ) ;tmp-file
        (content "first line\nsecond line\nthird line")
       ) ;
   (call-with-output-file tmp-file (lambda (p) (write-string content p)))

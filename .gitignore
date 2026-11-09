@@ -33,8 +33,8 @@ node_modules/
 /result*
 .envrc
 .direnv/
-tests/resources/hashlib-test-large-local.txt
-tests/function-library-index.json
+goldfish/tests/resources/hashlib-test-large-local.txt
+goldfish/tests/function-library-index.json
 library/tests/function-library-index.json
 tools/doc/tests/function-library-index.json
 tools/pi/tests/function-library-index.json

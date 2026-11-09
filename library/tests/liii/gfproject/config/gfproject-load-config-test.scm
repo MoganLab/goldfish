@@ -33,10 +33,7 @@
 
 ;; 指定不存在的库目录时仍回退到本地配置
 (let ((config (gfproject-load-config "/no/such/gf-lib-dir")))
-  (if (equal? config '(()))
-    (check-true #t)
-    (check-true (json-object? config))
-  ) ;if
+  (if (equal? config '(())) (check-true #t) (check-true (json-object? config)))
 ) ;let
 
 (check-report)
