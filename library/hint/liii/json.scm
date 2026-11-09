@@ -45,12 +45,21 @@
     (define hint-string->json '((string? -> any?)))
 
     ;; json->string : (any? -> string?)
-    ;;               (any? any? any? -> string?)          ; 一个关键字参数
-    ;;               (any? any? any? any? any? -> string?) ; 两个关键字参数
+    ;;               (any? (or #f integer? string?) -> string?)
+    ;;               (any? (or #f integer? string?) boolean? -> string?)
+    ;;               (any? (or #f integer? string?) boolean? boolean? -> string?)
+    ;;               (any? (or #f integer? string?) boolean? boolean? boolean? -> string?)
+    ;; define* 的可选参数：indent 为非负整数 / 缩进字符串 / #f，
+    ;; sort-keys / ensure-ascii / compact 均为布尔值。
+    ;; 可选参数既可按位置传入，也可按关键字传入（:indent 等），
+    ;; 关键字形态下实参与位置的对应关系不确定，检查器对含关键字的调用
+    ;; 保守跳过实参类型检查，故此处按位置形态登记。
     (define hint-json->string
       '((any? -> string?)
-        (any? any? any? -> string?)
-        (any? any? any? any? any? -> string?))
+        (any? (or #f integer? string?) -> string?)
+        (any? (or #f integer? string?) boolean? -> string?)
+        (any? (or #f integer? string?) boolean? boolean? -> string?)
+        (any? (or #f integer? string?) boolean? boolean? boolean? -> string?))
     ) ;define
 
     ;; read-json : (-> any?)        ; 读当前输入端口

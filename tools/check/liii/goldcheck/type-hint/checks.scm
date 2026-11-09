@@ -261,6 +261,16 @@
              "case-lambda clauses"
            ) ;check-arity-mismatch
           ) ;
+          ((eq? (def-kind od) 'star)
+           ;; define*：必选参数个数..必选+可选参数个数
+           (check-arity-mismatch rel
+             line
+             name
+             (sig-arities (cadr e) vars)
+             (def-arity od)
+             "define* parameters"
+           ) ;check-arity-mismatch
+          ) ;
           (else '())
         ) ;cond
       ) ;let*

@@ -92,6 +92,18 @@
   '((any? any? (or #f boolean?) -> (or #f boolean?)))
 ) ;check
 
+;; json->string 由 define* 定义：1 个必选参数 + 4 个可选参数，
+;; 可接受 1~5 个参数（可选参数也可按关键字传入）：
+;; indent 为 #f / 整数 / 缩进字符串，其余三个为布尔值
+(check (hint-liii/json 'json->string)
+  =>
+  '((any? -> string?)
+    (any? (or #f integer? string?) -> string?)
+    (any? (or #f integer? string?) boolean? -> string?)
+    (any? (or #f integer? string?) boolean? boolean? -> string?)
+    (any? (or #f integer? string?) boolean? boolean? boolean? -> string?))
+) ;check
+
 ;; 可变参数过程登记多种调用形态
 (check (hint-liii/json 'json-ref)
   =>

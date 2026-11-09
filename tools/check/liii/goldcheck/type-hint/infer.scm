@@ -31,85 +31,11 @@
     (liii goldcheck type-hint hint-data)
     (liii goldcheck type-hint narrow)
     (liii goldcheck type-hint env)
+    (liii goldcheck type-hint compat)
     (liii goldcheck type-hint value)
   ) ;import
   (export check-infer)
   (begin
-
-    ;; ---------- 类型兼容 ----------
-
-    ;; 已知互斥的标量类型分组；number 系同组内成层次；
-    ;; pair?/list?/null? 同属结构组，与标量组互斥但组内保守
-    (define %type-groups
-      '((number? integer? real? rational?)
-        (string?)
-        (boolean?)
-        (symbol?)
-        (char?)
-        (procedure?)
-        (vector?)
-        (pair? list? null?))
-    ) ;define
-
-    (define (%group-of t)
-      (let loop
-        ((gs %type-groups) (i 0))
-        (cond ((null? gs) #f)
-              ((memq t (car gs)) i)
-              (else (loop (cdr gs) (+ i 1)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    ;; actual 可作为 expected 传入
-    (define (%accepts? expected actual)
-      (cond ((eq? expected 'any?) #t)
-            ((not actual) #t)
-            ((eq? actual 'unknown) #t)
-            ((pair? actual)
-             (and (eq? (car actual) 'or)
-               (let loop
-                 ((ms (cdr actual)))
-                 (cond ((null? ms) #t)
-                       ((%accepts-1 expected (if (eq? (car ms) #f) 'boolean? (car ms)))
-                        (loop (cdr ms))
-                       ) ;
-                       (else #f)
-                 ) ;cond
-               ) ;let
-             ) ;and
-            ) ;
-            ((symbol? expected)
-             (or (eq? actual expected)
-               ;; number 层次：integer?/real?/rational? 可传 number?
-               (and (memq actual '(integer? real? rational?)) (eq? expected 'number?))
-               ;; 涉及未知谓词（如 alist? 等自定义类型）时不判定冲突
-               (not
-                 (and (%group-of actual)
-                   (%group-of expected)
-                   (not (= (%group-of actual) (%group-of expected)))
-                 ) ;and
-               ) ;not
-             ) ;or
-            ) ;
-            (else #t)
-      ) ;cond
-    ) ;define
-
-    (define (%accepts-1 expected member-type)
-      (if (not (symbol? expected))
-        #t
-        (or (eq? member-type expected)
-          (eq? expected 'any?)
-          (not
-            (and (%group-of member-type)
-              (%group-of expected)
-              (not (= (%group-of member-type) (%group-of expected)))
-            ) ;and
-          ) ;not
-        ) ;or
-      ) ;if
-    ) ;define
 
     ;; ---------- 类型推导 ----------
 
@@ -299,43 +225,59 @@
       (filter (lambda (s) (%accepts? (sig-param-type s idx) ti)) cands)
     ) ;define
 
+    ;; 关键字参数调用：实参与形参的位置对应关系不确定
+    ;; （define* 的可选参数既可按位置传入，也可按关键字传入），
+    ;; 保守跳过实参类型检查，避免误报。
+    (define (call-has-keyword? expr)
+      (let loop
+        ((args (cdr expr)))
+        (cond ((null? args) #f)
+              ((keyword? (car args)) #t)
+              (else (loop (cdr args)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (check-call rel expr env locals acc)
-      (let* ((f (car expr))
-             (sigs (cdr (assq f env)))
-             (alive (arity-match-sigs sigs (length (cdr expr))))
-             (line (form-line expr))
-            ) ;
-        (let loop
-          ((i 1) (args (cdr expr)) (cands alive))
-          (if (or (null? args) (null? cands))
-            acc
-            (let* ((ti (infer-type (car args) env locals))
-                   (ok-cands (pos-accept-sigs cands i ti))
-                  ) ;
-              (if (and ti (not (eq? ti 'unknown)) (null? ok-cands))
-                (cons
-                  (list 'type-hint
-                    rel
-                    line
-                    (string-append "argument "
-                      (number->string i)
-                      " of "
-                      (symbol->string f)
-                      " requires "
-                      (object->string (sig-param-type (car alive) i))
-                      ", got "
-                      (object->string ti)
-                    ) ;string-append
-                    (car args)
-                  ) ;list
-                  acc
-                ) ;cons
-                (loop (+ i 1) (cdr args) (if (null? ok-cands) cands ok-cands))
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let*
+      (if (call-has-keyword? expr)
+        acc
+        (let* ((f (car expr))
+               (sigs (cdr (assq f env)))
+               (alive (arity-match-sigs sigs (length (cdr expr))))
+               (line (form-line expr))
+              ) ;
+          (let loop
+            ((i 1) (args (cdr expr)) (cands alive))
+            (if (or (null? args) (null? cands))
+              acc
+              (let* ((ti (infer-type (car args) env locals))
+                     (ok-cands (pos-accept-sigs cands i ti))
+                    ) ;
+                (if (and ti (not (eq? ti 'unknown)) (null? ok-cands))
+                  (cons
+                    (list 'type-hint
+                      rel
+                      line
+                      (string-append "argument "
+                        (number->string i)
+                        " of "
+                        (symbol->string f)
+                        " requires "
+                        (object->string (sig-param-type (car alive) i))
+                        ", got "
+                        (object->string ti)
+                      ) ;string-append
+                      (car args)
+                    ) ;list
+                    acc
+                  ) ;cons
+                  (loop (+ i 1) (cdr args) (if (null? ok-cands) cands ok-cands))
+                ) ;if
+              ) ;let*
+            ) ;if
+          ) ;let
+        ) ;let*
+      ) ;if
     ) ;define
 
     ;; 遍历单个 define 的体表达式列表

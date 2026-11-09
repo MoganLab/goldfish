@@ -83,43 +83,30 @@
       ) ;let
     ) ;define
 
-    (define (json->string x . rest)
-      (if (null? rest)
-        (g_json->string x)
-        (begin
-          (%json-validate-keyword-args 'json->string
-            '(:indent :sort-keys :ensure-ascii :compact)
-            rest
-          ) ;%json-validate-keyword-args
-          (let* ((indent (%json-keyword-arg :indent rest #f))
-                 (sort-keys (%json-keyword-arg :sort-keys rest #f))
-                 (ensure-ascii (%json-keyword-arg :ensure-ascii rest #f))
-                 (compact (%json-keyword-arg :compact rest #f))
-                ) ;
-            (when (and (not (eq? indent #f)) (not (integer? indent)) (not (string? indent)))
-              (type-error "json->string: :indent must be a non-negative integer, string, or #f"
-                indent
-              ) ;type-error
-            ) ;when
-            (when (and (integer? indent) (< indent 0))
-              (value-error "json->string: :indent must be non-negative")
-            ) ;when
-            (unless (boolean? sort-keys)
-              (type-error "json->string: :sort-keys must be a boolean" sort-keys)
-            ) ;unless
-            (unless (boolean? ensure-ascii)
-              (type-error "json->string: :ensure-ascii must be a boolean" ensure-ascii)
-            ) ;unless
-            (unless (boolean? compact)
-              (type-error "json->string: :compact must be a boolean" compact)
-            ) ;unless
-            (let ((effective-indent (if compact #f indent)))
-              (g_json->string x effective-indent sort-keys ensure-ascii)
-            ) ;let
-          ) ;let*
-        ) ;begin
-      ) ;if
-    ) ;define
+    ;; json->string 由 define* 定义：可选参数既可按位置传入，也可按关键字
+    ;; 传入（:indent / :sort-keys / :ensure-ascii / :compact），
+    ;; 由 s7 的 define* 完成参数绑定与关键字分发。
+    ;; 默认不缩进（单行输出），需要缩进时传 :indent。
+    (define* (json->string x (indent #f) (sort-keys #f) (ensure-ascii #f) (compact #f))
+      (when (and (not (eq? indent #f)) (not (integer? indent)) (not (string? indent)))
+        (type-error "json->string: :indent must be a non-negative integer, string, or #f"
+          indent
+        ) ;type-error
+      ) ;when
+      (when (and (integer? indent) (< indent 0))
+        (value-error "json->string: :indent must be non-negative")
+      ) ;when
+      (unless (boolean? sort-keys)
+        (type-error "json->string: :sort-keys must be a boolean" sort-keys)
+      ) ;unless
+      (unless (boolean? ensure-ascii)
+        (type-error "json->string: :ensure-ascii must be a boolean" ensure-ascii)
+      ) ;unless
+      (unless (boolean? compact)
+        (type-error "json->string: :compact must be a boolean" compact)
+      ) ;unless
+      (g_json->string x (if compact #f indent) sort-keys ensure-ascii)
+    ) ;define*
 
     ;; string->json 由 C++ 实现（src/liii_json.cpp 中的 g_string->json）
     (define string->json g_string->json)

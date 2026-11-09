@@ -278,6 +278,14 @@
   '()
 ) ;check
 
+;; 10e. define* 的可选参数：签名参数个数区间与实现不一致 -> 1 违规
+;;      （g1 一致、g2 只登记 1 参而实现可接受 1~2 参、g3 带 :rest 跳过）
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/stararity.scm"))))
+  (check (length viol) => 1)
+  (check-true (string-contains? (cadddr (car viol)) "g2"))
+  (check-true (string-contains? (cadddr (car viol)) "define* parameters"))
+) ;let
+
 ;; --------------------------------------------------------------------
 ;; 12. 有 hint 的函数自身做部分类型检查（spec 8.4 最小子集）：
 ;;     根据 import 依赖的 hint 检查确定的调用实参类型冲突；
@@ -296,6 +304,15 @@
 (let ((viol (check-type-hint (resource-file "goldfish/hint/liii/inferok.scm"))))
   (check (length viol) => 1)
   (check-true (string-contains? (cadddr (car viol)) "my-cdr"))
+) ;let
+
+;; 12c. 期望类型为联合类型：实际类型至少要能被其中一个成员接受
+;;      关键字参数调用：实参与位置的对应关系不确定，保守跳过
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/unioncheck.scm"))))
+  (check (length viol) => 2)
+  (check-true (string-contains? (cadddr (car viol)) "my-take"))
+  (check-true (string-contains? (cadddr (car viol)) "(or #f string?)"))
+  (check-true (string-contains? (cadddr (cadr viol)) "my-opts"))
 ) ;let
 
 ;; 12c. tools/check 的局部 hint 根缺少基础签名时，回退到 goldfish/hint
