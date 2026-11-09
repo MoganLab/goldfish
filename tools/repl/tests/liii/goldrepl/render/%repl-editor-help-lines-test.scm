@@ -33,6 +33,7 @@
   (check-true (any (lambda (l) (string-contains l "shift-tab")) lines))
   (check-true (any (lambda (l) (string-contains l "ctrl-a")) lines))
   (check-true (any (lambda (l) (string-contains l "ctrl-k")) lines))
+  (check-true (any (lambda (l) (string-contains l "ctrl-c")) lines))
   (check-true (any (lambda (l) (string-contains l "ctrl-l")) lines))
 ) ;let
 

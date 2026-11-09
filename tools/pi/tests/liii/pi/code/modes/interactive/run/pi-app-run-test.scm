@@ -80,6 +80,21 @@
   (check (editor-text ed) => "")
 ) ;let*
 
+;; 4b. 连续三次 Ctrl+C 在 idle 且输入框为空时不退出，之后仍可正常输入字符并由 Ctrl+D 退出
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (ed (pi-app-editor app))
+      ) ;
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt "z")
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check (editor-text ed) => "")
+) ;let*
+
 ;; 5. Ctrl+C 在 idle 且输入框有内容时只清空输入框、不退出
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))

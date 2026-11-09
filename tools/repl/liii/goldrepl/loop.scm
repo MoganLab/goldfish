@@ -32,7 +32,7 @@
   (export %repl-eval-and-show! %repl-apply-completion! %repl-try-complete-first!
     %repl-try-complete-cycle! %repl-submit-meta! %repl-submit-code!
     %repl-preload-mode! %repl-cleanup! %repl-format-completion-menu %repl-mode
-    %repl-atom?
+    %repl-atom? %repl-ctrl-c-action
   ) ;export
   (begin
 
@@ -216,6 +216,13 @@
         (not (string-contains text "("))
         (not (string-contains text ")"))
       ) ;and
+    ) ;define
+
+    (define (%repl-ctrl-c-action buf-pending? input-empty?)
+      (cond (buf-pending? 'clear-buffer)
+            ((not input-empty?) 'clear-input)
+            (else 'noop)
+      ) ;cond
     ) ;define
 
   ) ;begin

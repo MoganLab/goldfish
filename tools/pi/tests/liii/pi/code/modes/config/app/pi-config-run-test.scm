@@ -1,7 +1,8 @@
 ;; pi-config-run
 ;; gf pi config 三列配置 TUI 主循环：进入备用屏与 raw 模式后循环轮询按键、
-;; 分发处理并渲染，q/Esc/Ctrl+C 退出；空闲分支检测终端尺寸变化并自动
-;; 清屏重绘。本文件覆盖导航、启停、设默认模型、只读覆盖层与缩窗自适应。
+;; 分发处理并渲染，q/Esc 退出；Ctrl+C 不退出（覆盖层打开时仅关闭覆盖层）；
+;; 空闲分支检测终端尺寸变化并自动清屏重绘。本文件覆盖导航、启停、设默认模型、
+;; 只读覆盖层与缩窗自适应。
 ;;
 ;; 语法
 ;; ----
@@ -21,7 +22,7 @@
 ;; 返回值
 ;; ------
 ;; symbol
-;; 退出方式：q 返回 'chat，Esc/Ctrl+C 返回 'quit。
+;; 退出方式：q 返回 'chat，Esc 返回 'quit。
 
 (import (scheme base)
   (liii check)
@@ -40,7 +41,7 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-config-run：ranger 风格三列配置 TUI 入口。
-;; q / Escape / Ctrl+C 退出并返回 0；
+;; q / Escape 退出并返回 'chat / 'quit；Ctrl+C 不退出；
 ;; space 启停并即刻落盘；Enter（模型列）设默认模型；v 打开只读覆盖层。
 
 (define FIXTURE
@@ -112,6 +113,13 @@
   (virtual-terminal-push-key! vt 'escape)
   (check (pi-config-run (make-dir "escape") :terminal vt :env '()) => 'quit)
 ) ;let
+
+;; 2b. Ctrl+C 不退出配置 TUI：按 Ctrl+C 后按 q 仍返回 'chat
+;;     若 Ctrl+C 误退出，则会提前退出并返回 'quit 而非由后续 q 返回 'chat
+(check (run (make-dir "ctrl-c-no-exit") (list 'ctrl-c 'ctrl-c 'q)) => 'chat)
+
+;; 2c. 覆盖层打开时按 Ctrl+C 只关闭覆盖层、不退出配置 TUI
+(check (run (make-dir "overlay-ctrl-c") (list 'v 'ctrl-c 'q)) => 'chat)
 
 ;; 3. 上下移动、进入模型列后退出（不应抛错）
 (check (run (make-dir "nav") (list 'down 'right 'down 'q)) => 'chat)

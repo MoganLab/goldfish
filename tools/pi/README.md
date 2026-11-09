@@ -291,7 +291,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 - **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
   按 steering → follow-up 顺序合并回输入框。
 
-#### Windows 键位说明（任务 1197）
+#### Windows 键位说明（任务 1197、1316）
 
 Windows 控制台层（`src/liii_os.cpp` 的 `pump_console_input`）已为
 Alt+方向键/Home/End/PageUp/PageDown/Delete/Insert 保留 Alt 修饰位，
@@ -304,6 +304,7 @@ pty 路径（`ESC[1;3A` 等 CSI 序列）行为一致：
   取消该快捷键，或改用其他终端（如 Windows Terminal 可在
   「设置 → 操作」中解除 `Alt+Enter` 绑定）。
 - `Ctrl+Alt+方向键` 按优先级识别为 `Ctrl` 语义（沿用 Ctrl 码段）。
+- `Ctrl+C` 在 Windows Terminal、conhost、Git Bash (mintty) 下统一为清空输入框/中断语义，不再直接退出进程；退出请使用 `Ctrl+D`（输入框为空时）。
 
 实现分层：`(liii pi agent queue)` 提供 `pi-pending-queue` 双粒度队列；
 `(liii pi agent loop)` 的 `run-agent-loop` 经 config 的
