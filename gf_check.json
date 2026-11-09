@@ -224,6 +224,16 @@
         "path": "r7rs/scheme/write.scm",
         "reason": "write-shared 两遍图扫描实现（引用计数+回边标记+标注输出），嵌套源于图遍历本质结构"
       }
+    ],
+    "type-hint": [
+      {
+        "path": "tools/check/tests/resources/",
+        "reason": "type-hint 规则测试 fixture 刻意包含违规样例"
+      },
+      {
+        "path": "goldfish/srfi/srfi-166/",
+        "reason": "外部引入的 SRFI-166 规范实现，保持与参考实现对照，源码守卫风格不改"
+      }
     ]
   }
 }

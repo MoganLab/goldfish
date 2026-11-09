@@ -31,3 +31,4 @@ bin/gf doc "函数名"
 - `def-arity` - 提取函数定义的参数数量规格
 - `def-line` - 提取 define 定义所在的源码行号
 - `def-expr` - 提取 define 定义对应的原始 S 表达式
+- `def-bodies` - 提取 define 的函数体表达式列表

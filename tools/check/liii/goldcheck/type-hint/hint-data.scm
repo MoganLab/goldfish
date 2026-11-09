@@ -32,7 +32,7 @@
   (export quote-marker? query-func-name expected-lib-name orig-lib-path
     library-source-roots hint-var-defs signature-value query-define
     registered-entries type-ok? signature-parts signature-ok? signature-arity
-    find-def
+    find-def find-repo-root
   ) ;export
   (begin
 

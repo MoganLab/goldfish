@@ -13,6 +13,8 @@ bin/gf doc "函数名"
 
 ### 一、Hint 根与文件定位
 - `hint-roots-of` - 解析 hint 文件所属的本地与全局 hint 查找根路径
+- `hint-root-of` - 从 hint 文件路径推导其所在的本地 hint 根目录
+- `all-hint-roots` - 返回仓库全部 hint 根目录，用于按 import 定位 hint
 - `library-file` - 在指定根目录下查找库的源文件或 hint 文件路径
 - `hint-lib-file` - 获取指定库符号对应的 hint 库文件路径
 
@@ -24,4 +26,5 @@ bin/gf doc "函数名"
 
 ### 三、类型环境构建与覆盖率评估
 - `build-env` - 为目标库构建包含自身签名、依赖项穿透及基础内建签名的类型环境
+- `build-import-env` - 由源码文件 import 列表构建类型环境（任意文件检查入口）
 - `full-coverage?` - 判断目标原库导出的所有符号是否在类型环境中完全覆盖

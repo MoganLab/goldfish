@@ -27,8 +27,9 @@
     (liii goldcheck type-hint util)
     (liii goldcheck type-hint hint-data)
   ) ;import
-  (export build-env full-coverage? hint-roots-of library-file source-closure
-    defining-libs exporting-libs hint-lib-file cached-library-info
+  (export build-env build-import-env all-hint-roots full-coverage? hint-roots-of
+    hint-root-of library-file source-closure defining-libs exporting-libs
+    hint-lib-file cached-library-info
   ) ;export
   (begin
 
@@ -249,7 +250,7 @@
     ) ;define
 
     (define (parse-library-at path)
-      (and path (parse-library-file path))
+      (and path (cached-library-info path))
     ) ;define
 
     (define (public-bindings bindings oinfo)
@@ -271,18 +272,30 @@
       ) ;let
     ) ;define
 
+    ;; 库级类型环境缓存：lib -> 环境绑定列表。
+    ;; 批量检查源码文件时同一库的环境会被反复请求，避免重复解析。
+    (define %lib-env-cache '())
+
     ;; 返回 (类型环境 已访问库)：沿原库 import 递归，保留公开导出绑定。
+    ;; 已访问（环或共享依赖）时返回空环境，保持首次计算的顺序语义。
     (define (load-library-env lib-syms roots visited)
       (if (member lib-syms visited equal?)
         (list '() visited)
-        (let* ((seen (cons lib-syms visited))
-               (hint-info (parse-library-at (library-file roots lib-syms #f)))
-               (oinfo (parse-library-at (library-file roots lib-syms #t)))
-               (own (if hint-info (hint-env-entries hint-info) '()))
-               (deps (dependency-env (if oinfo (lib-imports oinfo) '()) roots seen))
-              ) ;
-          (list (public-bindings (append own (car deps)) oinfo) (cadr deps))
-        ) ;let*
+        (let ((hit (assoc lib-syms %lib-env-cache equal?)))
+          (if hit
+            (list (cdr hit) (cons lib-syms visited))
+            (let* ((seen (cons lib-syms visited))
+                   (hint-info (parse-library-at (library-file roots lib-syms #f)))
+                   (oinfo (parse-library-at (library-file roots lib-syms #t)))
+                   (own (if hint-info (hint-env-entries hint-info) '()))
+                   (deps (dependency-env (if oinfo (lib-imports oinfo) '()) roots seen))
+                   (env (public-bindings (append own (car deps)) oinfo))
+                  ) ;
+              (set! %lib-env-cache (cons (cons lib-syms env) %lib-env-cache))
+              (list env (cadr deps))
+            ) ;let*
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
@@ -303,6 +316,35 @@
     ;; 导出全覆盖：原库每个导出名字都在类型环境中有签名。
     (define (full-coverage? env oinfo)
       (every (lambda (name) (assq name env)) (lib-exports oinfo))
+    ) ;define
+
+    ;; 仓库根前缀：优先 g_project-root；测试子进程等场景下不可用时，
+    ;; 从 cwd 向上探测仓库根（含 goldfish/ 与 gf_check.json 的目录）
+    (define (repo-root-prefix)
+      (let ((root (or (gfproject-root) (find-repo-root))))
+        (if (and root (string? root) (not (string=? root "")))
+          (if (string-ends? root "/") root (string-append root "/"))
+          ""
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 仓库全部 hint 根（带仓库前缀）：检查任意源码文件时按 import 定位 hint。
+    (define (all-hint-roots)
+      (let ((prefix (repo-root-prefix)))
+        (map (lambda (d) (string-append prefix d)) (global-hint-roots))
+      ) ;let
+    ) ;define
+
+    ;; 源码文件 import 列表 -> 类型环境：依赖穿透 + scheme base 内建层。
+    ;; 与 build-env 的差别：不含自身 hint 登记（任意源码文件通常没有 hint）。
+    (define (build-import-env imports)
+      (let* ((roots (all-hint-roots))
+             (deps (car (dependency-env imports roots '())))
+             (builtins (car (load-library-env '(scheme base) roots '())))
+            ) ;
+        (append deps builtins)
+      ) ;let*
     ) ;define
 
   ) ;begin

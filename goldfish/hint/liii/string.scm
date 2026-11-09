@@ -30,7 +30,11 @@
     (define hint-string-contains? '((string? string? -> boolean?)))
 
     ;; string-split : (string? string? -> list?)
-    (define hint-string-split '((string? string? -> list?)))
+    ;;                (string? char? -> list?)
+    ;; 分隔符既可以是字符串也可以是字符（见 g_string-split 实现）
+    (define hint-string-split
+      '((string? string? -> list?) (string? char? -> list?))
+    ) ;define
 
     ;; string-replace : (string? string? string? -> string?)
     (define hint-string-replace '((string? string? string? -> string?)))
