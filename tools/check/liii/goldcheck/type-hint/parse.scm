@@ -21,7 +21,7 @@
   (import (scheme base) (scheme file) (liii base) (liii list))
   (export read-all-forms find-define-library parse-library-file lib-name
     lib-line lib-imports lib-exports lib-defines def-name def-kind def-arity
-    def-line def-expr proper-list? form-line
+    def-line def-expr def-bodies proper-list? form-line
   ) ;export
   (begin
 
@@ -76,6 +76,41 @@
     ) ;define
     (define (def-expr d)
       (list-ref d 4)
+    ) ;define
+
+    ;; case-lambda 子句形参可能为点对（如 (< . gens)），无常规 body，跳过
+    (define (case-lambda-bodies clauses)
+      (let loop
+        ((cs clauses) (acc '()))
+        (if (null? cs)
+          (reverse acc)
+          (let* ((c (car cs))
+                 (rest
+                   (if (and (pair? c) (pair? (cdr c)) (pair? (cddr c))) (cddr c) '())
+                 ) ;rest
+                ) ;
+            (loop (cdr cs) (append acc rest))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; define 的体表达式列表
+    (define (def-bodies d)
+      (let ((e (def-expr d)))
+        (cond
+         ((and (pair? (cdr e))
+            (pair? (cadr e))
+            (symbol? (caadr e))
+            (eq? (def-kind d) 'case-lambda)
+          ) ;and
+          (case-lambda-bodies (cdr (cadr e)))
+         ) ;
+         ((and (pair? (cdr e)) (pair? (cadr e)) (symbol? (caadr e))) (cddr e))
+         ((and (pair? (cdr e)) (pair? (cddr e)) (pair? (caddr e))) (list (caddr e)))
+         (else '())
+        ) ;cond
+      ) ;let
     ) ;define
 
     ;; 形参表 -> (kind arity)

@@ -31,7 +31,12 @@
 ;; 配置文件放在项目根（g_project-root，即 gfproject.json 所在目录）。
 
 (define-library (liii goldfmt config)
-  (import (liii base) (liii os) (liii path) (liii string) (liii json) (liii list)
+  (import (liii base)
+    (liii os)
+    (liii path)
+    (liii string)
+    (liii json)
+    (liii list)
     (liii gfproject config)
   ) ;import
   (export load-fmt-config config-exists? fmt-config-goldfish-version
@@ -157,15 +162,13 @@
       ) ;let*
     ) ;define
 
-    ;; g_project-root 是否为有效（非空）字符串。
-    (define (valid-root? root)
-      (and root (string? root) (not (string=? root "")))
-    ) ;define
-
     ;; 项目根下是否存在 gf_fmt.json。
     (define (config-exists?)
       (let ((root (gfproject-root)))
-        (and (valid-root? root) (file-exists? (string-append root "/gf_fmt.json")))
+        (and (string? root)
+          (not (string=? root ""))
+          (file-exists? (string-append root "/gf_fmt.json"))
+        ) ;and
       ) ;let
     ) ;define
 
@@ -173,7 +176,8 @@
     ;; 不存在或无项目根时返回 #f；解析失败抛异常（由调用方 catch）。
     (define (load-fmt-config)
       (let ((root (gfproject-root)))
-        (if (not (valid-root? root))
+        (if
+          (not (and (string? root) (not (string=? root ""))))
           #f
           (let ((file (string-append root "/gf_fmt.json")))
             (if (not (file-exists? file)) #f (string->json (path-read-text (path file))))

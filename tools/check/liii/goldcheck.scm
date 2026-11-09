@@ -49,7 +49,7 @@
   (export main check-file-lines check-tree-depth check-no-glue check-file
     check-files make-check-arg-parser format-violation display-help
     violation-report-lines violation-display-hint scan-hint-libs check-type-hint
-    check-type-hint-all check-unit-test
+    check-type-hint-all check-type-hint-file check-unit-test
   ) ;export
   (begin
 
@@ -173,6 +173,16 @@
       ) ;if
     ) ;define
 
+    (define (check-file-rule-type-hint file-path cfg acc)
+      (if
+        (and (check-rule-enabled? cfg "type-hint")
+          (not (file-excluded? file-path (check-rule-excludes cfg "type-hint")))
+        ) ;and
+        (append acc (check-type-hint-file file-path))
+        acc
+      ) ;if
+    ) ;define
+
     (define (check-file file-path cfg)
       "检查单个文件是否违反启用的度量规则。"
       (let* ((acc1 (check-file-rule-lines file-path cfg '()))
@@ -182,8 +192,9 @@
              (acc5 (check-file-rule-no-crlf file-path cfg acc4))
              (acc6 (check-file-rule-no-glue file-path cfg acc5))
              (acc7 (check-file-rule-unit-test file-path cfg acc6))
+             (acc8 (check-file-rule-type-hint file-path cfg acc7))
             ) ;
-        (reverse acc7)
+        (reverse acc8)
       ) ;let*
     ) ;define
 
@@ -220,13 +231,18 @@
              ) ;violations
              (violations
                (if (check-rule-enabled? cfg "type-hint")
-                 (vector-append violations
-                   (list->vector
-                     (filter (lambda (v) (member (cadr v) (vector->list file-vector) string=?))
-                       (check-type-hint-all)
-                     ) ;filter
-                   ) ;list->vector
-                 ) ;vector-append
+                 (let ((excludes (check-rule-excludes cfg "type-hint")))
+                   (vector-append violations
+                     (list->vector
+                       (filter-excluded-violations
+                         (filter (lambda (v) (member (cadr v) (vector->list file-vector) string=?))
+                           (check-type-hint-all)
+                         ) ;filter
+                         excludes
+                       ) ;filter-excluded-violations
+                     ) ;list->vector
+                   ) ;vector-append
+                 ) ;let
                  violations
                ) ;if
              ) ;violations

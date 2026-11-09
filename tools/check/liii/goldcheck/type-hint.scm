@@ -37,7 +37,8 @@
     (liii goldcheck type-hint owner)
   ) ;import
   (export scan-hint-libs check-type-hint check-type-hint-all
-    check-type-hint-duplicates type-hint-status-lines display-type-hint-statuses
+    check-type-hint-file check-type-hint-duplicates type-hint-status-lines
+    display-type-hint-statuses
   ) ;export
   (begin
 
@@ -124,6 +125,17 @@
             ) ;let*
           ) ;if
         ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 对任意源码文件做 type-hint 检查：
+    ;; hint 目录下的文件走 check-type-hint（结构校验 + 原库推导），
+    ;; 其余 define-library 文件按 import 的 hint 检查函数体调用。
+    ;; 违规 path 使用相对仓库根的路径，便于与目标文件列表匹配。
+    (define (check-type-hint-file file)
+      "检查单个源码文件的 type-hint 违规，返回违规列表。"
+      (let ((local (hint-root-of file)))
+        (if local (check-type-hint file) (check-file-infer file))
       ) ;let
     ) ;define
 

@@ -78,7 +78,10 @@
         (if (not valid?)
           (error 'json-schema-unresolvable token)
           (let ((index (string->number token)))
-            (if (< index length) index (error 'json-schema-unresolvable token))
+            (if (and index (< index length))
+              index
+              (error 'json-schema-unresolvable token)
+            ) ;if
           ) ;let
         ) ;if
       ) ;let

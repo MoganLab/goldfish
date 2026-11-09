@@ -13,3 +13,5 @@ bin/gf doc "函数名"
 
 ### 一、函数体调用类型推导
 - `check-infer` - 针对指定 hint 库与其对应原库执行文件级调用实参类型检查
+- `check-file-infer` - 按文件 import 依赖的 hint 检查任意 define-library 源码文件
+- `walk-bodies` - 在类型环境下遍历函数体表达式列表，收集实参类型冲突

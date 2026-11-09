@@ -16,6 +16,7 @@ bin/gf doc "函数名"
 - `check-type-hint` - 对单个 hint 库文件执行完整的规则校验
 - `check-type-hint-all` - 对全量 hint 库执行校验并聚合违规
 - `check-type-hint-duplicates` - 检查跨 hint 库之间是否存在同名签名的重复声明（由 owner 子模块实现）
+- `check-type-hint-file` - 对任意源码文件做 type-hint 检查的顶层入口
 
 ### 二、覆盖状态展示
 - `type-hint-status-lines` - 生成 hint 库覆盖状态的摘要文本行列表

@@ -147,7 +147,7 @@
           ;; 引用处：已定义则 #n#；未定义（仅循环回边先于定义出现）则先定义 #n= 再 #n#?
           ;; R7RS 中回边一定指向已开始定义的祖先，故 labels 必有
           (let ((hit (assq o labels)))
-            (write-string (label-ref (cdr hit)) port)
+            (write-string (label-ref (if hit (cdr hit) 0)) port)
           ) ;let
         ) ;define
         ;; 引用判定：已在 ancestors（循环回边）或已贴标签（共享二次引用）

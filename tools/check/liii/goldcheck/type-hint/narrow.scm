@@ -26,24 +26,34 @@
 
     ;; 可用于收窄的类型判定谓词
     (define %type-predicates
-      '(string? pair? list? null? integer? number? symbol? char? vector?
-         procedure? boolean?)
+      '(string? pair? list? null? integer? number? real? rational? symbol? char?
+         vector? procedure? boolean? exact? inexact?)
+    ) ;define
+
+    ;; 类型子关系：sub 是否是 sup 的子类型（用于谓词收窄：
+    ;; (or #f number?) 经 (integer? n) 为真后可收窄为 integer?）
+    (define (subtype? sub sup)
+      (or (eq? sub sup)
+        (and (memq sub '(integer? rational? real?)) (eq? sup 'number?))
+        (and (memq sub '(null? pair?)) (eq? sup 'list?))
+      ) ;or
     ) ;define
 
     ;; 按假设收窄类型：t 为 (or #f T ...) 时，去掉 #f 后即为收窄结果
     ;; pred 为 'truthy（假设非假）时收窄为 T；pred 为具体类型符号时，
-    ;; 该类型在候选中才收窄，否则保持原类型。
+    ;; 该类型是候选成员或其子类型时收窄为 pred，否则保持原类型。
     (define (narrow-type t pred)
       (cond ((not t) t)
             ((and (pair? t) (eq? (car t) 'or))
              (let ((members (filter (lambda (m) (not (eq? m #f))) (cdr t))))
                (cond ((null? members) t)
                      ((eq? pred 'truthy) (if (null? (cdr members)) (car members) (cons 'or members)))
-                     ((memq pred members) pred)
+                     ((any (lambda (m) (subtype? pred m)) members) pred)
                      (else t)
                ) ;cond
              ) ;let
             ) ;
+            ((and (symbol? t) (subtype? t pred)) pred)
             (else t)
       ) ;cond
     ) ;define
@@ -101,16 +111,44 @@
       ) ;if
     ) ;define
 
-    ;; if 形式：test 为真时收窄 then 分支
+    ;; if 形式：test 为真时收窄 then 分支；test 为 (not x) 时
+    ;; else 分支可将 x 收窄为非假（常见守卫形态 (if (not (assq ...)) ...)）
     (define (walk-if walk rel expr env locals acc)
       (let* ((test (cadr expr))
              (then-expr (caddr expr))
              (else-expr (if (> (length expr) 3) (cadddr expr) #f))
-             (acc1 (walk rel test env locals acc))
+             ;; test 为 and 链时逐项收窄后检查（否则 (>= n 0) 在
+             ;; (and (integer? n) (>= n 0)) 中看不到 n 已收窄）
+             (acc1
+               (if (and (pair? test) (eq? (car test) 'and))
+                 (walk-and walk rel test env locals acc)
+                 (walk rel test env locals acc)
+               ) ;if
+             ) ;acc1
              (locals-t (apply-assumptions locals (test-assumptions test)))
+             (locals-e
+               (if (and (pair? test)
+                     (eq? (car test) 'not)
+                     (pair? (cdr test))
+                     (symbol? (cadr test))
+                   ) ;and
+                 (apply-assumptions locals (list (cons (cadr test) 'truthy)))
+                 ;; (not (and a b)) 为假即 and 成立，else 分支按假设收窄
+                 (if
+                   (and (pair? test)
+                     (eq? (car test) 'not)
+                     (pair? (cdr test))
+                     (pair? (cadr test))
+                     (eq? (car (cadr test)) 'and)
+                   ) ;and
+                   (apply-assumptions locals (test-assumptions (cadr test)))
+                   locals
+                 ) ;if
+               ) ;if
+             ) ;locals-e
             ) ;
         (let ((acc2 (walk rel then-expr env locals-t acc1)))
-          (if else-expr (walk rel else-expr env locals acc2) acc2)
+          (if else-expr (walk rel else-expr env locals-e acc2) acc2)
         ) ;let
       ) ;let*
     ) ;define
