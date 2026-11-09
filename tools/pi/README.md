@@ -287,8 +287,8 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
   结算时不轮询任何队列，消息保留在通道里，由下一个任务继续消费。
 - **待处理区**：busy 时输入区上方分组展示全部排队消息
   （两空格缩进的 dim 行 `Steering: ...` / `Follow-up: ...`，无方括号与 `Queued` 前缀）
-  与撤回提示行 `↳ option+up to edit all queued messages`（Linux/Windows 下显示
-  `↳ alt+up to edit all queued messages`）；worker 消费时
+  与撤回提示行 `↳ Option+Up to edit all queued messages`（Linux/Windows 下显示
+  `↳ Alt+Up to edit all queued messages`）；worker 消费时
   上屏正式用户卡片并同步移除待处理项。
 - **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
   按 steering → follow-up 顺序合并回输入框。

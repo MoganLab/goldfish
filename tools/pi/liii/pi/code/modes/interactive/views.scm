@@ -84,7 +84,7 @@
     ;; 排队消息撤回提示行文案（对齐上游 pi interactive-mode dequeueHint）
     (define (pi-pending-hint-line . rest)
       (let* ((macos? (if (pair? rest) (car rest) (os-macos?)))
-             (key (if macos? "option+up" "alt+up"))
+             (key (if macos? "Option+Up" "Alt+Up"))
             ) ;
         (string-append "↳ " key " to edit all queued messages")
       ) ;let*
