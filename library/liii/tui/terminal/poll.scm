@@ -36,6 +36,7 @@
     (liii date-time)
     (liii tui terminal protocol)
     (liii tui terminal virtual)
+    (liii tui terminal escape)
     (liii tui terminal key-map)
     (liii tui keys parser)
     (liii tui mouse)
@@ -85,46 +86,8 @@
       ) ;let
     ) ;define
 
-    ;; CSI 终结字节（0x40~0x7E）：序列到此结束
-    (define (%csi-final-byte? b)
-      (and (integer? b) (>= b 64) (<= b 126))
-    ) ;define
-
-    ;; 转义序列是否已完整（bytes 按到达顺序排列）：
-    ;;   ESC [ ... <终结字节>  → CSI 序列（鼠标 SGR 事件即此类）
-    ;;   ESC O <终结字节>      → SS3 序列
-    ;;   ESC <字符>            → 单字符转义
-    ;; 序列完整即可停止读取：否则每个转义序列都要在末尾多等一次超时
-    ;; （鼠标滚轮事件因此凭空多出 10ms 延迟）。
-    (define (%escape-bytes-complete? bytes)
-      (let ((len (length bytes)))
-        (cond ((< len 2) #f)
-              ((= (cadr bytes) 91)
-               (and (> len 2) (%csi-final-byte? (list-ref bytes (- len 1))))
-              ) ;
-              ((= (cadr bytes) 79) (> len 2))
-              (else #t)
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    ;; 读取一个转义序列的字节：按到达顺序累积，序列完整即返回
-    (define (%read-escape-bytes)
-      (let loop
-        ((bytes (list 27)))
-        (if (console-kbhit? 10)
-          (let ((b (console-getch)))
-            (if (and b (exact-integer? b))
-              (let ((bytes (append bytes (list b))))
-                (if (%escape-bytes-complete? bytes) bytes (loop bytes))
-              ) ;let
-              bytes
-            ) ;if
-          ) ;let
-          bytes
-        ) ;if
-      ) ;let
-    ) ;define
+    ;; 转义帧的读取（完整性判定与 ESC CR 的尾随 LF 合并）在
+    ;; (liii tui terminal escape)；这里只负责 bracketed paste 与按键分发。
 
     ;; ESC[200~ 之后的字节，读到 ESC[201~ 或超时为止
     (define (%read-bracketed-paste initial-bytes)

@@ -268,6 +268,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 | `Alt+Up` | 仅把排队消息（steering / follow-up）撤回到输入框，不中断运行中任务 |
 | `Enter`（busy 时） | steering：插话注入当前运行中的任务（工具批次结束后、下次请求前生效） |
 | `Alt+Enter` | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
+| `Ctrl+Q` | follow-up 备用键位（与 `Alt+Enter` 等价）：终端把 `Alt+Enter` 截为全屏切换时使用 |
 | `Ctrl+O` | 展开/折叠工具与 bash 输出 |
 | `Ctrl+V` | 读取外部系统剪贴板并粘贴到输入框（Linux 支持 Wayland/X11） |
 | `Shift+Tab` | 循环切换 thinking level |
@@ -301,10 +302,17 @@ Alt+方向键/Home/End/PageUp/PageDown/Delete/Insert 保留 Alt 修饰位，
 pty 路径（`ESC[1;3A` 等 CSI 序列）行为一致：
 
 - `Alt+Up` / `Alt+Enter` 在 Windows Terminal、conhost 上均可正常使用。
-- 部分 Windows 终端自身把 `Alt+Enter` 绑定为「全屏切换」快捷键：
-  若按 `Alt+Enter` 后 pi 无响应而终端窗口全屏切换，请在终端设置中
-  取消该快捷键，或改用其他终端（如 Windows Terminal 可在
-  「设置 → 操作」中解除 `Alt+Enter` 绑定）。
+- 部分 Windows 终端自身把 `Alt+Enter` 绑定为「全屏切换」快捷键，
+  按键会被终端截走、根本送不到 pi。此时不改终端配置也可用 `Ctrl+Q`
+  排队 follow-up：它与 `Alt+Enter` 完全等价，正是上游 pi 在 Windows/WSL
+  上的默认键位（`app.message.followUp`）。若要继续用 `Alt+Enter`，请在
+  终端设置中解除绑定（Windows Terminal 在「设置 → 操作」里改）。
+- 终端开启 NumLock 或 CapsLock 时，Kitty 键盘协议会把锁定灯状态位
+  （NumLock 128、CapsLock 64）并入修饰码，pi 的解析层会先剥离这些
+  状态位再匹配，因此带锁状态下 `Alt+Enter` / `Shift+Enter` / `Ctrl+Enter`
+  与不带锁时完全一致。
+- 部分终端把 `Alt+Enter` 发成 `ESC CR LF` 三字节：解析层按一个逻辑按键
+  整体消费，不会在排队成功后于空输入框里残留一个幽灵换行。
 - `Ctrl+Alt+方向键` 按优先级识别为 `Ctrl` 语义（沿用 Ctrl 码段）。
 - `Ctrl+C` 在 Windows Terminal、conhost、Git Bash (mintty) 下统一为清空输入框/中断语义，不再直接退出进程；退出请使用 `Ctrl+D`（输入框为空时）。
 

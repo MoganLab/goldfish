@@ -18,7 +18,10 @@
 ;; 验证在 pi-queue 繁忙状态下：
 ;; 1. Alt+Enter 将消息作为 follow-up 提交并清空编辑器；
 ;; 2. 普通 Enter 仍然作为 steering 提交；
-;; 3. Shift+Enter 仅插入换行而不提交。
+;; 3. Shift+Enter 仅插入换行而不提交；
+;; 4. Ctrl+Q 与 Alt+Enter 等价（上游 app.message.followUp 在 Windows/WSL
+;;    下默认降为 ctrl+q，因为 Windows Terminal 把 Alt+Enter 截为全屏切换，
+;;    任务 1317）。
 
 (import (scheme base)
   (liii list)
@@ -151,6 +154,45 @@
   (check (chan-try-recv! (pi-app-abort-chan app) #f) => 'abort)
   (check (%pi-app-steering-pending app) => '())
   (pi-queue-finish-task! q)
+) ;let*
+
+;; -----------------------------------------------------------------------------
+;; 测试项 6.1: busy 时 ctrl-q 与 alt+enter 等价，同样排队 follow-up
+;; -----------------------------------------------------------------------------
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (ed (pi-app-editor app))
+      ) ;
+  (pi-queue-set-busy! (pi-app-queue app))
+  (editor-set-text! ed "终端截走 Alt+Enter")
+  (check (pi-app-handle-input! app 'ctrl-q) => #t)
+  (check (%pi-app-follow-up-pending app) => '("终端截走 Alt+Enter"))
+  (check (%pi-app-steering-pending app) => '())
+  (check (chan-try-recv! (pi-app-follow-up-chan app) #f) => "终端截走 Alt+Enter")
+  (check (editor-text ed) => "")
+  (check (editor-history-list ed) => '("终端截走 Alt+Enter"))
+) ;let*
+
+;; -----------------------------------------------------------------------------
+;; 测试项 6.2: 空闲时 ctrl-q 等同普通提交；空输入框时无操作
+;; -----------------------------------------------------------------------------
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (processed '())
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a m) (set! processed (cons m processed)))
+         ) ;make-pi-app
+       ) ;app
+       (ed (pi-app-editor app))
+      ) ;
+  (check (pi-app-handle-input! app 'ctrl-q) => #t)
+  (check processed => '())
+  (check (%pi-app-follow-up-pending app) => '())
+  (editor-set-text! ed "新任务")
+  (check (pi-app-handle-input! app 'ctrl-q) => #t)
+  (check processed => '("新任务"))
+  (check (pi-queue-idle? (pi-app-queue app)) => #t)
 ) ;let*
 
 ;; -----------------------------------------------------------------------------

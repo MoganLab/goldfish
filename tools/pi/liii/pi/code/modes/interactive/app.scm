@@ -116,16 +116,18 @@
     ) ;define
 
     ;; 输入分发：命令菜单激活时处理选择键，其余输入仍交给编辑器；
-    ;; thinking 选择器优先，与既有主循环行为一致；
-    ;; alt+enter：排队 follow-up（busy 时等运行结束，空闲时等同回车），
-    ;; 对齐上游 app.message.followUp 键位
+    ;; thinking 选择器优先，与既有主循环行为一致。
+    ;; alt+enter / ctrl-q 均排队 follow-up：ctrl-q 对齐上游
+    ;; app.message.followUp 在 Windows/WSL 下的默认键位，因为 Windows
+    ;; Terminal 等终端把 Alt+Enter 截为「全屏切换」，按键送不到进程
+    ;; （任务 1317）。
     (define (pi-app-handle-input! app key)
       (let ((selector (pi-app-active-selector app))
             (menu (pi-app-slash-command-menu app))
             (ed (pi-app-editor app))
            ) ;
         (cond (selector (component-handle-input selector key))
-              ((and (eq? key 'alt-enter) (not menu))
+              ((and (memq key '(alt-enter ctrl-q)) (not menu))
                (let ((text (string-trim (editor-expanded-text ed))))
                  (unless (string-null? text)
                    ;; 与编辑器原生提交同步：入历史 + 清空输入框

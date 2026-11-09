@@ -185,7 +185,30 @@
 (check (parse-key "\x1b;1") => 'alt-1)
 (check (parse-key "\x1b;\r") => 'alt-enter)
 (check (parse-key "\x1b;\t") => 'alt-tab)
-(check (parse-key "\x1b;") => 'alt-backspace)
+(check (parse-key "\x1b;\x7f") => 'alt-backspace)
+
+;; Kitty 锁定灯状态位：mod-code = 1 + 修饰掩码，掩码除功能修饰位外还带
+;; CapsLock(64) 与 NumLock(128)。外接数字键盘或笔记本默认开启 NumLock 时，
+;; Alt+Enter 上报 131、CapsLock 开启时上报 67，按 (= mod-code 3) 精确匹配
+;; 会失配；小键盘 Enter 的键码是 57414（任务 1317）。
+(check (parse-key "\x1b;[13;131u") => 'alt-enter)
+(check (parse-key "\x1b;[13;67u") => 'alt-enter)
+(check (parse-key "\x1b;[13;195u") => 'alt-enter)
+(check (parse-key "\x1b;[57414;131u") => 'alt-enter)
+(check (parse-key "\x1b;[13;130u") => 'shift-enter)
+(check (parse-key "\x1b;[13;133u") => 'ctrl-enter)
+(check (parse-key "\x1b;[13;66u") => 'shift-enter)
+(check (parse-key "\x1b;[13;69u") => 'ctrl-enter)
+(check (parse-key "\x1b;[13;197u") => 'ctrl-enter)
+(check (parse-key "\x1b;[1;131A") => 'alt-up)
+(check (parse-key "\x1b;[1;133A") => 'ctrl-up)
+(check (parse-key "\x1b;[13;131~") => 'alt-enter)
+(check (parse-key "\x1b;[27;131;13~") => 'alt-enter)
+
+;; Alt+Enter 的传统转义形态：ESC CR 之后尾随的 LF 必须整体消费，
+;; 不把裸 LF 留给下一帧（幽灵换行根因，任务 1317）
+(check (parse-key "\x1b;\r\n" #t) => (cons 'alt-enter ""))
+(check (parse-key "\n") => 'ctrl-j)
 
 ;; with-rest? 参数
 (check (parse-key "\x1b;[Adef" #t) => (cons 'up "def"))

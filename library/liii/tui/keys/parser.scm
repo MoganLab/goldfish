@@ -47,6 +47,21 @@
       ) ;let
     ) ;define
 
+    ;; kitty CSI u / xterm modifyOtherKeys 的 mod-code = 1 + 修饰掩码，
+    ;; 掩码里除功能修饰位外还带键盘锁定灯状态位：CapsLock=64、NumLock=128
+    ;; （kitty 键盘协议规范）。外接数字键盘与笔记本默认开启 NumLock 时，
+    ;; Alt+Enter 上报的 mod-code 是 131 而不是 3，CapsLock 开启时是 67，
+    ;; 按 (= mod-code 3) 精确匹配会直接失配，快捷键随之失效。
+    ;; 修法：先只保留低 6 位（0..63，即 shift/alt/ctrl/super/hyper/meta）
+    ;; 再还原成 1+掩码。用 remainder 而非位运算，避免解析层引入位运算依赖；
+    ;; mod-code 缺省或少见取值原样返回，交由后续判定按未识别处理。
+    (define (%normalize-mod-code mod-code)
+      (if (and (integer? mod-code) (>= mod-code 1))
+        (+ 1 (remainder (- mod-code 1) 64))
+        mod-code
+      ) ;if
+    ) ;define
+
     (define (%combine-mod-key base-k mod-code)
       (if (eq? base-k 'shift-tab)
         'shift-tab
@@ -98,6 +113,11 @@
       ) ;let
     ) ;define
 
+    ;; 从参数段取修饰码并规范化：#f 与非数字原样返回
+    (define (%mod-code-of str)
+      (%normalize-mod-code (string->number (%strip-subparam str)))
+    ) ;define
+
     (define (%subparam-event-type str)
       (let ((len (string-length str)))
         (let loop
@@ -119,7 +139,7 @@
           ) ;let
          ) ;
          ((and (= (length parts) 3) (string=? (%strip-subparam (car parts)) "27"))
-          (let ((mod-code (string->number (%strip-subparam (cadr parts))))
+          (let ((mod-code (%mod-code-of (cadr parts)))
                 (code (string->number (%strip-subparam (caddr parts))))
                ) ;
             (cond ((and code (= code 13) mod-code (= mod-code 2)) (values 'shift-enter next-i))
@@ -132,7 +152,7 @@
          ) ;
          (else
            (let* ((code-str (%strip-subparam (car parts)))
-                  (mod-code (string->number (%strip-subparam (cadr parts))))
+                  (mod-code (%mod-code-of (cadr parts)))
                  ) ;
              (cond ((and (string=? code-str "13") mod-code (= mod-code 2))
                     (values 'shift-enter next-i)
@@ -180,7 +200,7 @@
                  (mod-part (and (pair? (cdr parts)) (cadr parts)))
                  (ev-type (and mod-part (%subparam-event-type mod-part)))
                  (code (and code-part (string->number (%strip-subparam code-part))))
-                 (mod-code (and mod-part (string->number (%strip-subparam mod-part))))
+                 (mod-code (and mod-part (%mod-code-of mod-part)))
                 ) ;
             (if (eqv? ev-type 3)
               (values #f next-i)
@@ -204,9 +224,7 @@
           ) ;let
          ) ;
          (else
-           (let* ((mod-code (string->number (%strip-subparam (cadr parts))))
-                  (base-k (%csi-final-key term-byte))
-                 ) ;
+           (let* ((mod-code (%mod-code-of (cadr parts))) (base-k (%csi-final-key term-byte)))
              (values (%combine-mod-key base-k mod-code) next-i)
            ) ;let*
          ) ;else
