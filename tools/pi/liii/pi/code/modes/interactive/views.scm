@@ -11,8 +11,10 @@
     tool-card-set-output! tool-card-set-complete! make-thinking-card
     thinking-card-append-line! thinking-card-set-hidden!
     thinking-card-component? skill-card-component? skill-card-set-expanded!
+    pi-pending-hint-line
   ) ;export
   (import (scheme base)
+    (liii os)
     (liii string)
     (liii tui component)
     (liii pi code modes interactive renderers)
@@ -79,12 +81,18 @@
       ) ;let
     ) ;define
 
+    ;; 排队消息撤回提示行文案（对齐上游 pi interactive-mode dequeueHint）
+    (define (pi-pending-hint-line . rest)
+      (let* ((macos? (if (pair? rest) (car rest) (os-macos?)))
+             (key (if macos? "option+up" "alt+up"))
+            ) ;
+        (string-append "↳ " key " to edit all queued messages")
+      ) ;let*
+    ) ;define
+
     ;; 等待队列提示卡片组件 (make-queued-card text)
     (define (%render-queued-card text width)
-      (if (<= width 0)
-        '()
-        (list (string-append %fg-dim "  ↳ [Queued: " text "]" %ansi-reset))
-      ) ;if
+      (if (<= width 0) '() (list (string-append %fg-dim "  " text %ansi-reset)))
     ) ;define
 
     (define (make-queued-card text)
