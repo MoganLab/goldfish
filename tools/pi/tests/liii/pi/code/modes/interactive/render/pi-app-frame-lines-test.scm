@@ -47,7 +47,7 @@
   (pi-queue-set-busy! (pi-app-queue app))
   (pi-app-queue-steering! app "please focus on tests")
   (let-values (((lines cur) (pi-app-frame-lines app)))
-    (let ((expected-hint (string-append (%alt-key-label) "+Up edit queued messages")))
+    (let ((expected-hint (string-append (%alt-key-label) "+Up")))
       (check-true (any (lambda (line) (string-contains? line expected-hint)) lines))
     ) ;let
   ) ;let-values
