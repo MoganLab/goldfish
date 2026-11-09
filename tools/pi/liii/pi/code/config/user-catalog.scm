@@ -54,9 +54,11 @@
     ) ;define
 
     (define (%provider-api p-file p-id)
-      (let ((raw (or (pi-user-dict-ref p-file "api" #f) (%builtin-field p-id 'api))))
+      (let* ((configured (pi-user-dict-ref p-file "api" #f))
+             (raw (if (string? configured) configured (%builtin-field p-id 'api)))
+            ) ;
         (and raw (pi-user-normalize-api raw))
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%provider-http-proxy p-file)

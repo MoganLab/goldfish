@@ -193,4 +193,15 @@
   (check (cdr (assoc "api" (cdr entry))) => "openai-completions")
 ) ;let*
 
+;; 11. api 为 JSON null 时按未配置处理，不阻断 gf pi 的配置目录构建
+(let* ((catalog (pi-build-user-catalog (string-append FIXTURE "/null-api")))
+       (google-fields (cdr (assoc "google" catalog)))
+       (custom-fields (cdr (assoc "custom-null" catalog)))
+      ) ;
+  ;; 内置 provider 回退内置协议
+  (check (cdr (assoc "api" google-fields)) => "google-generative-ai")
+  ;; 自定义 provider 没有内置协议时省略 api 字段
+  (check (assoc "api" custom-fields) => #f)
+) ;let*
+
 (check-report)
