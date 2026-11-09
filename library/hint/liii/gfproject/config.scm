@@ -52,6 +52,9 @@
     (define hint-gfproject-domains '((-> any?) (string? -> any?)))
     (define hint-gfproject-domains-list '((-> list?) (string? -> list?)))
 
+    ;; 各 domain 的 hint 目录列表（与 tests 目录同源）
+    (define hint-gfproject-hint-dirs '((-> list?) (string? -> list?)))
+
     ;; bundle-ref : (alist? any? -> any?)
     ;; 命中返回 cdr 值，未命中返回 #f；(or #f any?) 等价于 any?
     (define hint-bundle-ref '((alist? any? -> any?)))
@@ -71,6 +74,7 @@
        ((gfproject-load-config) hint-gfproject-load-config)
        ((gfproject-domains) hint-gfproject-domains)
        ((gfproject-domains-list) hint-gfproject-domains-list)
+       ((gfproject-hint-dirs) hint-gfproject-hint-dirs)
        ((bundle-ref) hint-bundle-ref)
        (else #f)
       ) ;case

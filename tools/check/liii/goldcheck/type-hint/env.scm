@@ -21,6 +21,7 @@
     (liii base)
     (liii list)
     (liii string)
+    (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck type-hint parse)
     (liii goldcheck type-hint util)
@@ -43,14 +44,17 @@
       ) ;let
     ) ;define
 
-    ;; 全局 hint 根：R7RS 板块 r7rs/hint/ 与语言层 goldfish/hint/。
-    ;; hint 库按板块存放，推断时需要跨板块查找对应库的 hint 与原库。
-    (define global-hint-roots '("r7rs/hint" "goldfish/hint"))
+    ;; 全局 hint 根：按 domain 推导（与 tests 目录同源），
+    ;; 各板块的 hint 库分别位于 r7rs/hint、goldfish/hint、library/hint
+    ;; 与 tools/<tool>/hint 下，推断时需要跨板块查找对应库的 hint 与原库。
+    (define (global-hint-roots)
+      (gfproject-hint-dirs)
+    ) ;define
 
     (define (board-hint-roots prefix)
       (map
         (lambda (g) (join-strings (append prefix (split-slash g)) "/"))
-        global-hint-roots
+        (global-hint-roots)
       ) ;map
     ) ;define
 

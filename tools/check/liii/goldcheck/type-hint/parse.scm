@@ -60,8 +60,8 @@
     ) ;define
 
     ;; def 记录: (name kind arity line expr)
-    ;; kind : lambda | case-lambda | rest | value
-    ;; arity: lambda -> 参数个数; case-lambda -> 各子句参数个数列表; 其他 #f
+    ;; kind : lambda | case-lambda | rest | value | star
+    ;; arity: lambda -> 参数个数; case-lambda/star -> 参数个数列表; 其他 #f
     (define (def-name d)
       (car d)
     ) ;define
@@ -84,6 +84,39 @@
             ((proper-list? f) (list 'lambda (length f)))
             (else '(rest #f))
       ) ;cond
+    ) ;define
+
+    ;; define* 形参表 -> (kind arity)
+    ;; 形参为必选参数（符号）或可选参数（(名 默认值)），
+    ;; 可接受的参数个数区间为 required..total，用个数列表表示；
+    ;; 出现 :rest 时参数个数无上界，按 rest 处理（跳过数量校验）。
+    (define (star-formals->kind-arity f)
+      (if (proper-list? f)
+        (let loop
+          ((ps f) (required 0) (optional 0) (bounded? #t))
+          (if (null? ps)
+            (if (not bounded?)
+              '(rest #f)
+              (list 'star
+                (let nums
+                  ((i required) (total (+ required optional)) (acc '()))
+                  (if (> i total) (reverse acc) (nums (+ i 1) total (cons i acc)))
+                ) ;let
+              ) ;list
+            ) ;if
+            (let ((p (car ps)))
+              (cond
+               ((eq? p :rest) (loop (if (pair? (cdr ps)) (cddr ps) '()) required optional #f))
+               ((eq? p :allow-other-keys) (loop (cdr ps) required optional bounded?))
+               ((pair? p) (loop (cdr ps) required (+ optional 1) bounded?))
+               ((symbol? p) (loop (cdr ps) (+ required 1) optional bounded?))
+               (else (loop (cdr ps) required optional bounded?))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+        '(rest #f)
+      ) ;if
     ) ;define
 
     (define (case-lambda-kind-arity clauses)
@@ -109,7 +142,15 @@
     (define (parse-define d)
       (if (and (pair? (cdr d)) (pair? (cadr d)))
         ;; (define (name formals...) body...)
-        (let* ((target (cadr d)) (name (car target)) (ka (formals->kind-arity (cdr target))))
+        ;; (define* (name formals...) body...)
+        (let* ((target (cadr d))
+               (name (car target))
+               (ka (if (eq? (car d) 'define*)
+                     (star-formals->kind-arity (cdr target))
+                     (formals->kind-arity (cdr target))
+                   ) ;if
+               ) ;ka
+              ) ;
           (if (symbol? name) (list name (car ka) (cadr ka) (form-line d) d) #f)
         ) ;let*
         ;; (define name expr)
@@ -140,7 +181,7 @@
           (reverse acc)
           (let ((f (car fs)))
             (cond
-             ((and (pair? f) (eq? (car f) 'define) (pair? (cdr f)))
+             ((and (pair? f) (memq (car f) '(define define*)) (pair? (cdr f)))
               (let ((d (parse-define f)))
                 (loop (cdr fs) (if d (cons d acc) acc))
               ) ;let

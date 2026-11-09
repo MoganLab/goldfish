@@ -4,11 +4,30 @@
 ;; 语法
 ;; ----
 ;; (json->string data)
+;; (json->string data :indent indent)
+;; (json->string data :sort-keys sort-keys)
+;; (json->string data :ensure-ascii ensure-ascii)
+;; (json->string data :compact compact)
+;;
+;; 可选参数由 define* 声明（indent / sort-keys / ensure-ascii / compact），
+;; 既可按关键字传入，也可按位置依次传入。
 ;;
 ;; 参数
 ;; ----
 ;; data : any?
 ;; 要编码的 JSON 数据结构。
+;;
+;; indent : integer? | string? | #f
+;; 缩进空格数或缩进字符串；#f 表示不缩进（默认）。
+;;
+;; sort-keys : boolean?
+;; 是否按键名排序输出。
+;;
+;; ensure-ascii : boolean?
+;; 是否把非 ASCII 字符转义为 \uXXXX。
+;;
+;; compact : boolean?
+;; 是否紧凑输出；为 #t 时忽略 indent。
 ;;
 ;; 返回值
 ;; ----
@@ -21,7 +40,9 @@
 ;;
 ;; 错误处理
 ;; ----
-;; value-error 当输入不是有效的 JSON 数据结构时。
+;; value-error 当输入不是有效的 JSON 数据结构时，或 indent 为负数。
+;;
+;; type-error 当选项取值类型不合法，或传入未识别的关键字参数。
 
 (import (liii check) (liii json) (liii base) (liii error))
 
@@ -243,6 +264,11 @@
 (check-catch 'type-error (json->string '((a . 1)) :sort-keys "yes"))
 (check-catch 'type-error (json->string '((a . 1)) :ensure-ascii 1))
 (check-catch 'type-error (json->string '((a . 1)) :compact 123))
-(check-catch 'value-error (json->string '((a . 1)) :unknown-opt #t))
+;; 未识别的关键字参数由 define* 直接报错（type-error）
+(check-catch 'type-error (json->string '((a . 1)) :unknown-opt #t))
+
+;; 6. 可选参数也可按位置传入（define* 语义）
+(check (json->string '(("a" . 1)) 2) => "{\n  \"a\": 1\n}")
+(check (json->string '(("z" . 1) ("a" . 2)) #f #t) => "{\"a\":2,\"z\":1}")
 
 (check-report)

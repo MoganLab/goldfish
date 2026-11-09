@@ -116,18 +116,18 @@
 (for-each
   (lambda (f) (check (check-type-hint (repo-file f)) => '()))
   '("goldfish/hint/liii/alist.scm" "goldfish/hint/liii/error.scm"
-    "goldfish/hint/liii/gfproject/config.scm" "r7rs/hint/scheme/base.scm"
+    "library/hint/liii/gfproject/config.scm" "r7rs/hint/scheme/base.scm"
     "goldfish/hint/srfi/srfi-1.scm"
     "tools/check/hint/liii/goldcheck/no-glue.scm"
     "r7rs/hint/scheme/file.scm" "tools/check/hint/liii/goldcheck/path.scm"
-    "goldfish/hint/liii/string.scm" "goldfish/hint/liii/path.scm"
-    "goldfish/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
-    "goldfish/hint/liii/goldfmt/format.scm"
-    "goldfish/hint/liii/goldfmt/format/writer.scm" "goldfish/hint/liii/base.scm")
+    "goldfish/hint/liii/string.scm" "library/hint/liii/path.scm"
+    "library/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
+    "library/hint/liii/goldfmt/format.scm"
+    "library/hint/liii/goldfmt/format/writer.scm" "goldfish/hint/liii/base.scm")
 ) ;for-each
 
 ;; timestamp-iso 已修复：string->number 的结果先校验再参与乘法。
-(check (check-type-hint (repo-file "goldfish/hint/liii/date-time/internal/timestamp-iso.scm")
+(check (check-type-hint (repo-file "library/hint/liii/date-time/internal/timestamp-iso.scm")
        ) ;check-type-hint
   =>
   '()
@@ -140,10 +140,10 @@
   (check-true (string-contains? (cadddr (car viol)) "(or #f number?)"))
 ) ;let
 
-(check (type-hint-status-lines (list (repo-file "goldfish/hint/liii/gfproject/config.scm")
+(check (type-hint-status-lines (list (repo-file "library/hint/liii/gfproject/config.scm")
                                  (repo-file "tools/check/hint/liii/goldcheck/path.scm")
                                  (repo-file "goldfish/hint/liii/alist.scm")
-                                 (repo-file "goldfish/hint/liii/goldfmt/format.scm")
+                                 (repo-file "library/hint/liii/goldfmt/format.scm")
                                ) ;list
          '()
        ) ;type-hint-status-lines
@@ -278,6 +278,14 @@
   '()
 ) ;check
 
+;; 10e. define* 的可选参数：签名参数个数区间与实现不一致 -> 1 违规
+;;      （g1 一致、g2 只登记 1 参而实现可接受 1~2 参、g3 带 :rest 跳过）
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/stararity.scm"))))
+  (check (length viol) => 1)
+  (check-true (string-contains? (cadddr (car viol)) "g2"))
+  (check-true (string-contains? (cadddr (car viol)) "define* parameters"))
+) ;let
+
 ;; --------------------------------------------------------------------
 ;; 12. 有 hint 的函数自身做部分类型检查（spec 8.4 最小子集）：
 ;;     根据 import 依赖的 hint 检查确定的调用实参类型冲突；
@@ -296,6 +304,15 @@
 (let ((viol (check-type-hint (resource-file "goldfish/hint/liii/inferok.scm"))))
   (check (length viol) => 1)
   (check-true (string-contains? (cadddr (car viol)) "my-cdr"))
+) ;let
+
+;; 12c. 期望类型为联合类型：实际类型至少要能被其中一个成员接受
+;;      关键字参数调用：实参与位置的对应关系不确定，保守跳过
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/unioncheck.scm"))))
+  (check (length viol) => 2)
+  (check-true (string-contains? (cadddr (car viol)) "my-take"))
+  (check-true (string-contains? (cadddr (car viol)) "(or #f string?)"))
+  (check-true (string-contains? (cadddr (cadr viol)) "my-opts"))
 ) ;let
 
 ;; 12c. tools/check 的局部 hint 根缺少基础签名时，回退到 goldfish/hint
