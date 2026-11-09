@@ -84,7 +84,6 @@
     %repl-refresh!
     %repl-mode
     %repl-atom?
-    %repl-ctrl-c-action
     main
   ) ;export
   (begin
@@ -224,20 +223,14 @@
            ((eq? k 'f1) (app-out! (%repl-editor-help-lines)) (reset-comp!))
            ((eq? k 'ctrl-l) (set! scroll '()) (reset-comp!))
            ((eq? k 'ctrl-c)
-            (let ((act (%repl-ctrl-c-action (pair? (car buf)) (string-null? (editor-text ed)))))
-              (case act
-               ((clear-buffer)
+            (if (pair? (car buf))
+              (begin
                 (app-out! (list (string-append (%repl-prompt #f) (editor-text ed) " ^C")))
                 (%repl-buffer-set! buf "")
                 (editor-set-text! ed "")
-               ) ;
-               ((clear-input) (editor-set-text! ed ""))
-               ((noop)
-                ;; 空输入下 Ctrl+C 不退出 REPL，保持主循环继续运行
-                #f
-               ) ;
-              ) ;case
-            ) ;let
+              ) ;begin
+              (if (string-null? (editor-text ed)) (set! quit? #t) (editor-set-text! ed ""))
+            ) ;if
             (reset-comp!)
            ) ;
            ((eq? k 'ctrl-d)

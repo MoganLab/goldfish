@@ -165,7 +165,6 @@
         "  ctrl-w, alt-bs   : delete to preceding whitespace or word"
         "  ctrl-u           : delete to the start of the current line"
         "  ctrl-k           : delete to the end of the current line"
-        "  ctrl-c           : clear current input line or multiline buffer"
         "  esc              : delete the current input"
         ""
         (%repl-styled "bold" "Editing & Multiline:")
