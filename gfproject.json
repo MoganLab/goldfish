@@ -16,6 +16,13 @@
         "goldfish"
       ]
     },
+    "demo": {
+      "root": "demo/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ]
+    },
     "help": {
       "root": "tools/help/",
       "depends-on": [
