@@ -24,6 +24,7 @@
   (import (scheme base)
     (liii string)
     (liii list)
+    (liii os)
     (liii tui)
     (liii pi agent queue)
     (liii pi code modes interactive state)
@@ -126,9 +127,7 @@
           (when (or (pair? (%pi-app-steering-pending app))
                   (pair? (%pi-app-follow-up-pending app))
                 ) ;or
-            (container-add! pending-box
-              (make-queued-card "↳ ESC abort · Alt+Up edit queued messages")
-            ) ;container-add!
+            (container-add! pending-box (make-queued-card (pi-pending-hint-line)))
           ) ;when
           (let ((items (pi-queue-items q)))
             (unless (null? items)
