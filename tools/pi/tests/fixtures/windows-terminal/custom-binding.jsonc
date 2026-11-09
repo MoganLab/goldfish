@@ -1,0 +1,6 @@
+// Windows Terminal settings fixture: user custom binding for alt+enter
+{
+    "actions": [
+        { "command": "copy", "keys": "alt+enter" }
+    ]
+}

@@ -15,6 +15,7 @@
     (liii path)
     (liii pi code cli args)
     (liii pi code cli tui)
+    (liii pi code cli windows-terminal)
     (liii pi code config)
     (liii pi code config user-catalog)
     (liii pi code modes)
@@ -154,6 +155,7 @@
     ) ;define
 
     (define (%run-interactive parsed initial-msg rest-msgs)
+      (pi-windows-terminal-adapt-interactive!)
       (let* ((info (pi-tui-footer-info parsed))
              (session-name (%tui-session-name parsed))
              (app

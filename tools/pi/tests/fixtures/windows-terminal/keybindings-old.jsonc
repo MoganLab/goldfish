@@ -1,0 +1,6 @@
+// Windows Terminal settings fixture: old keybindings format
+{
+    "keybindings": [
+        { "command": "find", "keys": "ctrl+shift+f" }
+    ]
+}

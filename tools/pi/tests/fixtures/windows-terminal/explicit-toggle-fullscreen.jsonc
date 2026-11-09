@@ -1,0 +1,7 @@
+// Windows Terminal settings fixture: explicit toggleFullscreen on alt+enter
+{
+    "actions": [
+        { "command": "toggleFullscreen", "keys": "alt+enter" },
+        { "command": "toggleFullscreen", "keys": "f11" }
+    ]
+}

@@ -1,0 +1,12 @@
+// Windows Terminal settings fixture: complex JSONC with comments, trailing commas, and brackets in strings
+{
+    /* Global settings block */
+    "name": "Test {brackets [in] string // not comments}",
+    "actions": [
+        // Existing action
+        {
+            "command": "find",
+            "keys": "ctrl+shift+f",
+        }, // trailing comma after object
+    ], // trailing comma after actions array
+}

@@ -1,0 +1,7 @@
+// Windows Terminal settings fixture: already unbound
+{
+    "actions": [
+        { "command": "find", "keys": "ctrl+shift+f" },
+        { "command": "unbound", "keys": "alt+enter" }
+    ]
+}

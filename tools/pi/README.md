@@ -291,7 +291,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 - **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
   按 steering → follow-up 顺序合并回输入框。
 
-#### Windows 键位说明（任务 1197）
+#### Windows 键位说明（任务 1197、1319）
 
 Windows 控制台层（`src/liii_os.cpp` 的 `pump_console_input`）已为
 Alt+方向键/Home/End/PageUp/PageDown/Delete/Insert 保留 Alt 修饰位，
@@ -299,10 +299,17 @@ Alt+方向键/Home/End/PageUp/PageDown/Delete/Insert 保留 Alt 修饰位，
 pty 路径（`ESC[1;3A` 等 CSI 序列）行为一致：
 
 - `Alt+Up` / `Alt+Enter` 在 Windows Terminal、conhost 上均可正常使用。
-- 部分 Windows 终端自身把 `Alt+Enter` 绑定为「全屏切换」快捷键：
-  若按 `Alt+Enter` 后 pi 无响应而终端窗口全屏切换，请在终端设置中
-  取消该快捷键，或改用其他终端（如 Windows Terminal 可在
-  「设置 → 操作」中解除 `Alt+Enter` 绑定）。
+- **Windows Terminal 快捷键冲突适配**（任务 1319）：
+  Windows Terminal 默认将 `Alt+Enter` 绑定为窗口全屏切换（`Terminal.ToggleFullscreen`），
+  会在按键进入应用前被终端直接消费。`bin/gf pi` 在交互模式检测到该默认冲突时，
+  会提示确认是否解除该终端全屏绑定（`F11` 全屏快捷键不受影响）。
+  - **持久全局作用域**：用户确认后，仅向 Windows Terminal 的 `settings.json` 最小化追加一条
+    `{ "command": "unbound", "keys": "alt+enter" }` 配置，原有注释、profile、颜色及其他快捷键均保持不变。
+    由于 Windows Terminal 没有按备用屏或单个 CLI 进程临时切换键绑定的接口，`unbound`
+    为持久配置，退出 `gf pi` 后不会自动恢复。
+  - **手动恢复方法**：若后续需恢复 `Alt+Enter` 的终端全屏功能，可在 Windows Terminal 的
+    「设置 → 操作」中重新绑定 `Alt+Enter` 为切换全屏，或直接编辑 `settings.json` 删除该条 `unbound` 配置。
+  - 用户若选择拒绝，程序仍可正常启动，`Alt+Enter` 将继续触发终端全屏切换。
 - `Ctrl+Alt+方向键` 按优先级识别为 `Ctrl` 语义（沿用 Ctrl 码段）。
 
 实现分层：`(liii pi agent queue)` 提供 `pi-pending-queue` 双粒度队列；
