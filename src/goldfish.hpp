@@ -1148,6 +1148,77 @@ f_goldfish_library_dir (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, gf_lib_dir.c_str ());
 }
 
+// gfproject.json domains.{name}.root 提取：把 JSON 文本粗分为
+// "domains" 键下的对象区间，再逐个扫描 "root": "value" 字段。
+// 这里只需要 root 字符串字面量（无转义路径），避免引入完整 JSON 解析。
+static string read_text_file_exact (const fs::path& path);
+static bool   append_unique_string (vector<string>& items, const string& raw_item);
+
+static vector<string>
+extract_gfproject_domain_roots (const fs::path& gfproject_path, const string& project_root) {
+  vector<string> roots;
+  string         text;
+  try {
+    text= read_text_file_exact (gfproject_path);
+  } catch (...) {
+    return roots;
+  }
+
+  auto key_position= [&text] (const string& key) -> size_t {
+    string needle= "\"" + key + "\"";
+    return text.find (needle);
+  };
+
+  size_t domains_pos= key_position ("domains");
+  if (domains_pos == string::npos) return roots;
+  size_t domains_open= text.find ('{', domains_pos);
+  if (domains_open == string::npos) return roots;
+
+  // 找到 domains 对象的配对右括号：跟踪嵌套深度。
+  int    depth        = 0;
+  size_t domains_close= string::npos;
+  for (size_t i= domains_open; i < text.size (); ++i) {
+    char ch= text[i];
+    if (ch == '{') depth++;
+    else if (ch == '}') {
+      depth--;
+      if (depth == 0) {
+        domains_close= i;
+        break;
+      }
+    }
+  }
+  if (domains_close == string::npos) domains_close= text.size ();
+
+  string       domains_body= text.substr (domains_open, domains_close - domains_open);
+  const string root_key    = "\"root\"";
+  size_t       search_from = 0;
+  while (true) {
+    size_t root_pos= domains_body.find (root_key, search_from);
+    if (root_pos == string::npos) break;
+    size_t colon= domains_body.find (':', root_pos + root_key.size ());
+    if (colon == string::npos) break;
+    size_t quote_open= domains_body.find ('"', colon);
+    if (quote_open == string::npos) break;
+    size_t quote_close= domains_body.find ('"', quote_open + 1);
+    if (quote_close == string::npos) break;
+
+    string root_value= domains_body.substr (quote_open + 1, quote_close - quote_open - 1);
+    search_from      = quote_close + 1;
+    if (root_value.empty ()) continue;
+
+    // root 为空串（默认域）时指项目根本身，无需重复加入。
+    if (project_root.empty ()) {
+      append_unique_string (roots, root_value);
+    }
+    else {
+      fs::path full= fs::path (project_root) / root_value;
+      append_unique_string (roots, full.lexically_normal ().generic_string ());
+    }
+  }
+  return roots;
+}
+
 static s7_pointer
 f_project_root (s7_scheme* sc, s7_pointer args) {
   (void) args;
@@ -2236,7 +2307,14 @@ apply_startup_load_path_options (s7_scheme* sc, const StartupCliOptions& opts) {
 
   fs::path local= find_local_gfproject_json ();
   if (!local.empty ()) {
-    append_load_path_entries (sc, {local.parent_path ().generic_string ()});
+    string   project_root= local.parent_path ().generic_string ();
+    fs::path cwd         = fs::path (".");
+    // 项目根作为默认加载根，同时把各 domain root 也加入 load-path，
+    // 使库文件可在 domain 根下按库名相对定位（如 demo/ 域的 (liii tui snake logic)）。
+    append_load_path_entries (sc, {project_root});
+    for (const auto& root : extract_gfproject_domain_roots (local, project_root)) {
+      append_load_path_entries (sc, {root});
+    }
   }
 }
 
