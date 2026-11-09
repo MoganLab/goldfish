@@ -179,6 +179,27 @@
 (check (parse-key "\x1b;[57344;5u") => 'escape)
 (check (parse-key "\x1b;[97;9u") => 'escape)
 
+;; Meta 前缀（终端 Option 配置为 Esc+ 或 Meta 时的到达形态）
+(check (parse-key "\x1b;\x1b;[A") => 'alt-up)
+(check (parse-key "\x1b;\x1b;OA") => 'alt-up)
+(check (parse-key "\x1b;\x1b;[1;3A") => 'alt-up)
+(check (parse-key "\x1b;\x1b;[B") => 'alt-down)
+(check (parse-key "\x1b;\x1b;[D") => 'alt-left)
+(check (parse-key "\x1b;\x1b;\r") => 'alt-enter)
+(check (parse-key "\x1b;\x1b;\x7f;") => 'alt-backspace)
+(check (parse-key "\x1b;\x1b;") => 'escape)
+
+;; kitty 增强协议的 PUA 功能键（CSI u 与 modifyOtherKeys 三段式）
+(check (parse-key "\x1b;[57352;3u") => 'alt-up)
+(check (parse-key "\x1b;[57353;3u") => 'alt-down)
+(check (parse-key "\x1b;[57350;3u") => 'alt-left)
+(check (parse-key "\x1b;[57351;3u") => 'alt-right)
+(check (parse-key "\x1b;[57354;3u") => 'alt-page-up)
+(check (parse-key "\x1b;[57356;3u") => 'alt-home)
+(check (parse-key "\x1b;[57352u") => 'up)
+(check (parse-key "\x1b;[57364;5u") => 'ctrl-f1)
+(check (parse-key "\x1b;[27;3;57352~") => 'alt-up)
+
 ;; Alt + 字符 / 键
 (check (parse-key "\x1b;a") => 'alt-a)
 (check (parse-key "\x1b;B") => 'alt-B)

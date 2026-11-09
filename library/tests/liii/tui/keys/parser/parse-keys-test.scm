@@ -53,6 +53,12 @@
   '("e" "c" "h" "o" " " ctrl-up tab alt-a ctrl-c)
 ) ;check
 
+;; Meta 前缀连续按键流与不粘连断言
+(check (parse-keys "\x1b;\x1b;[A") => '(alt-up))
+(check (parse-keys "a\x1b;\x1b;[Ab") => '("a" alt-up "b"))
+(check (parse-keys "\x1b;\x1b;[A\x1b;[A") => '(alt-up up))
+(check (parse-keys "\x1b;\x1b;[57352;3u") => '(alt-up))
+
 ;; 错误处理
 (check-catch 'type-error (parse-keys 'not-a-string))
 (check-catch 'type-error (parse-keys #f))

@@ -6,9 +6,9 @@
 
 (define-library (liii pi code modes interactive common)
   (export %keyword-value detect-git-branch detect-git-dir make-branch-watcher
-    stop-branch-watcher! git-branch-from-head-file
+    stop-branch-watcher! git-branch-from-head-file %alt-key-label
   ) ;export
-  (import (scheme base) (liii string) (liii path) (liii fs-watch))
+  (import (scheme base) (liii string) (liii path) (liii fs-watch) (liii os))
   (begin
 
     ;; 在 dir 下找 .git：目录 → 普通仓库；文件 → 读首行 "gitdir: <path>"
@@ -178,6 +178,11 @@
               (else (loop (cddr rest)))
         ) ;cond
       ) ;let
+    ) ;define
+
+    ;; 平台修饰键标签：macOS 键盘为 Option，Linux/Windows 为 Alt
+    (define (%alt-key-label)
+      (if (os-macos?) "Option" "Alt")
     ) ;define
 
   ) ;begin

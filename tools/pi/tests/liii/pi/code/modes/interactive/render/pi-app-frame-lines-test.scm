@@ -17,8 +17,13 @@
 
 (import (scheme base)
   (liii check)
+  (liii list)
+  (liii string)
   (liii tui)
+  (liii pi agent queue)
   (liii pi code modes interactive app)
+  (liii pi code modes interactive app-queue)
+  (liii pi code modes interactive common)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -32,6 +37,19 @@
     (check-true (pair? cur))
     (check-true (integer? (car cur)))
     (check-true (integer? (cdr cur)))
+  ) ;let-values
+) ;let*
+
+;; 2. 排队消息提示行含当前平台的修饰键标签
+(let* ((vterm (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vterm))
+      ) ;
+  (pi-queue-set-busy! (pi-app-queue app))
+  (pi-app-queue-steering! app "please focus on tests")
+  (let-values (((lines cur) (pi-app-frame-lines app)))
+    (let ((expected-hint (string-append (%alt-key-label) "+Up edit queued messages")))
+      (check-true (any (lambda (line) (string-contains? line expected-hint)) lines))
+    ) ;let
   ) ;let-values
 ) ;let*
 

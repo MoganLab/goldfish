@@ -28,6 +28,7 @@ gf doc %ctrl-char-key
 - `%csi-final-key` - 将 CSI 序列的终结字节转换为按键名
 - `%tilde-key` - 将 CSI ~ 序列的数字参数转换为按键名
 - `%linux-fn-key` - 将 Linux 控制台功能键字节转换为功能键名
+- `%pua-key` - 将 kitty 增强协议功能键 PUA 码位转换为按键名
 
 ### 修饰键
 - `%modifier-prefix` - 将修饰键代码转换为键名前缀字符串

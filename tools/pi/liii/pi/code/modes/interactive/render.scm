@@ -35,6 +35,7 @@
     (liii pi code modes interactive thinking-selector)
     (liii pi code modes interactive model-selector)
     (liii pi code modes interactive session-selector)
+    (liii pi code modes interactive common)
   ) ;import
   (begin
 
@@ -127,7 +128,8 @@
                   (pair? (%pi-app-follow-up-pending app))
                 ) ;or
             (container-add! pending-box
-              (make-queued-card "↳ ESC abort · Alt+Up edit queued messages")
+              (make-queued-card (string-append "↳ ESC abort · " (%alt-key-label) "+Up edit queued messages")
+              ) ;make-queued-card
             ) ;container-add!
           ) ;when
           (let ((items (pi-queue-items q)))

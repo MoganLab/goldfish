@@ -90,15 +90,12 @@
       (and (integer? b) (>= b 64) (<= b 126))
     ) ;define
 
-    ;; 转义序列是否已完整（bytes 按到达顺序排列）：
-    ;;   ESC [ ... <终结字节>  → CSI 序列（鼠标 SGR 事件即此类）
-    ;;   ESC O <终结字节>      → SS3 序列
-    ;;   ESC <字符>            → 单字符转义
-    ;; 序列完整即可停止读取：否则每个转义序列都要在末尾多等一次超时
-    ;; （鼠标滚轮事件因此凭空多出 10ms 延迟）。
+    ;; 转义序列是否完整：ESC [ .. <终结字节> 为 CSI；ESC O <终结字节> 为 SS3；
+    ;; ESC ESC 递归判定内层 Meta 序列；其余 ESC <字符> 为单字符转义。
     (define (%escape-bytes-complete? bytes)
       (let ((len (length bytes)))
         (cond ((< len 2) #f)
+              ((= (cadr bytes) 27) (%escape-bytes-complete? (cdr bytes)))
               ((= (cadr bytes) 91)
                (and (> len 2) (%csi-final-byte? (list-ref bytes (- len 1))))
               ) ;

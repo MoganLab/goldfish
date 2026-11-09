@@ -18,4 +18,15 @@ gf doc <函数名>
 
 ## 函数分类索引
 
-详见当前目录下的单元测试用例。
+### 平台与键位
+- `%alt-key-label` - 返回当前平台对应的 Alt/Option 修饰键标签
+
+### 辅助函数
+- `%keyword-value` - 从关键字参数列表中按键取值
+
+### Git 分支探测与监听
+- `detect-git-branch` - 检测当前工作区所在的分支名
+- `detect-git-dir` - 检测当前工作区的 .git 目录路径
+- `git-branch-from-head-file` - 直接从 HEAD 文件解析分支名
+- `make-branch-watcher` - 创建分支切换监听器
+- `stop-branch-watcher!` - 停止分支监听器

@@ -265,9 +265,9 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 | `Ctrl+C` | 清空输入框（不退出、不中断任务） |
 | `Ctrl+D` | 输入框为空时退出 TUI |
 | `ESC` | busy 时中断任务并把排队消息撤回到输入框；空闲时撤回排队消息到输入框 |
-| `Alt+Up` | 仅把排队消息（steering / follow-up）撤回到输入框，不中断运行中任务 |
+| `Alt+Up`（macOS 为 `Option+Up`） | 仅把排队消息（steering / follow-up）撤回到输入框，不中断运行中任务 |
 | `Enter`（busy 时） | steering：插话注入当前运行中的任务（工具批次结束后、下次请求前生效） |
-| `Alt+Enter` | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
+| `Alt+Enter`（macOS 为 `Option+Enter`） | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
 | `Ctrl+O` | 展开/折叠工具与 bash 输出 |
 | `Ctrl+V` | 读取外部系统剪贴板并粘贴到输入框（Linux 支持 Wayland/X11） |
 | `Shift+Tab` | 循环切换 thinking level |
@@ -288,8 +288,19 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 - **待处理区**：busy 时输入区上方分组展示全部排队消息
   （`Steering: ...` / `Follow-up: ...`）与撤回提示；worker 消费时
   上屏正式用户卡片并同步移除待处理项。
-- **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
+- **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up` / `Option+Up`（仅撤回），
   按 steering → follow-up 顺序合并回输入框。
+
+#### macOS 键位说明（任务 1314）
+
+macOS 键盘上的 Option 键即为 Alt 键；TUI 界面与待处理区提示行在 macOS 下自动显示为 `Option+Up` / `Option+Enter`。
+
+- **终端 Option 键的三种配置（Normal、Meta、Esc+）**：
+  macOS 常见终端对 Option 键的处理通常有三种模式：
+  - **Normal**：Option 键产生特殊字符（如 Option+A 产生 å），终端不向应用程序发送 Alt/Meta 转义序列。
+  - **Esc+ / Meta**：Option 键发送 ESC 前缀序列（如 iTerm2 在 Profiles → Keys 中配置 Option 键为 `Esc+`，Terminal.app 在 Profiles → Keyboard 中勾选 `Use Option as Meta Key`）。**推荐使用 Esc+ 或 Meta 配置**，以保证 Option+Up、Option+Enter 等快捷键可靠工作。
+- **kitty 增强键盘协议终端**：
+  Ghostty、kitty、WezTerm、foot 以及 iTerm2 3.5+ 等终端在启用 kitty 增强键盘协议后，会以 CSI u 形式上报功能键（如 Option+Up 为 `\x1b[57352;3u`）。Goldfish TUI 已内建 kitty 功能键 PUA 码表映射，在此类终端下无需修改 Option 键映射亦可直接使用 Option 组合键。
 
 #### Windows 键位说明（任务 1197、1316）
 

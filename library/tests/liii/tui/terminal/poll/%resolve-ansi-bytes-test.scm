@@ -46,4 +46,9 @@
 ;; 普通按键仍解析为符号
 (check (%resolve-ansi-bytes '(27 91 65)) => 'up)
 
+;; Meta 前缀与普通按键
+(check (%resolve-ansi-bytes (list 27 27 91 65)) => 'alt-up)
+(check (%resolve-ansi-bytes (list 27 27 91 49 59 51 65)) => 'alt-up)
+(check (%resolve-ansi-bytes (list 27 27)) => 'escape)
+
 (check-report)

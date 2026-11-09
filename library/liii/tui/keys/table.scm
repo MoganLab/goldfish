@@ -23,7 +23,7 @@
 
 (define-library (liii tui keys table)
   (export %ctrl-char-key %ss3-key %csi-final-key %tilde-key %linux-fn-key
-    %modifier-prefix
+    %modifier-prefix %pua-key
   ) ;export
   (import (scheme base))
   (begin
@@ -127,6 +127,25 @@
             ((= char-byte 67) 'f3)
             ((= char-byte 68) 'f4)
             ((= char-byte 69) 'f5)
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (%pua-key code)
+      (cond ((not (integer? code)) #f)
+            ((= code 57348) 'insert)
+            ((= code 57349) 'delete)
+            ((= code 57350) 'left)
+            ((= code 57351) 'right)
+            ((= code 57352) 'up)
+            ((= code 57353) 'down)
+            ((= code 57354) 'page-up)
+            ((= code 57355) 'page-down)
+            ((= code 57356) 'home)
+            ((= code 57357) 'end)
+            ((and (>= code 57364) (<= code 57398))
+             (string->symbol (string-append "f" (number->string (+ (- code 57364) 1))))
+            ) ;
             (else #f)
       ) ;cond
     ) ;define

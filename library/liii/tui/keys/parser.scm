@@ -59,29 +59,28 @@
       ) ;if
     ) ;define
 
-    ;; kitty CSI-u / xterm modifyOtherKeys 的通用合成：
-    ;; code 是未修饰键的 Unicode codepoint（可打印键 32..126），
-    ;; mod-code 与 %modifier-prefix 同表（3=alt、5=ctrl、6=shift+ctrl ...）。
-    ;; 无修饰或仅 shift 的可打印键不合成（可打印键的 shift 由终端
-    ;; 直接上报字符本身）；code 或修饰码超出范围的维持 'escape 回落，
-    ;; 不建功能键全量码表。
-    ;; 可打印 code 到键名的映射：空格的键名是 space，
-    ;; 其余可打印键直接用字符本身
+    ;; kitty CSI-u / xterm modifyOtherKeys 通用合成：先查 PUA 码表，再查可打印键 (32..126)。
+    ;; 可打印 code 到键名的映射：空格的键名是 space，其余可打印键直接用字符本身
     (define (%printable-key-name code)
       (if (= code 32) "space" (string (integer->char code)))
     ) ;define
 
     (define (%combine-csi-u-key code mod-code)
-      (let ((prefix (and mod-code (%modifier-prefix mod-code))))
-        (if (and code
-              (>= code 32)
-              (<= code 126)
-              prefix
-              (> (string-length prefix) 0)
-              (not (string=? prefix "shift-"))
-            ) ;and
-          (string->symbol (string-append prefix (%printable-key-name code)))
-          'escape
+      (let ((pua-k (and code (%pua-key code))))
+        (if pua-k
+          (%combine-mod-key pua-k mod-code)
+          (let ((prefix (and mod-code (%modifier-prefix mod-code))))
+            (if (and code
+                  (>= code 32)
+                  (<= code 126)
+                  prefix
+                  (> (string-length prefix) 0)
+                  (not (string=? prefix "shift-"))
+                ) ;and
+              (string->symbol (string-append prefix (%printable-key-name code)))
+              'escape
+            ) ;if
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
@@ -155,13 +154,10 @@
       ) ;let
     ) ;define
 
-    ;; 参数段以 '<' 开头的是 SGR 鼠标序列（1006 模式），拼回完整序列
-    ;; （参数段 + 终结字节 M/m）交给 (liii tui mouse) 解析；
-    ;; 非鼠标则回退到普通 CSI 键解析
+    ;; 参数段以 '<' 开头的是 SGR 鼠标序列（1006 模式），拼回完整序列交给 (liii tui mouse) 解析
     (define (%try-parse-mouse param-str term-byte)
       (if (and (> (string-length param-str) 0) (char=? (string-ref param-str 0) #\<))
-        (parse-mouse-event (string-append "\x1b;[" param-str (string (integer->char term-byte)))
-        ) ;parse-mouse-event
+        (parse-mouse-event (string-append "\x1b;[" param-str (string (integer->char term-byte))))
         #f
       ) ;if
     ) ;define
@@ -271,11 +267,27 @@
     ) ;define
 
     (define (%parse-alt-enter bv i len)
-      (if
-        (and (< (+ i 2) len) (= (bytevector-u8-ref bv (+ i 2)) 10))
+      (if (and (< (+ i 2) len) (= (bytevector-u8-ref bv (+ i 2)) 10))
         (values 'alt-enter (+ i 3))
         (values 'alt-enter (+ i 2))
       ) ;if
+    ) ;define
+
+    ;; Meta 前缀修饰规则：内层为 escape 时返回 escape；内层已带 alt- 则幂等；
+    ;; 其余叠加 alt- 前缀（符号或可打印字符串）。
+    (define (%apply-meta-key k)
+      (cond ((not k) #f)
+            ((eq? k 'escape) 'escape)
+            ((or (symbol? k) (string? k))
+             (let ((name (if (symbol? k) (symbol->string k) k)))
+               (if (and (>= (string-length name) 4) (string=? (substring name 0 4) "alt-"))
+                 (if (symbol? k) k (string->symbol k))
+                 (string->symbol (string-append "alt-" name))
+               ) ;if
+             ) ;let
+            ) ;
+            (else k)
+      ) ;cond
     ) ;define
 
     (define (%parse-escape bv i len)
@@ -284,7 +296,11 @@
         (let ((b1 (bytevector-u8-ref bv (+ i 1))))
           (cond ((= b1 91) (%parse-csi bv i len))
                 ((= b1 79) (%parse-ss3 bv i len))
-                ((= b1 27) (values 'escape (+ i 1)))
+                ((= b1 27)
+                 (let-values (((inner next-i) (%parse-escape bv (+ i 1) len)))
+                   (values (%apply-meta-key inner) next-i)
+                 ) ;let-values
+                ) ;
                 ((= b1 13) (%parse-alt-enter bv i len))
                 ((= b1 10) (values 'alt-enter (+ i 2)))
                 ((= b1 9) (values 'alt-tab (+ i 2)))
