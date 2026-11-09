@@ -41,7 +41,8 @@
   ) ;export
   (begin
 
-    ;; hint 库目录：R7RS 板块 r7rs/hint/、语言层 goldfish/hint/ 与工具 hint 目录；
+    ;; hint 库目录：按 domain 推导（与 tests 目录同源），
+    ;; 即 r7rs/hint、goldfish/hint、library/hint 与 tools/<tool>/hint；
     ;; gfproject-root 带尾斜杠时不再补
     (define (hint-dirs)
       (let ((root (gfproject-root)))
@@ -52,10 +53,7 @@
                 ) ;if
               ) ;prefix
              ) ;
-          (list (string-append prefix "r7rs/hint")
-            (string-append prefix "goldfish/hint")
-            "tools/check/hint"
-          ) ;list
+          (map (lambda (d) (string-append prefix d)) (gfproject-hint-dirs))
         ) ;let
       ) ;let
     ) ;define

@@ -28,7 +28,7 @@
     gfproject-find-local-path gfproject-extract-tools gfproject-deep-merge
     gfproject-load-config-bundle gfproject-load-config gfproject-read-file
     gfproject--opt-gf-lib bundle-ref gfproject-extract-domains gfproject-domains
-    gfproject-domains-list
+    gfproject-domains-list gfproject-hint-dirs
   ) ;export
   (begin
 
@@ -192,6 +192,15 @@
       ) ;cond
     ) ;define
 
+    ;; domain 内的类型接口（hint）目录：与 tests 目录同源，
+    ;; 由 domain root 推导，板块内库与 hint 库一一对应。
+    (define (%domain-hint-dir root)
+      (cond ((or (string=? root "") (string=? root ".")) "hint")
+            ((string-ends? root "/") (string-append root "hint"))
+            (else (string-append root "/hint"))
+      ) ;cond
+    ) ;define
+
     (define (gfproject-domains-list . opt-gf-lib)
       (let ((d-obj (apply gfproject-domains opt-gf-lib)))
         (if (or (null? d-obj) (equal? d-obj '(())))
@@ -199,6 +208,7 @@
                   (cons 'root "")
                   (cons 'depends-on '())
                   (cons 'tests "tests")
+                  (cons 'hint "hint")
                 ) ;list
           ) ;list
           (map
@@ -219,6 +229,7 @@
                   (cons 'root root)
                   (cons 'depends-on deps)
                   (cons 'tests (%domain-tests-dir root))
+                  (cons 'hint (%domain-hint-dir root))
                 ) ;list
               ) ;let*
             ) ;lambda
@@ -226,6 +237,13 @@
           ) ;map
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; 各 domain 的类型接口（hint）目录列表：与 tests 目录一样由 domain 推导
+    (define (gfproject-hint-dirs . opt-gf-lib)
+      (map (lambda (d) (bundle-ref d 'hint))
+        (apply gfproject-domains-list opt-gf-lib)
+      ) ;map
     ) ;define
 
   ) ;begin

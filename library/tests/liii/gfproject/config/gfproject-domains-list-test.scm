@@ -1,5 +1,5 @@
 ;; gfproject-domains-list
-;; 获取规范化的 domain 列表，每个 domain 包含 name、root、depends-on、tests 四个字段。
+;; 获取规范化的 domain 列表，每个 domain 包含 name、root、depends-on、tests、hint 五个字段。
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +14,7 @@
 ;; 返回值
 ;; ----
 ;; list of alist
-;; 域列表，每项形如 ((name . str) (root . str) (depends-on . list) (tests . str))。
+;; 域列表，每项形如 ((name . str) (root . str) (depends-on . list) (tests . str) (hint . str))。
 
 (import (liii check) (liii gfproject config) (liii list))
 
@@ -33,6 +33,7 @@
     (check-true (not (not gf)))
     (check (cdr (assq 'root gf)) => "goldfish/")
     (check (cdr (assq 'tests gf)) => "goldfish/tests")
+    (check (cdr (assq 'hint gf)) => "goldfish/hint")
     (check (cdr (assq 'depends-on gf)) => '("r7rs"))
   ) ;let*
 ) ;let

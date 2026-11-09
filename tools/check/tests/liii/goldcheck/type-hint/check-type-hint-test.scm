@@ -116,18 +116,18 @@
 (for-each
   (lambda (f) (check (check-type-hint (repo-file f)) => '()))
   '("goldfish/hint/liii/alist.scm" "goldfish/hint/liii/error.scm"
-    "goldfish/hint/liii/gfproject/config.scm" "r7rs/hint/scheme/base.scm"
+    "library/hint/liii/gfproject/config.scm" "r7rs/hint/scheme/base.scm"
     "goldfish/hint/srfi/srfi-1.scm"
     "tools/check/hint/liii/goldcheck/no-glue.scm"
     "r7rs/hint/scheme/file.scm" "tools/check/hint/liii/goldcheck/path.scm"
-    "goldfish/hint/liii/string.scm" "goldfish/hint/liii/path.scm"
-    "goldfish/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
-    "goldfish/hint/liii/goldfmt/format.scm"
-    "goldfish/hint/liii/goldfmt/format/writer.scm" "goldfish/hint/liii/base.scm")
+    "goldfish/hint/liii/string.scm" "library/hint/liii/path.scm"
+    "library/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
+    "library/hint/liii/goldfmt/format.scm"
+    "library/hint/liii/goldfmt/format/writer.scm" "goldfish/hint/liii/base.scm")
 ) ;for-each
 
 ;; timestamp-iso 已修复：string->number 的结果先校验再参与乘法。
-(check (check-type-hint (repo-file "goldfish/hint/liii/date-time/internal/timestamp-iso.scm")
+(check (check-type-hint (repo-file "library/hint/liii/date-time/internal/timestamp-iso.scm")
        ) ;check-type-hint
   =>
   '()
@@ -140,10 +140,10 @@
   (check-true (string-contains? (cadddr (car viol)) "(or #f number?)"))
 ) ;let
 
-(check (type-hint-status-lines (list (repo-file "goldfish/hint/liii/gfproject/config.scm")
+(check (type-hint-status-lines (list (repo-file "library/hint/liii/gfproject/config.scm")
                                  (repo-file "tools/check/hint/liii/goldcheck/path.scm")
                                  (repo-file "goldfish/hint/liii/alist.scm")
-                                 (repo-file "goldfish/hint/liii/goldfmt/format.scm")
+                                 (repo-file "library/hint/liii/goldfmt/format.scm")
                                ) ;list
          '()
        ) ;type-hint-status-lines
