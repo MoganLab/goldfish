@@ -21,7 +21,7 @@
 ;; string?
 ;; 生效的基础 URL 字符串。
 
-(import (liii check) (liii pi web-search config))
+(import (liii check) (liii pi web-search base-url))
 
 (check-set-mode! 'report-failed)
 
@@ -55,6 +55,28 @@
   ) ;pi-resolve-deepseek-search-base-url
   =>
   "https://api.deepseek.com"
+) ;check
+
+;; web-search.json 覆盖
+(check
+  (pi-resolve-deepseek-search-base-url '()
+    #f
+    '(("baseUrl" . "http://ws-deepseek:8080/anthropic"))
+  ) ;pi-resolve-deepseek-search-base-url
+  =>
+  "http://ws-deepseek:8080"
+) ;check
+
+;; models-store 中 deepseek 的 baseUrl 复用
+(check
+  (pi-resolve-deepseek-search-base-url
+    '((provider . "kimi-coding")
+      (models-store ("deepseek" ("name" . "DeepSeek")
+                                ("baseUrl" . "http://ds-store:8080/anthropic"))))
+    #f
+  ) ;pi-resolve-deepseek-search-base-url
+  =>
+  "http://ds-store:8080"
 ) ;check
 
 (check-report)

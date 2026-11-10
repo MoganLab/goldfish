@@ -17,8 +17,6 @@ gf doc pi-load-web-search-config
 gf doc pi-resolve-web-search-provider
 gf doc pi-resolve-google-api-key
 gf doc pi-resolve-deepseek-api-key
-gf doc pi-resolve-search-base-url
-gf doc pi-resolve-deepseek-search-base-url
 gf doc pi-resolve-search-model-id
 gf doc pi-web-search-config-model
 ```
@@ -34,7 +32,5 @@ gf doc pi-web-search-config-model
 ### 凭据与地址解析
 - `pi-resolve-google-api-key` - 解析 Google 联网搜索使用的 API Key
 - `pi-resolve-deepseek-api-key` - 解析 deepseek 联网搜索使用的 API Key
-- `pi-resolve-search-base-url` - 解析联网搜索使用的基础 URL
-- `pi-resolve-deepseek-search-base-url` - 解析 deepseek 联网搜索使用的基础 URL
 - `pi-resolve-search-model-id` - 解析联网搜索使用的模型标识
 - `pi-web-search-config-model` - 从 web-search 配置中解析联网搜索使用的模型标识

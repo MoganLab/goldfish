@@ -304,8 +304,8 @@
                             ) ;if
                    ) ;api-key
                    (base-url (if (pair? opt-env)
-                               (pi-resolve-deepseek-search-base-url config opt-url opt-env)
-                               (pi-resolve-deepseek-search-base-url config opt-url)
+                               (pi-resolve-deepseek-search-base-url config opt-url ws-config opt-env)
+                               (pi-resolve-deepseek-search-base-url config opt-url ws-config)
                              ) ;if
                    ) ;base-url
                   ) ;
@@ -318,8 +318,16 @@
               (pi-execute-deepseek-web-search query urls api-key base-url proxy-alist timeout)
             ) ;let*
             ;; 默认 Google 后端：Gemini grounding API
-            (let* ((api-key (pi-resolve-google-api-key config opt-key))
-                   (base-url (pi-resolve-search-base-url config opt-url))
+            (let* ((api-key (if (pair? opt-env)
+                              (pi-resolve-google-api-key config opt-key opt-env)
+                              (pi-resolve-google-api-key config opt-key)
+                            ) ;if
+                   ) ;api-key
+                   (base-url (if (pair? opt-env)
+                               (pi-resolve-search-base-url config opt-url ws-config provider opt-env)
+                               (pi-resolve-search-base-url config opt-url ws-config provider)
+                             ) ;if
+                   ) ;base-url
                    (opt-model (pi-keyword-value :model-id opts #f))
                    (ws-model (pi-web-search-config-model ws-config))
                    (model-id (pi-resolve-search-model-id config (or opt-model ws-model)))
