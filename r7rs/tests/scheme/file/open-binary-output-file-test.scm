@@ -20,25 +20,33 @@
 ;; 1. 若文件已存在则覆盖原内容。
 ;; 2. 使用完毕后应调用 close-port 关闭端口。
 
-(import (liii check) (scheme file))
+(import (liii check) (scheme base) (scheme file))
 (check-set-mode! 'report-failed)
 
-(define test-file "tests/scheme/file/test-binary-output.bin")
-;; 测试 open-binary-output-file
+(define base-dir
+  (if (file-exists? "r7rs/tests/scheme/file")
+    "r7rs/tests/scheme/file/"
+    "tests/scheme/file/"
+  ) ;if
+) ;define
+
+(define test-file (string-append base-dir "test-binary-output.bin"))
+;; 测试 open-binary-output-file 写入二进制数据
 (let ((port (open-binary-output-file test-file)))
   (check-true (output-port? port))
   (check-true (binary-port? port))
-  (display "binary output" port)
+  (write-u8 0 port)
+  (write-bytevector (bytevector 1 2 255) port)
   (close-port port)
 ) ;let
 ;; 验证内容
 (let ((port (open-binary-input-file test-file)))
-  (check (read-string 100 port) => "binary output")
+  (check (read-bytevector 10 port) => (bytevector 0 1 2 255))
   (close-port port)
 ) ;let
 ;; 测试中文文件名
 
-(define chinese-file "tests/scheme/file/中文二进制输出.bin")
+(define chinese-file (string-append base-dir "中文二进制输出.bin"))
 (let ((port (open-binary-output-file chinese-file)))
   (check-true (output-port? port))
   (check-true (binary-port? port))

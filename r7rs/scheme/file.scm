@@ -21,9 +21,13 @@
   ) ;export
   (begin
 
-    (define open-binary-input-file open-input-file)
+    (define (open-binary-input-file filename)
+      (open-input-file filename "rb")
+    ) ;define
 
-    (define open-binary-output-file open-output-file)
+    (define (open-binary-output-file filename)
+      (open-output-file filename "wb")
+    ) ;define
 
   ) ;begin
 ) ;define-library

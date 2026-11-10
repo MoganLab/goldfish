@@ -180,8 +180,6 @@
     bytevector-advance-utf8
     ;; Input and Output
     call-with-port
-    call-with-input-file
-    call-with-output-file
     input-port?
     output-port?
     port?
@@ -192,28 +190,34 @@
     current-input-port
     current-output-port
     current-error-port
-    open-input-file
-    open-output-file
     close-port
     close-input-port
     close-output-port
     open-input-string
     open-output-string
     get-output-string
+    open-input-bytevector
+    open-output-bytevector
+    get-output-bytevector
     read-char
     peek-char
     read-line
     read-string
+    read-u8
+    peek-u8
+    u8-ready?
+    read-bytevector
+    read-bytevector!
     read
     write-char
     write-string
+    write-u8
+    write-bytevector
     newline
     flush-output-port
     eof-object?
     eof-object
     char-ready?
-    with-input-from-file
-    with-output-to-file
     ;; Control flow
     procedure?
     apply
@@ -949,6 +953,129 @@
       (if (input-port? p) (close-input-port p) (close-output-port p))
     ) ;define
 
+    (define (open-input-bytevector bv)
+      (unless (bytevector? bv)
+        (error 'type-error "open-input-bytevector: argument must be a bytevector" bv)
+      ) ;unless
+      (open-input-string (byte-vector->string bv))
+    ) ;define
+
+    (define open-output-bytevector open-output-string)
+
+    (define (get-output-bytevector port)
+      (unless (and (output-port? port) (output-port-open? port))
+        (error 'type-error "get-output-bytevector: expected an open output port" port)
+      ) ;unless
+      (string->byte-vector (get-output-string port))
+    ) ;define
+
+    (define read-u8 read-byte)
+
+    (define* (peek-u8 (port (current-input-port)))
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "peek-u8: expected an open input port" port)
+      ) ;unless
+      (let ((c (peek-char port)))
+        (if (eof-object? c) c (char->integer c))
+      ) ;let
+    ) ;define*
+
+    (define u8-ready? char-ready?)
+
+    (define*
+      (read-bytevector! bytevector
+        (port (current-input-port))
+        (start 0)
+        (end (and (bytevector? bytevector) (bytevector-length bytevector)))
+      ) ;read-bytevector!
+      (unless (bytevector? bytevector)
+        (error 'type-error
+          "read-bytevector!: first argument must be a bytevector"
+          bytevector
+        ) ;error
+      ) ;unless
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "read-bytevector!: expected an open input port" port)
+      ) ;unless
+      (unless (and (integer? start) (integer? end))
+        (error 'type-error "read-bytevector!: start and end must be integers")
+      ) ;unless
+      (if (or (< start 0) (< end start) (> end (bytevector-length bytevector)))
+        (error 'out-of-range "read-bytevector!")
+        (if (= start end)
+          0
+          (let loop
+            ((i start))
+            (if (>= i end)
+              (- end start)
+              (let ((b (read-byte port)))
+                (if (eof-object? b)
+                  (if (= i start) b (- i start))
+                  (begin
+                    (bytevector-u8-set! bytevector i b)
+                    (loop (+ i 1))
+                  ) ;begin
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;if
+    ) ;define*
+
+    (define* (read-bytevector k (port (current-input-port)))
+      (unless (and (integer? k) (>= k 0))
+        (error 'type-error "read-bytevector: k must be a non-negative integer" k)
+      ) ;unless
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "read-bytevector: expected an open input port" port)
+      ) ;unless
+      (if (= k 0)
+        (make-bytevector 0)
+        (let* ((bv (make-bytevector k)) (n (read-bytevector! bv port 0 k)))
+          (cond ((eof-object? n) n)
+                ((= n k) bv)
+                (else (bytevector-copy bv 0 n))
+          ) ;cond
+        ) ;let*
+      ) ;if
+    ) ;define*
+
+    (define write-u8 write-byte)
+
+    (define*
+      (write-bytevector bytevector
+        (port (current-output-port))
+        (start 0)
+        (end (and (bytevector? bytevector) (bytevector-length bytevector)))
+      ) ;write-bytevector
+      (unless (bytevector? bytevector)
+        (error 'type-error
+          "write-bytevector: first argument must be a bytevector"
+          bytevector
+        ) ;error
+      ) ;unless
+      (unless (and (output-port? port) (output-port-open? port))
+        (error 'type-error "write-bytevector: expected an open output port" port)
+      ) ;unless
+      (unless (and (integer? start) (integer? end))
+        (error 'type-error "write-bytevector: start and end must be integers")
+      ) ;unless
+      (if (or (< start 0) (< end start) (> end (bytevector-length bytevector)))
+        (error 'out-of-range "write-bytevector")
+        (let loop
+          ((i start))
+          (if (< i end)
+            (begin
+              (write-byte (bytevector-u8-ref bytevector i) port)
+              (loop (+ i 1))
+            ) ;begin
+            (values)
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define*
+
     (define (eof-object)
       #<eof>
     ) ;define
@@ -1141,7 +1268,7 @@
     ;; 0-clause BSD
     ;; Bill Schottstaedt
     ;; from S7 source repo: r7rs.scm
-    (define* (vector->string v (start 0) end)
+    (define* (vector->string v (start 0) (end #f))
       (if (null? v)
         ""
         (if (not (vector? v))
@@ -1178,7 +1305,7 @@
     ;; 0-clause BSD
     ;; Bill Schottstaedt
     ;; from S7 source repo: r7rs.scm
-    (define* (string->vector s (start 0) end)
+    (define* (string->vector s (start 0) (end #f))
       (if (not (or (string? s) (vector? s) (list? s) (bytevector? s)))
         (error 'type-error "string->vector: first argument must be a sequence")
         (let ((stop (or end (length s))))
