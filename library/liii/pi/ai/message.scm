@@ -19,17 +19,19 @@
     pi-assistant-message-role pi-assistant-message-content
     pi-assistant-message-stop-reason pi-assistant-message-error-message
     pi-assistant-message-usage pi-assistant-message-timestamp
-    pi-tool-result-message pi-tool-result-message? pi-tool-result-message-role
-    pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
-    pi-tool-result-message-content pi-tool-result-message-is-error
-    pi-tool-result-message-timestamp pi-text-block pi-text-block?
-    pi-text-block-type pi-text-block-text pi-text-block-signature
-    pi-thinking-block pi-thinking-block? pi-thinking-block-type
-    pi-thinking-block-thinking pi-thinking-block-thinking-signature
-    pi-tool-call-block pi-tool-call-block? pi-tool-call-block-type
-    pi-tool-call-block-id pi-tool-call-block-name pi-tool-call-block-arguments
-    pi-tool-call-block-thought-signature pi-image-block pi-image-block?
-    pi-image-block-type pi-image-block-data pi-image-block-mime-type
+    pi-assistant-message-provider pi-assistant-message-model
+    pi-assistant-message-api pi-tool-result-message pi-tool-result-message?
+    pi-tool-result-message-role pi-tool-result-message-tool-call-id
+    pi-tool-result-message-tool-name pi-tool-result-message-content
+    pi-tool-result-message-is-error pi-tool-result-message-timestamp
+    pi-text-block pi-text-block? pi-text-block-type pi-text-block-text
+    pi-text-block-signature pi-thinking-block pi-thinking-block?
+    pi-thinking-block-type pi-thinking-block-thinking
+    pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
+    pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
+    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    pi-image-block pi-image-block? pi-image-block-type pi-image-block-data
+    pi-image-block-mime-type
   ) ;export
   (begin
   ) ;begin

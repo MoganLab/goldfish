@@ -60,6 +60,29 @@
   (check (pi-assistant-message-stop-reason (car msgs)) => "end_turn")
   (check-false (pi-assistant-message-error-message (car msgs)))
   (check (pi-assistant-message-usage (car msgs)) => usage)
+  (check-false (pi-assistant-message-provider (car msgs)))
+  (check-false (pi-assistant-message-model (car msgs)))
+  (check-false (pi-assistant-message-api (car msgs)))
+) ;let*
+
+;; 2.1 assistant 条目：保留 provider / model / api 模型元数据（跨模型判定依据）
+(let* ((msg-alist
+         (list (cons "role" "assistant")
+           (cons "content" (list (list (cons "type" "text") (cons "text" "hi"))))
+           (cons "stopReason" "end_turn")
+           (cons "provider" "google")
+           (cons "model" "gemini-2.5-flash")
+           (cons "api" "google-generative-ai")
+         ) ;list
+       ) ;msg-alist
+       (msgs (pi-entry-to-context-messages (list (cons "type" "message") (cons "id" "e2m") (cons "message" msg-alist))
+             ) ;pi-entry-to-context-messages
+       ) ;msgs
+      ) ;
+  (check (length msgs) => 1)
+  (check (pi-assistant-message-provider (car msgs)) => "google")
+  (check (pi-assistant-message-model (car msgs)) => "gemini-2.5-flash")
+  (check (pi-assistant-message-api (car msgs)) => "google-generative-ai")
 ) ;let*
 
 ;; 3. toolResult 条目：保留 toolCallId、toolName 与 isError

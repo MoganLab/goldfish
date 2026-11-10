@@ -73,7 +73,7 @@
       (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
-    (define (%make-retry-error status attempt body-str provider)
+    (define (%make-retry-error status attempt body-str provider model-id)
       (let ((limit (pi-usage-limit-error? status body-str provider)))
         (pi-assistant-message (list (pi-text-block ""))
           :stop-reason "error"
@@ -88,7 +88,10 @@
               body-str
             ) ;string-append
           ) ;if
-          :usage (anthropic-map-usage '())
+          :usage    (anthropic-map-usage '())
+          :provider provider
+          :model    model-id
+          :api      "anthropic-messages"
         ) ;pi-assistant-message
       ) ;let
     ) ;define
@@ -186,7 +189,7 @@
                   (sleep delay-sec)
                   (loop (+ attempt 1))
                 ) ;let*
-                (%make-retry-error status attempt body-str provider)
+                (%make-retry-error status attempt body-str provider model-id)
               ) ;if
               (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
                      (limit (pi-usage-limit-error? status body-str provider))
@@ -196,8 +199,13 @@
                     :stop-reason   "error"
                     :usage         (anthropic-map-usage '())
                     :error-message (pi-usage-limit-error-message limit provider)
+                    :provider      provider
+                    :model         model-id
+                    :api           "anthropic-messages"
                   ) ;pi-assistant-message
-                  (anthropic-parse-response parsed-json status)
+                  (anthropic-parse-response parsed-json status provider model-id
+                    "anthropic-messages"
+                  ) ;anthropic-parse-response
                 ) ;if
               ) ;let*
             ) ;if

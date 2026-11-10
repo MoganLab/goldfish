@@ -27,9 +27,22 @@
              (api (or cfg-api (pi-provider-api provider)))
             ) ;
         ;; 请求前转录规范化（对齐上游 transformMessages）：跳过 error/aborted
-        ;; 消息、补孤儿 toolCall 的合成结果、按需归一化 toolCallId，保证请求
+        ;; 消息、跨模型过滤异构思维链与签名剥离、补孤儿 toolCall 的合成结果、按需归一化 toolCallId，保证请求
         ;; 前缀跨轮稳定。仅作用于请求构建，不改会话持久化。
-        (let ((norm-msgs (pi-normalize-transcript msgs config)))
+        (let* ((cfg-with-provider (if (or (assoc 'provider config) (assoc "provider" config))
+                                    config
+                                    (cons (cons 'provider provider) config)
+                                  ) ;if
+               ) ;cfg-with-provider
+               (cfg-with-api (if (or (assoc 'provider-api cfg-with-provider)
+                                   (assoc "provider-api" cfg-with-provider)
+                                 ) ;or
+                               cfg-with-provider
+                               (cons (cons 'provider-api api) cfg-with-provider)
+                             ) ;if
+               ) ;cfg-with-api
+               (norm-msgs (pi-normalize-transcript msgs cfg-with-api))
+              ) ;
           (cond ((string=? api "anthropic-messages")
                  (anthropic-request-stream config norm-msgs sys-prompt tools on-ev timeout)
                 ) ;
@@ -38,7 +51,7 @@
                 ) ;
                 (else (gemini-request-stream config norm-msgs sys-prompt tools on-ev timeout))
           ) ;cond
-        ) ;let
+        ) ;let*
       ) ;let*
     ) ;define
 

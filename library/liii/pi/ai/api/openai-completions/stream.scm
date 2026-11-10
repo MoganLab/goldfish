@@ -66,7 +66,7 @@
       ) ;let*
     ) ;define
 
-    (define (%finalize-stream stream-state)
+    (define (%finalize-stream stream-state provider model-id)
       (finish-openai-stream stream-state #f)
       (let* ((blocks (openai-stream-state-blocks stream-state))
              (stop-reason (openai-stream-state-stop-reason stream-state))
@@ -76,21 +76,27 @@
           :stop-reason   stop-reason
           :usage         (openai-stream-state-usage stream-state)
           :error-message err-msg
+          :provider      provider
+          :model         model-id
+          :api           "openai-completions"
         ) ;pi-assistant-message
       ) ;let*
     ) ;define
 
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
-    (define (%finalize-aborted-stream stream-state)
+    (define (%finalize-aborted-stream stream-state provider model-id)
       (finish-openai-stream stream-state #f)
       (pi-assistant-message (openai-stream-state-blocks stream-state)
         :stop-reason   "aborted"
         :usage         (openai-stream-state-usage stream-state)
         :error-message (openai-stream-state-error-message stream-state)
+        :provider      provider
+        :model         model-id
+        :api           "openai-completions"
       ) ;pi-assistant-message
     ) ;define
 
-    (define (%make-idle-timeout-error eff-idle)
+    (define (%make-idle-timeout-error eff-idle provider model-id)
       (pi-assistant-message '()
         :stop-reason "error"
         :usage       (openai-map-usage '())
@@ -99,6 +105,9 @@
           (number->string eff-idle)
           " seconds"
         ) ;string-append
+        :provider provider
+        :model    model-id
+        :api      "openai-completions"
       ) ;pi-assistant-message
     ) ;define
 
@@ -122,7 +131,7 @@
       ) ;let
     ) ;define
 
-    (define (%make-stream-error status resp err-acc provider)
+    (define (%make-stream-error status resp err-acc provider model-id)
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
              (acc-body (vector-ref err-acc 0))
@@ -145,6 +154,9 @@
           :stop-reason   "error"
           :usage         (openai-map-usage '())
           :error-message err-msg
+          :provider      provider
+          :model         model-id
+          :api           "openai-completions"
         ) ;pi-assistant-message
       ) ;let*
     ) ;define
@@ -175,19 +187,19 @@
     ) ;define
 
     (define (%opencode-extra-headers url provider session-id)
-      (if (or (and (string? url) (string-contains? url "opencode.ai"))
-            (and (string? provider)
-              (or (string=? provider "opencode")
-                (string=? provider "opencode-go")
-              ) ;or
-            ) ;and
-          ) ;or
-        (list (cons "x-opencode-session"
-                (if (and (string? session-id) (> (string-length session-id) 0))
-                  session-id
-                  (uuid4)
-                ) ;if
-              ) ;cons
+      (if
+        (or (and (string? url) (string-contains? url "opencode.ai"))
+          (and (string? provider)
+            (or (string=? provider "opencode") (string=? provider "opencode-go"))
+          ) ;and
+        ) ;or
+        (list
+          (cons "x-opencode-session"
+            (if (and (string? session-id) (> (string-length session-id) 0))
+              session-id
+              (uuid4)
+            ) ;if
+          ) ;cons
         ) ;list
         '()
       ) ;if
@@ -199,7 +211,12 @@
       (let* ((settings (cdr (or (assoc 'settings config) '(#f))))
              (key-rotation? (pi-key-rotation? config))
              (provider (cdr (or (assoc 'provider config) '(#f . #f))))
-             (session-id (let ((p (assoc 'session-id config))) (and p (cdr p))))
+             (model-id (cdr (assoc 'model-id config)))
+             (session-id
+               (let ((p (assoc 'session-id config)))
+                 (and p (cdr p))
+               ) ;let
+             ) ;session-id
             ) ;
         (let-values (((max-r base-delay max-delay provider-r)
                       (pi-resolve-retry-params settings opt-retry)
@@ -248,19 +265,21 @@
               ) ;when
               ;; 流尾补探测一次中止信号：单 chunk 交付时 on-event 发出的 abort
               ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
-              (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
-                    (idle-timed-out? (%make-idle-timeout-error eff-idle))
+              (cond ((or aborted? (pi-aborted?))
+                     (%finalize-aborted-stream stream-state provider model-id)
+                    ) ;
+                    (idle-timed-out? (%make-idle-timeout-error eff-idle provider model-id))
                     ;; 额度耗尽（5 小时/周额度）属于账户级限额，换 key 也无济于事，
                     ;; 直接给出可读提示，不再重试。
                     ((and (pi-usage-limit-error? status (%stream-error-body resp err-acc) provider)
                        (not key-rotation?)
                      ) ;and
-                     (%make-stream-error status resp err-acc provider)
+                     (%make-stream-error status resp err-acc provider model-id)
                     ) ;
                     ((and key-rotation? (not emitted?) (or (= status 429) (= status 403)))
                      (let ((next (pi-rotate-api-key! config api-key status)))
                        (if (eq? next 'exhausted)
-                         (%make-stream-error status resp err-acc provider)
+                         (%make-stream-error status resp err-acc provider model-id)
                          (loop 1 next)
                        ) ;if
                      ) ;let
@@ -275,13 +294,13 @@
                          (sleep delay-sec)
                          (loop (+ attempt 1) api-key)
                        ) ;let*
-                       (%make-stream-error status resp err-acc provider)
+                       (%make-stream-error status resp err-acc provider model-id)
                      ) ;if
                     ) ;
                     ((or (zero? status) (not (= status 200)))
-                     (%make-stream-error status resp err-acc provider)
+                     (%make-stream-error status resp err-acc provider model-id)
                     ) ;
-                    (else (%finalize-stream stream-state))
+                    (else (%finalize-stream stream-state provider model-id))
               ) ;cond
             ) ;let*
           ) ;let

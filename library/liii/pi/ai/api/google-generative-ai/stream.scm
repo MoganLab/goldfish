@@ -82,11 +82,14 @@
     ) ;define
 
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
-    (define (%finalize-aborted-stream stream-state)
+    (define (%finalize-aborted-stream stream-state provider model-id)
       (pi-assistant-message (gemini-stream-state-blocks stream-state)
         :stop-reason   "aborted"
         :error-message #f
         :usage         (gemini-stream-state-usage stream-state)
+        :provider      provider
+        :model         model-id
+        :api           "google-generative-ai"
       ) ;pi-assistant-message
     ) ;define
 
@@ -150,19 +153,20 @@
     ) ;define
 
     ;; 重试用尽后的错误结果：额度耗尽时给出 provider 官方消息，否则用状态码描述
-    (define (%retry-exhausted-result stream-state status resp provider err-body)
+    (define (%retry-exhausted-result stream-state status resp provider err-body model-id)
       (let ((limit (pi-usage-limit-error? status err-body provider)))
-        (list (cons 'role "assistant")
-          (cons 'content (gemini-stream-state-blocks stream-state))
-          (cons 'stopReason "error")
-          (cons 'usage (gemini-stream-state-usage stream-state))
-          (cons 'errorMessage
-            (if limit
-              (pi-usage-limit-error-message limit provider)
-              (format-failed-stream-msg status resp)
-            ) ;if
-          ) ;cons
-        ) ;list
+        (pi-assistant-message (gemini-stream-state-blocks stream-state)
+          :stop-reason "error"
+          :usage       (gemini-stream-state-usage stream-state)
+          :error-message
+          (if limit
+            (pi-usage-limit-error-message limit provider)
+            (format-failed-stream-msg status resp)
+          ) ;if
+          :provider provider
+          :model    model-id
+          :api      "google-generative-ai"
+        ) ;pi-assistant-message
       ) ;let
     ) ;define
 
@@ -195,7 +199,9 @@
                    ) ;
                   ) ;
         (let* ((settings (cdr (or (%safe-assoc 'settings config) '(#f))))
-               (provider (cdr (or (%safe-assoc 'provider config) '(#f . #f))))
+               (provider (cdr (or (%safe-assoc 'provider config) '(#f
+                                                                   . "google"))))
+               (model-id (cdr (assoc 'model-id config)))
                (effective-idle (or idle-timeout timeout))
                (key-rotation? (pi-key-rotation? config))
               ) ;
@@ -245,13 +251,16 @@
                 (cond
                   ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted；
                   ;; 流尾补探测 pi-aborted? 覆盖单 chunk 交付时信号无后续检查点的场景
-                  ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
+                  ((or aborted? (pi-aborted?))
+                   (%finalize-aborted-stream stream-state provider model-id)
+                  ) ;
                   ((and key-rotation? (not emitted?) (or (= status 429) (= status 403)))
                    (let ((next (pi-rotate-api-key! config api-key status)))
                      (if (eq? next 'exhausted)
                        (gemini-classify-stream-result stream-state
                          idle-timed-out? resp status effective-idle
-                         wrapped-on-event error-body-acc
+                         wrapped-on-event error-body-acc provider model-id
+                         "google-generative-ai"
                        ) ;gemini-classify-stream-result
                        (loop 1 next)
                      ) ;if
@@ -270,12 +279,13 @@
                        (sleep delay-sec)
                        (loop (+ attempt 1) api-key)
                      ) ;let*
-                     (%retry-exhausted-result stream-state status resp provider err-body)
+                     (%retry-exhausted-result stream-state status resp provider err-body model-id)
                    ) ;if
                   ) ;
                   (else (gemini-classify-stream-result stream-state
                           idle-timed-out? resp status effective-idle
-                          wrapped-on-event error-body-acc
+                          wrapped-on-event error-body-acc provider model-id
+                          "google-generative-ai"
                         ) ;gemini-classify-stream-result
                   ) ;else
                 ) ;cond

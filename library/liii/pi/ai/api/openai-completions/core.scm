@@ -103,12 +103,20 @@
       ) ;let*
     ) ;define
 
-    (define (openai-parse-response json-data status-code)
+    (define* (openai-parse-response json-data
+               status-code
+               (provider #f)
+               (model-id #f)
+               (api "openai-completions")
+             ) ;openai-parse-response
       (if (not (json-object? json-data))
         (pi-assistant-message (list (pi-text-block ""))
           :stop-reason   "error"
           :usage         (openai-map-usage '())
           :error-message "Invalid JSON response from OpenAI API"
+          :provider      provider
+          :model         model-id
+          :api           api
         ) ;pi-assistant-message
         (let* ((err (%val "error" json-data #f))
                (usage (openai-map-usage (%val "usage" json-data '())))
@@ -118,6 +126,9 @@
               :stop-reason   "error"
               :usage         usage
               :error-message (%val "message" err "OpenAI API error")
+              :provider      provider
+              :model         model-id
+              :api           api
             ) ;pi-assistant-message
             (let* ((choices (%val "choices" json-data #()))
                    (choice
@@ -135,12 +146,15 @@
                 :stop-reason   stop-reason
                 :usage         usage
                 :error-message (if (equal? stop-reason "error") raw-stop #f)
+                :provider      provider
+                :model         model-id
+                :api           api
               ) ;pi-assistant-message
             ) ;let*
           ) ;if
         ) ;let*
       ) ;if
-    ) ;define
+    ) ;define*
 
     ;; 额度耗尽（5 小时窗口 / 周额度等）不是瞬时错误，重试无意义，
     ;; 直接判定为不可重试，由上层给出服务商官方消息。

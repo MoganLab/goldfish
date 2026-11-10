@@ -44,6 +44,9 @@
                   :error-message (pi-assistant-message-error-message resp)
                   :usage         new-u
                   :timestamp     (pi-assistant-message-timestamp resp)
+                  :provider      (pi-assistant-message-provider resp)
+                  :model         (pi-assistant-message-model resp)
+                  :api           (pi-assistant-message-api resp)
                 ) ;pi-assistant-message
                 (append
                   (remove

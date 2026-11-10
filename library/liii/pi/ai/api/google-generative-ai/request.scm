@@ -51,11 +51,14 @@
       ) ;uri->string
     ) ;define
 
-    (define (%make-error-response msg usage)
+    (define (%make-error-response msg usage provider model-id)
       (pi-assistant-message (list (pi-text-block ""))
         :stop-reason   "error"
         :error-message msg
         :usage         usage
+        :provider      provider
+        :model         model-id
+        :api           "google-generative-ai"
       ) ;pi-assistant-message
     ) ;define
 
@@ -114,10 +117,17 @@
       ) ;let
     ) ;define
 
-    (define (gemini-parse-response json-data status-code)
+    (define* (gemini-parse-response json-data
+               status-code
+               (provider "google")
+               (model-id #f)
+               (api "google-generative-ai")
+             ) ;gemini-parse-response
       (if (not (json-object? json-data))
         (%make-error-response "Invalid JSON response from Gemini API"
           (gemini-map-usage '())
+          provider
+          model-id
         ) ;%make-error-response
         (let* ((candidates (cdr (or (assoc "candidates" json-data) '(#f . #f))))
                (usage-meta (cdr (or (assoc "usageMetadata" json-data) '(#f . #f))))
@@ -132,7 +142,7 @@
                      ) ;if
                    ) ;msg
                   ) ;
-              (%make-error-response msg usage)
+              (%make-error-response msg usage provider model-id)
             ) ;let*
             (let* ((candidate (vector-ref candidates 0))
                    (content-obj (cdr (or (assoc "content" candidate) '(#f
@@ -150,6 +160,9 @@
                     :stop-reason   stop-reason
                     :error-message err-msg
                     :usage         usage
+                    :provider      provider
+                    :model         model-id
+                    :api           api
                   ) ;pi-assistant-message
                 ) ;let*
               ) ;let-values
@@ -157,7 +170,7 @@
           ) ;if
         ) ;let*
       ) ;if
-    ) ;define
+    ) ;define*
 
     (define (gemini-build-tool-declarations active-tool-names tool-resolver)
       (filter (lambda (d) d)
@@ -311,6 +324,8 @@
                                           (format-failed-stream-msg status resp)
                                         ) ;if
                     (gemini-map-usage '())
+                    provider
+                    model-id
                   ) ;%make-error-response
                 ) ;let
                ) ;
@@ -321,8 +336,10 @@
                    (if limit
                      (%make-error-response (pi-usage-limit-error-message limit provider)
                        (gemini-map-usage '())
+                       provider
+                       model-id
                      ) ;%make-error-response
-                     (gemini-parse-response pj status)
+                     (gemini-parse-response pj status provider model-id "google-generative-ai")
                    ) ;if
                  ) ;let*
                ) ;else

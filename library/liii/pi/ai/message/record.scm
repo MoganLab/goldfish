@@ -17,18 +17,19 @@
     pi-assistant-message? pi-assistant-message-role pi-assistant-message-content
     pi-assistant-message-stop-reason pi-assistant-message-error-message
     pi-assistant-message-usage pi-assistant-message-timestamp
-    pi-tool-result-message pi-tool-result-message? pi-tool-result-message-role
-    pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
-    pi-tool-result-message-content pi-tool-result-message-is-error
-    pi-tool-result-message-timestamp pi-text-block pi-text-block?
-    pi-text-block-type pi-text-block-text pi-text-block-signature
-    pi-thinking-block pi-thinking-block? pi-thinking-block-type
-    pi-thinking-block-thinking pi-thinking-block-thinking-signature
-    pi-tool-call-block pi-tool-call-block? pi-tool-call-block-type
-    pi-tool-call-block-id pi-tool-call-block-name pi-tool-call-block-arguments
-    pi-tool-call-block-thought-signature pi-image-block pi-image-block?
-    pi-image-block-type pi-image-block-data pi-image-block-mime-type
-    pi-bash-execution->user-text
+    pi-assistant-message-provider pi-assistant-message-model
+    pi-assistant-message-api pi-tool-result-message pi-tool-result-message?
+    pi-tool-result-message-role pi-tool-result-message-tool-call-id
+    pi-tool-result-message-tool-name pi-tool-result-message-content
+    pi-tool-result-message-is-error pi-tool-result-message-timestamp
+    pi-text-block pi-text-block? pi-text-block-type pi-text-block-text
+    pi-text-block-signature pi-thinking-block pi-thinking-block?
+    pi-thinking-block-type pi-thinking-block-thinking
+    pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
+    pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
+    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    pi-image-block pi-image-block? pi-image-block-type pi-image-block-data
+    pi-image-block-mime-type pi-bash-execution->user-text
   ) ;export
   (begin
 
@@ -164,11 +165,23 @@
                     (err (pi-assistant-message-error-message msg))
                     (u (pi-assistant-message-usage msg))
                     (ts (pi-assistant-message-timestamp msg))
+                    (prov (pi-assistant-message-provider msg))
+                    (model (pi-assistant-message-model msg))
+                    (api (pi-assistant-message-api msg))
                     (res (list (cons "role" "assistant")
                            (cons "content" c)
                            (cons "stopReason" sr)
                            (cons "errorMessage" err)
                          ) ;list
+                    ) ;res
+                    (res
+                      (if prov (append res (list (cons "provider" prov))) res)
+                    ) ;res
+                    (res
+                      (if model (append res (list (cons "model" model))) res)
+                    ) ;res
+                    (res
+                      (if api (append res (list (cons "api" api))) res)
                     ) ;res
                     (res
                       (if u (append res (list (cons "usage" u))) res)
@@ -213,12 +226,18 @@
                (error-message #f)
                (usage #f)
                (timestamp #f)
+               (provider #f)
+               (model #f)
+               (api #f)
              ) ;pi-assistant-message
       (%make-pi-assistant-message content
         stop-reason
         error-message
         usage
         (or timestamp (pi-current-time-millis))
+        provider
+        model
+        api
       ) ;%make-pi-assistant-message
     ) ;define*
 

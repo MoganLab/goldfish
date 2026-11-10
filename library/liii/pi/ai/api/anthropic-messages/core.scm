@@ -320,12 +320,20 @@
       ) ;let*
     ) ;define
 
-    (define (anthropic-parse-response json-data status-code)
+    (define* (anthropic-parse-response json-data
+               status-code
+               (provider #f)
+               (model-id #f)
+               (api "anthropic-messages")
+             ) ;anthropic-parse-response
       (if (not (json-object? json-data))
         (pi-assistant-message (list (pi-text-block ""))
           :stop-reason   "error"
           :usage         (anthropic-map-usage '())
           :error-message "Invalid JSON response from Anthropic API"
+          :provider      provider
+          :model         model-id
+          :api           api
         ) ;pi-assistant-message
         (let* ((err (%val "error" json-data #f))
                (raw-stop (%val "stop_reason" json-data "end_turn"))
@@ -336,6 +344,9 @@
               :stop-reason   "error"
               :usage         usage
               :error-message (%val "message" err "API error")
+              :provider      provider
+              :model         model-id
+              :api           api
             ) ;pi-assistant-message
             (let* ((raw-c (%val "content" json-data #()))
                    (blocks (%extract-blocks raw-c))
@@ -345,12 +356,15 @@
                 :stop-reason   stop-reason
                 :usage         usage
                 :error-message (if (equal? stop-reason "error") raw-stop #f)
+                :provider      provider
+                :model         model-id
+                :api           api
               ) ;pi-assistant-message
             ) ;let*
           ) ;if
         ) ;let*
       ) ;if
-    ) ;define
+    ) ;define*
 
     ;; 额度耗尽（5 小时窗口 / 周额度等）不是瞬时错误，重试无意义
     (define* (anthropic-is-retriable-error? status-code response-body-str (provider #f))

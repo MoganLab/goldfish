@@ -24,6 +24,9 @@
                 #f
                 '((input . 10) (output . 20))
                 3000
+                #f
+                #f
+                #f
               ) ;%make-pi-assistant-message
        ) ;obj-a
        (obj-b (%make-pi-assistant-message '("块一" "块二")
@@ -31,6 +34,9 @@
                 "upstream error"
                 #f
                 4000
+                #f
+                #f
+                #f
               ) ;%make-pi-assistant-message
        ) ;obj-b
       ) ;
