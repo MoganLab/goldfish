@@ -638,7 +638,7 @@ typedef struct {
 } port_functions_t;
 
 typedef struct {
-  bool needs_free, is_closed;
+  bool needs_free, is_closed, is_binary; /* is_binary: R7RS binary port flag */
   port_type_t ptype;
   FILE *file;
   char *filename;

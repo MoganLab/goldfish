@@ -63,6 +63,9 @@ s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_p
 #ifndef port_set_closed
   #define port_set_closed(p, Val)         port_port(p)->is_closed = Val
 #endif
+#ifndef port_set_binary
+  #define port_set_binary(p, Val)         port_port(p)->is_binary = Val
+#endif
 #ifndef add_output_port
   #define add_output_port(sc, p)          add_to_gc_list(sc, sc->output_ports, p)
 #endif
@@ -89,9 +92,9 @@ s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_p
   #define MAX_SIZE_FOR_FILE_TO_STRING_PORT_CONVERSION 10000000
 #endif
 
-static s7_pointer make_input_file(s7_scheme *sc, const char *name, FILE *fp)
+static s7_pointer make_input_file(s7_scheme *sc, const char *name, FILE *fp, bool binary_mode)
 {
-  return(read_file(sc, fp, name, MAX_SIZE_FOR_FILE_TO_STRING_PORT_CONVERSION, "open"));
+  return(s7i_read_file(sc, fp, name, MAX_SIZE_FOR_FILE_TO_STRING_PORT_CONVERSION, "open", binary_mode));
 }
 
 bool is_directory(const char *filename)
@@ -137,7 +140,7 @@ s7_pointer open_input_file_1(s7_scheme *sc, const char *name, const char *mode, 
   errno = 0;
   fp = fopen(name, mode);
   if (fp)
-    return(make_input_file(sc, name, fp));
+    return(make_input_file(sc, name, fp, (strchr(mode, 'b') != NULL)));
 
 #if !MS_WINDOWS
   if (errno == EINVAL)
@@ -152,7 +155,7 @@ s7_pointer open_input_file_1(s7_scheme *sc, const char *name, const char *mode, 
       fp = fopen(new_name, mode);
       liberate(sc, b);
       if (fp)
-	return(make_input_file(sc, name, fp));
+	return(make_input_file(sc, name, fp, (strchr(mode, 'b') != NULL)));
     }
 #endif
 #endif
@@ -204,6 +207,7 @@ s7_pointer s7_open_output_file(s7_scheme *sc, const char *name, const char *mode
   port_block(port) = b;
   port_port(port) = (port_t *)s7i_block_data(b);
   port_type(port) = file_port;
+  port_set_binary(port, (strchr(mode, 'b') != NULL));
   port_set_closed(port, false);
   port_filename_length(port) = safe_strlen(name);
   port_set_filename(sc, port, name, port_filename_length(port));

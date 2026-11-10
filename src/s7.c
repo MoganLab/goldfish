@@ -620,7 +620,7 @@ typedef struct {
 } port_functions_t;
 
 typedef struct {
-  bool needs_free, is_closed;
+  bool needs_free, is_closed, is_binary; /* is_binary: R7RS binary port flag (read-u8 etc vs read-char etc) */
   port_type_t ptype;
   FILE *file;
   char *filename;
@@ -3529,6 +3529,8 @@ static s7_pointer slot_expression(s7_pointer p)    \
 #define port_block(p)                  (T_Prt(p))->object.prt.block
 #define port_type(p)                   port_port(p)->ptype
 #define port_is_closed(p)              port_port(p)->is_closed
+#define port_is_binary(p)              port_port(p)->is_binary
+#define port_set_binary(p, Val)        port_port(p)->is_binary = Val
 #define port_set_closed(p, Val)        port_port(p)->is_closed = Val
 #define port_needs_free(p)             port_port(p)->needs_free
 #define port_next(p)                   port_block(p)->nx.next
@@ -18337,6 +18339,7 @@ static s7_pointer open_input_string(s7_scheme *sc, const char *input_string, s7_
   port_block(port) = b;
   port_port(port) = (port_t *)block_data(b);
   port_type(port) = string_port;
+  port_set_binary(port, false);
   port_set_closed(port, false);
   port_set_string_or_function(port, sc->nil);
   port_data(port) = (uint8_t *)input_string;
@@ -18405,6 +18408,7 @@ s7_pointer s7_open_output_string(s7_scheme *sc)
   port_block(port) = b;
   port_port(port) = (port_t *)block_data(b);
   port_type(port) = string_port;
+  port_set_binary(port, false);
   port_set_closed(port, false);
   port_data_size(port) = sc->initial_string_port_length;
   port_data_block(port) = block;
@@ -18557,6 +18561,7 @@ static const port_functions_t input_function_functions =
 static void function_port_set_defaults(s7_pointer port)
 {
   port_type(port) = function_port;
+  port_set_binary(port, false);
   port_data(port) = NULL;
   port_data_block(port) = NULL;
   port_set_closed(port, false);
@@ -19048,7 +19053,7 @@ static s7_pointer load_file_1(s7_scheme *sc, const char *filename)
       s7_pointer port;
       if (hook_has_functions(sc->load_hook))
 	s7_apply_function(sc, sc->load_hook, set_plist_1(sc, s7_make_string(sc, (local_file_name) ? local_file_name : filename)));
-      port = read_file(sc, fp, (local_file_name) ? local_file_name : filename, -1, "load"); /* -1 = read entire file into string, this is currently not tweakable */
+      port = s7i_read_file(sc, fp, (local_file_name) ? local_file_name : filename, -1, "load", false); /* -1 = read entire file into string, this is currently not tweakable */
       if (local_file_name) free(local_file_name);
       set_loader_port(port);
       if ((is_string_port(port)) &&
@@ -20520,6 +20525,8 @@ s7_pointer pair_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
 /* -------------------------------- s7i helpers for s7_scheme_write.c -------------------------------- */
 
 bool s7i_port_is_closed(s7_pointer p) { return port_is_closed(p); }
+bool s7i_port_is_binary(s7_pointer p) { return port_is_binary(p); }
+void s7i_port_set_binary(s7_pointer p, bool val) { port_set_binary(p, val); }
 
 void s7i_port_write_character(s7_scheme *sc, char c, s7_pointer port)
 {
@@ -20622,6 +20629,7 @@ static s7_pointer new_format_port(s7_scheme *sc)
   port_block(port) = b;
   port_port(port) = (port_t *)block_data(b);
   port_type(port) = string_port;
+  port_set_binary(port, false);
   port_set_closed(port, false);
   port_data_size(port) = len;
   port_next(port) = NULL;
@@ -79082,6 +79090,11 @@ static void init_rootlet(s7_scheme *sc)
   sc->pair_line_number_symbol =      defun("pair-line-number",  pair_line_number,	1, 0, false);
   sc->pair_filename_symbol =         defun("pair-filename",     pair_filename,	        1, 0, false);
   sc->is_port_closed_symbol =        defun("port-closed?",	is_port_closed,		1, 0, false);
+
+  /* R7RS textual/binary port predicates, C implementations in s7_scheme_predicate.c */
+  s7_define_function(sc, "binary-port?", g_is_binary_port, 1, 0, false, "(binary-port? port) returns #t if port is a binary port");
+  s7_define_function(sc, "textual-port?", g_is_textual_port, 1, 0, false, "(textual-port? port) returns #t if port is a textual port");
+  s7_define_function(sc, "mark-port-binary!", g_mark_port_binary, 1, 0, false, "(mark-port-binary! port) marks port as binary (R7RS bytevector ports)");
 
   sc->current_input_port_symbol =    defun("current-input-port",  current_input_port,  0, 0, false);
   sc->current_output_port_symbol =   defun("current-output-port", current_output_port, 0, 0, false);

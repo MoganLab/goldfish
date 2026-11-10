@@ -938,9 +938,8 @@
       (or (input-port? p) (output-port? p))
     ) ;define
 
-    (define textual-port? port?)
-
-    (define binary-port? port?)
+    ;; textual-port? / binary-port? 由 C 层原语提供（rootlet），
+    ;; 这里不再定义同名别名，端口必须恰为 textual 或 binary 之一（R7RS 6.13.1）。
 
     (define (input-port-open? p)
       (not (port-closed? p))
@@ -958,14 +957,19 @@
       (unless (bytevector? bv)
         (error 'type-error "open-input-bytevector: argument must be a bytevector" bv)
       ) ;unless
-      (open-input-string (byte-vector->string bv))
+      (mark-port-binary! (open-input-string (byte-vector->string bv)))
     ) ;define
 
-    (define open-output-bytevector open-output-string)
+    (define (open-output-bytevector)
+      (mark-port-binary! (open-output-string))
+    ) ;define
 
     (define (get-output-bytevector port)
       (unless (and (output-port? port) (output-port-open? port))
         (error 'type-error "get-output-bytevector: expected an open output port" port)
+      ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "get-output-bytevector: expected a binary port" port)
       ) ;unless
       (string->byte-vector (get-output-string port))
     ) ;define
@@ -975,6 +979,9 @@
     (define* (peek-u8 (port (current-input-port)))
       (unless (and (input-port? port) (input-port-open? port))
         (error 'type-error "peek-u8: expected an open input port" port)
+      ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "peek-u8: expected a binary port" port)
       ) ;unless
       (let ((c (peek-char port)))
         (if (eof-object? c) c (char->integer c))
@@ -997,6 +1004,9 @@
       ) ;unless
       (unless (and (input-port? port) (input-port-open? port))
         (error 'type-error "read-bytevector!: expected an open input port" port)
+      ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "read-bytevector!: expected a binary port" port)
       ) ;unless
       (unless (and (integer? start) (integer? end))
         (error 'type-error "read-bytevector!: start and end must be integers")
@@ -1031,6 +1041,9 @@
       (unless (and (input-port? port) (input-port-open? port))
         (error 'type-error "read-bytevector: expected an open input port" port)
       ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "read-bytevector: expected a binary port" port)
+      ) ;unless
       (if (= k 0)
         (make-bytevector 0)
         (let* ((bv (make-bytevector k)) (n (read-bytevector! bv port 0 k)))
@@ -1058,6 +1071,9 @@
       ) ;unless
       (unless (and (output-port? port) (output-port-open? port))
         (error 'type-error "write-bytevector: expected an open output port" port)
+      ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "write-bytevector: expected a binary port" port)
       ) ;unless
       (unless (and (integer? start) (integer? end))
         (error 'type-error "write-bytevector: start and end must be integers")

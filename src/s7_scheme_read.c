@@ -46,6 +46,9 @@
 #ifndef port_set_closed
   #define port_set_closed(p, Val)         port_port(p)->is_closed = Val
 #endif
+#ifndef port_set_binary
+  #define port_set_binary(p, Val)         port_port(p)->is_binary = Val
+#endif
 #ifndef port_set_string_or_function
   #define port_set_string_or_function(p, S) port_port(p)->orig_str = S
 #endif
@@ -469,7 +472,8 @@ s7_pointer string_read_name(s7_scheme *sc, s7_pointer port)
 
 /* -------- file port creation -------- */
 
-s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size, const char *caller)
+/* binary_mode: pass true when the file was opened with a "b" fopen mode (R7RS binary port) */
+s7_pointer s7i_read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size, const char *caller, bool binary_mode)
 {
   s7_pointer port;
   s7_int size;
@@ -480,6 +484,7 @@ s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size,
   port_port(port) = (port_t *)s7i_block_data(b);
   port_set_closed(port, false);
   port_set_string_or_function(port, sc->nil);
+  port_set_binary(port, binary_mode);
   port_filename_length(port) = s7i_safe_strlen(name);
   s7i_port_set_filename(sc, port, name, port_filename_length(port));
   port_line_number(port) = 1;  /* first line is numbered 1 */

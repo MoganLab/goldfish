@@ -519,6 +519,8 @@ block_t *s7i_port_data_block(s7_pointer port);
 void s7i_set_port_data_block(s7_pointer port, block_t *val);
 bool s7i_is_string_port(s7_pointer port);
 bool s7i_port_is_closed(s7_pointer port);
+bool s7i_port_is_binary(s7_pointer port);
+void s7i_port_set_binary(s7_pointer port, bool val);
 void s7i_port_write_character(s7_scheme *sc, char c, s7_pointer port);
 void s7i_port_write_string(s7_scheme *sc, const char *str, s7_int len, s7_pointer port);
 

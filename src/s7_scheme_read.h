@@ -52,7 +52,7 @@ s7_pointer string_read_sharp(s7_scheme *sc, s7_pointer port);
 s7_pointer string_read_name(s7_scheme *sc, s7_pointer port);
 
 /* file port creation */
-s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size, const char *caller);
+s7_pointer s7i_read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size, const char *caller, bool binary_mode);
 
 /* Public API implementations */
 s7_pointer s7_read(s7_scheme *sc, s7_pointer port);
