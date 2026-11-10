@@ -26,6 +26,14 @@
   (export hint-srfi/srfi-1)
   (begin
 
+    ;; xcons : (any? any? -> pair?)
+    (define hint-xcons '((any? any? -> pair?)))
+
+    ;; cons* : 可变参数；单参返回该值本身，多参返回点对
+    (define hint-cons*
+      '((any? -> any?) (any? any? -> pair?) (any? any? any? -> pair?))
+    ) ;define
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -37,6 +45,8 @@
 
     (define (hint-srfi/srfi-1 name)
       (case name
+       ((xcons) hint-xcons)
+       ((cons*) hint-cons*)
        ((every) hint-every)
        ((filter) hint-filter)
        ((alist-cons) hint-alist-cons)
