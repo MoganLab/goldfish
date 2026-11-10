@@ -314,10 +314,11 @@
                  ;; click + 左键 + 工具已完成时翻转；pending 不响应
                  :handle-mouse
                  (lambda (self ev)
-                   (if (and (mouse-event-click? ev)
-                         (eq? (mouse-event-button ev) 'left)
-                         (eq? (%tool-card-status st) 'success)
-                       ) ;and
+                   (if
+                     (and (mouse-event-click? ev)
+                       (eq? (mouse-event-button ev) 'left)
+                       (not (eq? (%tool-card-status st) 'pending))
+                     ) ;and
                      (begin
                        (%tool-card-expanded?-set! st (not (%tool-card-expanded? st)))
                        #t

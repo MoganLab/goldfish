@@ -32,15 +32,15 @@
       ) ;
   (check (component? tool-card) => #t)
   (check (length lines) => 6)
-  (check (string-contains? (car lines) "48;2;37;65;49") => #t)
+  (check-true (string-contains? (car lines) "48;2;37;65;49"))
   (check-false (string-contains? (car lines) "npm test"))
-  (check (string-contains? (cadr lines) "48;2;37;65;49") => #t)
-  (check (string-contains? (cadr lines) "$ npm test") => #t)
-  (check (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225m") => #t)
+  (check-true (string-contains? (cadr lines) "48;2;37;65;49"))
+  (check-true (string-contains? (cadr lines) "$ npm test"))
+  (check-true (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225m"))
   (check-false (string-contains? (cadr lines) "0;1;38;2"))
-  (check (string-contains? (list-ref lines 3) "38;2;157;165;169") => #t)
+  (check-true (string-contains? (list-ref lines 3) "38;2;157;165;169"))
   (check-false (string-contains? (cadr lines) "38;2;157;165;169"))
-  (check (string-contains? (list-ref lines 4) "48;2;37;65;49") => #t)
+  (check-true (string-contains? (list-ref lines 4) "48;2;37;65;49"))
   (check (list-ref lines 5) => "")
   ;; 完整工具卡片也缓存渲染结果，而不仅是 bash 的原始输出行。
   (check (eq? lines (component-render tool-card w)) => #t)
@@ -49,36 +49,31 @@
 
 ;; 非 bash read pending：工具名、accent 路径、pending 背景且无徽标
 (let* ((pending-card (make-tool-card "read" "file.scm" 'pending))
-       (w 50)
        (lines (component-render pending-card 50))
+       (title (cadr lines))
        (plain (string-join (map strip-ansi lines) "\n"))
       ) ;
-  (check (string-contains? (cadr lines) "48;2;52;56;58") => #t)
-  (check (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mread")
-    =>
-    #t
-  ) ;check
-  (check (string-contains? (cadr lines) "38;2;167;152;215m file.scm") => #t)
+  (check-true (string-contains? title "48;2;52;56;58"))
+  (check-true (string-contains? title "\x1b;[1m\x1b;[38;2;222;224;225mread"))
+  (check-true (string-contains? title "38;2;167;152;215m file.scm"))
   (check-false (string-contains? plain "●"))
   ;; 对齐上游 theme.fg 的选择性重置（39/22）：分段间绝不清背景。
   ;; 粗体段以 \x1b[22m\x1b[39m 收尾，其余段以 \x1b[39m 收尾；
   ;; 标题行内不允许出现 \x1b[0m 全重置（末尾 apply-card-bg 的收尾除外）
-  (let ((title (cadr lines)))
-    (check (string-contains? title "read\x1b;[22m\x1b;[39m") => #t)
-    (check (string-contains? title "file.scm\x1b;[39m") => #t)
-    (check (= (length (string-split title "\x1b;[0m")) 2) => #t)
-  ) ;let
+  (check-true (string-contains? title "read\x1b;[22m\x1b;[39m"))
+  (check-true (string-contains? title "file.scm\x1b;[39m"))
+  (check (= (length (string-split title "\x1b;[0m")) 2) => #t)
   ;; 带 warning 范围后缀的 read 调用：范围段同样只重置前景
   (let* ((range-card (make-tool-card "read"
                        '(("path" . "a.scm") ("offset" . 10) ("limit" . 5))
                        'pending
                      ) ;make-tool-card
          ) ;range-card
-         (title (cadr (component-render range-card 60)))
+         (rtitle (cadr (component-render range-card 60)))
         ) ;
-    (check (string-contains? title ":10-14") => #t)
-    (check (string-contains? title ":10-14\x1b;[39m") => #t)
-    (check (= (length (string-split title "\x1b;[0m")) 2) => #t)
+    (check (string-contains? rtitle ":10-14") => #t)
+    (check (string-contains? rtitle ":10-14\x1b;[39m") => #t)
+    (check (= (length (string-split rtitle "\x1b;[0m")) 2) => #t)
   ) ;let*
 ) ;let*
 
@@ -89,10 +84,8 @@
        (joined (string-join lines ""))
       ) ;
   (check (string-contains? (cadr lines) "48;2;91;40;42") => #t)
-  (check (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mwrite")
-    =>
-    #t
-  ) ;check
+  (check-true (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mwrite")
+  ) ;check-true
   (check (string-contains? (cadr lines) "38;2;167;152;215m out.txt") => #t)
   ;; 与 read 相同：分段间只选择性重置，背景铺满整行（write/edit/grep 等共用该路径）
   (check (string-contains? (cadr lines) "write\x1b;[22m\x1b;[39m") => #t)
@@ -116,10 +109,8 @@
        (joined (string-join lines ""))
       ) ;
   (check (string-contains? (cadr lines) "48;2;37;65;49") => #t)
-  (check (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mread")
-    =>
-    #t
-  ) ;check
+  (check-true (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mread")
+  ) ;check-true
   (check-false (string-contains? joined "38;2;220;245;220"))
   (check-false (string-contains? joined "✔"))
   (check-false (string-contains? joined "(content)"))
@@ -135,10 +126,7 @@
 
 ;; bash 卡片标题按分段着色（对齐上游 pi renderCall）：
 ;; 命令为粗体标题色 toolTitle，超时提示为 muted 且不加粗
-(let* ((card (make-tool-card "bash"
-               '(("command" . "sleep 5") ("timeout" . 30))
-               'pending
-             ) ;make-tool-card
+(let* ((card (make-tool-card "bash" '(("command" . "sleep 5") ("timeout" . 30)) 'pending)
        ) ;card
        (w 60)
        (title (cadr (component-render card w)))
@@ -146,7 +134,7 @@
   (check (string-contains? title "$ sleep 5") => #t)
   (check (string-contains? title "(timeout 30s)") => #t)
   ;; 命令段：粗体 + 标题色
-  (check (string-contains? title "\x1b;[1m\x1b;[38;2;222;224;225m$ sleep 5") => #t)
+  (check-true (string-contains? title "\x1b;[1m\x1b;[38;2;222;224;225m$ sleep 5"))
   (check (string-contains? title "$ sleep 5\x1b;[22m\x1b;[39m") => #t)
   ;; 超时提示段：muted 前景，不带粗体
   (check (string-contains? title "\x1b;[38;2;157;165;169m (timeout 30s)") => #t)
@@ -157,16 +145,19 @@
 
 ;; issue #1484：超宽标题折行后仍保持分段着色，超时提示仍为 muted，
 ;; 行内不出现 \x1b[0m 全重置（只有 apply-card-bg 行尾收尾的一个）
-(let* ((card (make-tool-card "bash"
-               `(("command" . ,(string-append "echo " (make-string 30 #\x))) ("timeout" . 30))
-               'pending
-             ) ;make-tool-card
+(let* ((cmd (string-append "echo " (make-string 30 #\x)))
+       (card
+         (make-tool-card "bash" `(("command" . ,cmd) ("timeout" . 30)) 'pending)
        ) ;card
        (rendered (component-render card 44))
        (title2 (caddr rendered))
       ) ;
   (check (string-contains? title2 "\x1b;[38;2;157;165;169m(timeout 30s)") => #t)
-  (check (= (length (string-split (cadr rendered) "\x1b;[0m")) 2) => #t)
+  (check
+    (= (length (string-split (cadr rendered) "\x1b;[0m")) 2)
+    =>
+    #t
+  ) ;check
   (check (= (length (string-split title2 "\x1b;[0m")) 2) => #t)
 ) ;let*
 
@@ -180,11 +171,7 @@
 ) ;let*
 
 ;; 命令含换行时标题拆成多行渲染，背景仍然铺满（不塌成一行）
-(let* ((card (make-tool-card "bash"
-               '(("command" . "printf a\nprintf b"))
-               'success
-               "ab"
-             ) ;make-tool-card
+(let* ((card (make-tool-card "bash" '(("command" . "printf a\nprintf b")) 'success "ab")
        ) ;card
        (lines (component-render card 60))
        (plain (string-join (map strip-ansi lines) "\n"))
@@ -216,14 +203,14 @@
       ) ;
   (check (component? card) => #t)
   (check (length rendered) => 7)
-  (check (string-contains? (car rendered) "48;2;37;65;49") => #t)
+  (check-true (string-contains? (car rendered) "48;2;37;65;49"))
   (check-false (string-contains? (car rendered) "git status"))
-  (check (string-contains? (cadr rendered) "48;2;37;65;49") => #t)
-  (check (string-contains? (cadr rendered) "$ git status -s") => #t)
-  (check (string-contains? (list-ref rendered 2) "48;2;37;65;49") => #t)
-  (check (string-contains? (list-ref rendered 3) "M a.scm") => #t)
-  (check (string-contains? (list-ref rendered 4) "?? b.scm") => #t)
-  (check (string-contains? (list-ref rendered 5) "48;2;37;65;49") => #t)
+  (check-true (string-contains? (cadr rendered) "48;2;37;65;49"))
+  (check-true (string-contains? (cadr rendered) "$ git status -s"))
+  (check-true (string-contains? (list-ref rendered 2) "48;2;37;65;49"))
+  (check-true (string-contains? (list-ref rendered 3) "M a.scm"))
+  (check-true (string-contains? (list-ref rendered 4) "?? b.scm"))
+  (check-true (string-contains? (list-ref rendered 5) "48;2;37;65;49"))
   (check (list-ref rendered 6) => "")
 ) ;let*
 
@@ -248,11 +235,9 @@
   ;; 超宽错误信息必然折为多行输出（pad+标题+空行+多行输出+pad+间隔空行）
   (check (> (length lines) 6) => #t)
   ;; 每行显示宽度不超过终端宽度，否则会被 alt-screen 截断
-  (check
+  (check-true
     (every (lambda (line) (<= (display-width line) w)) lines)
-    =>
-    #t
-  ) ;check
+  ) ;check-true
   ;; 内容完整：数字字符总数必须等于 180，一个都不能少
   (check
     (length
@@ -264,10 +249,8 @@
     180
   ) ;check
   ;; 折行后正文可以完整还原
-  (check (string-contains? (string-join (map string-trim-both plain) "") digits)
-    =>
-    #t
-  ) ;check
+  (check-true (string-contains? (string-join (map string-trim-both plain) "") digits)
+  ) ;check-true
   ;; 输出行背景仍是 error 红
   (check (string-contains? (list-ref lines 3) "48;2;91;40;42") => #t)
 ) ;let*
@@ -279,15 +262,11 @@
        (lines (component-render card w))
        (plain (map strip-ansi lines))
       ) ;
-  (check
+  (check-true
     (every (lambda (line) (<= (display-width line) w)) lines)
-    =>
-    #t
-  ) ;check
-  (check (string-contains? (string-join (map string-trim-both plain) "") zh-msg)
-    =>
-    #t
-  ) ;check
+  ) ;check-true
+  (check-true (string-contains? (string-join (map string-trim-both plain) "") zh-msg)
+  ) ;check-true
 ) ;let*
 
 ;; 运行中显示 Elapsed；结束后使用执行层耗时且不再滚动
@@ -385,16 +364,36 @@
 ) ;let*
 
 ;; 命令、路径和自定义工具文本在卡片边界净化，不改变底层参数状态。
-(let* ((card (make-tool-card "read" '((path . "before\x1b;cafter")) 'success))
-       (plain (map strip-ansi (component-render card 80)))
+(let* ((card1 (make-tool-card "read" '((path . "before\x1b;cafter")) 'success))
+       (plain1 (string-join (map strip-ansi (component-render card1 80)) "\n"))
+       (card2 (make-tool-card "custom" "x\x1b;[?1000ly" 'success))
+       (plain2 (string-join (map strip-ansi (component-render card2 80)) "\n"))
       ) ;
-  (check-true (string-contains? (string-join plain "\n") "read beforeafter"))
+  (check-true (string-contains? plain1 "read beforeafter"))
+  (check-true (string-contains? plain2 "custom x"))
+  (check-false (string-contains? plain2 "1000l"))
 ) ;let*
-(let* ((card (make-tool-card "custom" "x\x1b;[?1000ly" 'success))
-       (plain (string-join (map strip-ansi (component-render card 80)) "\n"))
-      ) ;
-  (check-true (string-contains? plain "custom x"))
-  (check-false (string-contains? plain "1000l"))
-) ;let*
+
+;; 错误卡片支持鼠标左键点击展开与折叠，pending 与非左键不响应
+(let ((card (make-tool-card "read" "missing.scm" 'error "File not found"))
+      (pending-card (make-tool-card "read" "missing.scm" 'pending))
+      (ev (make-mouse-event 'click 'left 0 0))
+      (right-ev (make-mouse-event 'click 'right 0 0))
+     ) ;
+  (check-false (tool-card-expanded? card))
+  ;; 左键点击展开
+  (check-true (component-handle-mouse! card ev))
+  (check-true (tool-card-expanded? card))
+  ;; 再次左键点击折叠
+  (check-true (component-handle-mouse! card ev))
+  (check-false (tool-card-expanded? card))
+  ;; 右键点击不响应且 expanded? 保持不变
+  (check-false (component-handle-mouse! card right-ev))
+  (check-false (tool-card-expanded? card))
+  ;; pending 状态卡片不响应左键点击
+  (check-false (tool-card-expanded? pending-card))
+  (check-false (component-handle-mouse! pending-card ev))
+  (check-false (tool-card-expanded? pending-card))
+) ;let
 
 (check-report)
