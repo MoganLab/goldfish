@@ -51,7 +51,7 @@
 ;; 注意
 ;; ----
 ;; 该目录只存放 settings.json / auth.json / models.json / models-store.json /
-;; multikey.json / web-search.json 等 JSON 配置文件；会话目录 sessions/ 与扩展目录
+;; web-search.json 等 JSON 配置文件；会话目录 sessions/ 与扩展目录
 ;; extensions/ 仍归属 agent 目录，由 pi-get-agent-dir 返回。
 ;; 参数与环境变量为空串（或仅空白）时视为未提供，继续走下一优先级。
 ;;

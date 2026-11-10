@@ -7,7 +7,7 @@
 ;;
 
 ;; 通用 API key 钩子接口：核心请求路径只认识 config 中的
-;; request-key / rotate-key 过程钩子，密钥池策略（multikey 等）由
+;; request-key / rotate-key 过程钩子，密钥池策略由
 ;; 扩展经 config augmenter 注入，核心不依赖任何具体实现库。
 
 (define-library (liii pi ai keyring)

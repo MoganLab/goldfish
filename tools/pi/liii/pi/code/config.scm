@@ -45,8 +45,7 @@
     ;; pi-get-agent-dir 已下沉至 (liii pi code core tools read)，此处经 import 再导出
 
     ;; JSON 配置文件目录：settings.json / auth.json / models/providers.json /
-    ;; models/（provider 与模型配置）/ models-store.json / multikey.json /
-    ;; web-search.json 等所在目录。
+    ;; models/（provider 与模型配置）/ models-store.json / web-search.json 等所在目录。
     ;; 优先级：显式目录参数 > GF_CONFIG_DIR > PI_CODING_AGENT_DIR
     ;;         > ~/.gf/agent
     ;; 返回绝对路径（path 对象）；会话目录（sessions/）与扩展目录（extensions/）
@@ -362,7 +361,7 @@
     ) ;define
     (define resolve-goldpi-config resolve-pi-config)
 
-    ;; 应用扩展注册的 config augmenter：multikey 等内置/用户扩展经此
+    ;; 应用扩展注册的 config augmenter：内置/用户扩展经此
     ;; 注入 request-key / rotate-key 等钩子（CLI dispatch 与 TUI worker 共用）
     (define (augment-pi-config cfg parsed)
       (let* ((reg (or (current-extension-registry) (default-extension-registry))))

@@ -79,7 +79,8 @@
       '("goldfish")
       (list "ai" "liii pi ai")
       (list "code" "liii pi code")
-      (list "extensions" "liii pi multikey" "liii pi review" "liii pi simplify"
+      (list "all_in_one" "liii pi all_in_one")
+      (list "extensions" "liii pi review" "liii pi simplify"
         "liii pi web-search"
       ) ;list
     ) ;%dom
@@ -284,17 +285,17 @@
   (check (check-layer-order f %cfg) => '())
 ) ;let
 
-;; 9c. pi 域层序：ai 层 import extensions 层的 multikey -> 抓到倒挂
-;; （multikey 为扩展实现库，核心层 ai/agent/code 一律不得依赖）
+;; 9c. pi 域层序：ai 层 import all_in_one 层 -> 抓到倒挂
+;; （all_in_one 依赖 ai 层，核心层 ai 不得反向依赖）
 (let* ((f (%mk "tools/pi/liii/pi/ai/request.scm"
-            (%lib-header "scheme base" "liii pi multikey")
+            (%lib-header "scheme base" "liii pi all_in_one")
           ) ;%mk
        ) ;f
        (viol (check-layer-order f %cfg))
        (details (map caddr viol))
       ) ;
   (check (length viol) => 1)
-  (check-true (string-contains? (car details) "multikey"))
+  (check-true (string-contains? (car details) "all_in_one"))
 ) ;let*
 
 ;; ---- 清理临时目录 ---------------------------------------------------
