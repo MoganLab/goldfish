@@ -18,8 +18,10 @@
 ;;
 ;; 说明
 ;; ----
-;; 1. 在 S7 Scheme 中，所有端口同时被视为二进制端口和文本端口
-;; 2. 非端口对象返回 #f
+;; 1. R7RS 6.13.1：端口必须恰为 textual 或 binary 之一
+;; 2. 字符串端口、标准输入输出端口是文本端口
+;; 3. bytevector 端口是二进制端口，不是文本端口
+;; 4. 非端口对象返回 #f
 
 (import (liii check))
 (import (scheme base))
@@ -31,6 +33,14 @@
 (check (textual-port? '()) => #f)
 (check (textual-port? "abc") => #f)
 (check (textual-port? 123) => #f)
+(let ((p (open-input-string "test")))
+  (check (textual-port? p) => #t)
+  (close-port p)
+) ;let
+(let ((p (open-input-bytevector (bytevector 1 2))))
+  (check (textual-port? p) => #f)
+  (close-port p)
+) ;let
 (check-catch 'wrong-number-of-args (textual-port?))
 (check-catch 'wrong-number-of-args (textual-port? 1 2))
 

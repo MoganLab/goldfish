@@ -185,6 +185,31 @@ s7_pointer g_is_port_closed(s7_scheme *sc, s7_pointer args)
   return(s7i_method_or_bust_p(sc, port, "port-closed?", "a port"));
 }
 
+s7_pointer g_is_binary_port(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer port = s7_car(args);
+  if (s7_is_input_port(sc, port) || s7_is_output_port(sc, port))
+    return(s7_make_boolean(sc, s7i_port_is_binary(port)));
+  return(s7_f(sc));
+}
+
+s7_pointer g_is_textual_port(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer port = s7_car(args);
+  if (s7_is_input_port(sc, port) || s7_is_output_port(sc, port))
+    return(s7_make_boolean(sc, !s7i_port_is_binary(port)));
+  return(s7_f(sc));
+}
+
+s7_pointer g_mark_port_binary(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer port = s7_car(args);
+  if (!(s7_is_input_port(sc, port) || s7_is_output_port(sc, port)))
+    return(s7_wrong_type_arg_error(sc, "mark-port-binary!", 1, port, "a port"));
+  s7i_port_set_binary(port, true);
+  return(port);
+}
+
 s7_pointer g_iterator_sequence(s7_scheme *sc, s7_pointer args)
 {
   #define H_iterator_sequence "(iterator-sequence iterator) returns the sequence that iterator is traversing."

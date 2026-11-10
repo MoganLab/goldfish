@@ -519,6 +519,8 @@ block_t *s7i_port_data_block(s7_pointer port);
 void s7i_set_port_data_block(s7_pointer port, block_t *val);
 bool s7i_is_string_port(s7_pointer port);
 bool s7i_port_is_closed(s7_pointer port);
+bool s7i_port_is_binary(s7_pointer port);
+void s7i_port_set_binary(s7_pointer port, bool val);
 void s7i_port_write_character(s7_scheme *sc, char c, s7_pointer port);
 void s7i_port_write_string(s7_scheme *sc, const char *str, s7_int len, s7_pointer port);
 
@@ -541,5 +543,7 @@ int32_t s7i_type(s7_pointer p);
 int32_t s7i_T_INTEGER(void);
 int32_t s7i_T_RATIO(void);
 int32_t s7i_T_STRING(void);
+
+void s7i_file_error_nr(s7_scheme *sc, const char *caller, const char *descr, const char *name);
 
 #endif /* S7_INTERNAL_HELPERS_H */

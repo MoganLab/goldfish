@@ -336,6 +336,12 @@
         (vector? any? integer? -> any?)
         (vector? any? integer? integer? -> any?))
     ) ;define
+    (define hint-vector-append
+      '((-> vector?)
+        (vector? -> vector?)
+        (vector? vector? -> vector?)
+        (vector? vector? vector? -> vector?))
+    ) ;define
     (define hint-vector-map '((procedure? vector? -> vector?)))
     (define hint-vector-for-each '((procedure? vector? -> any?)))
 
@@ -604,6 +610,7 @@
        ((vector-copy) hint-vector-copy)
        ((vector-copy!) hint-vector-copy!)
        ((vector-fill!) hint-vector-fill!)
+       ((vector-append) hint-vector-append)
        ((vector-map) hint-vector-map)
        ((vector-for-each) hint-vector-for-each)
        ((make-bytevector) hint-make-bytevector)

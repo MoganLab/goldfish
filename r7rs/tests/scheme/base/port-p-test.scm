@@ -44,8 +44,13 @@
 (check (port? #\a) => #f)
 ;; 测试 binary-port? 和 textual-port?
 (let ((p (open-input-string "test")))
-  (check (binary-port? p) => #t)
+  (check (binary-port? p) => #f)
   (check (textual-port? p) => #t)
+  (close-port p)
+) ;let
+(let ((p (open-input-bytevector (bytevector 1 2))))
+  (check (binary-port? p) => #t)
+  (check (textual-port? p) => #f)
   (close-port p)
 ) ;let
 
