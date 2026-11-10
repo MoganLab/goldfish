@@ -65,9 +65,29 @@
     ;; 未跟随末尾时，在视口底部叠加“跳到最新消息”提示行
     ;; （对齐上游 tui-alt-screen.ts 的 scrollToEndIndicator）
     (define (%pi-scroll-hint-line width)
-      (apply-card-bg " ↓ Jump to latest message · Ctrl+End " width
-        %bg-pending %fg-title
-      ) ;apply-card-bg
+      (let* ((label " ↓ Jump to latest message · Ctrl+End ")
+             (label-w (display-width label))
+            ) ;
+        (if (<= width label-w)
+          (let* ((cut (truncate-to-width label (max 0 width) ""))
+                 (cut-w (display-width cut))
+                 (pad (make-string (max 0 (- width cut-w)) #\space))
+                ) ;
+            (string-append %bg-pending %fg-title cut %ansi-reset pad)
+          ) ;let*
+          (let* ((left-pad (max 0 (quotient (- width label-w) 2)))
+                 (right-pad (max 0 (- width (+ left-pad label-w))))
+                ) ;
+            (string-append (make-string left-pad #\space)
+              %bg-pending
+              %fg-title
+              label
+              %ansi-reset
+              (make-string right-pad #\space)
+            ) ;string-append
+          ) ;let*
+        ) ;if
+      ) ;let*
     ) ;define
 
     ;; 在第 0 行右上角合成瞬态浮层提示（对齐上游 compositeFlashes）
@@ -173,11 +193,23 @@
                         (n (length padded))
                        ) ;
                    ;; 视口固定高度：内容不足时补空行，dock 始终贴在屏幕底部；
-                   ;; 离开跟随位置时用提示行覆盖视口最后一行
+                   ;; 离开跟随位置时用提示行覆盖视口最后一行并记录热区
                    (if
                      (and (not (scroll-view-follow? (pi-app-scroll-view app))) (> n 0))
-                     (append (take padded (- n 1)) (list (%pi-scroll-hint-line w)))
-                     padded
+                     (let* ((label " ↓ Jump to latest message · Ctrl+End ")
+                            (label-w (display-width label))
+                            (col (max 0 (quotient (- w label-w) 2)))
+                            (max-right (max 0 (- w 1)))
+                            (eff-w (max 0 (min label-w (- max-right col))))
+                            (row (- transcript-height 1))
+                           ) ;
+                       (%pi-app-scroll-hint-rect-set! app (if (> eff-w 0) (list row col eff-w) #f))
+                       (append (take padded (- n 1)) (list (%pi-scroll-hint-line w)))
+                     ) ;let*
+                     (begin
+                       (%pi-app-scroll-hint-rect-set! app #f)
+                       padded
+                     ) ;begin
                    ) ;if
                  ) ;let*
                ) ;transcript-lines
@@ -352,6 +384,7 @@
     ) ;define
 
     (define (pi-app-scroll-bottom! app)
+      (%pi-app-scroll-hint-rect-set! app #f)
       (scroll-view-to-bottom! (pi-app-scroll-view app))
     ) ;define
 

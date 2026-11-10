@@ -37,7 +37,8 @@
     pi-app-tokens %pi-app-tokens-set! pi-app-rendered-frame
     %pi-app-rendered-frame-set! pi-app-dock-length %pi-app-dock-length-set!
     pi-app-working-border-row %pi-app-working-border-row-set! pi-app-skills
-    pi-app-enable-skill-commands?
+    pi-app-enable-skill-commands? pi-app-scroll-hint-rect
+    %pi-app-scroll-hint-rect-set!
   ) ;export
   (import (scheme base)
     (liii date-time)
@@ -59,7 +60,7 @@
         wheel-accelerator steering-chan follow-up-chan steering-pending
         follow-up-pending thinking-card hide-thinking? on-save-hide-thinking
         selection flash tokens rendered-frame dock-length working-border-row
-        skills enable-skill-commands
+        skills enable-skill-commands scroll-hint-rect
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -155,6 +156,8 @@
       ;; 智能体技能集合与命令启用状态
       (skills pi-app-skills)
       (enable-skill-commands pi-app-enable-skill-commands?)
+      ;; 当前渲染帧“跳到最新消息”提示行的屏幕点击热区：(row col width) 或 #f
+      (scroll-hint-rect pi-app-scroll-hint-rect %pi-app-scroll-hint-rect-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
