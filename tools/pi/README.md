@@ -33,7 +33,7 @@ timeout 600 xmake b goldfish
 
 | 类别 | 目录 | 内容 |
 |---|---|---|
-| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`models/providers.json`、`models/<provider>.json`、`models/<provider>/<model>.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
+| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`models/providers.json`、`models/<provider>.json`、`models/<provider>/<model>.json`、`models-store.json`、`web-search.json` 等 JSON 配置文件 |
 | 会话 / 扩展目录（agent-dir） | `~/.pi/agent/` | `sessions/`（会话记录）、`extensions/`（用户扩展） |
 
 优先级：`GF_CONFIG_DIR` > `PI_CODING_AGENT_DIR` 环境变量（测试与调试用） > `~/.gf/agent/`
@@ -443,46 +443,6 @@ timeout 600 bin/gf pi -p --auto-review "修复 src/app.scm 里的空指针问题
 约束：`--staged`/`--ref` 需与 `--code-review` 或 `--simplify` 之一同用；
 `--auto-review` 与 `--code-review` 互斥。
 
-#### multikey：密钥池与 429/403 自动轮换【可用】（任务 033，扩展化 2026-10）
-
-移植自 [kslamph/multikey](https://github.com/kslamph/multikey)，以内置扩展形式提供
-（`extensions/multikey.scm` 注册，实现库族 `(liii pi multikey pool/load/policy/config)`）。检测
-`~/.pi/agent/multikey.json`：命中当前 provider 的 pool 时自动注入
-`request-key` / `rotate-key` 钩子，正常请求固定使用当前 key，429/403 时
-冷却当前 key 并切换下一个（切换日志与重试日志共用通道：CLI 写 stderr，
-TUI 转为界面卡片）；核心请求路径只依赖通用钩子接口 `(liii pi ai keyring)`，
-不依赖任何具体密钥池实现。
-
-```bash
-# 自动检测 ~/.pi/agent/multikey.json：配置了 kimi-coding 多 key pool 时，
-# 正常请求固定使用当前 key；429/403 时冷却当前 key 并切换下一个（首个 key 不打日志）
-timeout 180 bin/gf pi --provider kimi-coding -p "统计 tests/ 目录下的测试用例总数"
-# 每次切换打一条脱敏日志（key 仅显示首尾若干字符）：
-# multikey[kimi-coding]: 429 on alpha (sk-poo…0001), rotating to another key
-
-# 未配置 pool 的 provider 回退 auth.json 单 key，行为不变
-timeout 180 bin/gf pi --provider google -p "hi"
-```
-
-multikey.json 示例（`pools[].id` 匹配 provider，`enabled: false` 的 key 被过滤；
-`cooldownMs` 为 429 冷却时长，`invalidKeyCooldownMs` 为 403/invalid 冷却时长）：
-
-```json
-{
-  "pools": [
-    {
-      "id": "kimi-coding",
-      "cooldownMs": 30000,
-      "invalidKeyCooldownMs": 600000,
-      "keys": [
-        {"key": "sk-pool-alpha-0001", "label": "alpha", "enabled": true},
-        {"key": "sk-pool-beta-00002", "label": "beta", "enabled": true}
-      ]
-    }
-  ]
-}
-```
-
 ### 3. 插件生态与安装（`pi install`）
 
 支持通过 `pi install` 命令一键安装社区或第三方的 Git 扩展仓库：
@@ -638,7 +598,7 @@ tools/pi/liii/
     config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
     extension.scm   # (liii pi extension) 扩展机制门面（API、注册容器、生命周期分发）
     extension/      # 扩展机制子模块（api, registry, discovery, loader, hooks）
-    extensions/     # ★ 内置轻量扩展（随包分发：web-search, simplify, code-review, multikey）
+    extensions/     # ★ 内置轻量扩展（随包分发：web-search, simplify, code-review）
     models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
     gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
     anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）
@@ -737,10 +697,6 @@ tools/pi/liii/
 
   注：minimax 与 minimax-cn 双 provider 均可用；环境变量 MINIMAX_API_KEY /
   MINIMAX_BASE_URL 可覆盖（任务 035 env 优先体系）。
-- [x] **`pi-multikey` 密钥池与 429/403 自动轮换【可用】（任务 033，已扩展化）**：
-  对照 Node pi 的 `pi-multikey` 扩展移植。**已剥离为内置扩展**（`extensions/multikey.scm`，
-  实现库族 `(liii pi multikey pool/load/policy/config)`；核心只保留通用 key 钩子接口 `(liii pi ai keyring)`），
-  用法与配置详见「常用内置扩展」章节。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
@@ -853,7 +809,6 @@ Sources/Additional Results 拼装、7 类错误路径（401/403/超时/非 JSON/
 `tools/pi`（`bin/gf pi`）及支撑库 `(liii pi)` 的核心架构、控制流、提示词工程与扩展模式，主要由 Node.js / TypeScript 生态中的 upstream pi 核心仓库及周边开源插件移植（Porting）而来。在此特别鸣谢以下开源原作者及项目贡献者的卓越工作：
 - **Mario Ortiz Manero / Earendil Works**：pi 核心库 [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi)
 - **Matt Devy**：pi 官方周边扩展生态 [`MattDevy/pi-extensions`](https://github.com/MattDevy/pi-extensions)（涵盖 `pi-code-review`、`pi-simplify`、`pi-red-green`、`pi-blueprint` 与 `pi-compass`）
-- **kslamph**：多 Key 轮换插件 [`pi-multikey`](https://github.com/kslamph/multikey)
 - **ttttmr**：联网搜索插件 [`pi-web-search`](https://github.com/ttttmr/pi-web-search)
 
 以上上游项目均基于宽松的 MIT 许可证发布。本项目作为跨语言演绎作品，完整保留了原作者的版权声明与许可证说明。详细的版权清单与许可证全文，请参阅 [`tools/pi/LICENSE`](LICENSE)。

@@ -249,7 +249,7 @@
                   ) ;%log-http-error
                 ) ;when
                 (cond
-                  ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted；
+                  ;; 用户中止优先：不进入 key 轮换 / 重试，直接结算 aborted；
                   ;; 流尾补探测 pi-aborted? 覆盖单 chunk 交付时信号无后续检查点的场景
                   ((or aborted? (pi-aborted?))
                    (%finalize-aborted-stream stream-state provider model-id)

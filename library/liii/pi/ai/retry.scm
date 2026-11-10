@@ -200,7 +200,7 @@
     ) ;define
 
     ;; 核心层通用日志通道：优先走已注入的 logger（如 TUI 界面卡片），
-    ;; 否则写 stderr；multikey 等内置扩展经此输出脱敏切换日志。
+    ;; 否则写 stderr；内置/外部扩展经此输出脱敏切换日志。
     (define* (pi-ai-log! msg (port #f))
       (if (procedure? *pi-retry-logger*)
         (*pi-retry-logger* msg)
