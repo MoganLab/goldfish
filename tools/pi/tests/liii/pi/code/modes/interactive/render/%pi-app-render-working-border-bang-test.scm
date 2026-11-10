@@ -27,6 +27,7 @@
   (liii list)
   (liii pi agent queue)
   (liii pi code modes interactive app)
+  (liii pi code modes interactive app-queue)
   (liii pi code modes interactive state)
   (liii pi code modes interactive render)
   (liii pi code modes interactive working)
@@ -93,6 +94,69 @@
     ) ;make-thinking-selector
   ) ;%pi-app-active-selector-set!
   (check (%pi-app-render-working-border! app) => #f)
+) ;let*
+
+;; 4. 多条多行 steering 排队时轻量刷新：只更新唯一的 Working 行，不覆盖排队消息
+(let* ((count-working
+         (lambda (lines)
+           (let loop
+             ((ls lines) (c 0))
+             (cond ((null? ls) c)
+                   ((string-contains? (car ls) "Working") (loop (cdr ls) (+ c 1)))
+                   (else (loop (cdr ls) c))
+             ) ;cond
+           ) ;let
+         ) ;lambda
+       ) ;count-working
+       (vt (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (q (pi-app-queue app))
+      ) ;
+  (pi-queue-set-busy! q)
+  (pi-app-queue-steering! app
+    "多行插话第一行\n多行插话第二行\n多行插话第三行"
+  ) ;pi-app-queue-steering!
+  (pi-app-queue-steering! app "后续单行插话")
+  (pi-app-render! app)
+  (let* ((row (%pi-app-working-border-row app))
+         (before (map strip-ansi (alt-screen-lines (pi-app-screen app))))
+        ) ;
+    ;; 整帧渲染后确认 Working 恰好只有一条
+    (check (count-working before) => 1)
+    ;; 推进 spinner 帧，使边框行内容发生变化
+    (working-advance! (pi-app-working app))
+    (check (%pi-app-render-working-border! app) => #t)
+    (let ((after (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
+      ;; 1. Working 出现次数恰为一次
+      (check (count-working after) => 1)
+      ;; 2. 该行即为输入框上边框（row），且内容更新为下一帧 spinner
+      (check-true (string-contains? (list-ref after row) "⠙ Working"))
+      ;; 3. 排队消息逐行不变且完整保留
+      (check-true (string-contains? (list-ref after (- row 5)) "多行插话第一行")
+      ) ;check-true
+      (check-true (string-contains? (list-ref after (- row 4)) "多行插话第二行")
+      ) ;check-true
+      (check-true (string-contains? (list-ref after (- row 3)) "多行插话第三行")
+      ) ;check-true
+      (check-true (string-contains? (list-ref after (- row 2)) "后续单行插话"))
+      (let ((hint-line (list-ref after (- row 1))))
+        (check-true (or (string-contains? hint-line "Option+Up")
+                      (string-contains? hint-line "Alt+Up")
+                    ) ;or
+        ) ;check-true
+      ) ;let
+      ;; 4. 除 spinner 所在行外其余行与刷新前完全一致
+      (let loop
+        ((i 0))
+        (when (< i (length after))
+          (when (not (= i row))
+            (check (list-ref after i) => (list-ref before i))
+          ) ;when
+          (loop (+ i 1))
+        ) ;when
+      ) ;let
+    ) ;let
+  ) ;let*
 ) ;let*
 
 (check-report)

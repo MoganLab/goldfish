@@ -1,8 +1,8 @@
 ;; %pi-app-working-border-row
 ;; 在缓存帧中定位 Working 边框行（编辑器上边框，busy 时承载 spinner）。
 ;;
-;; 行号推导（确定性，无内容猜测）：dock 布局 = 待发送区 + 编辑器 + 菜单 + 页脚，
-;; 边框行是编辑器区域的首行，其行号 = 帧长 - dock 长 + 待发送行数。
+;; 直接读取最近一次整帧布局保存的真实行号，并校验缓存与行号有效；
+;; 确保包含多行或多条排队消息时，行号始终准确对齐 Working 分割线。
 ;;
 ;; 语法
 ;; ----
@@ -25,6 +25,7 @@
   (liii string)
   (liii pi agent queue)
   (liii pi code modes interactive app)
+  (liii pi code modes interactive app-queue)
   (liii pi code modes interactive state)
   (liii pi code modes interactive render)
 ) ;import
@@ -72,6 +73,36 @@
         ) ;
     (check-true (exact-integer? row))
     (check-true (string-contains? (list-ref lines row) "Working"))
+  ) ;let*
+) ;let*
+
+;; 4. 多条多行 steering 排队：边框行正确定位在全部排队消息与提示行之后
+(let* ((vt (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (q (pi-app-queue app))
+      ) ;
+  (pi-queue-set-busy! q)
+  ;; 插入一条 3 行的 steering 消息与一条单行 steering 消息
+  (pi-app-queue-steering! app "第一行插话\n第二行插话\n第三行插话")
+  (pi-app-queue-steering! app "第二条单行插话")
+  (pi-app-render! app)
+  (let* ((row (%pi-app-working-border-row app))
+         (lines (map strip-ansi (alt-screen-lines (pi-app-screen app))))
+        ) ;
+    (check-true (exact-integer? row))
+    (check-true (>= row 0))
+    (check-true (< row (length lines)))
+    (check-true (string-contains? (list-ref lines row) "Working"))
+    ;; 确认该行上方紧邻的是撤回提示行或排队卡片，而不是被 Working 误覆盖
+    (let ((hint-line (list-ref lines (- row 1))))
+      (check-true (or (string-contains? hint-line "Option+Up")
+                    (string-contains? hint-line "Alt+Up")
+                  ) ;or
+      ) ;check-true
+    ) ;let
+    (check-true (string-contains? (list-ref lines (- row 2)) "第二条单行插话")
+    ) ;check-true
+    (check-true (string-contains? (list-ref lines (- row 3)) "第三行插话"))
   ) ;let*
 ) ;let*
 

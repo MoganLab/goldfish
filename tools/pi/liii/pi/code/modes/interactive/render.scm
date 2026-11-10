@@ -225,8 +225,19 @@
                  ) ;if
                ) ;cur-pos
               ) ;
-          ;; 记录 dock 长度：供轻量 tick 推导 Working 边框行
+          ;; 记录 dock 长度：供向后兼容
           (%pi-app-dock-length-set! app (length dock-lines))
+          ;; 记录 Working 边框真实行号：普通编辑器状态下为 input-base
+          (%pi-app-working-border-row-set! app
+            (if (and (not active-selector)
+                  (pi-queue-busy? q)
+                  %pi-editor-top-border
+                  (pair? ed-lines)
+                ) ;and
+              input-base
+              #f
+            ) ;if
+          ) ;%pi-app-working-border-row-set!
           (values rendered-frame cur-pos)
         ) ;let*
       ) ;let*
@@ -247,34 +258,21 @@
     ) ;define
 
     ;; 在缓存帧中定位 Working 边框行（编辑器上边框，busy 时承载 spinner）。
-    ;; 行号推导（确定性，无内容猜测）：
-    ;;   dock 布局 = pending + editor + menu + footer（footer 最后，菜单在 editor 之后）
-    ;;   边框行是 editor 区域的首行，其行号 = 帧长 - dock 长 + pending 行数。
-    ;;   pending 行数 = busy 时各排队卡片 + 可选 ESC 提示行 + 可选队首卡片。
-    ;; 返回 #f 表示缓存无效，调用方应回退整帧渲染。
+    ;; 直接读取最近一次整帧布局保存的真实行号，并校验缓存与行号有效。
+    ;; 返回 #f 表示缓存无效或当前不处于 Working 状态，调用方应回退整帧渲染。
     (define (%pi-app-working-border-row app)
-      (let ((cached (pi-app-rendered-frame app)) (dock (pi-app-dock-length app)))
-        (if (or (not cached) (not dock))
-          #f
-          (let* ((frame (car cached))
-                 (n (length frame))
-                 (q (pi-app-queue app))
-                 (steer (%pi-app-steering-pending app))
-                 (fu (%pi-app-follow-up-pending app))
-                 (items (pi-queue-items q))
-                 (pending-len
-                   (+ (length steer)
-                     (length fu)
-                     (if (or (pair? steer) (pair? fu)) 1 0)
-                     (if (pair? items) 1 0)
-                   ) ;+
-                 ) ;pending-len
-                 (border-y (+ (- n dock) pending-len))
-                ) ;
-            (and (>= border-y 0) (< border-y n) border-y)
-          ) ;let*
-        ) ;if
-      ) ;let
+      (if
+        (or (pi-app-active-selector app) (not (pi-queue-busy? (pi-app-queue app))))
+        #f
+        (let ((cached (pi-app-rendered-frame app)) (row (pi-app-working-border-row app)))
+          (if (or (not cached) (not row))
+            #f
+            (let* ((frame (car cached)) (n (length frame)))
+              (and (>= row 0) (< row n) row)
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define
 
     ;; 终端缩放检测：主循环每轮开头调用。resize 后终端会对备用屏内容做
