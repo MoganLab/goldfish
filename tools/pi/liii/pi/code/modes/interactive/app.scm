@@ -172,30 +172,33 @@
             ;; 是滚轮加速的唯一依据，统一取处理时刻会把间隔记为 0 而抹平加速
             ;; （Issue #1382）。无时间戳的旧事件回退到处理时刻，行为不变。
             (let ((now (or (mouse-event-time ev) (current-monotonic-millis))))
-              (case (mouse-event-type ev)
-                    ((wheel-up)
-                     (set! delta (- delta (wheel-scroll-next! acc -1 now)))
-                     (set! handled? #t)
-                    ) ;
-                    ((wheel-down)
-                     (set! delta (+ delta (wheel-scroll-next! acc 1 now)))
-                     (set! handled? #t)
-                    ) ;
-                    ((press drag release)
-                     (when (pi-app-handle-selection-mouse! app ev)
+              (if (pi-app-handle-scroll-hint-mouse! app ev)
+                (set! handled? #t)
+                (case (mouse-event-type ev)
+                      ((wheel-up)
+                       (set! delta (- delta (wheel-scroll-next! acc -1 now)))
                        (set! handled? #t)
-                     ) ;when
-                    ) ;
-                    ((click)
-                     (when (pi-app-handle-selection-mouse! app ev)
+                      ) ;
+                      ((wheel-down)
+                       (set! delta (+ delta (wheel-scroll-next! acc 1 now)))
                        (set! handled? #t)
-                     ) ;when
-                     (when (pi-app-dispatch-mouse! app ev)
-                       (set! handled? #t)
-                     ) ;when
-                    ) ;
-                    (else #f)
-              ) ;case
+                      ) ;
+                      ((press drag release)
+                       (when (pi-app-handle-selection-mouse! app ev)
+                         (set! handled? #t)
+                       ) ;when
+                      ) ;
+                      ((click)
+                       (when (pi-app-handle-selection-mouse! app ev)
+                         (set! handled? #t)
+                       ) ;when
+                       (when (pi-app-dispatch-mouse! app ev)
+                         (set! handled? #t)
+                       ) ;when
+                      ) ;
+                      (else #f)
+                ) ;case
+              ) ;if
             ) ;let
           ) ;lambda
           events
@@ -233,7 +236,7 @@
         :bottom-border    #t
         :border-color     (pi-thinking-border-color thinking-level)
         :focused          #t
-        :on-submit        (lambda (self txt) (pi-app-submit! app txt))
+        :on-submit        (lambda (_ txt) (pi-app-submit! app txt))
         :on-change (lambda (ed txt) (%pi-app-editor-on-change app ed txt))
       ) ;make-editor
     ) ;define
@@ -361,20 +364,19 @@
                     #f
                     skills
                     (and enable-skill-commands #t)
+                    #f
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))
             ) ;
         (when (> (pi-session-token-stats-total actual-tokens) 0)
-          ;; 恢复的会话：按最后一条 assistant usage 换算上下文占比
-          (pi-footer-set-token-stats! footer
-            actual-tokens
-            #f
-            (pi-session-context-usage session-file (pi-footer-context-window footer))
-          ) ;pi-footer-set-token-stats!
+          (let ((usage (pi-session-context-usage session-file (pi-footer-context-window footer))
+                ) ;usage
+               ) ;
+            (pi-footer-set-token-stats! footer actual-tokens #f usage)
+          ) ;let
         ) ;when
         ;; 对话记录（页眉 + 消息卡片）作为可滚动视口内容；
-        ;; 待发送队列卡片与输入区、页脚一起构成底部 dock
         (container-add! doc header)
         (container-add! doc chat)
         (%pi-app-editor-set! app ed)

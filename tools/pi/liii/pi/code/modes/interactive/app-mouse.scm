@@ -12,9 +12,8 @@
 ;;    tool-execution.ts 的 createResultRegion：click + left 且已完成时翻转）。
 
 (define-library (liii pi code modes interactive app-mouse)
-  (export pi-app-dispatch-mouse!
-    pi-app-handle-selection-mouse!
-    pi-app-copy-selection!
+  (export pi-app-dispatch-mouse! pi-app-handle-selection-mouse!
+    pi-app-copy-selection! pi-app-handle-scroll-hint-mouse!
   ) ;export
   (import (scheme base)
     (liii tui)
@@ -134,6 +133,35 @@
           ) ;component-handle-mouse!
         ) ;if
       ) ;let*
+    ) ;define
+
+    ;; 检测鼠标事件是否命中“跳到最新消息”提示行热区。
+    ;; 若左键按下（press + left）且坐标落在热区内，则触发跳转到底部、
+    ;; 清空已有选区并返回 #t；未命中或非左键按下返回 #f。
+    (define (pi-app-handle-scroll-hint-mouse! app ev)
+      (let ((rect (pi-app-scroll-hint-rect app)))
+        (if (and rect
+              (eq? (mouse-event-type ev) 'press)
+              (eq? (mouse-event-button ev) 'left)
+            ) ;and
+          (let ((row (car rect))
+                (col (cadr rect))
+                (width (caddr rect))
+                (x (mouse-event-x ev))
+                (y (mouse-event-y ev))
+               ) ;
+            (if (and (= y row) (>= x col) (< x (+ col width)))
+              (begin
+                (pi-app-scroll-bottom! app)
+                (pi-app-selection-clear! app)
+                #t
+              ) ;begin
+              #f
+            ) ;if
+          ) ;let
+          #f
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin
