@@ -84,23 +84,23 @@
                  ) ;sig
                  (empty? (or (not (string? th)) (string-null? (string-trim-both th))))
                 ) ;
-            (cond
-              (same-model?
-                (if (and empty? (not sig))
-                  #f
-                  (let ((base (list (cons "thought" #t) (cons "text" th))))
-                    (if sig (cons (cons "thoughtSignature" sig) base) base)
-                  ) ;let
-                ) ;if
-              ) ;same-model?
-              ;; 跨模型：thinking 降级为纯文本，不回传签名
-              (empty? #f)
-              (else (list (cons "text" th)))
-            ) ;cond
+            (if same-model?
+              (if (and empty? (not sig))
+                #f
+                (let ((base (list (cons "thought" #t) (cons "text" th))))
+                  (if sig (cons (cons "thoughtSignature" sig) base) base)
+                ) ;let
+              ) ;if
+              ;; 跨模型：thinking 块被过滤，不发射为文本，避免污染模型上下文
+              #f
+            ) ;if
           ) ;let*
          ) ;
          ((equal? btype "toolCall")
-          (let* ((ts (%resolve-thought-signature same-model? (%val 'thoughtSignature blk #f)))
+          (let* ((ts (%resolve-thought-signature same-model?
+                       (%val 'thoughtSignature blk (%val 'thought-signature blk #f))
+                     ) ;%resolve-thought-signature
+                 ) ;ts
                  (fc-obj (list (cons "name" (%val 'name blk ""))
                            (cons "args" (%val 'arguments blk '()))
                            (cons "id" (%val 'id blk ""))

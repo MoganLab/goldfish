@@ -237,7 +237,7 @@
              (model-meta (cdr (assoc 'model-meta config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
              (settings (cdr (assoc 'settings config)))
-             (provider (cdr (or (assoc 'provider config) '(#f . #f))))
+             (provider (cdr (or (assoc 'provider config) '(#f . "google"))))
              (key-rotation? (pi-key-rotation? config))
              (base-url (cdr (or (assoc 'base-url model-meta)
                               '(#f
@@ -253,7 +253,7 @@
                             ) ;if
              ) ;tool-resolver
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
-             (contents (gemini-build-contents messages model-id))
+             (contents (gemini-build-contents messages model-id (or provider "google")))
              (raw-req-body (gemini-build-request-body contents system-instruction tool-decls)
              ) ;raw-req-body
              (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
