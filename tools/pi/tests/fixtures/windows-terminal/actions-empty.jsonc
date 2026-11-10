@@ -1,5 +1,0 @@
-// Windows Terminal settings fixture: empty actions array
-{
-    "$schema": "https://aka.ms/terminal-profiles-schema",
-    "actions": []
-}

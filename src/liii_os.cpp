@@ -721,6 +721,12 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
       return true;
     }
 
+    // Alt+Q -> ESC q（Windows 下 gf pi 的 follow-up 快捷键）
+    if ((virt == 'Q' || virt == 'q') && alt_key) {
+      push_seq (27, 'q');
+      return true;
+    }
+
     // Alt-Enter
     if (virt == VK_RETURN && alt_key) {
       g_console_key_queue.push_back (355);

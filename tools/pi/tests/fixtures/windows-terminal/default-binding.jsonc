@@ -1,8 +1,0 @@
-// Windows Terminal settings fixture: default binding (no alt+enter action defined)
-{
-    "$schema": "https://aka.ms/terminal-profiles-schema",
-    "defaultProfile": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
-    "actions": [
-        { "command": "find", "keys": "ctrl+shift+f" }
-    ]
-}
