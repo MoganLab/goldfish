@@ -358,6 +358,7 @@
                     actual-tokens
                     #f
                     #f
+                    #f
                     skills
                     (and enable-skill-commands #t)
                   ) ;%make-pi-app

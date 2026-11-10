@@ -36,6 +36,7 @@
   (liii string)
   (liii pi agent queue)
   (liii pi code modes interactive app)
+  (liii pi code modes interactive app-queue)
   (liii pi code modes interactive state)
   (liii pi code modes interactive render)
   (liii pi code modes interactive thinking)
@@ -209,6 +210,82 @@
   ;; 强制到期
   (working-last-tick-set! (pi-app-working app) (- (current-monotonic-millis) 80))
   (check (pi-app-working-tick! app) => #t)
+) ;let*
+
+;; 6. 多行 steering 排队：连续多次 working-tick 仅刷新唯一 Working 行
+(let* ((count-working
+         (lambda (lines)
+           (let loop
+             ((ls lines) (c 0))
+             (cond ((null? ls) c)
+                   ((string-contains? (car ls) "Working") (loop (cdr ls) (+ c 1)))
+                   (else (loop (cdr ls) c))
+             ) ;cond
+           ) ;let
+         ) ;lambda
+       ) ;count-working
+       (vterm (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
+       (screen (pi-app-screen app))
+       (q (pi-app-queue app))
+      ) ;
+  (pi-app-render! app)
+  (pi-queue-set-busy! q)
+  (pi-app-queue-steering! app
+    "多行 steering 第一行\n多行 steering 第二行\n多行 steering 第三行"
+  ) ;pi-app-queue-steering!
+  (pi-app-queue-steering! app "第二条 steering 消息")
+  ;; 首拍：整帧渲染
+  (check (pi-app-working-tick! app) => #t)
+  (let* ((row (%pi-app-working-border-row app))
+         (first-frame (map strip-ansi (alt-screen-lines screen)))
+        ) ;
+    (check-true (exact-integer? row))
+    (check (count-working first-frame) => 1)
+    (check-true (string-contains? (list-ref first-frame row) "⠋ Working"))
+    (check-true (string-contains? (list-ref first-frame (- row 5)) "多行 steering 第一行")
+    ) ;check-true
+    (check-true (string-contains? (list-ref first-frame (- row 4)) "多行 steering 第二行")
+    ) ;check-true
+    (check-true (string-contains? (list-ref first-frame (- row 3)) "多行 steering 第三行")
+    ) ;check-true
+    (check-true (string-contains? (list-ref first-frame (- row 2)) "第二条 steering 消息")
+    ) ;check-true
+    ;; 连续推进多个节拍（模拟 5 拍动画）
+    (let loop
+      ((tick 1) (prev-frame first-frame))
+      (when (<= tick 5)
+        (working-last-tick-set! (pi-app-working app) (- (current-monotonic-millis) 80))
+        (check (pi-app-working-tick! app) => #t)
+        (let ((cur-frame (map strip-ansi (alt-screen-lines screen))))
+          ;; 每一拍均始终只有一条 Working 分割线
+          (check (count-working cur-frame) => 1)
+          ;; 该 Working 分割线始终在 row
+          (check-true (string-contains? (list-ref cur-frame row) "Working"))
+          ;; 排队消息内容逐行不变
+          (check-true (string-contains? (list-ref cur-frame (- row 5)) "多行 steering 第一行")
+          ) ;check-true
+          (check-true (string-contains? (list-ref cur-frame (- row 4)) "多行 steering 第二行")
+          ) ;check-true
+          (check-true (string-contains? (list-ref cur-frame (- row 3)) "多行 steering 第三行")
+          ) ;check-true
+          (check-true (string-contains? (list-ref cur-frame (- row 2)) "第二条 steering 消息")
+          ) ;check-true
+          ;; 并且除 Working 行外，其余行与上一帧完全相同
+          (let row-loop
+            ((i 0))
+            (when (< i (length cur-frame))
+              (when (not (= i row))
+                (check (list-ref cur-frame i) => (list-ref prev-frame i))
+              ) ;when
+              (row-loop (+ i 1))
+            ) ;when
+          ) ;let
+          (loop (+ tick 1) cur-frame)
+        ) ;let
+      ) ;when
+    ) ;let
+  ) ;let*
 ) ;let*
 
 (check-report)
