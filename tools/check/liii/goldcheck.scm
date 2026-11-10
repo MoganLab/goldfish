@@ -111,7 +111,9 @@
       ) ;if
     ) ;define
 
+    ;; define-record-type 规则的内容哈希版本号
     (define %record-type-check-version 1)
+
     (define (check-file-rule-record-export file-path cfg acc)
       (if
         (and (check-rule-enabled? cfg "define-record-type")
@@ -198,6 +200,14 @@
       ) ;let*
     ) ;define
 
+    ;; 规则启用且未豁免的目标文件（no-glue/unit-test 共用）
+    (define (rule-files-in cfg rule file-vector)
+      (filter
+        (lambda (f) (not (file-excluded? f (check-rule-excludes cfg rule))))
+        (vector->list file-vector)
+      ) ;filter
+    ) ;define
+
     (define (check-files file-vector cfg)
       "检查文件向量并行执行单文件规则，并检查跨文件 no-glue 唯一归属。"
       (let* ((cfg-text (if cfg (json->string cfg) ""))
@@ -217,15 +227,10 @@
              ) ;violations
              (violations
                (if (check-rule-enabled? cfg "no-glue")
-                 (let ((files
-                         (filter
-                           (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "no-glue"))))
-                           (vector->list file-vector)
-                         ) ;filter
-                       ) ;files
-                      ) ;
-                   (vector-append violations (list->vector (check-no-glue-duplicates files)))
-                 ) ;let
+                 (vector-append violations
+                   (list->vector (check-no-glue-duplicates (rule-files-in cfg "no-glue" file-vector))
+                   ) ;list->vector
+                 ) ;vector-append
                  violations
                ) ;if
              ) ;violations
@@ -236,7 +241,8 @@
                      (list->vector
                        (filter-excluded-violations
                          (filter (lambda (v) (member (cadr v) (vector->list file-vector) string=?))
-                           (check-type-hint-all)
+                           ;; 跳过单文件路径已查的 hint，避免重复报告
+                           (check-type-hint-except (vector->list file-vector))
                          ) ;filter
                          excludes
                        ) ;filter-excluded-violations
@@ -251,11 +257,7 @@
                      (not (check-skip-unit-test-dirs? cfg))
                    ) ;and
                  (let* ((excludes (check-rule-excludes cfg "unit-test"))
-                        (files
-                          (filter (lambda (f) (not (file-excluded? f excludes)))
-                            (vector->list file-vector)
-                          ) ;filter
-                        ) ;files
+                        (files (rule-files-in cfg "unit-test" file-vector))
                        ) ;
                    ;; 目录级检查推导出的违规路径（缺失的 README.md、缺失的
                    ;; 单测文件等）同样要受排除项约束，否则按目录排除的豁免
@@ -319,19 +321,20 @@
     ) ;define
 
     (define (filter-result-files result files)
-      (let* ((violations
-               (list->vector
-                 (filter (lambda (v) (member (cadr v) files string=?))
-                   (vector->list (cadddr result))
-                 ) ;filter
-               ) ;list->vector
-             ) ;violations
-            ) ;
-        (list (car result) (zero? (vector-length violations)) (caddr result) violations)
-      ) ;let*
+      (let ((vs
+              (list->vector
+                (filter (lambda (v) (member (cadr v) files string=?))
+                  (vector->list (cadddr result))
+                ) ;filter
+              ) ;list->vector
+            ) ;vs
+           ) ;
+        (list (car result) (zero? (vector-length vs)) (caddr result) vs)
+      ) ;let
     ) ;define
 
     (define (only-rule-result parser cfg only files)
+      ;; no-crlf 按配置展开；no-glue 增量时需全仓分析后再按目标过滤
       (let* ((rule-files (if (string=? only "no-crlf") (resolve-no-crlf-files parser cfg) files)
              ) ;rule-files
              (incremental-global? (and (string=? only "no-glue") (parser 'changed-since)))
@@ -344,10 +347,7 @@
 
     (define (configured-rule-result parser cfg rule files no-crlf-files)
       (cond ((string=? rule "no-crlf") (run-rule-check no-crlf-files cfg rule))
-            ((and (string=? rule "no-glue") (parser 'changed-since))
-             (filter-result-files (run-rule-check (collect-repo-files) cfg rule) files)
-            ) ;
-            (else (run-rule-check files cfg rule))
+            (else (only-rule-result parser cfg rule files))
       ) ;cond
     ) ;define
 
@@ -372,7 +372,7 @@
               (let ((result (only-rule-result parser cfg only files)))
                 (display-rule-result result)
                 (when (string=? only "type-hint")
-                  (display-type-hint-statuses (vector->list (cadddr result)))
+                  (display-type-hint-status result files)
                 ) ;when
                 (report-and-exit (cadddr result) (caddr result))
               ) ;let

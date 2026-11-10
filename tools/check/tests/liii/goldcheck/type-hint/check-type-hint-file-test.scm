@@ -48,4 +48,29 @@
 ;; 3. 非 define-library 文件返回 '()
 (check (check-type-hint-file (resource-file "script.scm")) => '())
 
+;; 4. 第二层：import 闭包中依赖库 hint 的结构违规也被报告，
+;;    违规归属被查文件，消息内嵌来源 hint 文件位置
+(let ((viols
+        (check-type-hint-file (resource-file "goldfish/liii/depbaduser.scm")))
+     )
+  ;; 依赖 hint 的结构违规：invalid signature + arity 不匹配
+  (check (length viols) => 2)
+  (check-true
+    (string-contains?
+      (cadddr (car viols))
+      "goldfish/hint/liii/depbadsig.scm"
+    ) ;string-contains?
+  ) ;check-true
+  (check-true (string-contains? (cadddr (car viols)) "invalid signature"))
+) ;let
+
+;; 5. hint 文件目标同样检查依赖 hint（第一层 + 第二层）
+(let ((viols
+        (check-type-hint-file
+          (resource-file "goldfish/hint/liii/depbadsig.scm")))
+     )
+  ;; 自身结构违规（缺 ->）
+  (check-true (pair? viols))
+) ;let
+
 (check-report)

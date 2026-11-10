@@ -29,7 +29,7 @@
   ) ;import
   (export build-env build-import-env all-hint-roots full-coverage? hint-roots-of
     hint-root-of library-file source-closure defining-libs exporting-libs
-    hint-lib-file cached-library-info
+    hint-lib-file cached-library-info import-library-name
   ) ;export
   (begin
 
@@ -107,7 +107,7 @@
     (define %lib-info-cache '())
 
     (define (cached-library-info path)
-      (if (not path)
+      (if (not (and path (file-exists? path)))
         #f
         (let ((hit (assq path %lib-info-cache)))
           (if hit
