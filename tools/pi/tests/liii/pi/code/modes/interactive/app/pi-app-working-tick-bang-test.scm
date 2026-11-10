@@ -24,6 +24,7 @@
   (liii unicode)
   (liii string)
   (liii tui)
+  (liii date-time current-time)
   (liii pi agent queue)
   (liii pi code modes interactive working)
   (liii pi code modes interactive app)
@@ -93,6 +94,7 @@
   ) ;check-true
 
   ;; 80ms 内重复 tick：不推进帧不渲染
+  (working-last-tick-set! (pi-app-working app) (current-monotonic-millis))
   (check (pi-app-working-tick! app) => #f)
   (check-true
     (string-contains? (list-ref (map strip-ansi (alt-screen-lines screen)) 35)
