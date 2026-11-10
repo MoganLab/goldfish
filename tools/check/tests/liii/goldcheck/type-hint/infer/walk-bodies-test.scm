@@ -44,4 +44,22 @@
 ;; 3. 空体返回原 acc
 (check (walk-bodies "demo.scm" '() env '(pre)) => '(pre))
 
+;; 4. 命名 let / 普通 let 中同名局部变量绑定不会误报为全局函数调用
+(let ((env-with-last (cons (cons 'last '((pair? -> any?))) env)))
+  (check (walk-bodies "demo.scm"
+           (list '(let loop ((last -1)) (+ last 1)))
+           env-with-last
+           '()
+         ) ;walk-bodies
+    => '()
+  ) ;check
+  (check (walk-bodies "demo.scm"
+           (list '(let ((last -1)) (+ last 1)))
+           env-with-last
+           '()
+         ) ;walk-bodies
+    => '()
+  ) ;check
+) ;let
+
 (check-report)

@@ -89,13 +89,26 @@
       ) ;and
     ) ;define
 
+    ;; 遍历 let 绑定的初始值表达式列表
+    (define (walk-let-inits rel bindings env locals acc)
+      (let loop
+        ((bs bindings) (a acc))
+        (cond ((not (pair? bs)) a)
+              ((and (pair? (car bs)) (pair? (cdar bs)))
+               (loop (cdr bs) (walk rel (cadar bs) env locals a))
+              ) ;
+              (else (loop (cdr bs) a))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     ;; let 形式：绑定局部类型后在体内继续检查
     (define (walk-let rel expr env locals acc sequential?)
       (let* ((raw (cadr expr))
              (named? (and (symbol? raw) (pair? (cdr expr))))
              (bindings (if named? (caddr expr) raw))
              (body (if named? (cdddr expr) (cddr expr)))
-             (acc1 (walk rel bindings env locals acc))
+             (acc1 (walk-let-inits rel bindings env locals acc))
              (new-locals (let-bindings bindings env locals sequential?))
             ) ;
         (walk-body rel body env new-locals acc1)
@@ -107,7 +120,8 @@
       (if (not (pair? expr))
         acc
         (let ((acc1
-                (if (and (symbol? (car expr)) (assq (car expr) env))
+                (if
+                  (and (symbol? (car expr)) (assq (car expr) env) (not (assq (car expr) locals)))
                   (check-call rel expr env locals acc)
                   acc
                 ) ;if
