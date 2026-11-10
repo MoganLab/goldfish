@@ -91,6 +91,10 @@
         (procedure? any? list? list? list? -> any?))
     ) ;define
 
+    ;; reduce/reduce-right : (procedure? any? list? -> any?)
+    (define hint-reduce '((procedure? any? list? -> any?)))
+    (define hint-reduce-right '((procedure? any? list? -> any?)))
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -127,6 +131,8 @@
        ((null-list?) hint-null-list?)
        ((xcons) hint-xcons)
        ((cons*) hint-cons*)
+       ((reduce) hint-reduce)
+       ((reduce-right) hint-reduce-right)
        ((every) hint-every)
        ((filter) hint-filter)
        ((alist-cons) hint-alist-cons)
