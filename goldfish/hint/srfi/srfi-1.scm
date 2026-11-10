@@ -135,6 +135,29 @@
         (list? list? list? -> list?))
     ) ;define
 
+    ;; iota : (count [start [step]])
+    (define hint-iota
+      '((integer? -> list?)
+        (integer? number? -> list?)
+        (integer? number? number? -> list?))
+    ) ;define
+
+    ;; circular-list : 首参必选，其余可变；返回循环点对
+    (define hint-circular-list
+      '((any? -> pair?)
+        (any? any? -> pair?)
+        (any? any? any? -> pair?)
+        (any? any? any? any? -> pair?))
+    ) ;define
+
+    ;; delete : 可选比较器，define* 定义；签名按必选/必选+可选登记
+    (define hint-delete '((any? list? -> list?)
+                          (any? list? procedure? -> list?)))
+
+    ;; delete-duplicates : 同 delete，可选比较器
+    (define hint-delete-duplicates '((list? -> list?)
+                                     (list? procedure? -> list?)))
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -183,6 +206,10 @@
        ((take-while) hint-take-while)
        ((drop-while) hint-drop-while)
        ((zip) hint-zip)
+       ((iota) hint-iota)
+       ((circular-list) hint-circular-list)
+       ((delete) hint-delete)
+       ((delete-duplicates) hint-delete-duplicates)
        ((every) hint-every)
        ((filter) hint-filter)
        ((alist-cons) hint-alist-cons)
