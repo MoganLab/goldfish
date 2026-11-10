@@ -353,22 +353,14 @@
 
     (define every g_every)
 
-    (define (%extract-maybe-equal caller maybe-equal)
-      (let ((my-equal (if (null-list? maybe-equal) equal? (car maybe-equal))))
-        (if (procedure? my-equal)
-          my-equal
-          (type-error (string-append (symbol->string caller) ": comparator must be a procedure")
-            my-equal
-          ) ;type-error
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (delete x l . maybe-equal)
-      (let ((my-equal (%extract-maybe-equal 'delete maybe-equal)))
-        (filter (lambda (y) (not (my-equal x y))) l)
-      ) ;let
-    ) ;define
+    ;; 可选比较器用 define* 声明，便于在 (hint srfi srfi-1) 中登记
+    ;; 2~3 参的精确签名
+    (define* (delete x l (= equal?))
+      (unless (procedure? =)
+        (type-error "delete: comparator must be a procedure" =)
+      ) ;unless
+      (filter (lambda (y) (not (= x y))) l)
+    ) ;define*
 
     (define %hash-table-supported-eq-funcs
       (list eq? eqv? equal? equivalent? = string=? char=?)
@@ -413,17 +405,18 @@
     ;; 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    (define (delete-duplicates lis . maybe-equal)
+    (define* (delete-duplicates lis (= equal?))
       (unless (list? lis)
         (type-error "delete-duplicates: first argument must be a list" lis)
       ) ;unless
-      (let ((my-equal (%extract-maybe-equal 'delete-duplicates maybe-equal)))
-        (cond ((null? lis) lis)
-              ((%can-use-hash-table? my-equal) (%delete-duplicates-hash lis my-equal))
-              (else (%delete-duplicates-scan lis my-equal))
-        ) ;cond
-      ) ;let
-    ) ;define
+      (unless (procedure? =)
+        (type-error "delete-duplicates: comparator must be a procedure" =)
+      ) ;unless
+      (cond ((null? lis) lis)
+            ((%can-use-hash-table? =) (%delete-duplicates-hash lis =))
+            (else (%delete-duplicates-scan lis =))
+      ) ;cond
+    ) ;define*
 
     (define (alist-cons key value alist)
       (cons (cons key value) alist)
