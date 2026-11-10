@@ -95,6 +95,18 @@
     (define hint-reduce '((procedure? any? list? -> any?)))
     (define hint-reduce-right '((procedure? any? list? -> any?)))
 
+    ;; find : 未命中返回 #f
+    (define hint-find '((procedure? list? -> (or #f any?))))
+
+    ;; any : 可变列表参数，登记 1 个列表的形式；未命中返回 #f
+    (define hint-any '((procedure? list? -> (or #f any?))))
+
+    ;; list-index : 可变列表参数，登记 1~2 个列表的形式；未命中返回 #f
+    (define hint-list-index
+      '((procedure? list? -> (or #f integer?))
+        (procedure? list? list? -> (or #f integer?)))
+    ) ;define
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -133,6 +145,9 @@
        ((cons*) hint-cons*)
        ((reduce) hint-reduce)
        ((reduce-right) hint-reduce-right)
+       ((find) hint-find)
+       ((any) hint-any)
+       ((list-index) hint-list-index)
        ((every) hint-every)
        ((filter) hint-filter)
        ((alist-cons) hint-alist-cons)
