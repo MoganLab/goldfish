@@ -65,6 +65,17 @@
     ;; last-pair : (pair? -> pair?)，非空列表的末尾点对
     (define hint-last-pair '((pair? -> pair?)))
 
+    ;; 切片
+    ;; take/drop/take-right/drop-right : (list? integer? -> list?)
+    ;; take/drop-right 也接受点尾列表，签名统一用 list? 表达
+    (define hint-take '((list? integer? -> list?)))
+    (define hint-drop '((list? integer? -> list?)))
+    (define hint-take-right '((list? integer? -> list?)))
+    (define hint-drop-right '((list? integer? -> list?)))
+
+    ;; split-at : (list? integer? -> (前缀 后缀))，多返回值用 list? 占位
+    (define hint-split-at '((list? integer? -> list?)))
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -76,6 +87,11 @@
 
     (define (hint-srfi/srfi-1 name)
       (case name
+       ((take) hint-take)
+       ((drop) hint-drop)
+       ((take-right) hint-take-right)
+       ((drop-right) hint-drop-right)
+       ((split-at) hint-split-at)
        ((first) hint-first)
        ((second) hint-second)
        ((third) hint-third)
