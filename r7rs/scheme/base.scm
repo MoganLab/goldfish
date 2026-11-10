@@ -164,6 +164,7 @@
     vector-copy
     vector-copy!
     vector-fill!
+    vector-append
     ;; R7RS 6.9: Bytevectors
     bytevector?
     make-bytevector

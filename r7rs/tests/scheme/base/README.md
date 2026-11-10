@@ -179,6 +179,7 @@ gf doc scheme/base "函数名"
 - `vector-copy` - 复制向量
 - `vector-copy!` - 复制向量到另一向量
 - `vector-fill!` - 填充向量
+- `vector-append` - 连接向量
 
 ### 八、字节向量 (R7RS 6.9 Bytevectors)
 - `make-bytevector` - 创建字节向量
