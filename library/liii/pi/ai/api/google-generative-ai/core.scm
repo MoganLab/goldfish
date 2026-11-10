@@ -29,6 +29,44 @@
       ) ;let
     ) ;define*
 
+    (define (%to-str x)
+      (cond ((string? x) x)
+            ((symbol? x) (symbol->string x))
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (%msg-model msg)
+      (cond ((pi-assistant-message? msg) (pi-assistant-message-model msg))
+            (else (or (%val 'model msg #f) (%val 'model-id msg #f)))
+      ) ;cond
+    ) ;define
+
+    (define (%msg-provider msg)
+      (cond ((pi-assistant-message? msg) (pi-assistant-message-provider msg))
+            (else (%val 'provider msg #f))
+      ) ;cond
+    ) ;define
+
+    ;; 判定历史消息是否与当前请求目标属于同一模型（对齐上游 isSameProviderAndModel）。
+    ;; 要求双方的 provider 和 model 必须明确存在且完全一致；
+    ;; 无明确模型信息时默认按跨模型安全策略处理（不回放签名，丢弃思维链）。
+    (define (%is-same-model? msg model-id provider)
+      (let ((msg-m (%to-str (%msg-model msg)))
+            (tgt-m (%to-str model-id))
+            (msg-p (%to-str (%msg-provider msg)))
+            (tgt-p (%to-str provider))
+           ) ;
+        (and (string? tgt-m)
+          (string? msg-m)
+          (equal? msg-m tgt-m)
+          (string? tgt-p)
+          (string? msg-p)
+          (equal? msg-p tgt-p)
+        ) ;and
+      ) ;let
+    ) ;define
+
     (define (%is-image-block? b)
       (or (pi-image-block? b) (equal? (%val 'type b "") "image"))
     ) ;define
@@ -113,18 +151,20 @@
       ) ;let*
     ) ;define
 
-    (define (%build-single-content msg model-id)
-      (let ((role (%val 'role msg "")) (content (%val 'content msg '())))
+    (define (%build-single-content msg model-id provider)
+      (let ((role (if (pi-message? msg) (pi-message-role msg) (%val 'role msg "")))
+            (content (if (pi-message? msg)
+                       (if (pi-assistant-message? msg)
+                         (pi-assistant-message-content msg)
+                         (if (pi-user-message? msg)
+                           (pi-user-message-content msg)
+                           (%val 'content msg '())))
+                       (%val 'content msg '()))))
         (cond ((equal? role "user") (%build-user-turn content))
               ((equal? role "assistant")
-               (let* ((msg-model (%val 'model msg #f))
-                      ;; 同 provider+model 才回放签名（对齐上游 isSameProviderAndModel）。
-                      ;; record 消息无 model 字段，视为同模型（record 由本进程构造）
-                      (same-model? (and (string? model-id) (or (not msg-model) (equal? msg-model model-id)))
-                      ) ;same-model?
-                     ) ;
+               (let ((same-model? (%is-same-model? msg model-id provider)))
                  (%build-assistant-turn content same-model?)
-               ) ;let*
+               ) ;let
               ) ;
               (else #f)
         ) ;cond
@@ -200,7 +240,12 @@
 
     (define (%take-tool-results rest parts-acc)
       (if
-        (and (pair? rest) (equal? (%val 'role (car rest) "") "toolResult"))
+        (and (pair? rest)
+          (equal?
+            (if (pi-message? (car rest)) (pi-message-role (car rest)) (%val 'role (car rest) ""))
+            "toolResult"
+          ) ;equal?
+        ) ;and
         (%take-tool-results (cdr rest)
           (cons (%tool-result->function-response (car rest)) parts-acc)
         ) ;%take-tool-results
@@ -208,12 +253,14 @@
       ) ;if
     ) ;define
 
-    (define* (gemini-build-contents messages (model-id #f))
+    (define* (gemini-build-contents messages (model-id #f) (provider "google"))
       (let loop
         ((rest messages) (acc '()))
         (if (null? rest)
           (list->vector (reverse acc))
-          (let* ((msg (car rest)) (role (%val 'role msg "")))
+          (let* ((msg (car rest))
+                 (role (if (pi-message? msg) (pi-message-role msg) (%val 'role msg "")))
+                ) ;
             (if (equal? role "toolResult")
               (let*-values (((rem-rest rparts) (%take-tool-results rest '()))
                             ((parts-vec) (list->vector (reverse rparts)))
@@ -221,7 +268,7 @@
                            ) ;
                 (loop rem-rest (cons merged-turn acc))
               ) ;let*-values
-              (let ((c (%build-single-content msg model-id)))
+              (let ((c (%build-single-content msg model-id provider)))
                 (loop (cdr rest) (if c (cons c acc) acc))
               ) ;let
             ) ;if

@@ -104,6 +104,7 @@
       (let* ((model-id (cdr (assoc 'model-id config)))
              (model-meta (cdr (assoc 'model-meta config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
+             (provider (cdr (or (%safe-assoc 'provider config) '(#f . "google"))))
              (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
              (tool-resolver (if (assoc 'tool-resolver config)
                               (cdr (assoc 'tool-resolver config))
@@ -111,7 +112,7 @@
                             ) ;if
              ) ;tool-resolver
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
-             (contents (gemini-build-contents messages model-id))
+             (contents (gemini-build-contents messages model-id (or provider "google")))
              (raw-req-body (gemini-build-request-body contents sys-inst tool-decls))
              (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
              (req-body (gemini-inject-thinking-config raw-req-body thinking-lvl))

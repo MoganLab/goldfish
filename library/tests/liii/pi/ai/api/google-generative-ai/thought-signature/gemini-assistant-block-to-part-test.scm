@@ -21,7 +21,7 @@
 ;; ----
 ;; text 块携带 textSignature、thinking 块携带 thinkingSignature、
 ;; toolCall 块携带 thoughtSignature；签名合法且同模型时才回放。
-;; 跨模型时 thinking 降级为纯文本，不带 thought 标记与签名。
+;; 跨模型时 thinking 块直接过滤（返回 #f），不发射为文本。
 
 (import (liii check)
   (liii pi ai api google-generative-ai thought-signature)
@@ -66,10 +66,10 @@
                                          ("thinkingSignature" . "QUJD")) #t)
   => '(("thoughtSignature" . "QUJD") ("thought" . #t) ("text" . "reasoning...")))
 
-;; thinking 块：跨模型降级为纯文本
+;; thinking 块：跨模型丢弃（返回 #f）
 (check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "reasoning...")
                                          ("thinkingSignature" . "QUJD")) #f)
-  => '(("text" . "reasoning...")))
+  => #f)
 
 ;; thinking 块：空内容且无签名 → 丢弃
 (check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "")) #t) => #f)

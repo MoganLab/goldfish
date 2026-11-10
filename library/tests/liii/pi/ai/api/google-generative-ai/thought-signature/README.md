@@ -4,7 +4,7 @@
 thought signature 回放：校验签名的 base64 合法性，并把 assistant 内容块
 （text / thinking / toolCall）转换为 Gemini parts。
 
-跨模型（provider 或 model 不同）时不回传签名，thinking 块降级为纯文本。
+跨模型（provider 或 model 不同）时不回传签名，thinking 块被彻底过滤丢弃。
 
 使用时导入：
 
@@ -44,3 +44,4 @@ bin/gf test tools/pi/tests/liii/pi/ai/api/google-generative-ai/thought-signature
 
 - `gemini-valid-thought-signature-p-test.scm` — `gemini-valid-thought-signature?`：base64 签名合法性判定
 - `gemini-assistant-block-to-part-test.scm` — `gemini-assistant-block->part`：内容块到 part 的转换
+- `cross-model-switch-test.scm` — 跨模型切换场景下的思考签名校验与思维链阻断
