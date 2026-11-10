@@ -99,6 +99,16 @@
     (define hint-char=? '((char? char? -> boolean?)))
     (define hint-vector-ref '((vector? integer? -> any?)))
     (define hint-vector-length '((vector? -> integer?)))
+    (define hint-vector-copy
+      '((vector? -> vector?)
+        (vector? integer? -> vector?)
+        (vector? integer? integer? -> vector?))
+    ) ;define
+    (define hint-vector-copy!
+      '((vector? integer? vector? -> any?)
+        (vector? integer? vector? integer? -> any?)
+        (vector? integer? vector? integer? integer? -> any?))
+    ) ;define
 
     ;; 端口、读取与控制
     (define hint-open-input-string '((string? -> input-port?)))
@@ -189,6 +199,8 @@
        ((char=?) hint-char=?)
        ((vector-ref) hint-vector-ref)
        ((vector-length) hint-vector-length)
+       ((vector-copy) hint-vector-copy)
+       ((vector-copy!) hint-vector-copy!)
        ((open-input-string) hint-open-input-string)
        ((read) hint-read)
        ((eof-object) hint-eof-object)

@@ -1,14 +1,14 @@
 (define-library (liii vector)
-  (import (scheme base) (srfi srfi-133) (srfi srfi-13))
+  (import (scheme base) (liii base) (liii error) (srfi srfi-133))
   (export vector-empty? vector-unfold vector-unfold-right vector-unfold!
     vector-unfold-right! vector-fold vector-fold-right vector-count vector-any
     vector-every vector-index vector-index-right vector-skip vector-skip-right
     vector-binary-search vector-concatenate vector-partition
     vector-append-subvectors vector-swap! vector-reverse! vector-reverse-copy
     vector-reverse-copy! vector-map! vector-cumulate reverse-vector->list
-    reverse-list->vector vector= vector-contains? vector-filter vector-contains?
-    vector-take vector-drop vector-take-right vector-drop-right int-vector
-    int-vector? make-int-vector int-vector-ref int-vector-set! complex-vector
+    reverse-list->vector vector= vector-contains? vector-filter vector-take
+    vector-drop vector-take-right vector-drop-right int-vector int-vector?
+    make-int-vector int-vector-ref int-vector-set! complex-vector
     complex-vector? make-complex-vector complex-vector-ref complex-vector-set!
     float-vector float-vector? make-float-vector float-vector-ref
     float-vector-set! subvector subvector? subvector-position subvector-vector
@@ -17,13 +17,17 @@
 
     (define vector-filter g_vector_filter)
 
-    (define (vector-contains? vec elem . args)
-      (let ((cmp (if (null? args) equal? (car args))))
-        (not
-          (not (vector-index (lambda (x) (cmp x elem)) vec))
-        ) ;not
-      ) ;let
-    ) ;define
+    (define* (vector-contains? vec elem (cmp equal?))
+      (unless (vector? vec)
+        (type-error "vector-contains?: first argument must be a vector" vec)
+      ) ;unless
+      (unless (procedure? cmp)
+        (type-error "vector-contains?: comparison argument must be a procedure" cmp)
+      ) ;unless
+      (not
+        (not (vector-index (lambda (x) (cmp x elem)) vec))
+      ) ;not
+    ) ;define*
 
     (define (vector-take vec n)
       (unless (vector? vec)
