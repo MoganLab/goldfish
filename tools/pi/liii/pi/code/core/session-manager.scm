@@ -145,7 +145,11 @@
           (when (> total-len old-len)
             (for-each
               (lambda (m)
-                (let* ((json-str (pi-serialize-event m))
+                (let* ((json-str (if (pi-assistant-message? m)
+                                   (pi-serialize-event (pi-message->alist m))
+                                   (pi-serialize-event m)
+                                 ) ;if
+                       ) ;json-str
                        (mid (uuid4))
                        (now-iso (pi-iso-8601-utc-now))
                       ) ;
