@@ -1,3 +1,23 @@
+;; resolve-resume-session-file
+;; 解析需要恢复的会话文件路径。
+;;
+;; 语法
+;; ----
+;; (resolve-resume-session-file parsed sdir)
+;;
+;; 参数
+;; ----
+;; parsed : list?
+;; 命令行解析后的参数 alist。
+;;
+;; sdir : (or string path)
+;; 会话目录。
+;;
+;; 返回值
+;; ----
+;; (or string #f)
+;; 需要恢复的会话文件路径，新会话时返回 #f。
+
 (import (scheme base)
   (liii check)
   (liii path)
@@ -12,24 +32,32 @@
 
 (let* ((sdir (path->string (path-join (path-temp-dir) "test-resolve-resume")))
        (older (path->string (path-join sdir "2026-10-01T00-00-00-000Z_older.jsonl")))
-       (latest (path->string (path-join sdir "2026-10-02T00-00-00-000Z_latest.jsonl"))))
+       (latest (path->string (path-join sdir "2026-10-02T00-00-00-000Z_latest.jsonl")))
+      ) ;
   (when (file-exists? sdir)
-    (rmtree sdir))
+    (rmtree sdir)
+  ) ;when
   (path-mkdir sdir :parents #t :exist-ok #t)
   (save-session-header! older "older" "2026-10-01T00:00:00.000Z" "/work")
   (save-session-header! latest "latest" "2026-10-02T00:00:00.000Z" "/work")
   ;; session-file 优先于目录最新文件
-  (check (resolve-resume-session-file `((session-file . ,older) (continue . #t)) sdir)
-    => older)
+  (check
+    (resolve-resume-session-file `((session-file . ,older) (continue . #t)) sdir)
+    =>
+    older
+  ) ;check
   ;; --continue 取目录内最新
   (check (resolve-resume-session-file '((continue . #t)) sdir) => latest)
   ;; 无恢复来源返回 #f
   (check-false (resolve-resume-session-file '() sdir))
-  (rmtree sdir))
+  (rmtree sdir)
+) ;let*
 
 ;; 目录不存在时 --continue 也返回 #f
 (check-false
   (resolve-resume-session-file '((continue . #t))
-    (path->string (path-join (path-temp-dir) "test-resolve-resume-missing"))))
+    (path->string (path-join (path-temp-dir) "test-resolve-resume-missing"))
+  ) ;resolve-resume-session-file
+) ;check-false
 
 (check-report)

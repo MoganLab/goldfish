@@ -22,10 +22,7 @@
 
 ;; 完全命中（100%）：input=0, cache-read=1000, cache-write=0
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats)
-) ;import
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
@@ -47,10 +44,24 @@
 (check (pi-calculate-cache-hit-rate 0 0 0) => #f)
 
 ;; 支持传入 usage alist
-(check (pi-calculate-cache-hit-rate '((input . 100) (cacheRead . 900) (cacheWrite . 0))) => 90.0)
-(check (pi-calculate-cache-hit-rate '((input . 500) (cacheRead . 0) (cacheWrite . 0))) => #f)
+(check (pi-calculate-cache-hit-rate '((input . 100)
+                                      (cacheRead . 900)
+                                      (cacheWrite . 0))
+       ) ;pi-calculate-cache-hit-rate
+  =>
+  90.0
+) ;check
+(check (pi-calculate-cache-hit-rate '((input . 500)
+                                      (cacheRead . 0)
+                                      (cacheWrite . 0)))
+  =>
+  #f
+) ;check
 
 ;; 支持传入 pi-session-token-stats record
-(check (pi-calculate-cache-hit-rate (make-pi-session-token-stats 50 100 950 0)) => 95.0)
+(check (pi-calculate-cache-hit-rate (make-pi-session-token-stats 50 100 950 0))
+  =>
+  95.0
+) ;check
 
 (check-report)

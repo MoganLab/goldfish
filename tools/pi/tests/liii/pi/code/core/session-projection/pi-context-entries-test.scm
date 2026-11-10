@@ -1,17 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii shutil)
-  (liii string)
-  (liii list)
-  (liii json)
-  (liii pi code core session-manager)
-  (liii pi code core session-projection)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-context-entries
 ;; 压缩感知的路径裁剪：在路径条目上找最后一条 compaction，
 ;; 返回该压缩条目与 firstKeptEntryId 起的保留条目。
@@ -32,10 +18,21 @@
 ;;   有压缩时为压缩条目 + firstKeptEntryId 到压缩点之前的条目 + 压缩点之后的全部路径条目；
 ;; reason : #f 或降级原因字符串（firstKeptEntryId 不在压缩点之前的路径上、缺失或非法）。
 ;;
-;; 示例
-;; ----
-;; (pi-context-entries (list m1 m2 C m3))
-;; => 条目 (C m3) 与降级原因（C 的 firstKeptEntryId 指向路径外时）
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii shutil)
+  (liii string)
+  (liii list)
+  (liii json)
+  (liii pi code core session-manager)
+  (liii pi code core session-projection)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 ;; 建一个 message 条目 alist：parentId 为字符串或 'null
 

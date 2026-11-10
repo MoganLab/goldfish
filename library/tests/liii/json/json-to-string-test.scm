@@ -1,0 +1,274 @@
+;; json->string
+;; 将 Scheme 形式的 JSON 数据编码为字符串。
+;;
+;; 语法
+;; ----
+;; (json->string data)
+;; (json->string data :indent indent)
+;; (json->string data :sort-keys sort-keys)
+;; (json->string data :ensure-ascii ensure-ascii)
+;; (json->string data :compact compact)
+;;
+;; 可选参数由 define* 声明（indent / sort-keys / ensure-ascii / compact），
+;; 既可按关键字传入，也可按位置依次传入。
+;;
+;; 参数
+;; ----
+;; data : any?
+;; 要编码的 JSON 数据结构。
+;;
+;; indent : integer? | string? | #f
+;; 缩进空格数或缩进字符串；#f 表示不缩进（默认）。
+;;
+;; sort-keys : boolean?
+;; 是否按键名排序输出。
+;;
+;; ensure-ascii : boolean?
+;; 是否把非 ASCII 字符转义为 \uXXXX。
+;;
+;; compact : boolean?
+;; 是否紧凑输出；为 #t 时忽略 indent。
+;;
+;; 返回值
+;; ----
+;; string
+;; 返回对应的 JSON 字符串。
+;;
+;; 注意
+;; ----
+;; 对象键名在部分情况下会输出为宽松格式，不总是强制带引号。
+;;
+;; 错误处理
+;; ----
+;; value-error 当输入不是有效的 JSON 数据结构时，或 indent 为负数。
+;;
+;; type-error 当选项取值类型不合法，或传入未识别的关键字参数。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+
+(check-set-mode! 'report-failed)
+
+
+(check (json->string #(1 2 3)) => "[1,2,3]")
+(check
+  (json->string '((a (b . 1) (c . 2))))
+  =>
+  "{a:{b:1,c:2}}"
+) ;check
+(check-catch 'value-error (json->string '((a))))
+(check (json->string #()) => "[]")
+(check (json->string #("a" "b")) => "[\"a\",\"b\"]")
+(check (json->string #(1 "a" true null)) => "[1,\"a\",true,null]")
+(check (json->string '(("name" . "Alice"))) => "{\"name\":\"Alice\"}")
+(check (json->string '(("id" . 1) ("active" . true)))
+  =>
+  "{\"id\":1,\"active\":true}"
+) ;check
+(check (json->string '((name . "Bob"))) => "{name:\"Bob\"}")
+(check (json->string '((x . 10) (y . 20))) => "{x:10,y:20}")
+(check (json->string #((("id" . 1)) (("id" . 2)))) => "[{\"id\":1},{\"id\":2}]")
+(check (json->string '(("scores" . #(85 90 95)))) => "{\"scores\":[85,90,95]}")
+(check
+  (json->string '(("user" ("name" . "Dave") ("tags" . #("admin" "editor")))))
+  =>
+  "{\"user\":{\"name\":\"Dave\",\"tags\":[\"admin\",\"editor\"]}}"
+) ;check
+(check (json->string '(("text" . "Line1\nLine2")))
+  =>
+  "{\"text\":\"Line1\\nLine2\"}"
+) ;check
+(check (json->string #("He said \"Hello\"")) => "[\"He said \\\"Hello\\\"\"]")
+
+
+(check (json->string '(("messages"
+                        . #((("role" . "user") ("content" . #(1 2 3)))
+                            (("role" . "user") ("content" . "中文"))
+                          ) ;#
+                       ))
+       ) ;json->string
+  =>
+  "{\"messages\":[{\"role\":\"user\",\"content\":[1,2,3]},{\"role\":\"user\",\"content\":\"中文\"}]}"
+) ;check
+
+
+(check (json->string '(("messages"
+                        . #((("role" . "user")
+                             ("content"
+                              . #((("text" . "1") ("type" . "text"))
+                                  (("text" . "2") ("type" . "text"))
+                                ) ;#
+                             ))
+                            (("role" . "user") ("content" . "中文"))
+                          ) ;#
+                       ))
+       ) ;json->string
+  =>
+  "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"1\",\"type\":\"text\"},{\"text\":\"2\",\"type\":\"text\"}]},{\"role\":\"user\",\"content\":\"中文\"}]}"
+) ;check
+
+
+(define sample-j
+  '((user (id . 1001)
+      (name . "Alice")
+      (active . #t)
+      (email . null)
+      (tags . #("dev" "scheme" "json"))
+      (profile (age . 21) (height . 168.5) (hobbies . #("music" "reading"))))
+    (scores . #(98 87 93)))
+) ;define
+
+
+(check (json->string sample-j)
+  =>
+  "{user:{id:1001,name:\"Alice\",active:true,email:null,tags:[\"dev\",\"scheme\",\"json\"],profile:{age:21,height:168.5,hobbies:[\"music\",\"reading\"]}},scores:[98,87,93]}"
+) ;check
+
+
+;;; [0125] 空对象 '(()) 顶层输出 {}（此前输出 {{}}）
+(check (json->string '(())) => "{}")
+
+;;; [0125] 控制字符（含 NUL）转义为 \uXXXX，保证输出可再被 string->json 解析
+(check (json->string (string #\a #\nul #\b)) => "\"a\\u0000b\"")
+(check (json->string (string #\x01)) => "\"\\u0001\"")
+
+;; 循环引用 / 环状结构测试（防止死循环和栈溢出 Crash）
+(let ((circ (list (cons 'a 1))))
+  (set-cdr! circ circ)
+  (check-catch 'value-error (json->string circ))
+) ;let
+
+(let ((v (vector #f)))
+  (vector-set! v 0 v)
+  (check-catch 'value-error (json->string v))
+) ;let
+
+;; 单个 entry 内部成环
+(let ((entry (cons 'a 1)))
+  (set-cdr! entry entry)
+  (check-catch 'value-error (json->string (list entry)))
+) ;let
+
+;; 嵌套深度超限（超过 1000 层抛 value-error 防爆栈 Crash）
+(let loop
+  ((i 0) (v 1))
+  (if (= i 1001)
+    (check-catch 'value-error (json->string v))
+    (loop (+ i 1) (vector v))
+  ) ;if
+) ;let
+
+;; 不可序列化类型抛 type-error（回归：写入器错误经 C++ 异常上传，
+;; f_json_to_string 在 RAII 析构后才 s7_error，MSVC 下安全）
+(check-catch 'type-error (json->string #\a))
+(check-catch 'type-error (json->string (lambda (x) x)))
+
+;; 错误路径后正常调用不受影响
+(check (json->string '((a . 1))) => "{a:1}")
+
+;; -------------------------------------------------------------
+;; 扩展选项测试 [1244]
+;; -------------------------------------------------------------
+
+;; 1. :indent 缩进测试
+(check (json->string '(("name" . "Alice") ("age" . 30)) :indent 2)
+  =>
+  "{\n  \"name\": \"Alice\",\n  \"age\": 30\n}"
+) ;check
+
+(check (json->string '(("name" . "Alice")) :indent 4)
+  =>
+  "{\n    \"name\": \"Alice\"\n}"
+) ;check
+
+(check (json->string '((name . "Alice")) :indent 2)
+  =>
+  "{\n  name: \"Alice\"\n}"
+) ;check
+
+(check (json->string '(("a" . 1) ("b" . #(2 3))) :indent 2)
+  =>
+  "{\n  \"a\": 1,\n  \"b\": [\n    2,\n    3\n  ]\n}"
+) ;check
+
+(check (json->string '(("a" . 1)) :indent "\t") => "{\n\t\"a\": 1\n}")
+
+;; 空对象与空数组在缩进模式下保持一行
+(check (json->string '(()) :indent 2) => "{}")
+(check (json->string #() :indent 2) => "[]")
+(check (json->string '(("a" . #()) ("b" ())) :indent 2)
+  =>
+  "{\n  \"a\": [],\n  \"b\": {}\n}"
+) ;check
+
+;; :indent 0: 换行但缩进空格数为 0
+(check (json->string '(("a" . 1) ("b" . 2)) :indent 0)
+  =>
+  "{\n\"a\": 1,\n\"b\": 2\n}"
+) ;check
+
+;; 2. :sort-keys 键排序测试
+(check (json->string '(("z" . 1) ("a" . 2) ("k" . 3)) :sort-keys #t)
+  =>
+  "{\"a\":2,\"k\":3,\"z\":1}"
+) ;check
+
+(check (json->string '((z . 1) (a . 2) (k . 3)) :sort-keys #t)
+  =>
+  "{a:2,k:3,z:1}"
+) ;check
+
+(check
+  (json->string '(("b" ("z" . 1) ("a" . 2)) ("a" . 10)) :sort-keys #t)
+  =>
+  "{\"a\":10,\"b\":{\"a\":2,\"z\":1}}"
+) ;check
+
+(check (json->string '(("z" . 1) ("a" . 2)) :indent 2 :sort-keys #t)
+  =>
+  "{\n  \"a\": 2,\n  \"z\": 1\n}"
+) ;check
+
+;; 3. :ensure-ascii ASCII 转义测试
+(check (json->string '(("name" . "小明"))) => "{\"name\":\"小明\"}")
+(check (json->string '(("name" . "小明")) :ensure-ascii #f)
+  =>
+  "{\"name\":\"小明\"}"
+) ;check
+(check (json->string '(("name" . "小明")) :ensure-ascii #t)
+  =>
+  "{\"name\":\"\\u5c0f\\u660e\"}"
+) ;check
+
+;; 超出 BMP 范围的 Unicode 字符（如 😄 U+1F604）转义为代理对
+(check (json->string '(("emoji" . "😄")) :ensure-ascii #t)
+  =>
+  "{\"emoji\":\"\\ud83d\\ude04\"}"
+) ;check
+
+;; 4. :compact 紧凑输出测试
+(check (json->string '(("a" . 1) ("b" . 2)) :compact #t) => "{\"a\":1,\"b\":2}")
+(check (json->string '(("a" . 1) ("b" . 2)) :compact #t :sort-keys #t)
+  =>
+  "{\"a\":1,\"b\":2}"
+) ;check
+;; compact 为 #t 时覆盖 indent
+(check (json->string '(("a" . 1) ("b" . 2)) :indent 2 :compact #t)
+  =>
+  "{\"a\":1,\"b\":2}"
+) ;check
+
+;; 5. 选项错误检查
+(check-catch 'value-error (json->string '((a . 1)) :indent -1))
+(check-catch 'type-error (json->string '((a . 1)) :indent 'invalid))
+(check-catch 'type-error (json->string '((a . 1)) :sort-keys "yes"))
+(check-catch 'type-error (json->string '((a . 1)) :ensure-ascii 1))
+(check-catch 'type-error (json->string '((a . 1)) :compact 123))
+;; 未识别的关键字参数由 define* 直接报错（type-error）
+(check-catch 'type-error (json->string '((a . 1)) :unknown-opt #t))
+
+;; 6. 可选参数也可按位置传入（define* 语义）
+(check (json->string '(("a" . 1)) 2) => "{\n  \"a\": 1\n}")
+(check (json->string '(("z" . 1) ("a" . 2)) #f #t) => "{\"a\":2,\"z\":1}")
+
+(check-report)

@@ -17,10 +17,7 @@
 ;; list
 ;; 合并覆盖后的配置 alist。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code modes interactive worker)
-) ;import
+(import (scheme base) (liii check) (liii pi code modes interactive worker))
 
 (check-set-mode! 'report-failed)
 

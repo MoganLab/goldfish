@@ -5,9 +5,8 @@
 ;;
 
 (define-library (liii pi code cli windows-terminal)
-  (export wt-active? wt-find-settings-path jsonc->clean-json
-    wt-detect-alt-enter-status wt-insert-unbound-action wt-apply-unbound-fix!
-    pi-windows-terminal-adapt-interactive!
+  (export wt-find-settings-path wt-detect-alt-enter-status
+    wt-insert-unbound-action pi-windows-terminal-adapt-interactive!
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -43,24 +42,23 @@
     (define* (wt-find-settings-path (localappdata (get-environment-variable "LOCALAPPDATA")))
       (if (or (not (string? localappdata)) (string-null? localappdata))
         #f
-        (let ((candidates '("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
-                            "Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json"
-                            "Microsoft/Windows Terminal/settings.json")
-              ) ;candidates
-             ) ;
-          (let loop
-            ((rest candidates))
-            (if (null? rest)
-              #f
-              (let ((candidate-path (path-join (path localappdata) (car rest))))
-                (if (path-exists? candidate-path)
-                  (path->string candidate-path)
-                  (loop (cdr rest))
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;let
+        (let* ((candidates '("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
+                             "Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json"
+                             "Microsoft/Windows Terminal/settings.json")
+               ) ;candidates
+               (found
+                 (find
+                   (lambda (relative)
+                     (let ((candidate (path-join (path localappdata) relative)))
+                       (and (path-exists? candidate) candidate)
+                     ) ;let
+                   ) ;lambda
+                   candidates
+                 ) ;find
+               ) ;found
+              ) ;
+          (and found (path->string found))
+        ) ;let*
       ) ;if
     ) ;define*
 
@@ -70,13 +68,12 @@
         (unless (path-exists? p)
           (file-not-found-error (string-append "Settings file not found: " path-str))
         ) ;unless
-        (let* ((text (path-read-text p)) (status (wt-detect-alt-enter-status text)))
-          (if (not (eq? status 'default-conflict))
+        (let* ((text (path-read-text p)) (new-text (wt-insert-unbound-action text)))
+          (if (string=? new-text text)
             #t
-            (let* ((new-text (wt-insert-unbound-action text))
-                   (bak-path (string-append path-str ".bak"))
-                   (tmp-path (string-append path-str ".tmp." (number->string (getpid))))
-                  ) ;
+            (let ((bak-path (string-append path-str ".bak"))
+                  (tmp-path (string-append path-str ".tmp." (number->string (getpid))))
+                 ) ;
               ;; 1. 备份原配置
               (when (path-exists? (path bak-path))
                 (path-unlink (path bak-path) #t)
@@ -106,7 +103,7 @@
                   (apply error err-type info)
                 ) ;lambda
               ) ;catch
-            ) ;let*
+            ) ;let
           ) ;if
         ) ;let*
       ) ;let*

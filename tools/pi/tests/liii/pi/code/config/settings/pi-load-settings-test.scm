@@ -15,9 +15,15 @@
 ;; pi-settings
 ;; 全局设置 record；文件缺失或字段缺省时回退默认值。
 
-(import (liii check) (liii pi ai config record) (liii pi ai retry) (liii pi code config settings) (liii pi code core session-manager))
+(import (liii check)
+  (liii pi ai config record)
+  (liii pi ai retry)
+  (liii pi code config settings)
+  (liii pi code core session-manager)
+) ;import
 
 (check-set-mode! 'report-failed)
+
 (define fixture-dir
   (if (file-exists? "tests/fixtures/default")
     "tests/fixtures/default"
@@ -56,8 +62,10 @@
     (check (cdr (assoc 'max-agent-delay-ms retry)) => 60000)
     ;; 无嵌套节时 provider 预算为 #f（由 resolver 回退顶层值）
     (check (cdr (assoc 'provider-max-retries retry)) => #f)
-    (check (pi-retry-config-provider-max-retries retry) => #f))
-  (check (cdr (assoc 'default-tools settings)) => '("read" "bash" "edit" "write")))
+    (check (pi-retry-config-provider-max-retries retry) => #f)
+  ) ;let
+  (check (cdr (assoc 'default-tools settings)) => '("read" "bash" "edit" "write"))
+) ;let
 
 (let ((empty-settings (pi-load-settings "non/existent/dir")))
   (check-true (pi-settings? empty-settings))
@@ -65,11 +73,28 @@
   (check (cdr (assoc 'default-provider empty-settings)) => "google")
   (check (cdr (assoc 'default-model empty-settings)) => "gemini-3.8-flash")
   (check (cdr (assoc 'http-proxy empty-settings)) => #f)
-  (check (cdr (assoc 'default-tools empty-settings)) => #f))
+  (check (cdr (assoc 'default-tools empty-settings)) => #f)
+  ;; enableSkillCommands 未配置时默认开启
+  (check-true (pi-settings-enable-skill-commands empty-settings))
+  (check-true (cdr (assoc 'enable-skill-commands empty-settings)))
+) ;let
+
+;; enableSkillCommands: false 生效（/skill: 命令开关）
+(let* ((skill-off-dir (if (file-exists? "tests/fixtures/skill-commands-off")
+                        "tests/fixtures/skill-commands-off"
+                        "tools/pi/tests/fixtures/skill-commands-off"
+                      ) ;if
+       ) ;skill-off-dir
+       (settings (pi-load-settings skill-off-dir))
+      ) ;
+  (check-false (pi-settings-enable-skill-commands settings))
+  (check-false (cdr (assoc 'enable-skill-commands settings)))
+) ;let*
 
 ;; retry.provider 嵌套节解析：provider.maxRetries 不再被丢弃
 (let* ((settings (pi-load-settings retry-provider-dir))
-       (retry (cdr (assoc 'retry settings))))
+       (retry (cdr (assoc 'retry settings)))
+      ) ;
   (check-true (pi-settings? settings))
   (check (cdr (assoc 'max-retries retry)) => 3)
   (check (cdr (assoc 'provider-max-retries retry)) => 12)
@@ -77,35 +102,44 @@
   (check (pi-retry-config-provider-max-retries retry) => 12)
   ;; resolver 选取 provider 预算，顶层预算保持 3
   (let-values (((max-retries base-delay-ms max-agent-delay-ms provider-max-retries)
-                (pi-resolve-retry-params settings #f)))
+                (pi-resolve-retry-params settings #f)
+               ) ;
+              ) ;
     (check max-retries => 3)
-    (check provider-max-retries => 12)))
+    (check provider-max-retries => 12)
+  ) ;let-values
+) ;let*
 
 ;; sessionDir 设置项：读取原始字符串（~ 与相对路径在会话目录解析时展开）
 (let ((settings (pi-load-settings session-dir-fixture-dir)))
   (check (pi-settings-session-dir settings) => "/tmp/session-dir-fixture")
-  (check (cdr (assoc 'session-dir settings)) => "/tmp/session-dir-fixture"))
+  (check (cdr (assoc 'session-dir settings)) => "/tmp/session-dir-fixture")
+) ;let
 
 ;; 无 sessionDir 键时保持 #f
 (let ((settings (pi-load-settings fixture-dir)))
-  (check (pi-settings-session-dir settings) => #f))
+  (check (pi-settings-session-dir settings) => #f)
+) ;let
 
 ;; hideThinkingBlock 设置键（与上游 pi 共用 settings.json）
 ;; 无键时默认 #f（显示思考块）
 (let ((settings (pi-load-settings fixture-dir)))
-  (check (pi-settings-hide-thinking-block settings) => #f))
+  (check (pi-settings-hide-thinking-block settings) => #f)
+) ;let
 ;; 显式 false 同样为 #f
 (let ((settings (pi-load-settings session-dir-fixture-dir)))
-  (check (pi-settings-hide-thinking-block settings) => #f))
+  (check (pi-settings-hide-thinking-block settings) => #f)
+) ;let
 ;; 显式 true 时为 #t（隐藏思考块）
-(let ((hide-dir
-        (if (file-exists? "tests/fixtures/default")
-          "tests/fixtures/hide-thinking"
-          "tools/pi/tests/fixtures/hide-thinking"
-        ) ;if
+(let ((hide-dir (if (file-exists? "tests/fixtures/default")
+                  "tests/fixtures/hide-thinking"
+                  "tools/pi/tests/fixtures/hide-thinking"
+                ) ;if
       ) ;hide-dir
-     )
+     ) ;
   (let ((settings (pi-load-settings hide-dir)))
-    (check (pi-settings-hide-thinking-block settings) => #t)))
+    (check (pi-settings-hide-thinking-block settings) => #t)
+  ) ;let
+) ;let
 
 (check-report)

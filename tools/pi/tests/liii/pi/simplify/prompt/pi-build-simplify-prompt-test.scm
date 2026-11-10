@@ -1,7 +1,21 @@
-(import (liii check)
-        (liii string)
-        (liii pi simplify prompt)
-) ;import
+;; pi-build-simplify-prompt
+;; 构建只读模式下的代码简化提示词。
+;;
+;; 语法
+;; ----
+;; (pi-build-simplify-prompt files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 变更文件及其上下文信息列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 组装好的只读提示词文本。
+
+(import (liii check) (liii string) (liii pi simplify prompt))
 
 (check-set-mode! 'report-failed)
 
@@ -15,26 +29,18 @@
 ) ;define
 
 (define sample-content
-  (string-append "function f() {\n"
-    "  let t = 0;\n"
-    "  t = t + 1;\n"
-    "  return t;\n"
-    "}\n"
-    "\n"
-    "line 20 is far away\n"
+  (string-append "function f() {\n" "  let t = 0;\n" "  t = t + 1;\n"
+    "  return t;\n" "}\n" "\n" "line 20 is far away\n"
   ) ;string-append
 ) ;define
 
-;; pi-build-simplify-prompt
 ;; 只读模式提示词：四原则 + Scope + Process + JSON 契约 + 改动行上下文。
 
-(let* ((files (list (file "src/calc.ts" "modified"
-                          '(((start . 2) (end . 3)))
-                          #t
-                          sample-content
-                        ) ;list
-                    (file "src/util.ts" "added" #f #t "export const a = 1;\n")
-                  ) ;list
+(let* ((files
+         (list
+           (file "src/calc.ts" "modified" '(((start . 2) (end . 3))) #t sample-content)
+           (file "src/util.ts" "added" #f #t "export const a = 1;\n")
+         ) ;list
        ) ;files
        (p (pi-build-simplify-prompt files))
       ) ;
@@ -45,9 +51,13 @@
   (check-true (string-contains? p "**Maintain balance**"))
   ;; Scope / Process
   (check-true (string-contains? p "## Scope"))
-  (check-true (string-contains? p "Only review and propose changes within the changed lines listed below."))
+  (check-true (string-contains? p
+                "Only review and propose changes within the changed lines listed below."
+              ) ;string-contains?
+  ) ;check-true
   (check-true (string-contains? p "- src/calc.ts (modified; changed lines: 2-3)"))
-  (check-true (string-contains? p "- src/util.ts (added; entire file is in scope)"))
+  (check-true (string-contains? p "- src/util.ts (added; entire file is in scope)")
+  ) ;check-true
   (check-true (string-contains? p "## Process"))
   (check-true (string-contains? p "1. Read each changed file"))
   (check-true (string-contains? p "5. Summarize the opportunities"))

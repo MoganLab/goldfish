@@ -1,0 +1,54 @@
+;; random-integer
+;; 生成 [0, n-1] 范围内的随机整数。
+;;
+;; 语法
+;; ----
+;; (random-integer n)
+;;
+;; 参数
+;; ----
+;; n : positive-integer
+;; 范围上限（不包含），必须是正整数。
+;;
+;; 返回值
+;; ----
+;; integer
+;; 返回 [0, n-1] 范围内的随机整数。
+;;
+;; 错误处理
+;; ----
+;; type-error 当 n 不是正整数时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
+
+
+(let ((r (random-integer 10)))
+  (check (integer? r) => #t)
+  (check (exact? r) => #t)
+  (check (>= r 0) => #t)
+  (check (< r 10) => #t)
+) ;let
+
+
+(check (>= (random-integer 1) 0) => #t)
+(check (< (random-integer 1) 1) => #t)
+
+
+(let ((r (random-integer 100)))
+  (check (>= r 0) => #t)
+  (check (< r 100) => #t)
+) ;let
+
+
+(check-catch 'type-error (random-integer 0))
+(check-catch 'type-error (random-integer -1))
+(check-catch 'type-error (random-integer 3.14))
+(check-catch 'type-error (random-integer 'not-a-number))
+
+
+(check-report)

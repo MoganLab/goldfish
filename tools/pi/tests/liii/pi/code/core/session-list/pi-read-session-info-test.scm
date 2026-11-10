@@ -1,3 +1,20 @@
+;; pi-read-session-info
+;; 读取会话文件并解析为会话信息记录。
+;;
+;; 语法
+;; ----
+;; (pi-read-session-info file-path)
+;;
+;; 参数
+;; ----
+;; file-path : (or string path)
+;; 会话文件路径。
+;;
+;; 返回值
+;; ----
+;; (or pi-session-info #f)
+;; 会话信息记录，文件不存在或格式非法时返回 #f。
+
 (import (scheme base)
   (scheme file)
   (liii check)
@@ -17,8 +34,11 @@
 (define ROOT
   (path->string (path-join (path-temp-dir) "pi-read-session-info-test"))
 ) ;define
+
 (define CURRENT (path->string (path-join ROOT "current")))
+
 (define OLD-FILE (path->string (path-join CURRENT "z-old.jsonl")))
+
 (define NEW-FILE (path->string (path-join CURRENT "a-new.jsonl")))
 
 (when (file-exists? ROOT)
@@ -26,26 +46,24 @@
 ) ;when
 (path-mkdir CURRENT :parents #t :exist-ok #t)
 
-(save-session-header! OLD-FILE "old-id" "2026-10-20T08:00:00.000Z" "/work/current")
+(save-session-header! OLD-FILE "old-id" "2026-10-20T08:00:00.000Z"
+  "/work/current"
+) ;save-session-header!
 (save-session-message! OLD-FILE
-  "{\"role\":\"user\",\"content\":\"old question\"}"
-  "old-user"
-  #f
+  "{\"role\":\"user\",\"content\":\"old question\"}" "old-user" #f
   "2026-10-20T08:00:01.000Z"
 ) ;save-session-message!
 (save-session-message! OLD-FILE
   "{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"old answer\"}]}"
-  "old-assistant"
-  "old-user"
-  "2026-10-20T08:00:02.000Z"
+  "old-assistant" "old-user" "2026-10-20T08:00:02.000Z"
 ) ;save-session-message!
 
-(save-session-header! NEW-FILE "new-id" "2026-10-21T08:00:00.000Z" "/work/current")
+(save-session-header! NEW-FILE "new-id" "2026-10-21T08:00:00.000Z"
+  "/work/current"
+) ;save-session-header!
 (append-session-info! NEW-FILE "Named current session")
 (save-session-message! NEW-FILE
-  "{\"role\":\"user\",\"content\":\"new question\"}"
-  "new-user"
-  #f
+  "{\"role\":\"user\",\"content\":\"new question\"}" "new-user" #f
   "2026-10-21T08:00:01.000Z"
 ) ;save-session-message!
 
@@ -75,7 +93,9 @@
 
 ;; 3. 仅 header 的空会话：first-message 占位、modified 回退 header 时间戳
 (let* ((empty-file (path->string (path-join CURRENT "empty.jsonl"))))
-  (save-session-header! empty-file "empty-id" "2026-10-22T08:00:00.000Z" "/work/empty")
+  (save-session-header! empty-file "empty-id" "2026-10-22T08:00:00.000Z"
+    "/work/empty"
+  ) ;save-session-header!
   (let ((info (pi-read-session-info empty-file)))
     (check (pi-session-info-first-message info) => "(no messages)")
     (check (pi-session-info-message-count info) => 0)
@@ -84,18 +104,29 @@
 ) ;let*
 
 ;; 4. 非 session 开头的 JSONL 与缺失文件都返回 #f
-(check (pi-read-session-info (path->string (path-join CURRENT "broken.jsonl"))) => #f)
-(check (pi-read-session-info (path->string (path-join CURRENT "missing.jsonl"))) => #f)
+(check (pi-read-session-info (path->string (path-join CURRENT "broken.jsonl")))
+  =>
+  #f
+) ;check
+(check (pi-read-session-info (path->string (path-join CURRENT "missing.jsonl")))
+  =>
+  #f
+) ;check
 
 ;; 5. 真实会话样本也应可读取（覆盖工具结果、多内容块等记录）
 (let* ((relative "tests/fixtures/direct/sessions/--home-da-git-goldfish-tools-pi--")
-       (fixture-dir (if (file-exists? relative) relative
-                      (string-append "tools/pi/" relative)))
-       (sample (path->string
-                 (path-join fixture-dir
-                   "2026-10-18T18-30-49-221Z_2F231627-07C6-4CC0-9360-B474C925C96A.jsonl"))))
+       (fixture-dir (if (file-exists? relative) relative (string-append "tools/pi/" relative))
+       ) ;fixture-dir
+       (sample (path->string (path-join fixture-dir
+                               "2026-10-18T18-30-49-221Z_2F231627-07C6-4CC0-9360-B474C925C96A.jsonl"
+                             ) ;path-join
+               ) ;path->string
+       ) ;sample
+      ) ;
   (when (file-exists? sample)
-    (check-true (pi-session-info? (pi-read-session-info sample)))))
+    (check-true (pi-session-info? (pi-read-session-info sample)))
+  ) ;when
+) ;let*
 
 (rmtree ROOT)
 

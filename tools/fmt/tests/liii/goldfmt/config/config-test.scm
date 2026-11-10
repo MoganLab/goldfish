@@ -1,7 +1,21 @@
+;; load-fmt-config
+;; gf fmt 配置加载与默认值合并
 ;; (liii goldfmt config) 模块测试文件
 ;;
 ;; 重点测试 lang-binary 对 binary / binary-linux 等字段的支持：
 ;; 既接受单个字符串，也接受字符串数组（取第一个存在且可执行的）。
+
+;; 语法
+;; ----
+;; (load-fmt-config ...)
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+;; 返回值
+;; ------
+;; 见各断言场景
 
 (import (liii check)
   (scheme file)

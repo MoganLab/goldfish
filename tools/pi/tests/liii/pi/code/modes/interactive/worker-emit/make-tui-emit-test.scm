@@ -148,13 +148,14 @@
 ) ;let*
 
 ;; 7. 正常 assistant 消息带 usage：投递 message_usage 与 assistant_text
+;; message_usage 负载第三项为上下文窗口（未提供时为 #f）
 (let* ((ch (make-chan 16))
        (emit (make-tui-emit ch))
        (usage '((input . 100) (output . 20) (cacheRead . 800) (cacheWrite . 0)))
        (msg (pi-assistant-message (list (pi-text-block "ok")) :usage usage))
       ) ;
   (emit 'message_end msg)
-  (check (recv-ev! ch) => (list 'message_usage usage))
+  (check (recv-ev! ch) => (list 'message_usage usage #f))
   (check (recv-ev! ch) => (list 'assistant_text "ok"))
   (check (recv-ev! ch) => 'none)
 ) ;let*

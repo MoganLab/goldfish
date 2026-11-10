@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
-
-(check-set-mode! 'report-failed)
-
 ;; make-pi-context-token-estimate
 ;; 构造上下文 token 估算结果 record。
 ;;
@@ -25,15 +19,17 @@
 ;; pi-context-token-estimate
 ;; token 估算结果 record。
 ;;
-;; 示例
-;; ----
-;; (pi-context-token-estimate-tokens
-;;   (make-pi-context-token-estimate 102 100 2)) => 102
+
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((estimate (make-pi-context-token-estimate 102 100 2)))
   (check-true (pi-context-token-estimate? estimate))
   (check (pi-context-token-estimate-tokens estimate) => 102)
   (check (pi-context-token-estimate-usage-tokens estimate) => 100)
-  (check (pi-context-token-estimate-trailing-tokens estimate) => 2))
+  (check (pi-context-token-estimate-trailing-tokens estimate) => 2)
+) ;let
 
 (check-report)

@@ -1,7 +1,3 @@
-(import (liii check) (liii goldcode) (liii path) (liii string) (scheme file))
-
-(check-set-mode! 'report-failed)
-
 ;; backup-and-remove-settings!
 ;; gf code 启动 claude 前处理 ~/.claude/settings.json：
 ;; 先备份到 settings.json.default（已有备份不覆盖），然后删除 settings 文件。
@@ -23,6 +19,14 @@
 ;; - settings 存在且 backup 不存在时：复制 settings 为 backup，然后删除 settings
 ;; - backup 已存在时不覆盖（避免把后来的内容当成原始配置备份），仍删除 settings
 ;; - settings 不存在时不产生 backup，什么也不做
+
+;; 返回值
+;; ------
+;; 见各断言场景
+
+(import (liii check) (liii goldcode) (liii path) (liii string) (scheme file))
+
+(check-set-mode! 'report-failed)
 
 (define tmp-dir (path->string (path-temp-dir)))
 

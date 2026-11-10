@@ -161,7 +161,7 @@
 
     ;; ---------- 键盘交互 ----------
 
-    ;; 返回 (list 新view 新offset)；按 q/escape 返回 (list #f 0)
+    ;; 返回 (list 新view 新offset)；按 q/escape/ctrl-c 返回 (list #f 0)
     (define (pi-config-overlay-step view offset height key)
       (let* ((c (cond ((char? key) (string key))
                       ((symbol? key) (symbol->string key))
@@ -172,7 +172,7 @@
              (oh (%overlay-height (length content) height))
              (rows (max 1 (- oh 3)))
             ) ;
-        (cond ((or (eq? key 'escape) (equal? c "q")) (list #f 0))
+        (cond ((or (eq? key 'escape) (eq? key 'ctrl-c) (equal? c "q")) (list #f 0))
               ((or (eq? key 'down) (equal? c "j")) (list view (+ offset 1)))
               ((or (eq? key 'up) (equal? c "k")) (list view (max 0 (- offset 1))))
               ((equal? c "g") (list view 0))

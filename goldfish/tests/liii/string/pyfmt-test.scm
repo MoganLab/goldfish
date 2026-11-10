@@ -1,0 +1,144 @@
+;; pyfmt
+;; Python % 风格的具名格式化函数
+;;
+;; 语法
+;; ----
+;; (pyfmt format-string)
+;; (pyfmt format-string . plist)
+;;
+;; 参数
+;; ----
+;; format-string : string
+;; 格式字符串，使用 %(key)s 风格的占位符
+;;
+;; plist : 键值对列表
+;; 格式化参数列表。键可以是关键字（如 :name）或符号（如 'name）
+;;
+;; 返回值
+;; ----
+;; string
+;; 格式化后的字符串
+
+(import (liii check) (liii string))
+
+
+;; 基础字符串替换
+(check (pyfmt "hello") => "hello")
+(check (pyfmt "User %(name)s" :name "Bob") => "User Bob")
+(check (pyfmt "User %(name)s" 'name "Bob") => "User Bob")
+
+;; 整数替换
+(check (pyfmt "age=%(age)d" :age 30) => "age=30")
+(check (pyfmt "age=%(age)d" 'age 30) => "age=30")
+
+;; 整数修饰符：前导零补齐与宽度
+(check (pyfmt "id=%(id)03d" :id 1) => "id=001")
+(check (pyfmt "%(n)05d" :n 42) => "00042")
+(check (pyfmt "[%(n)5d]" :n 42) => "[   42]")
+(check (pyfmt "[%(n)-5d]" :n 42) => "[42   ]")
+
+;; 负数补零时，符号位于最前面
+(check (pyfmt "%(n)04d" :n -5) => "-005")
+
+;; 宽度小于数值长度时，原样输出
+(check (pyfmt "%(n)2d" :n 1234) => "1234")
+
+;; i 与 d 同义
+(check (pyfmt "%(n)03i" :n 7) => "007")
+
+;; 字符串最小宽度：右对齐补空格
+(check (pyfmt "[%(name)10s]" :name "abc") => "[       abc]")
+
+;; 字符串左对齐补空格
+(check (pyfmt "[%(name)-10s]" :name "abc") => "[abc       ]")
+
+;; 中文字段值按字符数计宽，每个汉字计 1
+(check (pyfmt "[%(name)10s]" :name "中文") => "[        中文]")
+(check (pyfmt "[%(name)-10s]" :name "中文") => "[中文        ]")
+
+;; 宽度小于字符串长度时，原样输出
+(check (pyfmt "[%(name)3s]" :name "abcdef") => "[abcdef]")
+
+;; s 忽略前导零标志，仅用空格补齐
+(check (pyfmt "[%(name)010s]" :name "abc") => "[       abc]")
+
+;; 非字符串字段值先转为字符串，再按宽度补齐
+(check (pyfmt "[%(n)5s]" :n 42) => "[   42]")
+
+;; 整数与字符串修饰符混合
+(check (pyfmt "%(id)03d: %(name)-6s|" :id 7 :name "中文") => "007: 中文    |")
+
+;; 浮点数精度修饰符
+(check (pyfmt "rate=%(rate).2f" :rate 3.14159) => "rate=3.14")
+
+;; 精度缺省时为 6，与 Python %f 一致
+(check (pyfmt "%(rate)f" :rate 3.14) => "3.140000")
+
+;; 宽度与精度组合：右对齐、左对齐、前导零
+(check (pyfmt "[%(rate)8.2f]" :rate 3.14159) => "[    3.14]")
+(check (pyfmt "[%(rate)-8.2f]|" :rate 3.14159) => "[3.14    ]|")
+(check (pyfmt "%(rate)08.2f" :rate 3.14159) => "00003.14")
+
+;; 负数补零时，符号位于最前面
+(check (pyfmt "%(rate)08.2f" :rate -3.14159) => "-0003.14")
+
+;; 整数字段值按浮点数格式化
+(check (pyfmt "%(rate).2f" :rate 2) => "2.00")
+
+;; 精度为 0 时，不输出小数点
+(check (pyfmt "%(rate).0f" :rate 3.7) => "4")
+
+;; 多个字段混合
+(check (pyfmt "%(greeting)s %(name)s" :greeting "Hello" :name "World")
+  =>
+  "Hello World"
+) ;check
+(check (pyfmt "%(greeting)s %(name)s" 'greeting "Hello" 'name "World")
+  =>
+  "Hello World"
+) ;check
+
+;; 关键字和符号混合使用
+(check (pyfmt "%(a)s %(b)s" :a "1" 'b "2") => "1 2")
+
+;; 空 plist，原样返回
+(check (pyfmt "no placeholders") => "no placeholders")
+
+;; 重复的占位符
+(check (pyfmt "%(x)s %(x)s" :x "repeat") => "repeat repeat")
+
+;; 占位符之间没有空格
+(check (pyfmt "%(a)s%(b)s" :a "1" :b "2") => "12")
+
+;; 中文字段值
+(check (pyfmt "%(name)s" :name "中文") => "中文")
+
+;; 字段值包含特殊字符
+(check (pyfmt "%(path)s" :path "/var/log/app.log") => "/var/log/app.log")
+
+;; 字符串 key
+(check (pyfmt "%(name)s" "name" "Bob") => "Bob")
+
+;; #f 是合法字段值，不能被当作缺失字段
+(check (pyfmt "%(ok)s" :ok #f) => "#f")
+
+;; 缺失字段时保留完整占位符
+(check (pyfmt "%(name)s") => "%(name)s")
+(check (pyfmt "%(age)d") => "%(age)d")
+(check (pyfmt "hello %(name)s!" :other "Bob") => "hello %(name)s!")
+
+;; 缺失字段时保留含修饰符的完整占位符
+(check (pyfmt "id=%(id)03d") => "id=%(id)03d")
+(check (pyfmt "[%(n)5d]") => "[%(n)5d]")
+(check (pyfmt "[%(name)10s]") => "[%(name)10s]")
+(check (pyfmt "rate=%(rate).2f") => "rate=%(rate).2f")
+
+;; 参数错误
+(check-catch 'type-error (pyfmt 123))
+(check-catch 'type-error (pyfmt "%(name)s" :name))
+(check-catch 'type-error (pyfmt "%(name)s" 123 "Bob"))
+(check-catch 'type-error (pyfmt "%(age)d" :age "30"))
+(check-catch 'type-error (pyfmt "%(n)03d" :n "1"))
+(check-catch 'type-error (pyfmt "%(rate).2f" :rate "3.14"))
+
+(check-report)

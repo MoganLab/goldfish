@@ -1,5 +1,19 @@
+;; pool-for-each
+;; 并发格式化端到端测试：验证并行分块与结果归并
+;;
+;; 语法
+;; ----
+;; (pool-for-each ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
 (set! *load-path* (cons "tools/fmt" *load-path*))
-(set! *load-path* (cons "tools/common" *load-path*))
 
 (import (liii check)
   (liii either)

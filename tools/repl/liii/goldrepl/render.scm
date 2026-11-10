@@ -61,7 +61,7 @@
       (if (or (string=? mode "liii") (string=? mode "default"))
         (string-append (%repl-styled "bold" "Mode: ")
           (%repl-styled "bold" mode)
-          " (additionally imports: (scheme base) (liii base) (liii error) (liii string) compared to r7rs)"
+          " (additionally imports: (scheme base) (liii base) (liii error) (liii lang) compared to r7rs)"
         ) ;string-append
         (string-append (%repl-styled "bold" "Mode: ") (%repl-styled "bold" mode))
       ) ;if

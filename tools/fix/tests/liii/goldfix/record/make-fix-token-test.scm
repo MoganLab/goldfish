@@ -1,10 +1,28 @@
-(import (liii check) (liii goldfix record))
+;; make-fix-token
+;; 创建带位置信息的 token 记录。
+;;
+;; 语法
+;; ----
+;; (make-fix-token (type 'other) (offset 0) (end 0) (line 1) (column 0) (text ""))
+;;
+;; 参数
+;; ----
+;; type : symbol? token 类型，如 open-paren / close-paren / other
+;; offset : integer? token 在源码中的起始偏移量
+;; end : integer? token 在源码中的结束偏移量
+;; line : integer? token 所在的行号
+;; column : integer? token 所在的列号
+;; text : string? token 对应的源码文本
+;;
+;; 返回值
+;; ------
+;; fix-token 记录对象
+(import (liii check) (liii base) (liii goldfix record))
 
 (check-set-mode! 'report-failed)
 
-;; make-fix-token
-;; 创建带位置信息的 token。
 
+;; 测试：创建 token 并读取各字段
 (let ((token (make-fix-token :type 'open-paren :offset 3 :end 4 :line 2 :column 2 :text "(")
       ) ;token
      ) ;
@@ -17,79 +35,29 @@
   (check (fix-token-text token) => "(")
 ) ;let
 
-;; make-fix-line
-;; 创建按物理行分组后的 token 行。
+;; 测试：全部使用缺省参数
+(let ((token (make-fix-token)))
+  (check (fix-token-type token) => 'other)
+  (check (fix-token-offset token) => 0)
+  (check (fix-token-end token) => 0)
+  (check (fix-token-line token) => 1)
+  (check (fix-token-column token) => 0)
+  (check (fix-token-text token) => "")
+) ;let
 
-(let* ((token (make-fix-token :type 'other :offset 0 :end 6 :line 1 :column 0 :text "define")
-       ) ;token
-       (line (make-fix-line
-               :number           1
-               :start-offset     0
-               :first-code-token token
-               :tokens           (list token)
-             ) ;make-fix-line
-       ) ;line
-      ) ;
-  (check (fix-line? line) => #t)
-  (check (fix-line-number line) => 1)
-  (check (fix-line-start-offset line) => 0)
-  (check (fix-line-first-code-token line) => token)
-  (check (fix-line-tokens line) => (list token))
-) ;let*
+;; 测试：type 不是符号时报错
+(check-catch 'value-error (make-fix-token :type "other"))
 
-;; make-open-frame / make-pending-close
-;; open-frame 表示一个仍然打开的左括号环境。
-;; pending-close 表示一个需要等下一行缩进确认的右括号。
+;; 测试：偏移量不是整数时报错
+(check-catch 'value-error (make-fix-token :offset "0"))
 
-(let* ((frame (make-open-frame :offset 0 :line 1 :column 0 :tag-name "begin"))
-       (pending (make-pending-close :frame frame :offset 20 :end 21 :line 2 :column 15)
-       ) ;pending
-      ) ;
-  (check (open-frame? frame) => #t)
-  (check (open-frame-offset frame) => 0)
-  (check (open-frame-line frame) => 1)
-  (check (open-frame-column frame) => 0)
-  (check (open-frame-tag-name frame) => "begin")
-  (check (pending-close? pending) => #t)
-  (check (pending-close-frame pending) => frame)
-  (check (pending-close-offset pending) => 20)
-  (check (pending-close-end pending) => 21)
-  (check (pending-close-line pending) => 2)
-  (check (pending-close-column pending) => 15)
-) ;let*
+;; 测试：偏移量为负数时报错
+(check-catch 'value-error (make-fix-token :offset -1))
 
-;; make-fix-edit / make-repair-report
-;; edit 记录源码变更，report 汇总修复结果。
+;; 测试：end 小于 offset 时报错
+(check-catch 'value-error (make-fix-token :offset 5 :end 4))
 
-(let* ((insert-edit (make-fix-edit :kind 'insert :offset 10 :text ")" :reason "eof" :open-offset 0)
-       ) ;insert-edit
-       (delete-edit (make-fix-edit
-                      :kind        'delete
-                      :start       5
-                      :end         6
-                      :reason      "extra-close"
-                      :open-offset #f
-                    ) ;make-fix-edit
-       ) ;delete-edit
-       (report (make-repair-report
-                 :ok?         #t
-                 :edits       (list insert-edit delete-edit)
-                 :diagnostics '()
-               ) ;make-repair-report
-       ) ;report
-      ) ;
-  (check (fix-edit? insert-edit) => #t)
-  (check (fix-edit-kind insert-edit) => 'insert)
-  (check (fix-edit-offset insert-edit) => 10)
-  (check (fix-edit-text insert-edit) => ")")
-  (check (fix-edit-reason insert-edit) => "eof")
-  (check (fix-edit-kind delete-edit) => 'delete)
-  (check (fix-edit-start delete-edit) => 5)
-  (check (fix-edit-end delete-edit) => 6)
-  (check (repair-report? report) => #t)
-  (check (repair-report-ok? report) => #t)
-  (check (repair-report-edits report) => (list insert-edit delete-edit))
-  (check (repair-report-diagnostics report) => '())
-) ;let*
+;; 测试：text 不是字符串时报错
+(check-catch 'value-error (make-fix-token :text 'x))
 
 (check-report)

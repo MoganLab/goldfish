@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-info-name
 ;; 返回可选的会话名称。
 ;;
@@ -21,15 +15,23 @@
 ;; string 或 #f
 ;; 已命名会话返回名称，否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (pi-session-info-name info) => "Named session"
+
+(import (scheme base) (liii check) (liii pi code core session-list))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((named (make-pi-session-info "/tmp/named.jsonl" "named" "/tmp/project"
-               "Named session" "created" "modified" 0 "(no messages)" ""))
-      (unnamed (make-pi-session-info "/tmp/unnamed.jsonl" "unnamed" "/tmp/project"
-                 #f "created" "modified" 0 "(no messages)" "")))
+               "Named session" "created" "modified" 0 "(no messages)" ""
+             ) ;make-pi-session-info
+      ) ;named
+      (unnamed (make-pi-session-info "/tmp/unnamed.jsonl" "unnamed"
+                 "/tmp/project" #f "created" "modified" 0 "(no messages)" ""
+               ) ;make-pi-session-info
+      ) ;unnamed
+     ) ;
   (check (pi-session-info-name named) => "Named session")
-  (check-false (pi-session-info-name unnamed)))
+  (check-false (pi-session-info-name unnamed))
+) ;let
 
 (check-report)

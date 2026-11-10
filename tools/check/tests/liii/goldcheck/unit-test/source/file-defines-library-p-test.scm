@@ -28,8 +28,8 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 存在 define-library 的库源文件
-(check-true (file-defines-library? "goldfish/scheme/case-lambda.scm"))
-(check-true (file-defines-library? "goldfish/scheme/base.scm"))
+(check-true (file-defines-library? "r7rs/scheme/case-lambda.scm"))
+(check-true (file-defines-library? "r7rs/scheme/base.scm"))
 
 ;; 2. 临时文件：无 define-library 的纯脚本
 (let* ((tmp-file (path->string (path-join (path-temp-dir) "gf-test-no-lib.scm"))))

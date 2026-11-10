@@ -23,8 +23,3 @@ bin/gf doc "函数名"
 - `extract-decl-export-entries` - 从 export 声明中提取外部名称与内部名称的点对列表
 - `extract-decl-imports` - 从 import 声明中提取导入的库规范列表
 - `parse-library-structure` - 解析库定义结构，返回 exports、imports 和 defs 的结构化数据
-
-### 四、库导出分类提取
-- `extract-library-exports` - 从库源码文件中解析提取全部导出标识符
-- `extract-library-defined-exports` - 从库源码文件中解析提取本地实现且导出的标识符
-- `extract-library-reexported-entries` - 从库源码文件中解析提取重导出的外部与内部名称点对列表

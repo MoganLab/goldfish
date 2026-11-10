@@ -15,7 +15,7 @@
 ;; 返回值
 ;; ------
 ;; string or #f
-;; 符号定义库对应的测试目录路径（如 "tests/foo"）；未找到时返回 #f。
+;; 符号定义库对应的测试目录路径（如 "goldfish/tests/foo"）；未找到时返回 #f。
 
 (import (scheme base)
   (liii check)
@@ -50,7 +50,7 @@
       ) ;
   (path-write-bytes (path foo-file) (string->utf8 foo-src))
   (path-write-bytes (path bar-file) (string->utf8 bar-src))
-  (check (find-defining-library-test-dir "helper" bar-file) => "tests/foo")
+  (check (find-defining-library-test-dir "helper" bar-file) => "goldfish/tests/foo")
   (check (find-defining-library-test-dir "unknown-sym" bar-file) => #f)
 
   (path-unlink foo-file #t)

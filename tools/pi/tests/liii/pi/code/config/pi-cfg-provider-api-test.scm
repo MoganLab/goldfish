@@ -17,17 +17,15 @@
 ;; string
 ;; 协议实现标识（如 google-generative-ai / openai-completions）。
 
-(import (liii check)
-  (liii pi ai providers registry)
-  (liii pi code config)
-) ;import
+(import (liii check) (liii pi ai providers registry) (liii pi code config))
 
 (check-set-mode! 'report-failed)
 
 (define CFG
-  (list (cons 'models-store
-          (list (cons "google" (list (cons "api" "openai-completions"))))
-        ) ;cons
+  (list
+    (cons 'models-store
+      (list (cons "google" (list (cons "api" "openai-completions"))))
+    ) ;cons
   ) ;list
 ) ;define
 

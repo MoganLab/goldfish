@@ -18,6 +18,7 @@
 (import (liii check) (liii pi code config settings))
 
 (check-set-mode! 'report-failed)
+
 (define test-file
   (if (file-exists? "tests/fixtures/default/settings.json")
     "tests/fixtures/default/settings.json"
@@ -27,6 +28,7 @@
 
 (check (pi-read-json-file "non_existent_file.json") => #f)
 (let ((data (pi-read-json-file test-file)))
-  (check-true (pair? data)))
+  (check-true (pair? data))
+) ;let
 
 (check-report)

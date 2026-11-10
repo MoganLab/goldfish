@@ -14,27 +14,6 @@
 ;; under the License.
 ;;
 
-(define (%goldcheck-common-dirname path-str)
-  (let loop
-    ((i (- (string-length path-str) 1)))
-    (cond ((< i 0) ".")
-          ((or (char=? (string-ref path-str i) #\/) (char=? (string-ref path-str i) #\\))
-           (if (= i 0) "." (substring path-str 0 i))
-          ) ;
-          (else (loop (- i 1)))
-    ) ;cond
-  ) ;let
-) ;define
-
-(set! *load-path*
-  (append (list "../common" "tools/common")
-    (map (lambda (root) (string-append (%goldcheck-common-dirname root) "/common"))
-      *load-path*
-    ) ;map
-    *load-path*
-  ) ;append
-) ;set!
-
 (define-library (liii goldcheck)
   (import (scheme base)
     (scheme file)
@@ -70,7 +49,7 @@
   (export main check-file-lines check-tree-depth check-no-glue check-file
     check-files make-check-arg-parser format-violation display-help
     violation-report-lines violation-display-hint scan-hint-libs check-type-hint
-    check-type-hint-all check-unit-test
+    check-type-hint-all check-type-hint-file check-unit-test
   ) ;export
   (begin
 
@@ -87,6 +66,7 @@
         (parser :add-argument '((name . "help")
                                 (short . "h")
                                 (action . store-true)))
+        (parser :add-argument '((name . "all") (action . store-true)))
         (parser :add-argument '((name . "changed-since") (type . string)))
         (parser :add-argument '((name . "only") (type . string)))
         parser
@@ -131,7 +111,9 @@
       ) ;if
     ) ;define
 
+    ;; define-record-type 规则的内容哈希版本号
     (define %record-type-check-version 1)
+
     (define (check-file-rule-record-export file-path cfg acc)
       (if
         (and (check-rule-enabled? cfg "define-record-type")
@@ -193,6 +175,16 @@
       ) ;if
     ) ;define
 
+    (define (check-file-rule-type-hint file-path cfg acc)
+      (if
+        (and (check-rule-enabled? cfg "type-hint")
+          (not (file-excluded? file-path (check-rule-excludes cfg "type-hint")))
+        ) ;and
+        (append acc (check-type-hint-file file-path))
+        acc
+      ) ;if
+    ) ;define
+
     (define (check-file file-path cfg)
       "检查单个文件是否违反启用的度量规则。"
       (let* ((acc1 (check-file-rule-lines file-path cfg '()))
@@ -202,9 +194,18 @@
              (acc5 (check-file-rule-no-crlf file-path cfg acc4))
              (acc6 (check-file-rule-no-glue file-path cfg acc5))
              (acc7 (check-file-rule-unit-test file-path cfg acc6))
+             (acc8 (check-file-rule-type-hint file-path cfg acc7))
             ) ;
-        (reverse acc7)
+        (reverse acc8)
       ) ;let*
+    ) ;define
+
+    ;; 规则启用且未豁免的目标文件（no-glue/unit-test 共用）
+    (define (rule-files-in cfg rule file-vector)
+      (filter
+        (lambda (f) (not (file-excluded? f (check-rule-excludes cfg rule))))
+        (vector->list file-vector)
+      ) ;filter
     ) ;define
 
     (define (check-files file-vector cfg)
@@ -226,27 +227,28 @@
              ) ;violations
              (violations
                (if (check-rule-enabled? cfg "no-glue")
-                 (let ((files
-                         (filter
-                           (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "no-glue"))))
-                           (vector->list file-vector)
-                         ) ;filter
-                       ) ;files
-                      ) ;
-                   (vector-append violations (list->vector (check-no-glue-duplicates files)))
-                 ) ;let
+                 (vector-append violations
+                   (list->vector (check-no-glue-duplicates (rule-files-in cfg "no-glue" file-vector))
+                   ) ;list->vector
+                 ) ;vector-append
                  violations
                ) ;if
              ) ;violations
              (violations
                (if (check-rule-enabled? cfg "type-hint")
-                 (vector-append violations
-                   (list->vector
-                     (filter (lambda (v) (member (cadr v) (vector->list file-vector) string=?))
-                       (check-type-hint-all)
-                     ) ;filter
-                   ) ;list->vector
-                 ) ;vector-append
+                 (let ((excludes (check-rule-excludes cfg "type-hint")))
+                   (vector-append violations
+                     (list->vector
+                       (filter-excluded-violations
+                         (filter (lambda (v) (member (cadr v) (vector->list file-vector) string=?))
+                           ;; 跳过单文件路径已查的 hint，避免重复报告
+                           (check-type-hint-except (vector->list file-vector))
+                         ) ;filter
+                         excludes
+                       ) ;filter-excluded-violations
+                     ) ;list->vector
+                   ) ;vector-append
+                 ) ;let
                  violations
                ) ;if
              ) ;violations
@@ -254,15 +256,17 @@
                (if (and (check-rule-enabled? cfg "unit-test")
                      (not (check-skip-unit-test-dirs? cfg))
                    ) ;and
-                 (let ((files
-                         (filter
-                           (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "unit-test"))))
-                           (vector->list file-vector)
-                         ) ;filter
-                       ) ;files
-                      ) ;
-                   (vector-append violations (list->vector (check-unit-test-dirs files)))
-                 ) ;let
+                 (let* ((excludes (check-rule-excludes cfg "unit-test"))
+                        (files (rule-files-in cfg "unit-test" file-vector))
+                       ) ;
+                   ;; 目录级检查推导出的违规路径（缺失的 README.md、缺失的
+                   ;; 单测文件等）同样要受排除项约束，否则按目录排除的豁免
+                   ;; 配置对目录级检查无效
+                   (vector-append violations
+                     (list->vector (filter-excluded-violations (check-unit-test-dirs files) excludes)
+                     ) ;list->vector
+                   ) ;vector-append
+                 ) ;let*
                  violations
                ) ;if
              ) ;violations
@@ -317,19 +321,20 @@
     ) ;define
 
     (define (filter-result-files result files)
-      (let* ((violations
-               (list->vector
-                 (filter (lambda (v) (member (cadr v) files string=?))
-                   (vector->list (cadddr result))
-                 ) ;filter
-               ) ;list->vector
-             ) ;violations
-            ) ;
-        (list (car result) (zero? (vector-length violations)) (caddr result) violations)
-      ) ;let*
+      (let ((vs
+              (list->vector
+                (filter (lambda (v) (member (cadr v) files string=?))
+                  (vector->list (cadddr result))
+                ) ;filter
+              ) ;list->vector
+            ) ;vs
+           ) ;
+        (list (car result) (zero? (vector-length vs)) (caddr result) vs)
+      ) ;let
     ) ;define
 
     (define (only-rule-result parser cfg only files)
+      ;; no-crlf 按配置展开；no-glue 增量时需全仓分析后再按目标过滤
       (let* ((rule-files (if (string=? only "no-crlf") (resolve-no-crlf-files parser cfg) files)
              ) ;rule-files
              (incremental-global? (and (string=? only "no-glue") (parser 'changed-since)))
@@ -342,10 +347,7 @@
 
     (define (configured-rule-result parser cfg rule files no-crlf-files)
       (cond ((string=? rule "no-crlf") (run-rule-check no-crlf-files cfg rule))
-            ((and (string=? rule "no-glue") (parser 'changed-since))
-             (filter-result-files (run-rule-check (collect-repo-files) cfg rule) files)
-            ) ;
-            (else (run-rule-check files cfg rule))
+            (else (only-rule-result parser cfg rule files))
       ) ;cond
     ) ;define
 
@@ -370,7 +372,7 @@
               (let ((result (only-rule-result parser cfg only files)))
                 (display-rule-result result)
                 (when (string=? only "type-hint")
-                  (display-type-hint-statuses (vector->list (cadddr result)))
+                  (display-type-hint-status result files)
                 ) ;when
                 (report-and-exit (cadddr result) (caddr result))
               ) ;let

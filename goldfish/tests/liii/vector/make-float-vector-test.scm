@@ -1,0 +1,70 @@
+;; make-float-vector
+;; 创建指定长度的浮点数向量。
+;;
+;; 语法
+;; ----
+;; (make-float-vector k)
+;; (make-float-vector k fill)
+;;
+;; 参数
+;; ----
+;; k : integer?
+;; 目标向量长度，必须为非负整数。
+;;
+;; fill : real? 可选
+;; 初始化每个元素时使用的浮点数值，默认为0.0。
+;;
+;; 返回值
+;; ----
+;; float-vector
+;; 一个长度为k的新浮点数向量。
+;;
+;; 注意
+;; ----
+;; 创建的向量是float-vector类型，只能存储浮点数。
+;;
+;; 错误处理
+;; ----
+;; type-error 当k不是合法整数或fill不是实数时
+
+(import (liii check) (liii vector))
+
+
+(check-set-mode! 'report-failed)
+
+(check-true (float-vector? (make-float-vector 0)))
+(check-true (float-vector? (make-float-vector 3)))
+(check (make-float-vector 3 0.0) => #(0.0 0.0 0.0))
+(check (make-float-vector 3 1.0) => #(1.0 1.0 1.0))
+(check (make-float-vector 0) => #())
+(check (vector-length (make-float-vector 5)) => 5)
+
+
+(let ((v (make-float-vector 5 3.14)))
+  (check (vector-length v) => 5)
+  (check (float-vector-ref v 0) => 3.14)
+  (check (float-vector-ref v 4) => 3.14)
+) ;let
+
+
+(let ((v (make-float-vector 3 42)))
+  (check (float-vector-ref v 0) => 42.0)
+  (check (float-vector-ref v 1) => 42.0)
+) ;let
+
+(let ((mv (make-float-vector '(2 3) 1.5)))
+  (check (float-vector? mv) => #t)
+  (check (vector-dimensions mv) => '(2 3))
+  (check (float-vector-ref mv 1 2) => 1.5)
+) ;let
+
+
+(check-catch 'type-error (make-float-vector 'not-a-number))
+(check-catch 'type-error (make-float-vector 3 'not-a-number))
+(check-catch 'out-of-range (make-float-vector -1))
+(check-catch 'out-of-range (make-float-vector -1 2.0))
+(check-catch 'wrong-number-of-args (make-float-vector))
+(check-catch 'wrong-number-of-args (make-float-vector 1 2.0 3))
+
+
+(check-report)

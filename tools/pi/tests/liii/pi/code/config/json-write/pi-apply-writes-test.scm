@@ -24,7 +24,8 @@
 (define DIR (path->string (path-join (path-temp-dir) "pi-apply-writes-test")))
 
 (when (file-exists? DIR)
-  (rmtree DIR #t))
+  (rmtree DIR #t)
+) ;when
 (path-mkdir DIR :parents #t :exist-ok #t)
 
 (define WRITES
@@ -38,11 +39,15 @@
   (check (cdr (assoc "failed" res)) => #f)
 ) ;let
 
-(check (path-read-text (path->string (path-join (path DIR) (path "models/providers.json"))))
+(check
+  (path-read-text (path->string (path-join (path DIR) (path "models/providers.json")))
+  ) ;path-read-text
   =>
   "[\"google\"]\n"
 ) ;check
-(check (path-read-text (path->string (path-join (path DIR) (path "models/google/new.json"))))
+(check
+  (path-read-text (path->string (path-join (path DIR) (path "models/google/new.json")))
+  ) ;path-read-text
   =>
   "{\"id\": \"new\"}\n"
 ) ;check

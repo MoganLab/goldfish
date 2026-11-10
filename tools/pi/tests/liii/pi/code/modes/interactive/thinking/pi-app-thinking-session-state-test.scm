@@ -19,20 +19,24 @@
   (liii tui)
   (liii go)
   (liii pi code modes interactive app)
-  (liii pi code modes interactive app-thinking))
+  (liii pi code modes interactive app-thinking)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define (make-test-app . kwargs)
   (apply make-pi-app
-    (append
-      (list :terminal (make-virtual-terminal :width 100 :height 40)
-        :handler (lambda (a msg) #t)
-        :provider "google"
-        :model "gemini-2.5-pro"
-        :thinking-level "medium"
-        :default-thinking-level "medium")
-      kwargs))
+    (append (list
+              :terminal       (make-virtual-terminal :width 100 :height 40)
+              :handler        (lambda (a msg) #t)
+              :provider       "google"
+              :model          "gemini-2.5-pro"
+              :thinking-level "medium"
+              :default-thinking-level "medium"
+            ) ;list
+      kwargs
+    ) ;append
+  ) ;apply
 ) ;define
 
 ;; 1. /thinking 切换成功后投递一条 thinking_level_change
@@ -90,12 +94,16 @@
 ) ;let
 
 ;; 6. 模型不支持思考时无法切换，也不投递状态任务
-(let ((app (make-pi-app :terminal (make-virtual-terminal :width 100 :height 40)
-             :handler (lambda (a msg) #t)
-             :provider "google"
-             :model "text-bison-99"
+(let ((app (make-pi-app
+             :terminal          (make-virtual-terminal :width 100 :height 40)
+             :handler           (lambda (a msg) #t)
+             :provider          "google"
+             :model             "text-bison-99"
              :supports-thinking #f
-             :thinking-level "off")))
+             :thinking-level    "off"
+           ) ;make-pi-app
+      ) ;app
+     ) ;
   (check (pi-app-cycle-thinking! app) => #f)
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let

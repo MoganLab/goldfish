@@ -1,3 +1,19 @@
+;; library-structure
+;; 校验 Pi 代码库的分层组织与代表性导出。
+;;
+;; 语法
+;; ----
+;; (library-structure)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 逐层导入各库路径并验证代表性导出，结构回退时报错。
+
 ;; 库组织对齐测试：tools/pi/liii/pi/code 根目录只保留 cli.scm/config.scm/modes.scm
 ;; 三个入口，其余实现归入 cli/、config/、core/、modes/、utils/ 五层（对齐上游
 ;; packages/coding-agent 的 src/cli、src/core、src/modes、src/utils 组织）。

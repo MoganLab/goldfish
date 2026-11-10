@@ -31,7 +31,10 @@
 ) ;define
 
 ;; 内置模型
-(check (pi-user-model-exists? (string-append FIXTURE "/full") "google" "gemini-3.8-flash")
+(check (pi-user-model-exists? (string-append FIXTURE "/full")
+         "google"
+         "gemini-3.8-flash"
+       ) ;pi-user-model-exists?
   =>
   #t
 ) ;check
@@ -43,13 +46,19 @@
 ) ;check
 
 ;; 不存在的模型
-(check (pi-user-model-exists? (string-append FIXTURE "/full") "kimi-coding" "no-such-model")
+(check (pi-user-model-exists? (string-append FIXTURE "/full")
+         "kimi-coding"
+         "no-such-model"
+       ) ;pi-user-model-exists?
   =>
   #f
 ) ;check
 
 ;; ollama 本地动态模型始终为 #t
-(check (pi-user-model-exists? (string-append FIXTURE "/full") "ollama" "rafw007/qwen35-claude-coder:9b")
+(check (pi-user-model-exists? (string-append FIXTURE "/full")
+         "ollama"
+         "rafw007/qwen35-claude-coder:9b"
+       ) ;pi-user-model-exists?
   =>
   #t
 ) ;check

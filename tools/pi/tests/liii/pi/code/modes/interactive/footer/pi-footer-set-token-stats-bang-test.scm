@@ -34,29 +34,30 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 命中缓存：左下角同时呈现 R 与 CHxx.x%
-(let ((ft (make-pi-footer))
-      (tokens (make-pi-session-token-stats 100 50 2000 0)))
+(let ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 100 50 2000 0)))
   (pi-footer-set-token-stats! ft tokens 95.2)
   (check (pi-footer-stats ft) => "↑100 ↓50 R2.0k CH95.2% 0.0%/1.0M (auto)")
   (let ((line2 (cadr (component-render ft 80))))
-    (check-true (string-contains line2 "CH95.2%"))))
+    (check-true (string-contains line2 "CH95.2%"))
+  ) ;let
+) ;let
 
 ;; 2. 无缓存活动：仅展示传输量，不展示 CH 字段
-(let ((ft (make-pi-footer))
-      (tokens (make-pi-session-token-stats 1000 50 0 0)))
+(let ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 1000 50 0 0)))
   (pi-footer-set-token-stats! ft tokens #f)
-  (check (pi-footer-stats ft) => "↑1.0k ↓50 0.0%/1.0M (auto)"))
+  (check (pi-footer-stats ft) => "↑1.0k ↓50 0.0%/1.0M (auto)")
+) ;let
 
 ;; 3. 全 0 初始状态：保留 context-info
-(let ((ft (make-pi-footer))
-      (tokens (make-pi-session-token-stats 0 0 0 0)))
+(let ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 0 0 0 0)))
   (pi-footer-set-token-stats! ft tokens #f)
-  (check (pi-footer-stats ft) => "0.0%/1.0M (auto)"))
+  (check (pi-footer-stats ft) => "0.0%/1.0M (auto)")
+) ;let
 
 ;; 4. 自定义上下文容量提示
-(let ((ft (make-pi-footer))
-      (tokens (make-pi-session-token-stats 200 40 5000 0)))
+(let ((ft (make-pi-footer)) (tokens (make-pi-session-token-stats 200 40 5000 0)))
   (pi-footer-set-token-stats! ft tokens 96.0 "1.5%/200k (auto)")
-  (check (pi-footer-stats ft) => "↑200 ↓40 R5.0k CH96.0% 1.5%/200k (auto)"))
+  (check (pi-footer-stats ft) => "↑200 ↓40 R5.0k CH96.0% 1.5%/200k (auto)")
+) ;let
 
 (check-report)

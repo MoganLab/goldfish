@@ -1,7 +1,21 @@
-(import (liii check)
-        (liii string)
-        (liii pi review prompt)
-) ;import
+;; pi-build-review-prompt
+;; 构建结构化代码审查提示词，包含 JSON 输出契约与语言规则清单。
+;;
+;; 语法
+;; ----
+;; (pi-build-review-prompt files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 待审查文件记录列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 组装好的结构化审查提示词文本。
+
+(import (liii check) (liii string) (liii pi review prompt))
 
 (check-set-mode! 'report-failed)
 
@@ -9,11 +23,10 @@
   (list (cons 'path path) (cons 'language lang) (cons 'content content))
 ) ;define
 
-;; pi-build-review-prompt
 ;; 含 JSON 结构化输出契约、严重级说明、空 findings 约定、分语言清单与文件列表。
 (let* ((files (list (file-entry "src/app.ts" "typescript" "const x = 1;")
-                    (file-entry "notes.txt" #f "hello")
-                  ) ;list
+                (file-entry "notes.txt" #f "hello")
+              ) ;list
        ) ;files
        (p (pi-build-review-prompt files))
       ) ;
@@ -27,7 +40,8 @@
   (check-true (string-contains? p "Focus areas by language:"))
   (check-true (string-contains? p "### Typescript"))
   (check-true (string-contains? p "- Type safety:"))
-  (check-true (string-contains? p "If no issues are found, return: `{\"findings\": []}`"))
+  (check-true (string-contains? p "If no issues are found, return: `{\"findings\": []}`")
+  ) ;check-true
   (check-true (string-contains? p "## Files to Review"))
   (check-true (string-contains? p "### src/app.ts (typescript)"))
   (check-true (string-contains? p "const x = 1;"))
@@ -48,6 +62,7 @@
 ;; 空文件列表也能生成合法提示词（文件段为空）
 (let ((p (pi-build-review-prompt '())))
   (check-true (string-contains? p "## Files to Review"))
-  (check-false (string-contains? p "### ")))
+  (check-false (string-contains? p "### "))
+) ;let
 
 (check-report)

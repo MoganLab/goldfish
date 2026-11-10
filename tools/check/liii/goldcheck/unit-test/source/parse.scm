@@ -22,14 +22,14 @@
     (liii path)
     (liii string)
     (liii list)
+    (liii hash-table)
+    (liii comparator)
     (liii gfproject config)
     (liii goldcheck path)
   ) ;import
   (export resolve-repo-file extract-form-definitions
     parse-library-decl-definitions extract-decl-export-entries
-    extract-decl-imports parse-library-structure extract-library-exports
-    extract-library-defined-exports extract-library-reexported-entries
-    lib-spec->relative-source-path
+    extract-decl-imports parse-library-structure lib-spec->relative-source-path
   ) ;export
   (begin
 
@@ -186,7 +186,10 @@
                ) ;if
              ) ;let
             ) ;
-            (else '())
+            ;; 库体顶层可以直接书写定义形式（等价于隐式 begin 的一部分），
+            ;; 例如 (define-library (x) (export a) (import ...) (define a 1))。
+            ;; 若不识别这类定义，导出符号会被误判为「重导出」。
+            (else (extract-form-definitions decl))
       ) ;cond
     ) ;define
 
@@ -287,7 +290,7 @@
       ) ;let
     ) ;define
 
-    (define (parse-library-structure source-path)
+    (define (%parse-structure-uncached source-path)
       (let ((actual-path (resolve-repo-file source-path)))
         (if (not (path-file? (path actual-path)))
           #f
@@ -303,89 +306,28 @@
       ) ;let
     ) ;define
 
-    (define (extract-decl-exports decl exports)
-      (if (and (pair? decl) (eq? (car decl) 'export))
-        (let loop
-          ((items (cdr decl)) (acc exports))
-          (if (null? items)
-            acc
-            (let ((item (car items)))
-              (cond
-               ((symbol? item) (loop (cdr items) (cons (symbol->string item) acc)))
-               ((and (pair? item) (eq? (car item) 'rename) (= (length item) 3))
-                (let ((ext (caddr item)))
-                  (loop (cdr items) (cons (symbol->string ext) acc))
-                ) ;let
-               ) ;
-               (else (loop (cdr items) acc))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
-        exports
-      ) ;if
-    ) ;define
+    ;; 解析结果缓存：同一文件的库结构会被重导出检查反复解析，
+    ;; 命中缓存可避免重复读文件。用 assoc-list 而非 hash-table：
+    ;; 库结构中不含 #f 元素，assoc+string=? 查重不会歧义，且 assoc-list
+    ;; 是纯 pair 结构，对 worker 会话序列化安全。
+    (define *struct-cache* '())
 
-    (define (extract-exports-from-port port)
-      (let loop
-        ()
-        (let ((expr (catch #t (lambda () (read port)) (lambda (k e) (eof-object)))))
-          (cond ((eof-object? expr) '())
-                ((and (pair? expr) (eq? (car expr) 'define-library))
-                 (let decl-loop
-                   ((rem (cddr expr)) (exports '()))
-                   (if (null? rem)
-                     (reverse exports)
-                     (decl-loop (cdr rem) (extract-decl-exports (car rem) exports))
-                   ) ;if
-                 ) ;let
-                ) ;
-                (else (loop))
-          ) ;cond
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (extract-library-exports source-path)
-      (call-with-input-file (resolve-repo-file source-path) extract-exports-from-port)
-    ) ;define
-
-    (define (filter-library-exports source-path keep-defined?)
-      (let ((struct (parse-library-structure source-path)))
-        (if (not struct)
-          '()
-          (let ((exports (cdr (assq 'exports struct))) (defs (cdr (assq 'defs struct))))
-            (let loop
-              ((rem exports) (acc '()))
-              (if (null? rem)
-                (reverse acc)
-                (let* ((entry (car rem))
-                       (ext-name (car entry))
-                       (int-name (cdr entry))
-                       (defined? (member int-name defs string=?))
-                      ) ;
-                  (cond ((and keep-defined? defined?) (loop (cdr rem) (cons ext-name acc)))
-                        ((and (not keep-defined?) (not defined?)) (loop (cdr rem) (cons entry acc)))
-                        (else (loop (cdr rem) acc))
-                  ) ;cond
-                ) ;let*
-              ) ;if
-            ) ;let
+    (define (parse-library-structure source-path)
+      (let ((hit (assoc source-path *struct-cache* string=?)))
+        (if hit
+          (cdr hit)
+          (let ((struct (%parse-structure-uncached source-path)))
+            (set! *struct-cache* (cons (cons source-path struct) *struct-cache*))
+            struct
           ) ;let
         ) ;if
       ) ;let
     ) ;define
 
-    (define (extract-library-defined-exports source-path)
-      (filter-library-exports source-path #t)
-    ) ;define
-
-    (define (extract-library-reexported-entries source-path)
-      (filter-library-exports source-path #f)
-    ) ;define
-
     (define (lib-spec->relative-source-path spec)
-      (string-append "goldfish/" (string-join (map symbol->string spec) "/") ".scm")
+      ;; 库标识符 -> 板块内相对源码路径（如 (scheme base) -> "scheme/base.scm"）。
+      ;; 板块根目录由调用方按 r7rs/ goldfish/ library/ 依次尝试。
+      (string-append (string-join (map symbol->string spec) "/") ".scm")
     ) ;define
 
   ) ;begin

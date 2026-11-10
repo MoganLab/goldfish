@@ -1,0 +1,63 @@
+;; utf16le->codepoint
+;; 将 UTF-16LE 编码的字节向量转换为 Unicode 码点。
+;;
+;; 语法
+;; ----
+;; (utf16le->codepoint bytevector)
+;;
+;; 参数
+;; ----
+;; bytevector : bytevector
+;; UTF-16LE 编码的字节向量。
+;;
+;; 返回值
+;; ----
+;; integer
+;; Unicode 码点。
+;;
+;; 描述
+;; ----
+;; 解码规则：
+;; - 2 字节：直接解码为 BMP 字符
+;; - 4 字节：解析代理对，解码为辅助平面字符
+;;
+;; 错误处理
+;; ----
+;; value-error 当字节向量无效时。
+;; type-error 当参数不是字节向量时。
+
+(import (liii check) (liii unicode) (liii base))
+
+(check-set-mode! 'report-failed)
+
+;; 基本 BMP 字符（2 字节）
+(check (utf16le->codepoint #u8(72 0)) => 72)
+(check (utf16le->codepoint #u8(65 0)) => 65)
+(check (utf16le->codepoint #u8(164 0)) => 164)
+(check (utf16le->codepoint #u8(45 78)) => 20013)
+
+;; 边界测试
+(check (utf16le->codepoint #u8(0 0)) => 0)
+(check (utf16le->codepoint #u8(255 255)) => 65535)
+
+;; 代理对（4 字节）
+(check (utf16le->codepoint #u8(61 216 77 220)) => 128077)
+(check (utf16le->codepoint #u8(61 216 128 222)) => 128640)
+(check (utf16le->codepoint #u8(0 216 0 220)) => 65536)
+(check (utf16le->codepoint #u8(255 219 255 223)) => 1114111)
+
+;; 与 codepoint->utf16le 互逆操作
+(check (utf16le->codepoint (codepoint->utf16le 72)) => 72)
+(check (utf16le->codepoint (codepoint->utf16le 20013)) => 20013)
+(check (utf16le->codepoint (codepoint->utf16le 128077)) => 128077)
+(check (utf16le->codepoint (codepoint->utf16le 1114111)) => 1114111)
+
+;; 错误处理
+(check-catch 'value-error (utf16le->codepoint #u8()))
+(check-catch 'value-error (utf16le->codepoint #u8(0)))
+(check-catch 'value-error (utf16le->codepoint #u8(0 216)))
+(check-catch 'value-error (utf16le->codepoint #u8(0 220 0 220)))
+(check-catch 'type-error (utf16le->codepoint "not-a-bytevector"))
+(check-catch 'type-error (utf16le->codepoint 123))
+
+(check-report)

@@ -117,6 +117,8 @@
           ;; 与上游共用 settings.json：hideThinkingBlock 隔离为单行斜体标签
           (%normalize-bool (json-dict-ref obj "hideThinkingBlock" #f))
           (%parse-model-thinking-levels (json-dict-ref obj "modelThinkingLevels" '()))
+          ;; Agent Skills：斜杠命令中的 /skill: 展示与展开开关（默认开启）
+          (%normalize-bool (json-dict-ref obj "enableSkillCommands" #t))
         ) ;%make-pi-settings
       ) ;let*
     ) ;define

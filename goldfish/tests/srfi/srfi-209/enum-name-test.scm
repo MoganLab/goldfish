@@ -1,0 +1,44 @@
+;; enum-name
+;; 获取 enum 的名称。
+;;
+;; 语法
+;; ----
+;; (enum-name enum)
+;;
+;; 参数
+;; ----
+;; enum : enum?
+;; 目标 enum。
+;;
+;; 返回值
+;; ----
+;; symbol
+;; enum 对应的名称。
+;;
+;; 注意
+;; ----
+;; 名称与创建 enum-type 时提供的符号一致。
+;;
+;; 错误处理
+;; ----
+;; 无。
+
+(import (liii check) (liii enum))
+
+
+(check-set-mode! 'report-failed)
+
+
+(define color-names '(red tangerine orange yellow green cyan blue violet))
+
+
+(define color (make-enum-type color-names))
+
+
+(define color-red (enum-name->enum color 'red))
+
+(check (enum-name (enum-name->enum color 'red)) => 'red)
+(check (enum-name (enum-ordinal->enum color 0)) => 'red)
+
+
+(check-report)

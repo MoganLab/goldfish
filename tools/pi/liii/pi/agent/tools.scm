@@ -9,7 +9,7 @@
     (scheme time)
     (liii string)
     (liii list)
-    (liii pi abort)
+    (liii pi ai abort)
     (liii pi ai event)
     (liii pi ai message)
     (liii pi ai tools types)
@@ -45,8 +45,55 @@
       ) ;let*
     ) ;define
 
-    (define (pi-make-tool-result-msg id name text is-err)
-      (pi-tool-result-message id name (list (pi-text-block text)) is-err)
+    (define (%normalize-one-block b)
+      (cond ((pi-block? b) b)
+            ((pair? b)
+             (let ((btype (pi-agent-assoc-val 'type "type" b "text")))
+               (cond ((equal? btype "text") (pi-text-block (pi-agent-assoc-val 'text "text" b "")))
+                     ((equal? btype "image")
+                      (let ((mime (or (pi-agent-assoc-val 'mimeType "mimeType" b #f)
+                                    (pi-agent-assoc-val 'media_type "media_type" b "image/png")
+                                  ) ;or
+                            ) ;mime
+                           ) ;
+                        (pi-image-block (pi-agent-assoc-val 'data "data" b "") mime)
+                      ) ;let
+                     ) ;
+                     (else b)
+               ) ;cond
+             ) ;let
+            ) ;
+            (else b)
+      ) ;cond
+    ) ;define
+
+    (define (%extract-tool-result-content-blocks res)
+      (let* ((c
+               (cond ((pi-tool-result? res) (pi-tool-result-content res))
+                     ((pair? res) (pi-agent-assoc-val 'content "content" res #()))
+                     ((string? res) (vector (pi-text-block res)))
+                     (else #())
+               ) ;cond
+             ) ;c
+             (lst (cond ((vector? c) (vector->list c)) ((pair? c) c) (else '())))
+            ) ;
+        (map %normalize-one-block lst)
+      ) ;let*
+    ) ;define
+
+    (define (pi-make-tool-result-msg id name content is-err)
+      (let ((blks
+              (cond ((string? content) (list (pi-text-block content)))
+                    ((vector? content) (vector->list content))
+                    ((pair? content)
+                     (if (or (pi-block? (car content)) (pair? (car content))) content (list content))
+                    ) ;
+                    (else '())
+              ) ;cond
+            ) ;blks
+           ) ;
+        (pi-tool-result-message id name (map %normalize-one-block blks) is-err)
+      ) ;let
     ) ;define
 
     (define (%log-stderr msg)
@@ -185,8 +232,9 @@
                               (pi-agent-assoc-val 'isError "isError" raw-res #f)
                             ) ;if
                    ) ;is-err?
+                   (content-blks (%extract-tool-result-content-blocks raw-res))
                    (text (pi-extract-tool-result-text raw-res))
-                   (tool-msg (pi-make-tool-result-msg id name text is-err?))
+                   (tool-msg (pi-make-tool-result-msg id name content-blks is-err?))
                    (res-payload (list (cons 'id id)
                                   (cons 'name name)
                                   (cons 'tool name)
@@ -220,45 +268,40 @@
       ) ;let-values
     ) ;define*
 
+    (define (%emit-skipped-call call emit text)
+      (let* ((id (pi-agent-assoc-val 'id "id" call ""))
+             (name (pi-agent-assoc-val 'name "name" call ""))
+             (raw-res (pi-tool-result text #t))
+             (tool-msg (pi-make-tool-result-msg id name text #t))
+            ) ;
+        (when (procedure? emit)
+          (emit 'tool_execution_start id name '())
+          (emit 'tool_execution_end id name raw-res #t)
+          (emit 'message_start tool-msg)
+          (emit 'message_end tool-msg)
+        ) ;when
+        tool-msg
+      ) ;let*
+    ) ;define
+
     (define* (pi-execute-tool-calls-with-status tool-calls emit timeout (opt-config #f))
       (let loop
         ((rest tool-calls) (acc '()) (batch-term? #f))
         (if (null? rest)
           (values (reverse acc) batch-term?)
           (if batch-term?
-            (let* ((call (car rest))
-                   (id (pi-agent-assoc-val 'id "id" call ""))
-                   (name (pi-agent-assoc-val 'name "name" call ""))
-                   (skip-text "Tool call skipped: previous tool call terminated the run")
-                   (raw-res (pi-tool-result skip-text #t))
-                   (tool-msg (pi-make-tool-result-msg id name skip-text #t))
-                  ) ;
-              (when (procedure? emit)
-                (emit 'tool_execution_start id name '())
-                (emit 'tool_execution_end id name raw-res #t)
-                (emit 'message_start tool-msg)
-                (emit 'message_end tool-msg)
-              ) ;when
-              (loop (cdr rest) (cons tool-msg acc) #t)
-            ) ;let*
-            ;; 用户中止（ESC）：不再实际执行剩余工具，标记为 aborted 跳过结果；
-            ;; pi-aborted? 一旦置位恒为 #t，后续循环继续命中本分支
+            (let ((msg (%emit-skipped-call (car rest)
+                         emit
+                         "Tool call skipped: previous tool call terminated the run"
+                       ) ;%emit-skipped-call
+                  ) ;msg
+                 ) ;
+              (loop (cdr rest) (cons msg acc) #t)
+            ) ;let
             (if (pi-aborted?)
-              (let* ((call (car rest))
-                     (id (pi-agent-assoc-val 'id "id" call ""))
-                     (name (pi-agent-assoc-val 'name "name" call ""))
-                     (skip-text "Tool call aborted by user")
-                     (raw-res (pi-tool-result skip-text #t))
-                     (tool-msg (pi-make-tool-result-msg id name skip-text #t))
-                    ) ;
-                (when (procedure? emit)
-                  (emit 'tool_execution_start id name '())
-                  (emit 'tool_execution_end id name raw-res #t)
-                  (emit 'message_start tool-msg)
-                  (emit 'message_end tool-msg)
-                ) ;when
-                (loop (cdr rest) (cons tool-msg acc) #f)
-              ) ;let*
+              (let ((msg (%emit-skipped-call (car rest) emit "Tool call aborted by user")))
+                (loop (cdr rest) (cons msg acc) #f)
+              ) ;let
               (let-values (((msg term?)
                             (pi-execute-one-tool-call-with-status (car rest) emit timeout opt-config)
                            ) ;
@@ -309,23 +352,46 @@
     ) ;define
 
     (define (pi-extract-tool-result-blocks msgs count)
-      (let* ((tail (list-tail msgs (- (length msgs) count))))
+      (let ((tail (list-tail msgs (- (length msgs) count))))
         (list->vector
           (map
             (lambda (m)
-              (let* ((id (pi-agent-assoc-val 'toolCallId "toolCallId" m ""))
-                     (name (pi-agent-assoc-val 'toolName "toolName" m ""))
-                     (c (pi-agent-assoc-val 'content "content" m '()))
-                     (text (pi-agent-assoc-val 'text "text" (pi-first-block-from-content c) ""))
-                     (is-err? (pi-agent-assoc-val 'isError "isError" m #f))
+              (let* ((rec? (pi-tool-result-message? m))
+                     (id (if rec?
+                           (pi-tool-result-message-tool-call-id m)
+                           (pi-agent-assoc-val 'toolCallId "toolCallId" m "")
+                         ) ;if
+                     ) ;id
+                     (name (if rec?
+                             (pi-tool-result-message-tool-name m)
+                             (pi-agent-assoc-val 'toolName "toolName" m "")
+                           ) ;if
+                     ) ;name
+                     (c (if rec?
+                          (pi-tool-result-message-content m)
+                          (pi-agent-assoc-val 'content "content" m '())
+                        ) ;if
+                     ) ;c
+                     (blks
+                       (cond ((vector? c) (vector->list c))
+                             ((pair? c) c)
+                             ((string? c) (list (pi-text-block c)))
+                             (else '())
+                       ) ;cond
+                     ) ;blks
+                     (is-err? (if rec?
+                                (pi-tool-result-message-is-error m)
+                                (pi-agent-assoc-val 'isError "isError" m #f)
+                              ) ;if
+                     ) ;is-err?
                     ) ;
-                (pi-tool-result-message id name (list (pi-text-block text)) is-err?)
+                (pi-tool-result-message id name (map %normalize-one-block blks) is-err?)
               ) ;let*
             ) ;lambda
             tail
           ) ;map
         ) ;list->vector
-      ) ;let*
+      ) ;let
     ) ;define
 
   ) ;begin

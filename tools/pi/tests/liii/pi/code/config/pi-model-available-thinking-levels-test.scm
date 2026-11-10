@@ -20,23 +20,17 @@
 ;; list
 ;; 可用思考级别列表。
 
-(import (liii check)
-  (liii pi ai thinking)
-  (liii pi code config)
-) ;import
+(import (liii check) (liii pi ai thinking) (liii pi code config))
 
 (check-set-mode! 'report-failed)
 
 (define CATALOG
-  (list (cons "google"
-          (list (cons "models"
-                  (list (list (cons "id" "no-reasoning")
-                          (cons "reasoning" #f)
-                        ) ;list
-                  ) ;list
-                ) ;cons
-          ) ;list
-        ) ;cons
+  (list
+    (cons "google"
+      (list
+        (cons "models" (list (list (cons "id" "no-reasoning") (cons "reasoning" #f))))
+      ) ;list
+    ) ;cons
   ) ;list
 ) ;define
 

@@ -1,0 +1,43 @@
+;; display
+;; 将对象按更接近用户阅读的方式写入输出端口。
+;;
+;; 语法
+;; ----
+;; (display obj)
+;; (display obj port)
+;;
+;; 参数
+;; ----
+;; obj : any
+;; 要展示的对象。
+;;
+;; port : output-port? (可选)
+;; 输出端口。省略时，写入当前输出端口。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;; 主要用于副作用输出。
+;;
+;; 描述
+;; ----
+;; 1. `display` 更偏向面向用户的展示输出。
+;; 2. 对字符串通常不输出双引号。
+;; 3. 对符号和数字等对象则输出其展示形式。
+
+(import (liii check) (scheme write))
+(check-set-mode! 'report-failed)
+
+(define (capture-output thunk)
+  (let ((port (open-output-string)))
+    (thunk port)
+    (get-output-string port)
+  ) ;let
+) ;define
+(check-true (procedure? display))
+(check (capture-output (lambda (port) (display "goldfish" port))) => "goldfish")
+(check (capture-output (lambda (port) (display 42 port))) => "42")
+(check (capture-output (lambda (port) (display 'hello port))) => "hello")
+(check (capture-output (lambda (port) (display #\中 port))) => "中")
+
+(check-report)

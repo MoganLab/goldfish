@@ -16,14 +16,24 @@
 ;; 会话标识，缺失时为 #f。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(let ((stats (make-pi-session-stats #f "session-1" #f 0 0 0 0 0
-               (make-pi-session-token-stats 0 0 0 0) 0)))
-  (check (pi-session-stats-session-id stats) => "session-1"))
+(let ((stats (make-pi-session-stats #f
+               "session-1"
+               #f
+               0
+               0
+               0
+               0
+               0
+               (make-pi-session-token-stats 0 0 0 0)
+               0
+             ) ;make-pi-session-stats
+      ) ;stats
+     ) ;
+  (check (pi-session-stats-session-id stats) => "session-1")
+) ;let
 
 (check-report)

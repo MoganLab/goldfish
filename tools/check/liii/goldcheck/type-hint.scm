@@ -14,9 +14,11 @@
 ;; limitations under the License.
 ;;
 
-;; type-hint 规则：校验 goldfish/hint/ 下 hint 库的结构与签名合法性。
+;; type-hint 规则：校验各板块 hint/ 下 hint 库的结构与签名合法性。
 ;; 只读源码数据（read 后遍历），不 eval、不加载被检查的库。
 ;; 校验语义见 hint_spec.md 第 8 节与工具测试文件的说明。
+;; 单文件检查为三层结构：自身 hint 匹配、依赖 hint 匹配（target.scm）、
+;; 综合类型环境推断（infer.scm）。
 
 (define-library (liii goldcheck type-hint)
   (import (scheme base)
@@ -35,22 +37,29 @@
     (liii goldcheck type-hint infer)
     (liii goldcheck type-hint env)
     (liii goldcheck type-hint owner)
+    (liii goldcheck type-hint target)
   ) ;import
   (export scan-hint-libs check-type-hint check-type-hint-all
-    check-type-hint-duplicates type-hint-status-lines display-type-hint-statuses
+    check-type-hint-file check-type-hint-duplicates check-type-hint-except
+    type-hint-status-lines reachable-hint-files display-type-hint-statuses
+    display-type-hint-status
   ) ;export
   (begin
 
-    ;; 仓库根下的 goldfish/hint 目录；gfproject-root 带尾斜杠时不再补
-    (define (hint-dir)
+    ;; hint 库目录：按 domain 推导（与 tests 目录同源），
+    ;; 即 r7rs/hint、goldfish/hint、library/hint 与 tools/<tool>/hint；
+    ;; gfproject-root 带尾斜杠时不再补
+    (define (hint-dirs)
       (let ((root (gfproject-root)))
-        (if (and root (string? root) (not (string=? root "")))
-          (if (string-ends? root "/")
-            (string-append root "goldfish/hint")
-            (string-append root "/goldfish/hint")
-          ) ;if
-          "goldfish/hint"
-        ) ;if
+        (let ((prefix
+                (if (and root (string? root) (not (string=? root "")))
+                  (if (string-ends? root "/") root (string-append root "/"))
+                  ""
+                ) ;if
+              ) ;prefix
+             ) ;
+          (map (lambda (d) (string-append prefix d)) (gfproject-hint-dirs))
+        ) ;let
       ) ;let
     ) ;define
 
@@ -87,8 +96,11 @@
     ) ;define
 
     (define (scan-hint-libs)
-      "扫描 goldfish/hint/ 下所有 .scm，返回存在 hint 的库文件相对路径列表"
-      (append (scan-scm-dir (hint-dir)) (scan-scm-dir "tools/check/hint"))
+      "扫描各 hint 目录下所有 .scm，返回存在 hint 的库文件相对路径列表"
+      (let loop
+        ((dirs (hint-dirs)) (acc '()))
+        (if (null? dirs) acc (loop (cdr dirs) (append (scan-scm-dir (car dirs)) acc)))
+      ) ;let
     ) ;define
 
     (define (check-type-hint hint-file)
@@ -117,6 +129,38 @@
             ) ;let*
           ) ;if
         ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 对任意源码文件做 type-hint 检查，三层结构：
+    ;; ① 目标库自身 hint 与原库匹配（check-type-hint：A1-B7）；
+    ;; ② import 闭包中各库的 hint 匹配（check-dep-hints，同一套规则）；
+    ;; ③ 综合 hint 环境对原库函数体做类型推断（check-infer）。
+    ;; 无 hint 的库执行 ② 与 import 环境推断（check-file-infer）。
+    (define (dep-hints file)
+      (check-dep-hints check-type-hint file)
+    ) ;define
+
+    (define (own-hint-file file)
+      (let* ((info (cached-library-info file))
+             (h (and info (hint-lib-file (lib-name info) (all-hint-roots))))
+            ) ;
+        (and h (string? h) (file-exists? h) h)
+      ) ;let*
+    ) ;define
+
+    (define (check-type-hint-file file)
+      "检查单个源码文件的 type-hint 违规，返回违规列表。"
+      (let ((local (hint-root-of file)))
+        (if local
+          (append (check-type-hint file) (dep-hints file))
+          (let ((hint (own-hint-file file)))
+            (if hint
+              (append (check-type-hint hint) (dep-hints hint) (check-infer hint))
+              (append (dep-hints file) (check-file-infer file))
+            ) ;if
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
 
@@ -168,19 +212,50 @@
       ) ;let
     ) ;define
 
-    (define (display-type-hint-statuses violations)
+    (define (display-type-hint-statuses hint-files violations)
+      "输出给定 hint 库文件的覆盖度与校验状态行。\n      hint-files 为空时不输出任何状态行。"
       (for-each (lambda (line) (display line) (newline))
-        (type-hint-status-lines (scan-hint-libs) violations)
+        (type-hint-status-lines hint-files violations)
       ) ;for-each
     ) ;define
 
+    ;; 命令行入口：状态行按目标可达 hint 显示，无目标时回退全仓总览
+    (define (display-type-hint-status result files)
+      (let ((hs (reachable-hint-files files)))
+        (display-type-hint-statuses (if (null? hs) (scan-hint-libs) hs)
+          (vector->list (cadddr result))
+        ) ;display-type-hint-statuses
+      ) ;let
+    ) ;define
+
     (define (check-type-hint-all)
-      "扫描 goldfish/hint/ 并检查全部 hint 库，返回违规列表"
+      "扫描全部 hint 目录并检查所有 hint 库，返回违规列表"
       (let ((files (scan-hint-libs)))
         (append (apply append (map check-type-hint files))
           (check-type-hint-duplicates files)
         ) ;append
       ) ;let
+    ) ;define
+
+    ;; 与 check-files 的单文件路径配合：目标集中的 hint 文件已由
+    ;; check-type-hint-file 完整检查（结构校验 + 对原库的推断），
+    ;; 全局扫描时跳过，避免同一违规重复报告；
+    ;; 跨文件重复登记检查仍需全量 hint 文件参与。
+    (define (check-type-hint-except checked-files)
+      "检查全部 hint 库，跳过 checked-files 中已检查过的文件，返回违规列表。"
+      (let* ((checked (map relativize-path checked-files))
+             (files (scan-hint-libs))
+             (todo
+               (filter
+                 (lambda (f) (not (member (relativize-path f) checked string=?)))
+                 files
+               ) ;filter
+             ) ;todo
+            ) ;
+        (append (apply append (map check-type-hint todo))
+          (check-type-hint-duplicates files)
+        ) ;append
+      ) ;let*
     ) ;define
 
   ) ;begin

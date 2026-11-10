@@ -14,6 +14,11 @@
 ;; ------
 ;; list
 ;; 若为重导出函数测试则返回包含违规详情的列表，合规或非测试文件时返回 '()。
+;;
+;; 说明
+;; ----
+;; 直接在 C 层实现的导出函数（如 s7 内置的 open-input-file）不算重导出，
+;; 其单测允许留在当前库目录。
 
 (import (scheme base)
   (liii check)
@@ -66,6 +71,36 @@
   (path-unlink wrap-test #t)
   (path-unlink wrap-mod #t)
   (path-unlink src-mod #t)
+  (path-rmdir test-dir)
+  (path-rmdir (path->string (path-parent (path test-dir))))
+  (path-rmdir goldfish-dir)
+  (path-rmdir base-dir)
+) ;let*
+
+;; 4. C 内置函数导出不判为重导出（如 (scheme file) 的 open-input-file）
+(let* ((tmp-dir (path-temp-dir))
+       (base-dir (path-join tmp-dir "gf-test-reexport-builtin"))
+       (goldfish-dir (path-join base-dir "goldfish"))
+       (test-dir (path-join base-dir "tests" "builtin-lib"))
+       (_ (path-mkdir (path goldfish-dir) :parents #t :exist-ok #t))
+       (_ (path-mkdir (path test-dir) :parents #t :exist-ok #t))
+       (builtin-lib (path->string (path-join goldfish-dir "builtin-lib.scm")))
+       (builtin-test (path->string (path-join test-dir "open-input-file-test.scm")))
+       (lib-code (string-append "(define-library (builtin-lib)\n"
+                   "  (export open-input-file abs local-fn)\n"
+                   "  (import (non-existent lib))\n"
+                   "  (begin (define (local-fn) 1)))\n"
+                 ) ;string-append
+       ) ;lib-code
+      ) ;
+  (path-write-bytes (path builtin-lib) (string->utf8 lib-code))
+  (path-write-bytes (path builtin-test) (string->utf8 "(check 1 => 1)\n"))
+  (set-find-library-source-fn! (lambda (p) builtin-lib))
+  (check (check-reexported-test-file builtin-test) => '())
+  (set-find-library-source-fn! #f)
+
+  (path-unlink builtin-test #t)
+  (path-unlink builtin-lib #t)
   (path-rmdir test-dir)
   (path-rmdir (path->string (path-parent (path test-dir))))
   (path-rmdir goldfish-dir)

@@ -1,0 +1,72 @@
+;; run-if
+;; 条件执行命令（替代 shell 的 if test）。
+;;
+;; 语法
+;; ----
+;; (run-if condition-command then-command else-command)
+;;
+;; 参数
+;; ----
+;; condition-command : string 或 list
+;; 返回 0 时执行 then-command，否则执行 else-command。
+;;
+;; then-command、else-command : string 或 list
+;;
+;; 返回值
+;; ----
+;; Either
+;; 被执行命令成功时返回 Right（内含退出码 0），失败时返回 Left（内含 <process-error> 记录）。
+
+(import (liii check) (liii either) (liii os) (liii subprocess))
+
+(when (or (os-linux?) (os-macos?))
+  (check (either-right? (run-if "false" "echo yes" "echo no")) => #t)
+  (check (to-right (run-if "false" "echo yes" "echo no")) => 0)
+
+  (let ((res (run-if "true" "false" "echo no")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
+  (let ((res (run-if "false" "echo yes" "false")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
+) ;when
+
+(when (os-windows?)
+  (check (either-right? (run-if "python3 -c 1/0" "python3 -c pass" "python3 -c pass"))
+    =>
+    #t
+  ) ;check
+  (check (to-right (run-if "python3 -c 1/0" "python3 -c pass" "python3 -c pass"))
+    =>
+    0
+  ) ;check
+
+  (let ((res (run-if "python3 -c pass" "python3 -c 1/0" "python3 -c pass")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
+  (let ((res (run-if "python3 -c 1/0" "python3 -c pass" "python3 -c 1/0")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
+) ;when
+
+(check-report)

@@ -1,3 +1,26 @@
+;; append-session-info!
+;; 向会话文件追加一条会话名称记录。
+;;
+;; 语法
+;; ----
+;; (append-session-info! file-path name . opt-fields)
+;;
+;; 参数
+;; ----
+;; file-path : (or string path)
+;; 会话文件路径。
+;;
+;; name : string
+;; 会话名称。
+;;
+;; opt-fields : list（可选）
+;; 会话名称记录的其它字段。
+;;
+;; 返回值
+;; ----
+;; 不返回
+;; 直接向会话文件追加会话名称条目。
+
 (import (liii check)
   (liii path)
   (liii json)
@@ -12,23 +35,35 @@
 
 ;; session_info 名称元数据：规范化写入、读取最新值且不进入消息历史
 (let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-session-name")))
-       (session-file (path->string (path-join tmp-dir "named-session.jsonl"))))
+       (session-file (path->string (path-join tmp-dir "named-session.jsonl")))
+      ) ;
   (when (file-exists? tmp-dir)
-    (rmtree tmp-dir))
+    (rmtree tmp-dir)
+  ) ;when
   (path-mkdir tmp-dir :parents #t :exist-ok #t)
-  (save-session-header! session-file "sess-name" "2026-10-21T08:00:00.000Z" tmp-dir)
+  (save-session-header! session-file "sess-name" "2026-10-21T08:00:00.000Z"
+    tmp-dir
+  ) ;save-session-header!
   (append-session-info! session-file "  Refactor\nauth module  ")
   (append-session-info! session-file "Fix Windows build")
   (let* ((entries (map string->json (path-read-lines session-file)))
-         (infos (filter (lambda (entry)
-                          (equal? (cdr (assoc "type" entry)) "session_info"))
-                  entries)))
+         (infos
+           (filter
+             (lambda (entry) (equal? (cdr (assoc "type" entry)) "session_info"))
+             entries
+           ) ;filter
+         ) ;infos
+        ) ;
     (check (length infos) => 2)
     (check (cdr (assoc "name" (car infos))) => "Refactor auth module")
-    (check-true (string? (cdr (assoc "id" (car infos)))))
+    (check-true
+      (string? (cdr (assoc "id" (car infos))))
+    ) ;check-true
     (check (get-session-name session-file) => "Fix Windows build")
-    (check (read-session-history session-file) => '()))
+    (check (read-session-history session-file) => '())
+  ) ;let*
   (delete-file session-file)
-  (path-rmdir tmp-dir))
+  (path-rmdir tmp-dir)
+) ;let*
 
 (check-report)

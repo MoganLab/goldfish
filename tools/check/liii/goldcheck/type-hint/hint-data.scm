@@ -18,18 +18,27 @@
 
 (define-library (liii goldcheck type-hint hint-data)
   (import (scheme base)
+    (scheme file)
     (liii base)
     (liii list)
+    (liii os)
+    (liii path)
     (liii string)
+    (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck type-hint parse)
     (liii goldcheck type-hint util)
   ) ;import
   (export quote-marker? query-func-name expected-lib-name orig-lib-path
-    hint-var-defs signature-value query-define registered-entries type-ok?
-    signature-parts signature-ok? signature-arity find-def
+    library-source-roots hint-var-defs signature-value query-define
+    registered-entries type-ok? signature-parts signature-ok? signature-arity
+    find-def find-repo-root
   ) ;export
   (begin
+
+    ;; 库实现所在的源码根：R7RS 板块 r7rs/ 、语言层 goldfish/ 与标准库层 library/。
+    ;; hint 库按板块存放（r7rs/hint/ goldfish/hint/），其对应的原库可能位于任一源码根。
+    (define library-source-roots '("r7rs" "goldfish" "library"))
 
     ;; s7 的 read 对 'X 产生 #_quote 标记，用 object->string 识别
     (define (quote-marker? x)
@@ -69,10 +78,75 @@
       ) ;let
     ) ;define
 
-    ;; hint 路径 -> 原库路径：删除路径中的 "hint" 目录段
+    ;; 原库候选路径：hint 同层路径优先，其次语言层与标准库层。
+    (define (orig-lib-candidates r)
+      (let* ((tail (cdr r))
+             (pre (car r))
+             (base-prefix
+               (if (null? pre) '() (reverse (cdr (reverse pre))))
+             ) ;base-prefix
+             (same-layer (join-strings (append pre tail) "/"))
+             (rooted
+               (map
+                 (lambda (root) (join-strings (append base-prefix (list root) tail) "/"))
+                 library-source-roots
+               ) ;map
+             ) ;rooted
+             (rel-rooted
+               (map
+                 (lambda (root) (join-strings (append (list root) tail) "/"))
+                 library-source-roots
+               ) ;map
+             ) ;rel-rooted
+            ) ;
+        (dedup (cons same-layer (append rooted rel-rooted)))
+      ) ;let*
+    ) ;define
+
+    (define (find-repo-root)
+      (let ((root (gfproject-root)))
+        (if (and root (string? root) (not (string=? root "")))
+          root
+          (let loop
+            ((dir (getcwd)))
+            (if
+              (and (path-dir? (path (path-join dir "goldfish")))
+                (path-file? (path (path-join dir "gf_check.json")))
+              ) ;and
+              dir
+              (let ((parent (path->string (path-parent (path dir)))))
+                (if (or (string=? parent dir) (string=? parent "/")) #f (loop parent))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (candidate-exists? p)
+      (or (file-exists? p)
+        (let ((root (find-repo-root)))
+          (and root (file-exists? (string-append root "/" p)))
+        ) ;let
+      ) ;or
+    ) ;define
+
+    ;; hint 路径 -> 原库路径：删除路径中的 "hint" 目录段；
+    ;; 原库可能位于语言层或标准库层，按候选顺序取首个存在的文件。
     (define (orig-lib-path hint-path)
       (let ((r (hint-tail-comps (split-slash (normalize-sep hint-path)))))
-        (if r (join-strings (append (car r) (cdr r)) "/") #f)
+        (if r
+          (let ((candidates (orig-lib-candidates r)))
+            (let loop
+              ((cs candidates))
+              (if (null? cs)
+                (car candidates)
+                (if (candidate-exists? (car cs)) (car cs) (loop (cdr cs)))
+              ) ;if
+            ) ;let
+          ) ;let
+          #f
+        ) ;if
       ) ;let
     ) ;define
 

@@ -36,6 +36,7 @@
     (liii tui)
     (liii pi agent queue)
     (liii pi code core session-stats)
+    (liii pi code core context-usage)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive thinking)
@@ -71,7 +72,7 @@
           ) ;begin
           (let ((now (current-monotonic-millis)))
             (cond ((not (working-last-tick ind))
-                   ;; busy 首拍：无论从何种路径进入 busy，都从 ⠋ 起始
+                   ;; busy 首拍：整帧渲染（布局可能变化，需完整重算），从 ⠋ 起始
                    (working-reset! ind)
                    (working-last-tick-set! ind now)
                    (pi-app-render! app)
@@ -80,8 +81,12 @@
                   ((>= (- now (working-last-tick ind)) %working-frame-interval-ms)
                    (working-advance! ind)
                    (working-last-tick-set! ind now)
-                   (pi-app-render! app)
-                   #t
+                   ;; 轻量路径：busy 期间布局不变（每拍仅 spinner 帧变化），
+                   ;; 基于上帧仅替换 Working 边框行，避免每拍重算整帧
+                   ;; （长会话整帧重算成本可达 ~16ms，导致空闲 CPU ~20%）。
+                   ;; 回退条件：选择器激活（编辑器行被替换，行定位不适用）
+                   ;; 或尚无缓存帧（首次 busy 前未渲染过）
+                   (if (%pi-app-render-working-border! app) #t (begin (pi-app-render! app) #t))
                   ) ;
                   (else #f)
             ) ;cond
@@ -255,6 +260,9 @@
                (hide-thinking #f)
                (on-save-hide-thinking #f)
                (tokens #f)
+               (context-window #f)
+               (skills '())
+               (enable-skill-commands #t)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal)))
              ;; 全屏模式：备用屏整帧渲染，内容不随终端滚动
@@ -286,6 +294,8 @@
                        :thinking-level    tl
                        :supports-thinking supports-thinking
                        :session-name      session-name
+                       ;; 上下文窗口：页脚左下角上下文占比的容量分母
+                       :context-window context-window
                      ) ;make-pi-footer
              ) ;footer
              (queue (make-pi-message-queue))
@@ -345,12 +355,21 @@
                     #f
                     #f
                     actual-tokens
+                    #f
+                    #f
+                    skills
+                    (and enable-skill-commands #t)
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))
             ) ;
         (when (> (pi-session-token-stats-total actual-tokens) 0)
-          (pi-footer-set-token-stats! footer actual-tokens #f)
+          ;; 恢复的会话：按最后一条 assistant usage 换算上下文占比
+          (pi-footer-set-token-stats! footer
+            actual-tokens
+            #f
+            (pi-session-context-usage session-file (pi-footer-context-window footer))
+          ) ;pi-footer-set-token-stats!
         ) ;when
         ;; 对话记录（页眉 + 消息卡片）作为可滚动视口内容；
         ;; 待发送队列卡片与输入区、页脚一起构成底部 dock

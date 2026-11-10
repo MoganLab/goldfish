@@ -35,7 +35,9 @@
 
 ;; 2. 斜杠菜单能补全出 config
 (let* ((matches (pi-slash-command-matches "/con"))
-       (names (map (lambda (c) (cdr (assoc 'name c))) matches))
+       (names
+         (map (lambda (c) (cdr (assoc 'name c))) matches)
+       ) ;names
       ) ;
   (check (and (member "config" names) #t) => #t)
 ) ;let*

@@ -19,7 +19,7 @@
       "enabled": true
     },
     "unit-test": {
-      "enabled": false
+      "enabled": true
     },
     "no-crlf": {
       "enabled": true,
@@ -35,7 +35,8 @@
       ],
       "path": [
         "goldfish",
-        "tests",
+        "r7rs",
+        "library",
         "tools",
         "demo",
         "src",
@@ -53,9 +54,10 @@
         "reason": "type-hint 规则测试 fixture 使用虚构库名"
       }
     ],
+    "unit-test": [],
     "no-glue": [
       "bench/",
-      "goldfish/scheme/boot.scm",
+      "r7rs/scheme/boot.scm",
       "goldfish/srfi/srfi-13.scm",
       "tests/"
     ],
@@ -65,7 +67,15 @@
         "reason": "官方标准规范实现优先保证完整性与对照性"
       },
       {
-        "path": "tests/srfi/",
+        "path": "library/srfi/",
+        "reason": "官方标准规范实现优先保证完整性与对照性"
+      },
+      {
+        "path": "goldfish/tests/srfi/",
+        "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
+      },
+      {
+        "path": "library/tests/srfi/",
         "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
       },
       {
@@ -73,7 +83,7 @@
         "reason": "性能基准测试脚本包含大量展开测试数据与循环"
       },
       {
-        "path": "tests/scheme/char/",
+        "path": "r7rs/tests/scheme/char/",
         "reason": "Unicode 字符属性与大小写转换规范测试大查表"
       },
       {
@@ -81,7 +91,7 @@
         "reason": "协程调度机核心算法不可分割"
       },
       {
-        "path": "goldfish/scheme/syntax-rules.scm",
+        "path": "r7rs/scheme/syntax-rules.scm",
         "reason": "宏展开器核心算法不可分割"
       },
       {
@@ -101,39 +111,39 @@
         "reason": "高效字符串游标实现"
       },
       {
-        "path": "goldfish/liii/packrat.scm",
+        "path": "library/liii/packrat.scm",
         "reason": "Packrat 语法解析引擎核心实现"
       },
       {
-        "path": "goldfish/liii/uri/record.scm",
+        "path": "goldfish/liii/lang.scm",
+        "reason": "$ 管道算子集单文件集中分派实现，拆分会破坏算子表完整性"
+      },
+      {
+        "path": "library/liii/uri/record.scm",
         "reason": "URI 规范解析与记录模型"
       },
       {
-        "path": "goldfish/scheme/base.scm",
+        "path": "r7rs/scheme/base.scm",
         "reason": "R7RS 基础库聚合与核心导出定义"
       },
       {
-        "path": "goldfish/scheme/char.scm",
+        "path": "r7rs/scheme/char.scm",
         "reason": "Scheme 标准字符分类核心实现"
       },
       {
-        "path": "tests/liii/goldfmt/format/format-string-test.scm",
+        "path": "library/tests/liii/goldfmt/format/format-string-test.scm",
         "reason": "排版引擎字符串测试集包含大量长代码片段"
       },
       {
-        "path": "tests/liii/match/match-test.scm",
+        "path": "goldfish/tests/liii/match/match-test.scm",
         "reason": "模式匹配器全语法分支测试"
       },
       {
-        "path": "tests/liii/packrat-test.scm",
-        "reason": "Packrat 解析引擎语法规则测试用例"
-      },
-      {
-        "path": "tests/scheme/base/assoc-test.scm",
+        "path": "r7rs/tests/scheme/base/assoc-test.scm",
         "reason": "assoc 边界与各种键匹配完整测试集"
       },
       {
-        "path": "tests/scheme/boot-test.scm",
+        "path": "goldfish/tests/goldfish/scheme/boot-test.scm",
         "reason": "自举环境各模块与全局符号加载测试"
       }
     ],
@@ -143,11 +153,15 @@
         "reason": "官方标准规范实现优先保证完整性与对照性"
       },
       {
+        "path": "library/srfi/",
+        "reason": "官方标准规范实现优先保证完整性与对照性"
+      },
+      {
         "path": "bench/",
         "reason": "性能基准测试脚本包含大量展开测试数据与循环"
       },
       {
-        "path": "goldfish/liii/goldfmt/tokenize.scm",
+        "path": "library/liii/goldfmt/tokenize.scm",
         "reason": "排版词法分析器分词引擎"
       },
       {
@@ -155,7 +169,7 @@
         "reason": "协程调度机核心算法不可分割"
       },
       {
-        "path": "goldfish/scheme/syntax-rules.scm",
+        "path": "r7rs/scheme/syntax-rules.scm",
         "reason": "宏展开器核心算法不可分割"
       },
       {
@@ -175,23 +189,23 @@
         "reason": "高效字符串游标实现"
       },
       {
-        "path": "goldfish/liii/packrat.scm",
+        "path": "library/liii/packrat.scm",
         "reason": "Packrat 语法解析引擎核心实现"
       },
       {
-        "path": "goldfish/liii/config-parser.scm",
+        "path": "library/liii/config-parser.scm",
         "reason": "配置解析器完整状态机实现"
       },
       {
-        "path": "goldfish/liii/logging.scm",
+        "path": "library/liii/logging.scm",
         "reason": "日志框架格式化与分发逻辑"
       },
       {
-        "path": "goldfish/liii/uri/record.scm",
+        "path": "library/liii/uri/record.scm",
         "reason": "URI 规范解析与记录模型"
       },
       {
-        "path": "goldfish/liii/http.scm",
+        "path": "library/liii/http.scm",
         "reason": "HTTP 客户端核心协议实现"
       },
       {
@@ -199,12 +213,26 @@
         "reason": "字符串处理核心扩展函数集合"
       },
       {
-        "path": "goldfish/scheme/base.scm",
+        "path": "r7rs/scheme/base.scm",
         "reason": "R7RS 基础库聚合与核心导出定义"
       },
       {
-        "path": "goldfish/scheme/boot.scm",
+        "path": "r7rs/scheme/boot.scm",
         "reason": "Goldfish 系统自举入口与环境初始化"
+      },
+      {
+        "path": "r7rs/scheme/write.scm",
+        "reason": "write-shared 两遍图扫描实现（引用计数+回边标记+标注输出），嵌套源于图遍历本质结构"
+      }
+    ],
+    "type-hint": [
+      {
+        "path": "tools/check/tests/resources/",
+        "reason": "type-hint 规则测试 fixture 刻意包含违规样例"
+      },
+      {
+        "path": "goldfish/srfi/srfi-166/",
+        "reason": "外部引入的 SRFI-166 规范实现，保持与参考实现对照，源码守卫风格不改"
       }
     ]
   }

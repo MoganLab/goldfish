@@ -1,20 +1,41 @@
-(import (liii check)
-  (liii pi code core extensions)
-) ;import
+;; pi-load-extensions
+;; 批量加载扩展脚本并汇总加载结果。
+;;
+;; 语法
+;; ----
+;; (pi-load-extensions paths api . opt-context)
+;;
+;; 参数
+;; ----
+;; paths : list?
+;; 扩展脚本路径列表。
+;;
+;; api : (or extension-api extension-registry)
+;; 扩展宿主 API 或注册表记录。
+;;
+;; opt-context : extension-context（可选）
+;; 传给扩展工厂的上下文。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 total、success、failed 与 results 字段的加载报告。
+
+(import (liii check) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 
 (define (get-fixtures-dir)
-  (cond
-    ((file-exists? "tests/fixtures/extensions") "tests/fixtures/extensions")
-    ((file-exists? "tools/pi/tests/fixtures/extensions") "tools/pi/tests/fixtures/extensions")
-    (else "../../tools/pi/tests/fixtures/extensions")
+  (cond ((file-exists? "tests/fixtures/extensions") "tests/fixtures/extensions")
+        ((file-exists? "tools/pi/tests/fixtures/extensions")
+         "tools/pi/tests/fixtures/extensions"
+        ) ;
+        (else "../../tools/pi/tests/fixtures/extensions")
   ) ;cond
 ) ;define
 
 ;; 1. 批量加载空列表
-(let* ((api (make-extension-api))
-       (report (pi-load-extensions '() api)))
+(let* ((api (make-extension-api)) (report (pi-load-extensions '() api)))
   (check (pair? report) => #t)
   (check (cdr (assq 'total report)) => 0)
   (check (cdr (assq 'success report)) => 0)
@@ -26,8 +47,11 @@
 ;; 2. 批量加载两个合法扩展
 (let* ((api (make-extension-api))
        (paths (list (string-append (get-fixtures-dir) "/valid-ext1.scm")
-                    (string-append (get-fixtures-dir) "/valid-pkg/index.scm")))
-       (report (pi-load-extensions paths api)))
+                (string-append (get-fixtures-dir) "/valid-pkg/index.scm")
+              ) ;list
+       ) ;paths
+       (report (pi-load-extensions paths api))
+      ) ;
   (check (cdr (assq 'total report)) => 2)
   (check (cdr (assq 'success report)) => 2)
   (check (cdr (assq 'failed report)) => 0)
@@ -41,10 +65,13 @@
 ;; 3. 混合加载：1 个合法，3 个故障（不存在、语法错误、运行时错误）
 (let* ((api (make-extension-api))
        (paths (list (string-append (get-fixtures-dir) "/valid-ext1.scm")
-                    (string-append (get-fixtures-dir) "/syntax-error.scm")
-                    (string-append (get-fixtures-dir) "/runtime-error.scm")
-                    (string-append (get-fixtures-dir) "/not-exist.scm")))
-       (report (pi-load-extensions paths api)))
+                (string-append (get-fixtures-dir) "/syntax-error.scm")
+                (string-append (get-fixtures-dir) "/runtime-error.scm")
+                (string-append (get-fixtures-dir) "/not-exist.scm")
+              ) ;list
+       ) ;paths
+       (report (pi-load-extensions paths api))
+      ) ;
   (check (cdr (assq 'total report)) => 4)
   (check (cdr (assq 'success report)) => 1)
   (check (cdr (assq 'failed report)) => 3)

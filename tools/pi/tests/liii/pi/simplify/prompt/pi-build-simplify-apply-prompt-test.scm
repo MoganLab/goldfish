@@ -1,7 +1,21 @@
-(import (liii check)
-        (liii string)
-        (liii pi simplify prompt)
-) ;import
+;; pi-build-simplify-apply-prompt
+;; 构建应用修改模式下的代码简化提示词。
+;;
+;; 语法
+;; ----
+;; (pi-build-simplify-apply-prompt files)
+;;
+;; 参数
+;; ----
+;; files : list?
+;; 变更文件及其上下文信息列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 组装好的应用修改提示词文本。
+
+(import (liii check) (liii string) (liii pi simplify prompt))
 
 (check-set-mode! 'report-failed)
 
@@ -13,19 +27,22 @@
   ) ;list
 ) ;define
 
-;; pi-build-simplify-apply-prompt
 ;; 应用模式提示词：范围约束 + 逐文件修改 + 跑测试 + 总结并单列越界机会。
 
-(let* ((files (list (file "src/calc.ts" "modified" '(((start . 21) (end . 33))) #t)
-                    (file "src/util.ts" "added" #f #t)
-                  ) ;list
+(let* ((files
+         (list
+           (file "src/calc.ts" "modified" '(((start . 21) (end . 33))) #t)
+           (file "src/util.ts" "added" #f #t)
+         ) ;list
        ) ;files
        (p (pi-build-simplify-apply-prompt files))
       ) ;
   (check-true (string-contains? p "**Preserve functionality**"))
   (check-true (string-contains? p "## Scope"))
-  (check-true (string-contains? p "- src/calc.ts (modified; changed lines: 21-33)"))
-  (check-true (string-contains? p "- src/util.ts (added; entire file is in scope)"))
+  (check-true (string-contains? p "- src/calc.ts (modified; changed lines: 21-33)")
+  ) ;check-true
+  (check-true (string-contains? p "- src/util.ts (added; entire file is in scope)")
+  ) ;check-true
   (check-true (string-contains? p "Apply changes one file at a time"))
   (check-true (string-contains? p "Run existing tests"))
   (check-true (string-contains? p "Summarize what you changed and why"))

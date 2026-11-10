@@ -86,4 +86,43 @@
   ) ;let
 ) ;let*
 
+;; 3. 执行结果包含图片块时，生成的 toolResult 消息完整保留多模态图片块
+(let* ((mock-exec
+         (lambda (name args . opts)
+           (pi-tool-result (list (pi-text-block "Read image file [image/png]")
+                             (pi-image-block "aGVsbG8=" "image/png")
+                           ) ;list
+             #f
+           ) ;pi-tool-result
+         ) ;lambda
+       ) ;mock-exec
+       (call
+         (list (cons 'id "call_read_img")
+           (cons 'name "read")
+           (cons 'arguments (list (cons "path" "sample.png")))
+         ) ;list
+       ) ;call
+       (cfg (list (cons 'execute-tool-call mock-exec)))
+       (msg (pi-execute-one-tool-call call #f 10 cfg))
+      ) ;
+  (check-true (pi-tool-result-message? msg))
+  (check (pi-tool-result-message-tool-call-id msg) => "call_read_img")
+  (let ((content (pi-tool-result-message-content msg)))
+    (check (length content) => 2)
+    (check-true (pi-text-block? (car content)))
+    (check (pi-text-block-text (car content)) => "Read image file [image/png]")
+    (check-true (pi-image-block? (cadr content)))
+    (check (pi-image-block-data (cadr content)) => "aGVsbG8=")
+    (check (pi-image-block-mime-type (cadr content)) => "image/png")
+  ) ;let
+  ;; 验证 pi-extract-tool-result-blocks 也能无损保留图片块
+  (let ((extracted (pi-extract-tool-result-blocks (list msg) 1)))
+    (check (vector-length extracted) => 1)
+    (let ((em (vector-ref extracted 0)))
+      (check (length (pi-tool-result-message-content em)) => 2)
+      (check-true (pi-image-block? (cadr (pi-tool-result-message-content em))))
+    ) ;let
+  ) ;let
+) ;let*
+
 (check-report)

@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-list))
-
-(check-set-mode! 'report-failed)
-
 ;; make-pi-session-info
 ;; 构造会话选择器使用的会话摘要 record。
 ;;
@@ -34,15 +28,19 @@
 ;; pi-session-info
 ;; 字段可通过对应访问器读取的会话摘要 record。
 ;;
-;; 示例
-;; ----
-;; (pi-session-info-id
-;;   (make-pi-session-info "s.jsonl" "id-1" "/work" #f "c" "m" 0 "" ""))
-;; => "id-1"
 
-(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1" "/tmp/project"
-              "Demo" "2026-10-20T08:00:00.000Z" "2026-10-20T08:00:02.000Z"
-              2 "first question" "first question first answer")))
+(import (scheme base) (liii check) (liii pi code core session-list))
+
+(check-set-mode! 'report-failed)
+
+
+(let ((info (make-pi-session-info "/tmp/session.jsonl" "session-1"
+              "/tmp/project" "Demo" "2026-10-20T08:00:00.000Z"
+              "2026-10-20T08:00:02.000Z" 2 "first question"
+              "first question first answer"
+            ) ;make-pi-session-info
+      ) ;info
+     ) ;
   (check-true (pi-session-info? info))
   (check (pi-session-info-path info) => "/tmp/session.jsonl")
   (check (pi-session-info-id info) => "session-1")
@@ -52,6 +50,10 @@
   (check (pi-session-info-modified info) => "2026-10-20T08:00:02.000Z")
   (check (pi-session-info-message-count info) => 2)
   (check (pi-session-info-first-message info) => "first question")
-  (check (pi-session-info-all-messages-text info) => "first question first answer"))
+  (check (pi-session-info-all-messages-text info)
+    =>
+    "first question first answer"
+  ) ;check
+) ;let
 
 (check-report)

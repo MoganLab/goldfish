@@ -28,7 +28,8 @@
 (check-set-mode! 'report-failed)
 
 (let ((app (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)))
-      (tokens (make-pi-session-token-stats 100 50 800 0)))
+      (tokens (make-pi-session-token-stats 100 50 800 0))
+     ) ;
   (%pi-app-tokens-set! app tokens)
   (check (pi-app-tokens app) => tokens)
 ) ;let

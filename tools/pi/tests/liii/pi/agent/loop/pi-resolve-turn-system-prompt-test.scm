@@ -45,8 +45,14 @@
 ;; 2. 前缀缓存稳定性（核心）：非临界时，任意 turn/max-turns/deadline 入参
 ;;    都必须返回与 base 字节级一致的系统提示词，不含任何预算状态文本
 (check (pi-resolve-turn-system-prompt "base" '() 0 200 #f #f 600) => "base")
-(check (pi-resolve-turn-system-prompt "base" '() 1 200 500.0 500.0 600) => "base")
-(check (pi-resolve-turn-system-prompt "base" '() 50 200 100.0 100.0 600) => "base")
+(check (pi-resolve-turn-system-prompt "base" '() 1 200 500.0 500.0 600)
+  =>
+  "base"
+) ;check
+(check (pi-resolve-turn-system-prompt "base" '() 50 200 100.0 100.0 600)
+  =>
+  "base"
+) ;check
 (check (pi-resolve-turn-system-prompt "base" '() 10 0 #f #f #f) => "base")
 (let ((sp (pi-resolve-turn-system-prompt "base" '() 5 200 300.0 300.0 600)))
   (check-false (string-contains? sp "<current_turn_budget>"))
@@ -55,7 +61,10 @@
 ) ;let
 
 ;; 3. turn 为 #f（非 Agent 循环调用）时直接返回 base
-(check (pi-resolve-turn-system-prompt "base" '() #f 200 100.0 100.0 600) => "base")
+(check (pi-resolve-turn-system-prompt "base" '() #f 200 100.0 100.0 600)
+  =>
+  "base"
+) ;check
 
 ;; 4. 轮次临界预警：剩余轮次 <= 3 时拼接静态告警块，且无动态数字
 (let ((sp (pi-resolve-turn-system-prompt "base" '() 198 200 400.0 400.0 600)))
@@ -84,10 +93,9 @@
 
 ;; 7. 临界区内逐轮稳定：告警文本为静态字符串，相邻两轮输出一致，
 ;;    前缀缓存最多在进入临界区时断一次
-(check
-  (string=? (pi-resolve-turn-system-prompt "base" '() 198 200 100.0 100.0 600)
-    (pi-resolve-turn-system-prompt "base" '() 199 200 100.0 100.0 600)
-  ) ;string=?
+(check (string=? (pi-resolve-turn-system-prompt "base" '() 198 200 100.0 100.0 600)
+         (pi-resolve-turn-system-prompt "base" '() 199 200 100.0 100.0 600)
+       ) ;string=?
   =>
   #t
 ) ;check

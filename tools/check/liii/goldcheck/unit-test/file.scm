@@ -20,6 +20,7 @@
     (liii base)
     (liii string)
     (liii path)
+    (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck unit-test doc)
     (liii goldcheck unit-test source)
@@ -104,7 +105,26 @@
 
     (define (parent->lib-name rel-parent)
       (let* ((norm (normalize-sep rel-parent))
-             (clean (if (string-starts? norm "tests/") (substring norm 6 (string-length norm)) norm)
+             (domains (gfproject-domains-list))
+             (matched-sub
+               (let loop
+                 ((ds domains))
+                 (if (null? ds)
+                   #f
+                   (let* ((d (car ds)) (tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
+                     (if (string-starts? norm prefix)
+                       (substring norm (string-length prefix) (string-length norm))
+                       (loop (cdr ds))
+                     ) ;if
+                   ) ;let*
+                 ) ;if
+               ) ;let
+             ) ;matched-sub
+             (clean
+               (cond (matched-sub matched-sub)
+                     ((string-starts? norm "tests/") (substring norm 6 (string-length norm)))
+                     (else norm)
+               ) ;cond
              ) ;clean
             ) ;
         (string-append "(" (string-join (string-split clean "/") " ") ")")
@@ -168,16 +188,36 @@
       ) ;let*
     ) ;define
 
+    (define (source-dir-without-tests? norm)
+      (let ((domains (gfproject-domains-list)))
+        (let loop
+          ((ds domains))
+          (if (null? ds)
+            #f
+            (let* ((d (car ds)) (root (cdr (assq 'root d))))
+              (if
+                (and (not (string=? root ""))
+                  (or (string-starts? norm root) (string-contains? norm (string-append "/" root)))
+                  (not (string-contains? norm "/tests/"))
+                ) ;and
+                #t
+                (loop (cdr ds))
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (unit-test-file? file-path)
       "判断文件是否为应遵循单元测试规范的测试文件（以 -test.scm 结尾，排除源码文件与测试夹具）。"
       (let* ((rel (relativize-path file-path)) (norm (normalize-sep rel)))
         (and (string-ends? norm "-test.scm")
-          (not (string-starts? norm "goldfish/"))
-          (not (string-contains? norm "/goldfish/"))
-          (not (and (or (string-starts? norm "tools/") (string-contains? norm "/tools/"))
-                 (not (string-contains? norm "/tests/"))
-               ) ;and
-          ) ;not
+          (not (source-dir-without-tests? norm))
+          (not (hint-source-path? norm))
+          (not (string-starts? norm "goldfish/tests/goldfish/"))
+          (not (string-contains? norm "/tests/goldfish/"))
+          (not (string-starts? norm "tests/goldfish/"))
           (not (string-starts? norm "tests/resources/"))
           (not (string-contains? norm "/tests/resources/"))
         ) ;and

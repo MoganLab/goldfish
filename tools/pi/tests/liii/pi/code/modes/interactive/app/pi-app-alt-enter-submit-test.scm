@@ -80,7 +80,7 @@
        (app
          (make-pi-app
            :terminal vt
-           :handler (lambda (a m) (set! processed (cons m processed)))
+           :handler  (lambda (a m) (set! processed (cons m processed)))
          ) ;make-pi-app
        ) ;app
        (ed (pi-app-editor app))
@@ -118,7 +118,8 @@
   (pi-app-submit! app "排后面 B" 'follow-up)
   (editor-set-text! ed "草稿")
   (virtual-terminal-push-key! vt 'alt-up)
-  (virtual-terminal-push-key! vt 'ctrl-c) ;; 清掉合并后的文本，便于 ctrl-d 退出
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  ;; 清掉合并后的文本，便于 ctrl-d 退出
   (virtual-terminal-push-key! vt 'ctrl-d)
   (check (pi-app-run app) => #t)
   ;; 撤回合并：steering → follow-up → 编辑器草稿
@@ -157,12 +158,7 @@
 ;; -----------------------------------------------------------------------------
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (submitted #f)
-       (app
-         (make-pi-app
-           :terminal vt
-           :handler (lambda (a m) (set! submitted m))
-         ) ;make-pi-app
-       ) ;app
+       (app (make-pi-app :terminal vt :handler (lambda (a m) (set! submitted m))))
        (ed (pi-app-editor app))
       ) ;
   (editor-set-text! ed "第一行")

@@ -49,7 +49,7 @@
     ) ;define
 
     (define (path->lib-name path)
-      "按目录约定推导库名：在路径段中寻找结构锚点——\n goldfish/liii|srfi|scheme/... 或 tools/T/liii/...，\n 锚点之后、文件名之前的段构成库名。\n 绝对路径与相对路径均支持；非库文件返回 #f。"
+      "按目录约定推导库名：在路径段中寻找结构锚点——\n goldfish/liii|srfi|scheme/...、library/liii|srfi/...、r7rs/scheme/... 或 tools/T/liii/...，\n 锚点之后、文件名之前的段构成库名。\n 绝对路径与相对路径均支持；非库文件返回 #f。"
       (let* ((norm (normalize-sep path))
              (raw (if (string-ends? norm ".scm") (string-split norm "/") #f))
              (segs
@@ -67,7 +67,9 @@
             ((i 0))
             (cond ((>= i (length segs)) #f)
                   ((not (member (list-ref segs i) '("liii" "srfi" "scheme"))) (loop (+ i 1)))
-                  ((and (> i 0) (string=? (list-ref segs (- i 1)) "goldfish"))
+                  ((and (> i 0) (member (list-ref segs (- i 1)) '("goldfish"
+                                                                  "library"
+                                                                  "r7rs")))
                    (%join-space (list-tail segs i))
                   ) ;
                   ((and (> i 1) (string=? (list-ref segs (- i 2)) "tools"))
@@ -169,7 +171,9 @@
       (let ((il (%locate domains imp)))
         (cond ((not il) (%violation file-path (string-append "unknown lib: (" imp ")")))
               ((string=? (domain-name-of (car il)) (domain-name-of self-domain))
-               (and (not (<= (caddr il) self-idx))
+               (and self-layer
+                 (cadr il)
+                 (not (<= (caddr il) self-idx))
                  (%violation file-path
                    (string-append "imports ("
                      imp
@@ -213,22 +217,24 @@
     (define (%check-file-in-domain file-path cfg domains self)
       (let ((self-domain (%domain-for-path domains file-path)))
         (cond ((not self-domain) '())
-              ((not (%locate-layer-in domains self-domain self))
+              ((and (domain-layers-of self-domain)
+                 (not (null? (domain-layers-of self-domain)))
+                 (not (%locate-layer-in domains self-domain self))
+               ) ;and
                (list (%violation file-path (string-append "lib not registered: " self)))
               ) ;
               (else
-                (let ((loc (%locate-layer-in domains self-domain self)))
-                  (let ((self-layer (car loc)) (self-idx (cdr loc)))
-                    (let ((imports
-                            (filter (lambda (l) (not (string-starts? l "scheme ")))
-                              (file-imports file-path)
-                            ) ;filter
-                          ) ;imports
-                         ) ;
-                      (%loop-imports file-path self-domain self-layer self-idx domains imports)
-                    ) ;let
-                  ) ;let
-                ) ;let
+                (let* ((loc (%locate-layer-in domains self-domain self))
+                       (self-layer (and loc (car loc)))
+                       (self-idx (if loc (cdr loc) 0))
+                       (imports
+                         (filter (lambda (l) (not (string-starts? l "scheme ")))
+                           (file-imports file-path)
+                         ) ;filter
+                       ) ;imports
+                      ) ;
+                  (%loop-imports file-path self-domain self-layer self-idx domains imports)
+                ) ;let*
               ) ;else
         ) ;cond
       ) ;let

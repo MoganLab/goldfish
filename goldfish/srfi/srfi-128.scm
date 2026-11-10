@@ -107,8 +107,13 @@
     ) ;define
 
     (define (make-comparator type-test equality ordering hash)
+      ;; equality 为 #t 时由 ordering 推导相等：ordering 是布尔谓词，
+      ;; 因此两个值相等当且仅当它们互不小于对方。
       (make-raw-comparator (if (eq? type-test #t) (lambda (x) #t) type-test)
-        (if (eq? equality #t) (lambda (x y) (eqv? (ordering x y) 0)) equality)
+        (if (eq? equality #t)
+          (lambda (x y) (and (not (ordering x y)) (not (ordering y x))))
+          equality
+        ) ;if
         (if ordering ordering (lambda (x y) (error "ordering not supported")))
         (if hash hash (lambda (x y) (error "hashing not supported")))
         (if ordering #t #f)

@@ -14,9 +14,7 @@
 ;; boolean?
 ;; 满足条件返回 #t，否则返回 #f。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code modes interactive app-model))
+(import (scheme base) (liii check) (liii pi code modes interactive app-model))
 
 (check-set-mode! 'report-failed)
 

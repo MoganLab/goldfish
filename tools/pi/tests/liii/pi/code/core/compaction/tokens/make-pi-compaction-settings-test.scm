@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core compaction tokens))
-
-(check-set-mode! 'report-failed)
-
 ;; make-pi-compaction-settings
 ;; 构造自动上下文压缩设置 record。
 ;;
@@ -25,15 +19,17 @@
 ;; pi-compaction-settings
 ;; 自动压缩设置 record。
 ;;
-;; 示例
-;; ----
-;; (pi-compaction-settings-reserve-tokens
-;;   (make-pi-compaction-settings #t 16384 20000)) => 16384
+
+(import (scheme base) (liii check) (liii pi code core compaction tokens))
+
+(check-set-mode! 'report-failed)
+
 
 (let ((settings (make-pi-compaction-settings #t 16384 20000)))
   (check-true (pi-compaction-settings? settings))
   (check-true (pi-compaction-settings-enabled settings))
   (check (pi-compaction-settings-reserve-tokens settings) => 16384)
-  (check (pi-compaction-settings-keep-recent-tokens settings) => 20000))
+  (check (pi-compaction-settings-keep-recent-tokens settings) => 20000)
+) ;let
 
 (check-report)

@@ -34,4 +34,6 @@ gf doc <函数名>
 - `pi-footer-set-message!` - 设置临时提示消息
 - `pi-footer-stats` - 获取当前设置的统计字符串
 - `pi-footer-set-stats!` - 设置统计字符串
-- `pi-footer-set-token-stats!` - 根据累计 Token 与最新命中率设置统计行（含 CHxx.x%）
+- `pi-footer-set-token-stats!` - 根据累计 Token、最新命中率与上下文占用设置统计行（含 CHxx.x% 与 x.x%/1.0M）
+- `pi-footer-set-context-unknown!` - 上下文重建（压缩）后将占比置为未知（显示 "?"）
+- `pi-footer-context-window` - 获取当前上下文窗口容量（Token 数）

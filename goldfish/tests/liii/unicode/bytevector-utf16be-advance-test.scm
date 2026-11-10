@@ -1,0 +1,69 @@
+;; bytevector-utf16be-advance
+;; 从指定字节位置前进到下一个 UTF-16BE 字符的起始位置。
+;;
+;; 语法
+;; ----
+;; (bytevector-utf16be-advance bytevector index [end])
+;;
+;; 参数
+;; ----
+;; bytevector : bytevector
+;; UTF-16BE 编码的字节向量。
+;;
+;; index : integer
+;; 当前字节位置（起始索引）。
+;;
+;; end : integer (可选，默认字节向量长度)
+;; 字节向量的结束位置。
+;;
+;; 返回值
+;; ----
+;; integer
+;; 下一个 UTF-16BE 字符的起始字节位置；如果遇到无效序列则返回当前位置。
+
+(import (liii check) (liii unicode) (liii base))
+
+(check-set-mode! 'report-failed)
+
+;; ASCII 字符测试（2字节编码）
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111) 0) => 2)
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111) 2) => 4)
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111) 4) => 6)
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111) 6) => 8)
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111) 8) => 10)
+
+;; 基本多文种平面字符测试（2字节编码）
+(check (bytevector-utf16be-advance #u8(0 228 0 72) 0) => 2)
+(check (bytevector-utf16be-advance #u8(0 233 0 101) 0) => 2)
+(check (bytevector-utf16be-advance #u8(78 45 0 72) 0) => 2)
+
+;; 辅助平面字符测试（4字节编码，代理对）
+(check (bytevector-utf16be-advance #u8(216 61 220 77 0 72) 0) => 4)
+(check (bytevector-utf16be-advance #u8(216 61 222 128 0 101) 0) => 4)
+(check (bytevector-utf16be-advance #u8(216 60 223 137 0 108) 0) => 4)
+
+;; 混合字符序列测试
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77) 0) => 2)
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77) 2) => 4)
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77) 4) => 6)
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77) 6) => 10)
+
+;; 边界条件测试
+(check (bytevector-utf16be-advance #u8() 0) => 0)
+(check (bytevector-utf16be-advance #u8(0 72) 0) => 2)
+(check (bytevector-utf16be-advance #u8(0 72) 2) => 2)
+
+;; 无效 UTF-16BE 序列测试
+(check (bytevector-utf16be-advance #u8(0) 0) => 0)
+(check (bytevector-utf16be-advance #u8(216 61) 0) => 0)
+(check (bytevector-utf16be-advance #u8(216 61 220) 0) => 0)
+(check (bytevector-utf16be-advance #u8(220 0 0 0) 0) => 0)
+(check (bytevector-utf16be-advance #u8(216 61 0 0) 0) => 0)
+
+;; 结束位置参数测试
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108) 0 2) => 2)
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108) 0 4) => 2)
+(check (bytevector-utf16be-advance #u8(0 228 0 72) 0 2) => 2)
+(check (bytevector-utf16be-advance #u8(0 228 0 72) 0 4) => 2)
+
+(check-report)

@@ -29,7 +29,8 @@
 
 (define (info path)
   (make-pi-session-info path path "/work" #f "created"
-    "2026-10-21T08:00:01.000Z" 1 path path)
+    "2026-10-21T08:00:01.000Z" 1 path path
+  ) ;make-pi-session-info
 ) ;define
 
 ;; 1. down + enter 选中第二条
@@ -37,7 +38,9 @@
   (virtual-terminal-push-key! vt 'down)
   (virtual-terminal-push-key! vt 'enter)
   (check (pi-run-session-selector (list (info "new") (info "old")) '() :terminal vt)
-    => "old")
+    =>
+    "old"
+  ) ;check
 ) ;let
 
 ;; 2. escape 取消返回 #f

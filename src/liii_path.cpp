@@ -22,8 +22,16 @@
 #include <string>
 #include <vector>
 
+#include <limits.h>
+#include <stdlib.h>
+
 #include <tbox/platform/file.h>
 #include <tbox/tbox.h>
+
+#if !defined(TB_CONFIG_OS_WINDOWS)
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 namespace goldfish {
 
@@ -876,6 +884,216 @@ glue_path_glob (s7_scheme* sc) {
   glue_define (sc, name, desc, f_path_glob, 2, 1);
 }
 
+// ; realpath 语义对齐 os.path.realpath / pathlib.Path.resolve：
+// ; 解析符号链接并折叠 . / .. 段，返回物理绝对路径。
+// ; strict=true 时路径不存在抛 file-not-found-error；
+// ; strict=false 时尽可能解析已存在的前缀，剩余段词法折叠后附加。
+// ; 算法对齐 CPython _joinrealpath：逐段拼接，遇 .. 时对已解析部分
+// ; 回溯（遇到符号链接先解析再回溯）。
+// ; 依赖 POSIX realpath(3)/lstat(2)，Windows 下不参与编译
+// ; （f_realpath 在 Windows 走 _fullpath 词法折叠分支）。
+#if !defined(TB_CONFIG_OS_WINDOWS)
+static std::string
+path_realpath_join (const std::string& base, const std::string& rest) {
+  std::vector<std::string> parts;
+  // base 已是物理路径，拆段压栈
+  {
+    size_t i= 0;
+    while (i < base.size ()) {
+      while (i < base.size () && base[i] == '/')
+        i++;
+      size_t j= i;
+      while (j < base.size () && base[j] != '/')
+        j++;
+      if (j > i) parts.push_back (base.substr (i, j - i));
+      i= j;
+    }
+  }
+
+  char        resolved[PATH_MAX];
+  std::string new_base= "/";
+  bool        has_base= false;
+  // ; 先解析 base 本身(可能含符号链接)：base 为空字符串时从 cwd 开始
+  if (!base.empty ()) {
+    if (realpath (base.c_str (), resolved) != NULL) {
+      new_base= resolved;
+      has_base= true;
+    }
+    else {
+      return ""; // base 不存在，无法解析
+    }
+  }
+  else {
+    if (getcwd (resolved, sizeof (resolved)) == NULL) return "";
+    new_base= resolved;
+    has_base= true;
+  }
+
+  // ; 对 new_base 重新拆段
+  parts.clear ();
+  {
+    size_t i= 0;
+    while (i < new_base.size ()) {
+      while (i < new_base.size () && new_base[i] == '/')
+        i++;
+      size_t j= i;
+      while (j < new_base.size () && new_base[j] != '/')
+        j++;
+      if (j > i) parts.push_back (new_base.substr (i, j - i));
+      i= j;
+    }
+  }
+  (void) has_base;
+
+  // ; 逐段拼接 rest
+  {
+    size_t i= 0;
+    while (i < rest.size ()) {
+      while (i < rest.size () && rest[i] == '/')
+        i++;
+      size_t j= i;
+      while (j < rest.size () && rest[j] != '/')
+        j++;
+      if (j > i) {
+        std::string seg= rest.substr (i, j - i);
+        if (seg == ".") {
+          // 跳过
+        }
+        else if (seg == "..") {
+          if (!parts.empty ()) parts.pop_back ();
+        }
+        else {
+          // ; 拼接后检查是否符号链接，是则解析并重新拆段
+          std::string joined= "/";
+          for (auto& p : parts)
+            joined+= p + "/";
+          joined+= seg;
+          struct stat st;
+          if (lstat (joined.c_str (), &st) == 0 && S_ISLNK (st.st_mode)) {
+            if (realpath (joined.c_str (), resolved) != NULL) {
+              parts.clear ();
+              std::string nb (resolved);
+              size_t      k= 0;
+              while (k < nb.size ()) {
+                while (k < nb.size () && nb[k] == '/')
+                  k++;
+                size_t m= k;
+                while (m < nb.size () && nb[m] != '/')
+                  m++;
+                if (m > k) parts.push_back (nb.substr (k, m - k));
+                k= m;
+              }
+              i= j; // ; 已处理完本段，跳过尾部 i=j
+              continue;
+            }
+          }
+          parts.push_back (seg);
+        }
+      }
+      i= j;
+    }
+  }
+
+  std::string result= "/";
+  for (size_t k= 0; k < parts.size (); k++) {
+    result+= parts[k];
+    if (k + 1 < parts.size ()) result+= "/";
+  }
+  return result;
+}
+#endif // !TB_CONFIG_OS_WINDOWS
+
+static s7_pointer
+f_realpath (s7_scheme* sc, s7_pointer args) {
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "realpath: path must be a string", path_arg);
+  }
+  s7_pointer strict_arg= s7_car (s7_cdr (args));
+  bool       strict    = (strict_arg == s7_t (sc));
+
+  const char* path_c= s7_string (path_arg);
+
+#ifdef TB_CONFIG_OS_WINDOWS
+  // Windows 无 realpath(3)：以 _fullpath 折叠 . / .. 段，
+  // 不解析符号链接与盘符映射（与 Python 在 Windows 的行为一致）
+  char resolved[TB_PATH_MAXN];
+  if (_fullpath (resolved, path_c, sizeof (resolved)) == NULL) {
+    if (strict)
+      return s7_error (
+          sc, s7_make_symbol (sc, "file-not-found-error"),
+          s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+    return s7_make_string (sc, path_c);
+  }
+  return s7_make_string (sc, resolved);
+#else
+  // ; strict 模式：要求路径本身存在（对齐 pathlib.resolve(strict=True)）
+  if (strict) {
+    tb_file_info_t info;
+    if (!tb_file_info (path_c, &info)) {
+      return s7_error (
+          sc, s7_make_symbol (sc, "file-not-found-error"),
+          s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+    }
+  }
+
+  // ; 相对路径以 cwd 为种子，对齐 pathlib.Path.resolve
+  std::string path_s (path_c);
+  if (!path_s.empty () && path_s[0] != '/') {
+    char cwd[PATH_MAX];
+    if (getcwd (cwd, sizeof (cwd)) == NULL) {
+      if (strict)
+        return s7_error (
+            sc, s7_make_symbol (sc, "file-not-found-error"),
+            s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+      return s7_make_string (sc, path_c);
+    }
+    path_s= std::string (cwd) + "/" + path_s;
+  }
+
+  // ; 拆出最深的已存在前缀 base 与剩余部分 rest，
+  // ; 对 base+rest 整体做逐段解析（对齐 CPython _joinrealpath）
+  std::string base= path_s;
+  std::string rest;
+  {
+    std::string    cur= path_s;
+    tb_file_info_t info;
+    while (!cur.empty () && !tb_file_info (cur.c_str (), &info)) {
+      size_t pos= cur.find_last_of ('/');
+      if (pos == std::string::npos) {
+        base= "";
+        rest= path_s;
+        break;
+      }
+      rest= cur.substr (pos + 1) + (rest.empty () ? "" : "/" + rest);
+      cur = cur.substr (0, pos);
+      if (cur.empty ()) cur= "/";
+      base= cur;
+    }
+    if (cur.empty ()) base= "";
+  }
+
+  std::string result= path_realpath_join (base, rest);
+  if (result.empty ()) {
+    if (strict)
+      return s7_error (
+          sc, s7_make_symbol (sc, "file-not-found-error"),
+          s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+    // ; base 不存在且无法回溯到根：直接词法归一
+    result= path_realpath_join ("/", path_s);
+    if (result.empty ()) return s7_make_string (sc, path_c);
+  }
+  return s7_make_string (sc, result.c_str ());
+#endif
+}
+
+static void
+glue_realpath (s7_scheme* sc) {
+  const char* name= "g_realpath";
+  const char* desc= "(g_realpath path [strict]) => string, resolve symlinks and collapse . / .. segments";
+  glue_define (sc, name, desc, f_realpath, 1, 1);
+}
+
 void
 glue_liii_path (s7_scheme* sc) {
   glue_isfile (sc);
@@ -890,6 +1108,7 @@ glue_liii_path (s7_scheme* sc) {
   glue_path_touch (sc);
   glue_path_copy (sc);
   glue_path_glob (sc);
+  glue_realpath (sc);
 }
 
 } // namespace goldfish

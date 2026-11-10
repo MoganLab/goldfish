@@ -30,29 +30,43 @@
 ;; Ctrl+P 显示路径，Ctrl+S 切换相关度排序
 
 (define (info path id cwd name first modified count . all-text)
-  (make-pi-session-info path id cwd name "created" modified count first
+  (make-pi-session-info path
+    id
+    cwd
+    name
+    "created"
+    modified
+    count
+    first
     (if (pair? all-text) (car all-text) first)
   ) ;make-pi-session-info
 ) ;define
 
 (define OLD
   (info "/sessions/old.jsonl" "old-id" "/work/current" #f "old question"
-    "2026-10-20T08:00:02.000Z" 2 "old question old answer")
+    "2026-10-20T08:00:02.000Z" 2 "old question old answer"
+  ) ;info
 ) ;define
+
 (define NEW
   (info "/sessions/new.jsonl" "new-id" "/work/current" "Named current session"
-    "new question" "2026-10-21T08:00:01.000Z" 1)
+    "new question" "2026-10-21T08:00:01.000Z" 1
+  ) ;info
 ) ;define
+
 (define OTHER
   (info "/sessions/other.jsonl" "other-id" "/work/other" #f "other project"
-    "2026-10-22T08:00:00.000Z" 0)
+    "2026-10-22T08:00:00.000Z" 0
+  ) ;info
 ) ;define
 
 (define selected '())
+
 (define cancel-count 0)
 
 (define (make-selector)
-  (make-session-selector (list NEW OLD) (list OTHER NEW OLD)
+  (make-session-selector (list NEW OLD)
+    (list OTHER NEW OLD)
     (lambda (path) (set! selected (cons path selected)))
     (lambda () (set! cancel-count (+ cancel-count 1)))
   ) ;make-session-selector
@@ -79,14 +93,18 @@
   (check-true (string-contains? (plain selector) "/work/other"))
   (component-handle-input selector "old answer")
   (check (map pi-session-info-path (session-selector-visible-sessions selector))
-    => '("/sessions/old.jsonl"))
+    =>
+    '("/sessions/old.jsonl")
+  ) ;check
 ) ;let
 
 ;; 3. Ctrl+N 只看命名会话，Ctrl+P 显示完整文件路径，Ctrl+S 切换相关度排序
 (let ((selector (make-selector)))
   (component-handle-input selector 'ctrl-n)
   (check (map pi-session-info-path (session-selector-visible-sessions selector))
-    => '("/sessions/new.jsonl"))
+    =>
+    '("/sessions/new.jsonl")
+  ) ;check
   (component-handle-input selector 'ctrl-p)
   (check-true (string-contains? (plain selector) "/sessions/new.jsonl"))
   (component-handle-input selector 'ctrl-s)

@@ -15,7 +15,11 @@
 ;; string | #f
 ;; 白名单文件路径；两处都不存在时返回 #f。
 
-(import (liii check) (liii path) (liii string) (liii pi code config user-providers))
+(import (liii check)
+  (liii path)
+  (liii string)
+  (liii pi code config user-providers)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -34,21 +38,28 @@
 ) ;define
 
 ;; models/providers.json 优先
-(check (string-ends? (pi-providers-whitelist-path (string-append FIXTURE "/full"))
-           (path->string (path-join (path "models") (path "providers.json")))
-         ) ;string-ends?
+(check
+  (string-ends? (pi-providers-whitelist-path (string-append FIXTURE "/full"))
+    (path->string (path-join (path "models") (path "providers.json")))
+  ) ;string-ends?
   =>
   #t
 ) ;check
 
 ;; 旧位置 providers.json 兼容
-(check (string-ends? (pi-providers-whitelist-path DIRECT) "providers.json") => #t)
+(check (string-ends? (pi-providers-whitelist-path DIRECT) "providers.json")
+  =>
+  #t
+) ;check
 (check (string-ends? (pi-providers-whitelist-path DIRECT) "models/providers.json")
   =>
   #f
 ) ;check
 
 ;; 两处都不存在
-(check (pi-providers-whitelist-path (string-append FIXTURE "/no-providers")) => #f)
+(check (pi-providers-whitelist-path (string-append FIXTURE "/no-providers"))
+  =>
+  #f
+) ;check
 
 (check-report)

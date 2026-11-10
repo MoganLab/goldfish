@@ -22,33 +22,34 @@
 | ------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------ |
 | [(liii base)](goldfish/liii/base.scm)             | 基础库                          | `and-let*`, `receive`, `eval-string`                               |
 | [(liii error)](goldfish/liii/error.scm)           | 提供类似Python的错误函数        | `os-error`函数抛出`'os-error`，类似Python的OSError                 |
-| [(liii check)](goldfish/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
+| [(liii check)](library/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
 | [(liii match)](goldfish/liii/match.scm)           | 模式匹配                        | `match`, `match-lambda`                                           |
 | [(liii list)](goldfish/liii/list.scm)             | 列表函数库                      | `first`, `filter`, `fold`                                          |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | 位运算函数库                    | `bitwise-and`, `bitwise-or`                                        |
 | [(liii string)](goldfish/liii/string.scm)         | 字符串函数库                    | `string-starts?`, `string-ends?`                                   |
 | [(liii vector)](goldfish/liii/vector.scm)         | 向量函数库                      | `vector-index`                                                     |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | 哈希表                          | `hash-table-empty?`, `hash-table-contains?`                        |
-| [(liii sys)](goldfish/liii/sys.scm)               | 库类似于 Python 的 `sys` 模块   | `argv`                                                             |
-| [(liii os)](goldfish/liii/os.scm)                 | 库类似于 Python 的 `os` 模块    | `getenv`, `mkdir`                                                  |
-| [(liii path)](goldfish/liii/path.scm)             | 路径函数库                      | `path-dir?`, `path-file?`                                          |
+| [(liii sys)](library/liii/sys.scm)               | 库类似于 Python 的 `sys` 模块   | `argv`                                                             |
+| [(liii os)](library/liii/os.scm)                  | 库类似于 Python 的 `os` 模块    | `getenv`, `mkdir`                                                  |
+| [(liii path)](library/liii/path.scm)             | 路径函数库                      | `path-dir?`, `path-file?`                                          |
 | [(liii range)](goldfish/liii/range.scm)           | 范围库                          | `numeric-range`, `iota`                                            |
 | [(liii generator)](goldfish/liii/generator.scm)   | 生成器与累加器函数库            | `generator`, `gtake`, `generator-fold`                             |
 | [(liii option)](goldfish/liii/option.scm)         | Option 类型库                   | `option?`, `option-map`, `option-flatten`                          |
 | [(liii either)](goldfish/liii/either.scm)         | Either 类型库（左值/右值）      | `left?`, `right?`, `either-map`                                    |
-| [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4` `uuid7`                                                    |
-| [(liii http)](goldfish/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
-| [(liii http-async)](goldfish/liii/http-async.scm) | 异步 HTTP 客户端库             | `http-async-get`, `http-wait-all`                                  |
-| [(liii http-common)](goldfish/liii/http-common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |
-| [(liii json)](goldfish/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
-| [(liii subprocess)](goldfish/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
-| [(liii base64)](goldfish/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
-| [(liii hashlib)](goldfish/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
+| [(liii uuid)](library/liii/uuid.scm)             | UUID 生成                       | `uuid4` `uuid7`                                                    |
+| [(liii http)](library/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
+| [(liii http async)](library/liii/http/async.scm) | 异步 HTTP 客户端库             | `http-async-get`, `http-wait-all`                                  |
+| [(liii http common)](library/liii/http/common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |
+| [(liii json)](library/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
+| [(liii json schema)](library/liii/json/schema.scm) | JSON Schema 2020-12 校验      | `json-schema-valid?`, `json-schema-errors`                         |
+| [(liii subprocess)](library/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
+| [(liii base64)](library/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
+| [(liii hashlib)](library/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 编码转换           | `utf8->utf16le`, `utf16be->utf8`                                    |
 | [(liii sort)](goldfish/liii/sort.scm)             | 排序函数库                      | `list-sort`, `list-stable-sort`, `vector-sort`                      |
-| [(liii time)](goldfish/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
-| [(liii argparse)](goldfish/liii/argparse.scm)     | 命令行参数解析                  | `make-argument-parser`                                              |
-| [(liii config-parser)](goldfish/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
+| [(liii time)](library/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
+| [(liii argparse)](library/liii/argparse.scm)     | 命令行参数解析                  | `make-argument-parser`                                              |
+| [(liii config-parser)](library/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
 | [(liii go)](goldfish/liii/go.scm)                 | Go 风格并发库                   | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |
 | [(liii par)](goldfish/liii/par.scm)               | 并行数据处理库                  | `par-map`, `par-for-each`, `vector-par-map`                      |
 
@@ -148,7 +149,7 @@ scoop uninstall goldfish
 不带任何命令时，将打印帮助信息：
 ```
 > gf
-Goldfish Scheme 18.11.51 by LiiiLabs
+Goldfish Scheme 18.11.54 by LiiiLabs
 
 Commands:
   help             Display help information for gf commands
@@ -171,7 +172,7 @@ Commands:
 `version` 子命令将打印 金鱼Scheme 版本和底层 S7 Scheme 版本：
 ```
 > gf version
-Goldfish Scheme 18.11.51 by LiiiLabs
+Goldfish Scheme 18.11.54 by LiiiLabs
 based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 

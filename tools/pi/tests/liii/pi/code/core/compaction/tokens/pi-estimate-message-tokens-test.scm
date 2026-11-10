@@ -1,3 +1,20 @@
+;; pi-estimate-message-tokens
+;; 估算单条消息占用的 token 数。
+;;
+;; 语法
+;; ----
+;; (pi-estimate-message-tokens msg)
+;;
+;; 参数
+;; ----
+;; msg : (or message alist)
+;; 消息对象。
+;;
+;; 返回值
+;; ----
+;; integer
+;; 估算出的 token 数。
+
 (import (liii check)
   (liii pi ai message)
   (liii pi code core compaction tokens)

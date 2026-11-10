@@ -5,7 +5,9 @@
 ;;
 
 (define-library (liii pi code cli windows-terminal jsonc)
-  (export jsonc->clean-json wt-detect-alt-enter-status)
+  (export jsonc-ws? jsonc-skip-comment-at jsonc-skip-ws-and-comments
+    jsonc-next-str-state wt-detect-alt-enter-status
+  ) ;export
   (import (scheme base)
     (scheme char)
     (liii base)
@@ -15,22 +17,18 @@
   ) ;import
   (begin
 
+    (define (jsonc-ws? c)
+      (or (char=? c #\space)
+        (char=? c #\tab)
+        (char=? c #\newline)
+        (char=? c #\return)
+      ) ;or
+    ) ;define
+
     (define (%skip-ws-at str j len)
       (let loop
         ((k j))
-        (if (>= k len)
-          k
-          (let ((c (string-ref str k)))
-            (if (or (char=? c #\space)
-                  (char=? c #\tab)
-                  (char=? c #\newline)
-                  (char=? c #\return)
-                ) ;or
-              (loop (+ k 1))
-              k
-            ) ;if
-          ) ;let
-        ) ;if
+        (if (>= k len) k (if (jsonc-ws? (string-ref str k)) (loop (+ k 1)) k))
       ) ;let
     ) ;define
 
@@ -56,12 +54,35 @@
       ) ;let
     ) ;define
 
-    (define (%comment-jump str k len)
-      (let ((c2 (string-ref str (+ k 1))))
-        (cond ((char=? c2 #\/) (%skip-line-comment str k len))
-              ((char=? c2 #\*) (%skip-block-comment str k len))
-              (else #f)
-        ) ;cond
+    (define (jsonc-skip-comment-at str k len)
+      (if
+        (or (>= (+ k 1) len) (not (char=? (string-ref str k) #\/)))
+        #f
+        (let ((c2 (string-ref str (+ k 1))))
+          (cond ((char=? c2 #\/) (%skip-line-comment str k len))
+                ((char=? c2 #\*) (%skip-block-comment str k len))
+                (else #f)
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (jsonc-skip-ws-and-comments str start len)
+      (let loop
+        ((i start))
+        (if (>= i len)
+          len
+          (let ((c (string-ref str i)))
+            (cond ((jsonc-ws? c) (loop (+ i 1)))
+                  ((char=? c #\/)
+                   (let ((next-i (jsonc-skip-comment-at str i len)))
+                     (if next-i (loop next-i) i)
+                   ) ;let
+                  ) ;
+                  (else i)
+            ) ;cond
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
 
@@ -74,7 +95,7 @@
             (let ((c (string-ref str k)))
               (cond
                ((and (char=? c #\/) (< (+ k 1) len))
-                (let ((next-k (%comment-jump str k len)))
+                (let ((next-k (jsonc-skip-comment-at str k len)))
                   (if next-k (loop next-k) #f)
                 ) ;let
                ) ;
@@ -87,7 +108,7 @@
       ) ;let
     ) ;define
 
-    (define (%clean-handle-in-str c esc)
+    (define (jsonc-next-str-state c esc)
       (cond (esc (values #t #f))
             ((char=? c #\\) (values #t #t))
             ((char=? c #\") (values #f #f))
@@ -112,7 +133,7 @@
               (if in-str
                 (begin
                   (write-char c out)
-                  (let-values (((next-str next-esc) (%clean-handle-in-str c esc)))
+                  (let-values (((next-str next-esc) (jsonc-next-str-state c esc)))
                     (loop (+ i 1) next-str next-esc)
                   ) ;let-values
                 ) ;begin

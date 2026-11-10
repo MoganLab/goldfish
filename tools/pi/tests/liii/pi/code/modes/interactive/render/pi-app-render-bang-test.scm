@@ -152,7 +152,8 @@
       ) ;
   (pi-app-add-assistant-text! app injected)
   (pi-app-render! app)
-  (check-false (string-contains? (string-join (virtual-terminal-raw vterm) "") injected))
+  (check-false (string-contains? (string-join (virtual-terminal-raw vterm) "") injected)
+  ) ;check-false
 ) ;let*
 
 (check-report)

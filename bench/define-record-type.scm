@@ -22,7 +22,7 @@
 ;; （构造/谓词/访问/修改）性能一致，差异只在宏展开耗时
 ;; —— 每个使用 define-record-type 的库在加载时都要支付一次展开开销。
 
-(import (liii timeit) (scheme base) (scheme let))
+(import (liii timeit) (scheme base) (liii let))
 
 (define (bench name stmt number)
   (let ((elapsed (timeit stmt '() number)))
@@ -35,7 +35,7 @@
   ) ;let
 ) ;define
 
-;; 旧 Scheme 实现（从 goldfish/scheme/base.scm 原样保留，用于性能对比）
+;; 旧 Scheme 实现（从 r7rs/scheme/base.scm 原样保留，用于性能对比）
 (define-macro (define-record-type-old type make ? . fields)
   (let ((obj (gensym))
         (typ (gensym))

@@ -1,3 +1,20 @@
+;; pi-projection-state
+;; 汇总会话投影状态信息。
+;;
+;; 语法
+;; ----
+;; (pi-projection-state . opt-entries)
+;;
+;; 参数
+;; ----
+;; opt-entries : list
+;; 会话条目列表。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 投影状态字典。
+
 (import (scheme base)
   (scheme file)
   (liii check)

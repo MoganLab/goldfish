@@ -30,7 +30,7 @@
 ) ;let
 
 ;; 2. 相对路径拼接到仓库根目录且可访问
-(let ((resolved (resolve-repo-file "goldfish/scheme/base.scm")))
+(let ((resolved (resolve-repo-file "r7rs/scheme/base.scm")))
   (check-true (string? resolved))
   (check-true (path-absolute? (path resolved)))
   (check-true (path-file? (path resolved)))

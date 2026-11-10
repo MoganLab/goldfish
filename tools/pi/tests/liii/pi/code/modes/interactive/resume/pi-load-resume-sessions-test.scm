@@ -30,16 +30,21 @@
 
 ;; 1. --session-dir 同时用于 Current/All
 (let* ((relative "tests/fixtures/compact")
-       (fixture-dir (if (file-exists? relative) relative
-                      (string-append "tools/pi/" relative))))
+       (fixture-dir (if (file-exists? relative) relative (string-append "tools/pi/" relative))
+       ) ;fixture-dir
+      ) ;
   (let-values (((current all)
-                (pi-load-resume-sessions
-                  `((session-dir . ,fixture-dir))
+                (pi-load-resume-sessions `((session-dir . ,fixture-dir))
                   '((agent-dir . "/unused-agent"))
-                  (path->string (path-cwd)))))
+                  (path->string (path-cwd))
+                ) ;pi-load-resume-sessions
+               ) ;
+              ) ;
     (check (length current) => 1)
     (check-true (procedure? all))
     (check (length (all)) => 1)
-    (check (pi-session-info-id (car current)) => "sess-fixture")))
+    (check (pi-session-info-id (car current)) => "sess-fixture")
+  ) ;let-values
+) ;let*
 
 (check-report)

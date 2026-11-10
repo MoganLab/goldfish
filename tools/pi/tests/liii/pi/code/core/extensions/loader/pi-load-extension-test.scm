@@ -1,21 +1,44 @@
-(import (liii check)
-  (liii pi code core extensions)
-) ;import
+;; pi-load-extension
+;; 加载单个扩展脚本并返回加载结果。
+;;
+;; 语法
+;; ----
+;; (pi-load-extension path-or-entry api . opt-context)
+;;
+;; 参数
+;; ----
+;; path-or-entry : (or string path)
+;; 扩展脚本路径。
+;;
+;; api : (or extension-api extension-registry)
+;; 扩展宿主 API 或注册表记录。
+;;
+;; opt-context : extension-context（可选）
+;; 传给扩展工厂的上下文。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 status、path 与 value 或 error 字段的加载结果。
+
+(import (liii check) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 
 (define (get-fixtures-dir)
-  (cond
-    ((file-exists? "tests/fixtures/extensions") "tests/fixtures/extensions")
-    ((file-exists? "tools/pi/tests/fixtures/extensions") "tools/pi/tests/fixtures/extensions")
-    (else "../../tools/pi/tests/fixtures/extensions")
+  (cond ((file-exists? "tests/fixtures/extensions") "tests/fixtures/extensions")
+        ((file-exists? "tools/pi/tests/fixtures/extensions")
+         "tools/pi/tests/fixtures/extensions"
+        ) ;
+        (else "../../tools/pi/tests/fixtures/extensions")
   ) ;cond
 ) ;define
 
 ;; 1. 加载合法的单文件扩展
 (let* ((api (make-extension-api))
        (path (string-append (get-fixtures-dir) "/valid-ext1.scm"))
-       (res (pi-load-extension path api)))
+       (res (pi-load-extension path api))
+      ) ;
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'ok) => #t)
   (check (equal? (cdr (assq 'value res)) "ext1-loaded") => #t)
@@ -29,7 +52,8 @@
 ;; 2. 加载包含 index.scm 的目录扩展
 (let* ((api (make-extension-api))
        (path (string-append (get-fixtures-dir) "/valid-pkg/index.scm"))
-       (res (pi-load-extension path api)))
+       (res (pi-load-extension path api))
+      ) ;
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'ok) => #t)
   (check (equal? (cdr (assq 'value res)) "pkg-loaded") => #t)
@@ -43,7 +67,8 @@
 ;; 3. 加载非过程返回值的扩展文件，安全返回 ok
 (let* ((api (make-extension-api))
        (path (string-append (get-fixtures-dir) "/non-proc.scm"))
-       (res (pi-load-extension path api)))
+       (res (pi-load-extension path api))
+      ) ;
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'ok) => #t)
   (check (equal? (cdr (assq 'value res)) "not-a-procedure") => #t)
@@ -52,7 +77,8 @@
 ;; 4. 加载不存在的文件，捕获错误返回 status: error，不崩溃
 (let* ((api (make-extension-api))
        (path (string-append (get-fixtures-dir) "/non-existent-xyz.scm"))
-       (res (pi-load-extension path api)))
+       (res (pi-load-extension path api))
+      ) ;
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'error) => #t)
   (check (string? (cdr (assq 'error res))) => #t)
@@ -61,7 +87,8 @@
 ;; 5. 加载语法错误的文件，捕获异常返回 status: error，不崩溃
 (let* ((api (make-extension-api))
        (path (string-append (get-fixtures-dir) "/syntax-error.scm"))
-       (res (pi-load-extension path api)))
+       (res (pi-load-extension path api))
+      ) ;
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'error) => #t)
 ) ;let*
@@ -69,16 +96,22 @@
 ;; 6. 执行时抛错的扩展，捕获异常返回 status: error，不崩溃
 (let* ((api (make-extension-api))
        (path (string-append (get-fixtures-dir) "/runtime-error.scm"))
-       (res (pi-load-extension path api)))
+       (res (pi-load-extension path api))
+      ) ;
   (check (pair? res) => #t)
   (check (eq? (cdr (assq 'status res)) 'error) => #t)
 ) ;let*
 
 ;; 7. 传递 ExtensionContext 参数
 (let* ((api (make-extension-api))
-       (ctx (make-extension-context :session-id "s-123" :registry (extension-api-registry api)))
+       (ctx (make-extension-context
+              :session-id "s-123"
+              :registry   (extension-api-registry api)
+            ) ;make-extension-context
+       ) ;ctx
        (path (string-append (get-fixtures-dir) "/valid-ext1.scm"))
-       (res (pi-load-extension path api ctx)))
+       (res (pi-load-extension path api ctx))
+      ) ;
   (check (eq? (cdr (assq 'status res)) 'ok) => #t)
 ) ;let*
 

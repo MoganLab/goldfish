@@ -1,3 +1,23 @@
+;; format-file-block
+;; 将文件内容格式化为注入提示词的文件块。
+;;
+;; 语法
+;; ----
+;; (format-file-block abs-path content)
+;;
+;; 参数
+;; ----
+;; abs-path : string
+;; 文件绝对路径。
+;;
+;; content : string
+;; 文件内容。
+;;
+;; 返回值
+;; ----
+;; string
+;; XML 风格的文件块文本。
+
 (import (liii check) (liii pi code cli args files))
 
 (check-set-mode! 'report-failed)

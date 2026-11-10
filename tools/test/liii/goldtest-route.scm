@@ -73,42 +73,15 @@
 
     (define (route-test-command args all-mode)
       (let ((branch (git-current-branch)) (exe (executable)))
-        (cond
-         ((and branch (not (string=? branch "main")) (git-branch-exists? "main"))
-          (if all-mode
-            (begin
-              (display (string-append "[gf test] Not on main branch (currently on '"
-                         branch
-                         "'), running all tests (--all). Use `gf test --help` for details.\n"
-                       ) ;string-append
-              ) ;display
-              (display (string-append "Running: " exe
-                         " test --changed-since=main\nRunning: " exe
-                         " test tests\n\n"
-                       ) ;string-append
-              ) ;display
-              (cons "main" #t)
-            ) ;begin
-            (begin
-              (display (string-append "[gf test] Not on main branch (currently on '"
-                         branch
-                         "'), running changed tests since main. Use `gf test --help` for details.\n"
-                       ) ;string-append
-              ) ;display
-              (display (string-append "Running: " exe " test --changed-since=main\n\n"))
-              (cons "main" #f)
-            ) ;begin
-          ) ;if
-         ) ;
-         (else (if branch
-                 (display "[gf test] On main branch, running all tests. Use `gf test --help` for details.\n"
-                 ) ;display
-                 (display "[gf test] Not a git repository, running all tests. Use `gf test --help` for details.\n"
-                 ) ;display
-               ) ;if
-           (display (string-append "Running: " exe " test tests\n\n"))
-           (cons #f #f)
-         ) ;else
+        (cond (all-mode (display "[gf test] Running all unit tests under all domains (--all).\n\n")
+                (cons #f #t)
+              ) ;all-mode
+              ((or (git-branch-exists? "main") (and branch (not (string=? branch "main"))))
+               (display "[gf test] Running changed tests since main. Use `gf test --all` to run all.\n\n"
+               ) ;display
+               (cons "main" #f)
+              ) ;
+              (else (display "[gf test] Running all tests.\n\n") (cons #f #t))
         ) ;cond
       ) ;let
     ) ;define

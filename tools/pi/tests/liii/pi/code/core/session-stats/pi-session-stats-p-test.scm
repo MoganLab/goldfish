@@ -16,15 +16,25 @@
 ;; 仅对 pi-session-stats record 返回 #t。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(let ((stats (make-pi-session-stats #f #f #f 0 0 0 0 0
-               (make-pi-session-token-stats 0 0 0 0) 0)))
-  (check-true (pi-session-stats? stats)))
+(let ((stats (make-pi-session-stats #f
+               #f
+               #f
+               0
+               0
+               0
+               0
+               0
+               (make-pi-session-token-stats 0 0 0 0)
+               0
+             ) ;make-pi-session-stats
+      ) ;stats
+     ) ;
+  (check-true (pi-session-stats? stats))
+) ;let
 (check-false (pi-session-stats? #f))
 (check-false (pi-session-stats? '()))
 (check-false (pi-session-stats? (list (cons 'total-messages 0))))

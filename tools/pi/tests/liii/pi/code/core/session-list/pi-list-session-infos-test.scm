@@ -1,3 +1,23 @@
+;; pi-list-session-infos
+;; 列出会话目录中的全部会话信息记录。
+;;
+;; 语法
+;; ----
+;; (pi-list-session-infos session-dir . opt-recursive)
+;;
+;; 参数
+;; ----
+;; session-dir : (or string path)
+;; 会话目录。
+;;
+;; opt-recursive : boolean（可选）
+;; 是否递归扫描子目录，缺省为 #f。
+;;
+;; 返回值
+;; ----
+;; list
+;; 按修改时间倒序排列的会话信息记录列表。
+
 (import (scheme base)
   (scheme file)
   (liii check)
@@ -16,10 +36,15 @@
 (define ROOT
   (path->string (path-join (path-temp-dir) "pi-list-session-infos-test"))
 ) ;define
+
 (define CURRENT (path->string (path-join ROOT "current")))
+
 (define OTHER (path->string (path-join ROOT "other")))
+
 (define OLD-FILE (path->string (path-join CURRENT "z-old.jsonl")))
+
 (define NEW-FILE (path->string (path-join CURRENT "a-new.jsonl")))
+
 (define OTHER-FILE (path->string (path-join OTHER "other.jsonl")))
 
 (when (file-exists? ROOT)
@@ -29,26 +54,31 @@
 (path-mkdir OTHER :parents #t :exist-ok #t)
 
 ;; 文件名顺序与最近消息时间相反，列表必须按活动时间而非文件名排序
-(save-session-header! OLD-FILE "old-id" "2026-10-20T08:00:00.000Z" "/work/current")
+(save-session-header! OLD-FILE "old-id" "2026-10-20T08:00:00.000Z"
+  "/work/current"
+) ;save-session-header!
 (save-session-message! OLD-FILE
-  "{\"role\":\"user\",\"content\":\"old question\"}"
-  "old-user"
-  #f
+  "{\"role\":\"user\",\"content\":\"old question\"}" "old-user" #f
   "2026-10-20T08:00:01.000Z"
 ) ;save-session-message!
-(save-session-header! NEW-FILE "new-id" "2026-10-21T08:00:00.000Z" "/work/current")
-(save-session-header! OTHER-FILE "other-id" "2026-10-22T08:00:00.000Z" "/work/other")
+(save-session-header! NEW-FILE "new-id" "2026-10-21T08:00:00.000Z"
+  "/work/current"
+) ;save-session-header!
+(save-session-header! OTHER-FILE "other-id" "2026-10-22T08:00:00.000Z"
+  "/work/other"
+) ;save-session-header!
 
 ;; 1. 默认只枚举当前目录，按 modified 降序
 (let ((sessions (pi-list-session-infos CURRENT)))
-  (check (map pi-session-info-path sessions)
-    => (list NEW-FILE OLD-FILE))
+  (check (map pi-session-info-path sessions) => (list NEW-FILE OLD-FILE))
 ) ;let
 
 ;; 2. 递归模式枚举所有子目录（All scope）
 (let ((sessions (pi-list-session-infos ROOT #t)))
   (check (map pi-session-info-path sessions)
-    => (list OTHER-FILE NEW-FILE OLD-FILE))
+    =>
+    (list OTHER-FILE NEW-FILE OLD-FILE)
+  ) ;check
 ) ;let
 
 ;; 3. 目录不存在时返回空列表

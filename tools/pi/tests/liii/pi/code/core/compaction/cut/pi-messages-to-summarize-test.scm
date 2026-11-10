@@ -1,3 +1,23 @@
+;; pi-messages-to-summarize
+;; 提取切分点之前需要被总结的消息。
+;;
+;; 语法
+;; ----
+;; (pi-messages-to-summarize entries first-kept-index)
+;;
+;; 参数
+;; ----
+;; entries : list
+;; 会话条目列表。
+;;
+;; first-kept-index : integer
+;; 保留段落的起始下标。
+;;
+;; 返回值
+;; ----
+;; list
+;; 需要总结的消息列表。
+
 (import (liii check) (liii pi code core compaction))
 
 (check-set-mode! 'report-failed)

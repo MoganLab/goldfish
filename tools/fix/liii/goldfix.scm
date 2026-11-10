@@ -14,27 +14,6 @@
 ;; under the License.
 ;;
 
-(define (%goldfix-common-dirname path-str)
-  (let loop
-    ((i (- (string-length path-str) 1)))
-    (cond ((< i 0) ".")
-          ((or (char=? (string-ref path-str i) #\/) (char=? (string-ref path-str i) #\\))
-           (if (= i 0) "." (substring path-str 0 i))
-          ) ;
-          (else (loop (- i 1)))
-    ) ;cond
-  ) ;let
-) ;define
-
-(set! *load-path*
-  (append (list "../common" "tools/common")
-    (map (lambda (root) (string-append (%goldfix-common-dirname root) "/common"))
-      *load-path*
-    ) ;map
-    *load-path*
-  ) ;append
-) ;set!
-
 (define-library (liii goldfix)
   (export main fix-string repair-source repair-source* repair-parentheses
     parentheses-balanced?
@@ -157,9 +136,11 @@
       ) ;if
     ) ;define
 
-    (define (main)
+    ;; args 为显式的参数列表（字符串列表），供单元测试直接驱动；
+    ;; 未给出时从进程命令行 (argv) 解析。
+    (define* (main (args #f))
       (let ((parser (make-fix-arg-parser)))
-        (parser :parse-argv (argv))
+        (if args (parser :parse-args args) (parser :parse-argv (argv)))
         (let* ((help-flag (parser 'help))
                (dry-run (parser 'dry-run))
                (extensions (parse-extensions (parser 'extension)))
@@ -181,7 +162,7 @@
           ) ;cond
         ) ;let*
       ) ;let
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

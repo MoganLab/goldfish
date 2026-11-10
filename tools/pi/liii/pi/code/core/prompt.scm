@@ -15,6 +15,7 @@
     (liii list)
     (liii pi code core tools read)
     (liii pi code core prompt context)
+    (liii pi code core skills format)
   ) ;import
   (export pi-resolve-prompt-input pi-load-project-context pi-build-system-prompt
     PI_BUILTIN_TOOL_SNIPPETS PI_BUILTIN_TOOL_GUIDELINES build-initial-prompt
@@ -167,6 +168,7 @@
                (custom-tool-info '())
                (session-timeout 0)
                (max-turns 0)
+               (skills '())
              ) ;pi-build-system-prompt
       (let* ((has-override?
                (and (string? system-prompt-override)
@@ -194,6 +196,14 @@
                  ) ;let
                ) ;if
              ) ;rules-sec
+             (skills-sec
+               (if has-override?
+                 #f
+                 (let ((s-str (format-skills-for-prompt skills)))
+                   (if (string-null? s-str) #f s-str)
+                 ) ;let
+               ) ;if
+             ) ;skills-sec
              (addendum-sec
                (if (and (pair? append-system-prompts) (> (length append-system-prompts) 0))
                  (let ((add-str (string-join append-system-prompts "\n\n")))
@@ -227,7 +237,9 @@
              (sections
                (filter
                  (lambda (x) (and (string? x) (not (string-null? x))))
-                 (list preamble tools-sec rules-sec addendum-sec project-sec cwd-sec budget-sec)
+                 (list preamble tools-sec rules-sec skills-sec addendum-sec
+                   project-sec cwd-sec budget-sec
+                 ) ;list
                ) ;filter
              ) ;sections
             ) ;

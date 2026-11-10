@@ -1,7 +1,21 @@
-(import (liii check)
-        (liii string)
-        (liii pi simplify format)
-) ;import
+;; pi-format-simplify-suggestions
+;; 将代码简化建议列表格式化为易读的 Markdown 文本展示。
+;;
+;; 语法
+;; ----
+;; (pi-format-simplify-suggestions suggestions)
+;;
+;; 参数
+;; ----
+;; suggestions : list?
+;; 简化建议 alist 列表。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 格式化后的 Markdown 字符串。
+
+(import (liii check) (liii string) (liii pi simplify format))
 
 (check-set-mode! 'report-failed)
 
@@ -18,7 +32,6 @@
   ) ;append
 ) ;define
 
-;; pi-format-simplify-suggestions
 ;; 无建议时输出固定文案。
 (check (pi-format-simplify-suggestions '())
   =>
@@ -27,9 +40,9 @@
 
 ;; 标题含条数；条目按文件与行号排序。
 (let* ((ss (list (suggestion "b.ts" 5 "clarity" "simplify b5" "try this")
-                 (suggestion "a.ts" 20 "naming" "rename x" "use count")
-                 (suggestion "a.ts" 3 "dead-code" "remove dead branch" "delete")
-               ) ;list
+             (suggestion "a.ts" 20 "naming" "rename x" "use count")
+             (suggestion "a.ts" 3 "dead-code" "remove dead branch" "delete")
+           ) ;list
        ) ;ss
        (out (pi-format-simplify-suggestions ss))
       ) ;

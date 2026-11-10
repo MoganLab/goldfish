@@ -1,19 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii shutil)
-  (liii string)
-  (liii list)
-  (liii json)
-  (srfi srfi-13)
-  (liii pi ai message)
-  (liii pi code core session-manager)
-  (liii pi code core session-projection)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-build-session-projection
 ;; 投影入口：组装 1201-1203 的三级能力，返回消息列表、状态与诊断。
 ;;
@@ -35,6 +19,23 @@
 ;;   thinkingLevel / thinkingLevelEntryId / model / modelEntryId（见 1209）
 ;; diagnostics : alist，键为 path-reason / trim-reason / skipped-unknown-types，
 ;;   值为 #f（无异常）或诊断信息（skipped-unknown-types 为条目类型列表）
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii shutil)
+  (liii string)
+  (liii list)
+  (liii json)
+  (srfi srfi-13)
+  (liii pi ai message)
+  (liii pi code core session-manager)
+  (liii pi code core session-projection)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 ;; 建一个 user message 条目：parentId 为字符串或 'null
 
@@ -91,8 +92,10 @@
              ) ;
   (check (map pi-message-role msgs) => '("user" "user" "user" "user"))
   ;; 首条为摘要用户消息：既有前缀 + 摘要 + 后缀
-  (check-true (string-prefix? "The conversation history" (pi-user-message-content (car msgs))))
-  (check-true (string-contains? (pi-user-message-content (car msgs)) "summary of early turns"))
+  (check-true (string-prefix? "The conversation history" (pi-user-message-content (car msgs)))
+  ) ;check-true
+  (check-true (string-contains? (pi-user-message-content (car msgs)) "summary of early turns")
+  ) ;check-true
   (check-true (string-suffix? "</summary>" (pi-user-message-content (car msgs))))
   ;; 其后为保留条目（m2 起保留 + 压缩点之后）
   (check (msg-contents (cdr msgs)) => '("m2" "m3" "m4"))
@@ -126,23 +129,21 @@
               ((msgs state diag) (pi-build-session-projection entries))
              ) ;
   (check (msg-contents msgs) => '("a" "b"))
-  (check (cdr (or (assoc 'skipped-unknown-types diag) '(#f . '()))) => '("mystery"))
+  (check (cdr (or (assoc 'skipped-unknown-types diag) '(#f #_quote ())))
+    =>
+    '("mystery")
+  ) ;check
   (check state => #f)
 ) ;let*-values
 
 ;; 5. 路径断链：parentId 指向不存在条目，原因计入诊断
-(let*-values (((entries)
-               (list (make-entry "a" 'null) (make-entry "b" "ghost"))
-              ) ;
+(let*-values (((entries) (list (make-entry "a" 'null) (make-entry "b" "ghost")))
               ((msgs state diag) (pi-build-session-projection entries))
              ) ;
   ;; 断链时返回已收集路径（b 及其可达前缀）
   (check (msg-contents msgs) => '("b"))
   (check-true
-    (string-contains?
-      (cdr (or (assoc 'path-reason diag) '(#f . "")))
-      "ghost"
-    ) ;string-contains?
+    (string-contains? (cdr (or (assoc 'path-reason diag) '(#f . ""))) "ghost")
   ) ;check-true
 ) ;let*-values
 
@@ -160,15 +161,13 @@
   (check (length msgs) => 2)
   (check (msg-contents (cdr msgs)) => '("m3"))
   (check-true
-    (string-contains?
-      (cdr (or (assoc 'trim-reason diag) '(#f . "")))
-      "ghost"
-    ) ;string-contains?
+    (string-contains? (cdr (or (assoc 'trim-reason diag) '(#f . ""))) "ghost")
   ) ;check-true
 ) ;let*-values
 
 ;; 7. JSONL 真实落盘往返：真实写入与手写 compaction 行解析后投影
-(let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-build-projection-1204")))
+(let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-build-projection-1204"))
+       ) ;tmp-dir
        (session-file (path->string (path-join tmp-dir "roundtrip.jsonl")))
       ) ;
   (when (file-exists? tmp-dir)
@@ -208,7 +207,8 @@
                ) ;
     ;; session 头与 compaction 都不直接映射消息：首条摘要 + 保留的 m2、m3
     (check (length msgs) => 3)
-    (check-true (string-contains? (pi-user-message-content (car msgs)) "real summary"))
+    (check-true (string-contains? (pi-user-message-content (car msgs)) "real summary")
+    ) ;check-true
     (check (msg-contents (cdr msgs)) => '("second" "third"))
     (check state => #f)
     (check (cdr (or (assoc 'path-reason diag) '(#f . #f))) => #f)

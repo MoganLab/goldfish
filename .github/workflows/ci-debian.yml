@@ -5,6 +5,8 @@ on:
     paths:
       - 'goldfish/**'
       - 'json/**'
+      - 'library/**'
+      - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
       - 'tools/**'
@@ -16,6 +18,8 @@ on:
     paths:
       - 'goldfish/**'
       - 'json/**'
+      - 'library/**'
+      - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
       - 'tools/**'
@@ -67,6 +71,12 @@ jobs:
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
       - name: build
         run: xmake build --yes -vD goldfish
+      - name: run r7rs tests
+        run: bin/gf test r7rs/tests/
+      - name: run library tests
+        run: bin/gf test library/tests/
+      - name: run goldfish tests
+        run: bin/gf test goldfish/tests/
       - name: run tools/fmt tests
         run: bin/gf test tools/fmt/tests
       - name: run tools/check tests
@@ -77,6 +87,6 @@ jobs:
         run: bin/gf test tools/fix/tests
       - name: run tools/pi tests
         run: bin/gf test tools/pi/tests
-      - name: run tests --all
-        run: bin/gf test --all
+      - name: run tools/repl tests
+        run: bin/gf test tools/repl/tests
 

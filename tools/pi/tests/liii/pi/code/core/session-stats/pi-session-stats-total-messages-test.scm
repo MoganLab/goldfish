@@ -16,15 +16,23 @@
 ;; 包括普通消息与 bashExecution 的消息总数。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
 (define (stats-with-total n)
-  (make-pi-session-stats #f #f #f n 0 0 0 0
-    (make-pi-session-token-stats 0 0 0 0) 0))
+  (make-pi-session-stats #f
+    #f
+    #f
+    n
+    0
+    0
+    0
+    0
+    (make-pi-session-token-stats 0 0 0 0)
+    0
+  ) ;make-pi-session-stats
+) ;define
 
 (check (pi-session-stats-total-messages (stats-with-total 5)) => 5)
 (check (pi-session-stats-total-messages (stats-with-total 0)) => 0)

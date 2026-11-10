@@ -1,7 +1,3 @@
-(import (liii check) (liii string) (liii goldpr))
-
-(check-set-mode! 'report-failed)
-
 ;; pr-remote-url
 ;; 获取当前仓库 origin 远程的 URL，gf pr 从该远程拉取 PR。
 ;;
@@ -13,6 +9,14 @@
 ;; ----
 ;; string? 或 #f
 ;; origin 远程存在时返回其 URL 字符串（去除首尾空白），否则返回 #f。
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+(import (liii check) (liii string) (liii goldpr))
+
+(check-set-mode! 'report-failed)
 
 ;; 本仓库（goldfish）配置有 origin 远程
 (check (string? (pr-remote-url)) => #t)

@@ -15,7 +15,9 @@ bin/gf doc "函数名"
 - `quote-marker?` - 判定对象是否为 quote 标记符号
 - `query-func-name` - 推导类型提示库的约定查询函数符号
 - `expected-lib-name` - 根据文件路径推导预期的类型提示库名
+- `library-source-roots` - 库实现所在的源码根列表（语言层与标准库层）
 - `orig-lib-path` - 根据 hint 路径推导原库路径
+- `find-repo-root` - 获取仓库根目录（g_project-root 不可用时向上探测）
 
 ### 二、库定义与查询条目提取
 - `hint-var-defs` - 提取所有以 hint 开头的变量定义记录

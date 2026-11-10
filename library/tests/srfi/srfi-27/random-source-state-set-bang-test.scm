@@ -1,0 +1,58 @@
+;; random-source-state-set!
+;; 设置随机源的状态。
+;;
+;; 语法
+;; ----
+;; (random-source-state-set! s state)
+;;
+;; 参数
+;; ----
+;; s : random-source
+;; 要设置状态的随机源。
+;;
+;; state : list
+;; 状态列表，格式为 (random-source-state seed carry)。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 错误处理
+;; ----
+;; type-error 当 s 不是随机源或 state 格式无效时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
+
+
+(let ((s (make-random-source)))
+  (let ((saved-state (random-source-state-ref s)))
+    (let ((rand-int (random-source-make-integers s)))
+      (rand-int 100)
+      (rand-int 100)
+      (random-source-state-set! s saved-state)
+      (let ((reset-state (random-source-state-ref s)))
+        (check (equal? saved-state reset-state) => #t)
+      ) ;let
+    ) ;let
+  ) ;let
+) ;let
+
+
+(check-catch 'type-error
+  (random-source-state-set! 'not-a-source '(random-source-state 0 0))
+) ;check-catch
+
+
+(let ((s (make-random-source)))
+  (check-catch 'type-error (random-source-state-set! s 'invalid-state))
+  (check-catch 'type-error (random-source-state-set! s '(not-the-right-tag 0 0)))
+  (check-catch 'type-error (random-source-state-set! s '(random-source-state)))
+) ;let
+
+
+(check-report)

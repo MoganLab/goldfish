@@ -1,4 +1,4 @@
-set_version ("18.11.51")
+set_version ("18.11.54")
 
 -- mode
 set_allowedmodes("releasedbg", "release", "debug", "profile")
@@ -44,6 +44,12 @@ if has_config("http") and not is_plat("wasm") then
     -- 不能用系统 libcurl：cpr(ssl=true) 会同时链入 xmake 的静态 openssl，与系统
     -- libcurl 依赖的动态 OpenSSL 混链时 ABI 不匹配，HTTPS 直接段错误（mogan devel/2092.md）
     add_requires("libcurl", {system = false})
+    -- openssl3 默认会被 xmake 解析为系统包（macOS 上 pkg-config 命中 brew 的
+    -- openssl，Linux 上命中发行版的 libssl），gf 因此动态链接系统 libssl/libcrypto，
+    -- 系统 openssl 升级/卸载后（如 brew openssl@4 dylib 消失）直接启动崩溃。
+    -- 全平台强制源码静态构建，不依赖系统 openssl（同 mogan xmake/requires.lua）。
+    add_requireconfs("libcurl.openssl3", {system = false, override = true})
+    add_requireconfs("cpr.libcurl.openssl3", {system = false, override = true})
     -- cpr 默认 ssl=false，会导致 libcurl 完全无法发起 HTTPS 请求，必须显式开启 ssl
     add_requires("cpr", {system = false, configs = {ssl = true}})
 end
@@ -88,6 +94,7 @@ target ("goldfish") do
     if is_plat("wasm") then
         -- preload goldfish stdlib in `bin/goldfish.data`
         add_ldflags("--preload-file goldfish@/goldfish")
+        add_ldflags("--preload-file library@/goldfish/library")
     end
     if is_plat("windows") then
         add_syslinks("psapi")
@@ -168,13 +175,20 @@ target ("goldfish") do
         add_cxxflags("/utf-8")
         add_cflags("/utf-8")
         add_syslinks("shell32")
+        -- PE 默认主线程栈仅 1MB（macOS/Linux 默认 8MB），s7 的 GC mark 递归
+        -- （mark_pair/mark_let）对深可达链约每 MB 栈只能扛 1.5 万层：
+        -- r7rs/tests/scheme/lazy/delay-force-test.scm 的 5 万元素流遍历
+        -- 需 ≥4MB 栈，1MB 下 GC 时爆栈（0xC0000409，CI windowsbuild 失败）。
+        -- 提升到 8MB 与 Unix 默认对齐（量化：1MB/2MB 崩溃，4MB/8MB 通过）。
+        add_ldflags("/STACK:8388608", {force = true})
     end
 
 
-    add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(srfi/**.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(liii/**.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(hint/**.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/(r7rs/**)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/(library/**)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/gfproject.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
@@ -199,6 +213,8 @@ target("goldfish_repl_wasm")
         add_defines("S7_DEBUGGING")
     end
     add_ldflags("--preload-file goldfish@/goldfish")
+    add_ldflags("--preload-file r7rs@/goldfish/r7rs")
+    add_ldflags("--preload-file library@/goldfish/library")
     -- 导出 REPL 相关函数
     add_ldflags("-sEXPORTED_FUNCTIONS=['_eval_string','_get_out','_get_err','_malloc','_free']", {force = true})
     add_ldflags("-sEXPORTED_RUNTIME_METHODS=['UTF8ToString','allocateUTF8']", {force = true})
@@ -229,6 +245,8 @@ xpack ("goldfish")
     add_sourcefiles("xmake.lua")
     add_sourcefiles("(src/**)")
     add_sourcefiles("(goldfish/**)")
+    add_sourcefiles("(r7rs/**)")
+    add_sourcefiles("(library/**)")
     add_sourcefiles("(tests/**)")
     add_sourcefiles("(tools/**)")
     add_sourcefiles("(3rdparty/**)")

@@ -12,7 +12,12 @@
 ;; 返回值
 ;; ------
 ;; string
-;; 相对源码文件路径，如 "goldfish/scheme/base.scm"。
+;; 相对源码文件路径，如 "scheme/base.scm"。
+;;
+;; 说明
+;; ----
+;; 返回的是板块内相对路径，不含板块前缀（r7rs/ goldfish/ library/）；
+;; 板块根目录由调用方按 r7rs/ goldfish/ library/ 依次尝试。
 
 (import (scheme base)
   (liii check)
@@ -24,19 +29,19 @@
 ;; 1. 两级库名转换
 (check (lib-spec->relative-source-path '(scheme base))
   =>
-  "goldfish/scheme/base.scm"
+  "scheme/base.scm"
 ) ;check
 
 ;; 2. 三级库名转换
 (check (lib-spec->relative-source-path '(liii goldcheck report))
   =>
-  "goldfish/liii/goldcheck/report.scm"
+  "liii/goldcheck/report.scm"
 ) ;check
 
 ;; 3. 单级库名转换
 (check (lib-spec->relative-source-path '(goldfish))
   =>
-  "goldfish/goldfish.scm"
+  "goldfish.scm"
 ) ;check
 
 (check-report)

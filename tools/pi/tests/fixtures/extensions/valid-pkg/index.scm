@@ -2,10 +2,10 @@
 (lambda (api)
   (register-flag! api
     (make-extension-flag-def
-      :flag "--pkg-flag"
+      :flag        "--pkg-flag"
       :description "Flag registered from valid-pkg/index.scm"
-      :handler (lambda (val) val)
+      :handler     (lambda (val) val)
     ) ;make-extension-flag-def
   ) ;register-flag!
   "pkg-loaded"
-)
+) ;lambda

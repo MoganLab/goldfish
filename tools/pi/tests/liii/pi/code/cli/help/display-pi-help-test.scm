@@ -14,11 +14,7 @@
 ;; unspecified
 ;; 将帮助文本输出到当前输出端口。
 
-(import (liii raw-string)
-  (liii pi code cli help)
-  (liii check)
-  (liii string)
-) ;import
+(import (liii raw-string) (liii pi code cli help) (liii check) (liii string))
 
 (check-set-mode! 'report-failed)
 

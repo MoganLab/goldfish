@@ -32,11 +32,16 @@
 
 ;; Ctrl+T 切换后持久化 hideThinkingBlock，只更新该键，保留其他设置
 ;; （对齐 pi-save-default-thinking-level! 模式）。
-(define AGENT-DIR (path->string (path-join (path-temp-dir) "pi-save-hide-thinking-test")))
+
+(define AGENT-DIR
+  (path->string (path-join (path-temp-dir) "pi-save-hide-thinking-test"))
+) ;define
+
 (define SETTINGS (path->string (path-join AGENT-DIR "settings.json")))
 
 (when (file-exists? AGENT-DIR)
-  (rmtree AGENT-DIR #t))
+  (rmtree AGENT-DIR #t)
+) ;when
 (path-mkdir AGENT-DIR :parents #t :exist-ok #t)
 (path-write-text SETTINGS
   "{\"defaultProvider\":\"google\",\"defaultThinkingLevel\":\"off\",\"compaction\":{\"enabled\":false}}"
@@ -48,11 +53,23 @@
   (check (cdr (assoc "hideThinkingBlock" json)) => 'true)
   (check (cdr (assoc "defaultProvider" json)) => "google")
   (check (cdr (assoc "defaultThinkingLevel" json)) => "off")
-  (check (cdr (assoc "enabled" (cdr (assoc "compaction" json)))) => 'false)
+  (check
+    (cdr (assoc "enabled" (cdr (assoc "compaction" json))))
+    =>
+    'false
+  ) ;check
   (check (pi-settings-hide-thinking-block (pi-load-settings AGENT-DIR)) => #t)
   ;; 写盘为格式化 JSON（多行、2 空格缩进），不再是单行
-  (check (string-contains (path-read-text SETTINGS) "\n  \"hideThinkingBlock\": true,") => #t)
-  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultProvider\": \"google\",") => #t)
+  (check (string-contains (path-read-text SETTINGS) "\n  \"hideThinkingBlock\": true,")
+    =>
+    #t
+  ) ;check
+  (check (string-contains (path-read-text SETTINGS)
+           "\n  \"defaultProvider\": \"google\","
+         ) ;string-contains
+    =>
+    #t
+  ) ;check
 ) ;let
 
 ;; 显示：替换为 false 而不是添加重复键
@@ -65,7 +82,9 @@
   (let ((n 0))
     (for-each
       (lambda (entry)
-        (when (equal? (car entry) "hideThinkingBlock") (set! n (+ n 1)))
+        (when (equal? (car entry) "hideThinkingBlock")
+          (set! n (+ n 1))
+        ) ;when
       ) ;lambda
       json
     ) ;for-each

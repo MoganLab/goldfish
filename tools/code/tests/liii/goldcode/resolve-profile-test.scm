@@ -1,7 +1,3 @@
-(import (liii check) (liii goldcode))
-
-(check-set-mode! 'report-failed)
-
 ;; resolve-profile
 ;; 解析最终生效的配置名：未指定 --profile 时使用默认配置 "default"。
 ;;
@@ -19,6 +15,10 @@
 ;; string?
 ;; 指定了 profile 时原样返回，否则返回 "default"。
 ;; 即 gf code 默认加载 ~/.claude/settings.json.default。
+
+(import (liii check) (liii goldcode))
+
+(check-set-mode! 'report-failed)
 
 (check (resolve-profile #f) => "default")
 (check (resolve-profile "bigmodel") => "bigmodel")

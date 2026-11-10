@@ -1,11 +1,24 @@
-(import (liii check)
-        (liii string)
-        (liii pi review language)
-) ;import
+;; pi-language-checklist
+;; 获取指定编程语言的代码审查关注点清单。
+;;
+;; 语法
+;; ----
+;; (pi-language-checklist lang)
+;;
+;; 参数
+;; ----
+;; lang : string?
+;; 语言标识字符串。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 该语言专属的审查检查点描述字符串列表。
+
+(import (liii check) (liii string) (liii pi review language))
 
 (check-set-mode! 'report-failed)
 
-;; pi-language-checklist
 ;; 每种受支持语言给出 5 条检查项，未知语言返回空列表。
 (for-each
   (lambda (lang)

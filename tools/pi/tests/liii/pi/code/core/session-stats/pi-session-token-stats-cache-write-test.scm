@@ -16,13 +16,18 @@
 ;; 缓存写入 token 的累计数量。
 ;;
 
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
+(import (scheme base) (liii check) (liii pi code core session-stats))
 
 (check-set-mode! 'report-failed)
 
-(check (pi-session-token-stats-cache-write (make-pi-session-token-stats 3000 500 1200 100)) => 100)
-(check (pi-session-token-stats-cache-write (make-pi-session-token-stats 0 0 0 0)) => 0)
+(check (pi-session-token-stats-cache-write (make-pi-session-token-stats 3000 500 1200 100)
+       ) ;pi-session-token-stats-cache-write
+  =>
+  100
+) ;check
+(check (pi-session-token-stats-cache-write (make-pi-session-token-stats 0 0 0 0))
+  =>
+  0
+) ;check
 
 (check-report)

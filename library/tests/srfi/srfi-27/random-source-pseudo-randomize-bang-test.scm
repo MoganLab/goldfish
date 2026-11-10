@@ -1,0 +1,69 @@
+;; random-source-pseudo-randomize!
+;; 使用索引 (i, j) 确定性地设置随机源状态。
+;;
+;; 语法
+;; ----
+;; (random-source-pseudo-randomize! s i j)
+;;
+;; 参数
+;; ----
+;; s : random-source
+;; 要设置的随机源。
+;;
+;; i, j : non-negative-exact-integer
+;; 索引参数，必须是非负精确整数。
+;;
+;; 返回值
+;; ----
+;; undefined
+;; 副作用：修改 s 的状态。
+;;
+;; 注意
+;; ----
+;; 相同的索引对总是产生相同的状态。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
+
+
+(let ((s1 (make-random-source)) (s2 (make-random-source)))
+  (random-source-pseudo-randomize! s1 0 0)
+  (random-source-pseudo-randomize! s2 0 0)
+  (let ((state1 (random-source-state-ref s1)) (state2 (random-source-state-ref s2)))
+    (check (equal? state1 state2) => #t)
+  ) ;let
+) ;let
+
+
+(let ((s (make-random-source)))
+  (random-source-pseudo-randomize! s 0 0)
+  (let ((state1 (random-source-state-ref s)))
+    (random-source-pseudo-randomize! s 1 2)
+    (let ((state2 (random-source-state-ref s)))
+      (check (not (equal? state1 state2)) => #t)
+    ) ;let
+  ) ;let
+) ;let
+
+
+(check-catch 'type-error (random-source-pseudo-randomize! 'not-a-source 0 0))
+
+
+(let ((s (make-random-source)))
+  (check-catch 'type-error (random-source-pseudo-randomize! s -1 0))
+  (check-catch 'type-error (random-source-pseudo-randomize! s 0 -1))
+  (check-catch 'type-error (random-source-pseudo-randomize! s 3.14 0))
+  (check-catch 'type-error (random-source-pseudo-randomize! s 0 3.14))
+) ;let
+
+;; 确定性测试 (123, 456)
+(let ((s (make-random-source)))
+  (random-source-pseudo-randomize! s 123 456)
+  (check (random-source-state-ref s) => '(random-source-state 1518891 24770499))
+) ;let
+
+(check-report)

@@ -1,3 +1,26 @@
+;; pi-session-state-resume
+;; 验证会话状态恢复流程的端到端行为。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-session-state parsed cfg cwd)
+;;
+;; 参数
+;; ----
+;; parsed : list?
+;; 命令行解析后的参数 alist。
+;;
+;; cfg : list?
+;; Agent 配置 alist。
+;;
+;; cwd : string
+;; 当前工作目录。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 恢复后的会话状态字典。
+
 (import (scheme base)
   (scheme file)
   (liii check)
@@ -10,7 +33,8 @@
   (liii pi code core compaction session)
   (liii pi code core session-manager)
   (liii pi code core session-projection)
-  (liii pi code session-state))
+  (liii pi code session-state)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -21,18 +45,23 @@
 ;; session-file 是内部键（由 CLI 的恢复选择写入），这里用 pi-args-set 注入。
 
 (define TMP-DIR
-  (path->string (path-join (path-temp-dir) "pi-session-state-resume-test")))
+  (path->string (path-join (path-temp-dir) "pi-session-state-resume-test"))
+) ;define
 
 (define SESSION-FILE (path->string (path-join (path TMP-DIR) "session.jsonl")))
 
 (when (file-exists? TMP-DIR)
-  (rmtree TMP-DIR))
+  (rmtree TMP-DIR)
+) ;when
 
 (path-mkdir TMP-DIR :parents #t :exist-ok #t)
 ;; agent dir 的凭证：状态里的 minimax-cn 模型需要它才会被应用
 (path-write-text (path->string (path-join (path TMP-DIR) (path "auth.json")))
-  "{\"minimax-cn\":{\"type\":\"api_key\",\"key\":\"fixture-minimax-key\"}}")
-(save-session-header! SESSION-FILE "sess-resume" "2026-10-30T08:00:00.000Z" TMP-DIR)
+  "{\"minimax-cn\":{\"type\":\"api_key\",\"key\":\"fixture-minimax-key\"}}"
+) ;path-write-text
+(save-session-header! SESSION-FILE "sess-resume" "2026-10-30T08:00:00.000Z"
+  TMP-DIR
+) ;save-session-header!
 (append-session-entry! SESSION-FILE
   (json->string
     (list (cons "type" "message")
@@ -78,7 +107,11 @@
   (let ((state (pi-load-session-state parsed cfg)))
     (check (if state #t #f) => #t)
     (check (cdr (assoc 'thinkingLevel state)) => "high")
-    (check (cdr (assoc 'provider (cdr (assoc 'model state)))) => "minimax-cn")
+    (check
+      (cdr (assoc 'provider (cdr (assoc 'model state))))
+      =>
+      "minimax-cn"
+    ) ;check
   ) ;let
   ;; --no-session 时不做状态读取
   (check (pi-load-session-state (parse-pi-args '("--no-session")) cfg) => #f)

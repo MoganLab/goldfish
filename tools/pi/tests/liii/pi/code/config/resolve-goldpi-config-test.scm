@@ -17,10 +17,7 @@
 ;; alist
 ;; 包含 provider/model-id/api-key 等配置项。
 
-(import (liii check)
-  (liii pi code cli args)
-  (liii pi code config)
-) ;import
+(import (liii check) (liii pi code cli args) (liii pi code config))
 
 (check-set-mode! 'report-failed)
 
@@ -32,11 +29,12 @@
 ) ;define
 
 (check (procedure? resolve-goldpi-config) => #t)
-(let ((cfg (resolve-goldpi-config (parse-pi-args '())
-             `(("PI_CODING_AGENT_DIR" . ,FIXTURE))
-           ) ;resolve-goldpi-config
+(let ((cfg
+        (resolve-goldpi-config (parse-pi-args '())
+          `(("PI_CODING_AGENT_DIR" . ,FIXTURE))
+        ) ;resolve-goldpi-config
       ) ;cfg
-     )
+     ) ;
   (check (cdr (assoc 'provider cfg)) => "google")
 ) ;let
 

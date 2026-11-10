@@ -43,13 +43,14 @@
        (wrapper-lib-file (path->string (path-join src-dir "wrapper-lib.scm")))
        (wrapper-test (path->string (path-join test-dir "wrapper-fn-test.scm")))
        (real-test (path->string (path-join test-dir "real-fn-test.scm")))
+       (abs-test (path->string (path-join test-dir "abs-test.scm")))
        (src-lib-content (string-append "(define-library (src-lib)\n"
                           "  (export real-fn)\n" "  (import (scheme base))\n"
                           "  (begin (define (real-fn) 42)))\n"
                         ) ;string-append
        ) ;src-lib-content
        (wrapper-lib-content (string-append "(define-library (wrapper-lib)\n"
-                              "  (export wrapper-fn real-fn)\n"
+                              "  (export wrapper-fn real-fn abs)\n"
                               "  (import (scheme base) (src-lib))\n"
                               "  (begin (define (wrapper-fn) 1)))\n"
                             ) ;string-append
@@ -59,18 +60,21 @@
        ) ;_
        (_ (path-write-bytes (path wrapper-test) (string->utf8 "(check 1 => 1)\n")))
        (_ (path-write-bytes (path real-test) (string->utf8 "(check 1 => 1)\n")))
+       (_ (path-write-bytes (path abs-test) (string->utf8 "(check 1 => 1)\n")))
        (viols (check-reexported-tests test-dir "tests/wrapper-lib"))
       ) ;
+  ;; abs 为 C 内置函数，不应被计入重导出违规，违规仍仅为 real-fn 一项
   (check-true (not (null? viols)))
   (check (length viols) => 1)
   (check (car (car viols)) => 'unit-test)
   (check (cadr (car viols)) => "tests/wrapper-lib/real-fn-test.scm")
   (check-true (string-contains? (list-ref (car viols) 3) "函数 real-fn 并非本库实现")
   ) ;check-true
-  (check-true (string-contains? (list-ref (car viols) 3) "应移动到 tests/src-lib/ 目录")
+  (check-true (string-contains? (list-ref (car viols) 3) "应移动到 goldfish/tests/src-lib/ 目录")
   ) ;check-true
 
   ;; 清理
+  (path-unlink abs-test #t)
   (path-unlink real-test #t)
   (path-unlink wrapper-test #t)
   (path-unlink wrapper-lib-file #t)

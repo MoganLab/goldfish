@@ -213,6 +213,7 @@ private:
 
 void        set_goldfish_lib_dir (const std::string& dir);
 std::string get_goldfish_lib_dir ();
+void        add_goldfish_load_paths (s7_scheme* sc, const char* gf_lib);
 
 bool                             is_goldfish_channel (s7_scheme* sc, s7_pointer obj);
 std::shared_ptr<GoldfishChannel> get_goldfish_channel (s7_scheme* sc, s7_pointer obj);

@@ -1,11 +1,3 @@
-;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
-;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/doc" *load-path*))
-
-(import (liii check) (liii golddoc) (liii path) (liii string))
-
-(check-set-mode! 'report-failed)
-
 ;; library-doc-path
 ;; 根据库查询字符串，结合当前 *load-path* 定位顶层库文档文件。
 ;;
@@ -21,12 +13,21 @@
 ;; 返回值
 ;; ----
 ;; string? 或 #f
-;; 如果文档存在，返回对应 `<library>-test.scm` 的路径；否则返回 #f。
+;; 如果文档存在，优先返回对应库目录下的 README.md；没有 README.md 时
+;; 回退到旧版 `<library>-test.scm`；否则返回 #f。
 ;;
 ;; 描述
 ;; ----
 ;; 该函数只处理当前 *load-path* 中可见的库，并且会排除 `goldfish`
 ;; 目录下的测试文档。
+
+;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
+;; 注意：假设运行测试时工作目录是项目根目录
+(set! *load-path* (cons "tools/doc" *load-path*))
+
+(import (liii check) (liii golddoc) (liii path) (liii string))
+
+(check-set-mode! 'report-failed)
 
 (check (excluded-test-group? "srfi") => #f)
 (check (excluded-test-group? "goldfish") => #t)
@@ -38,14 +39,14 @@
   (let ((tests-root (find-tests-root-for-load-root load-root)))
     (check-true (string? tests-root))
     (check-true (path-dir? tests-root))
-    (check-true (path-file? (path-join tests-root "liii" "string-test.scm")))
+    (check-true (path-file? (path-join tests-root "liii" "string" "README.md")))
   ) ;let
 ) ;let
 
 (let ((doc-path (library-doc-path "liii/string")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "string-test.scm")
+  (check (path-name doc-path) => "README.md")
 ) ;let
 
 (check (library-doc-path "liii/not-a-real-library") => #f)
@@ -57,14 +58,15 @@
   (let ((tests-root (find-tests-root-for-load-root load-root)))
     (check-true (string? tests-root))
     (check-true (path-dir? tests-root))
-    (check-true (path-file? (path-join tests-root "liii" "uri" "compare-test.scm")))
+    (check-true (path-file? (path-join tests-root "liii" "uri" "compare" "README.md"))
+    ) ;check-true
   ) ;let
 ) ;let
 
 (let ((doc-path (library-doc-path "liii/uri/compare")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "compare-test.scm")
+  (check (path-name doc-path) => "README.md")
 ) ;let
 
 (let ((doc-path (library-doc-path "scheme/base")))

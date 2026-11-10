@@ -15,9 +15,7 @@
 ;; string | #f
 ;; 缺少 api-key 时返回提示消息；凭证存在时返回 #f。
 
-(import (liii check)
-  (liii pi code config)
-) ;import
+(import (liii check) (liii pi code config))
 
 (check-set-mode! 'report-failed)
 

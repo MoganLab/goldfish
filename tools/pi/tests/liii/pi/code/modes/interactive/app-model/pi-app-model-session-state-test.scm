@@ -21,7 +21,8 @@
   (liii tui)
   (liii go)
   (liii pi code modes interactive app)
-  (liii pi code modes interactive app-model))
+  (liii pi code modes interactive app-model)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -32,21 +33,34 @@
 ) ;define
 
 (define %test-models
-  (list (list (cons 'provider "google") (cons 'id "gemini-2.5-pro")
-         (cons 'name "Gemini 2.5 Pro") (cons 'reasoning #t))
-    (list (cons 'provider "zai") (cons 'id "glm-5")
-      (cons 'name "GLM 5") (cons 'reasoning #t))
-    (list (cons 'provider "google") (cons 'id "text-bison-99")
-      (cons 'name "Fake No Reasoning") (cons 'reasoning #f))))
+  (list (list (cons 'provider "google")
+          (cons 'id "gemini-2.5-pro")
+          (cons 'name "Gemini 2.5 Pro")
+          (cons 'reasoning #t)
+        ) ;list
+    (list (cons 'provider "zai")
+      (cons 'id "glm-5")
+      (cons 'name "GLM 5")
+      (cons 'reasoning #t)
+    ) ;list
+    (list (cons 'provider "google")
+      (cons 'id "text-bison-99")
+      (cons 'name "Fake No Reasoning")
+      (cons 'reasoning #f)
+    ) ;list
+  ) ;list
+) ;define
 
 (define (make-test-app)
-  (make-pi-app :terminal (make-virtual-terminal :width 100 :height 40)
-    :handler (lambda (a msg) #t)
-    :provider "google"
-    :model "gemini-2.5-pro"
-    :models %test-models
-    :thinking-level "medium"
-    :default-thinking-level "high")
+  (make-pi-app
+    :terminal               (make-virtual-terminal :width 100 :height 40)
+    :handler                (lambda (a msg) #t)
+    :provider               "google"
+    :model                  "gemini-2.5-pro"
+    :models                 %test-models
+    :thinking-level         "medium"
+    :default-thinking-level "high"
+  ) ;make-pi-app
 ) ;define
 
 ;; 1. /model 精确引用切换成功后投递一条 model_change，字段为切换后的 provider/model
@@ -55,7 +69,8 @@
   (check (pi-app-model app) => "glm-5")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "model_change" (("provider" . "zai") ("model-id" . "glm-5")))
+    '(session_state "model_change"
+       (("provider" . "zai") ("model-id" . "glm-5")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let
@@ -65,7 +80,8 @@
   (pi-app-submit! app "/model glm-5")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "model_change" (("provider" . "zai") ("model-id" . "glm-5")))
+    '(session_state "model_change"
+       (("provider" . "zai") ("model-id" . "glm-5")))
   ) ;check
   (pi-app-submit! app "/model glm-5")
   (check (pi-app-model app) => "glm-5")
@@ -80,7 +96,8 @@
   (check (pi-app-model app) => "glm-5")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "model_change" (("provider" . "zai") ("model-id" . "glm-5")))
+    '(session_state "model_change"
+       (("provider" . "zai") ("model-id" . "glm-5")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let
@@ -102,7 +119,10 @@
 (let ((app (make-test-app)))
   (pi-app-submit! app "/model glm-5")
   (chan-try-recv! (pi-app-jobs-chan app) #f)
-  (chan-send! (pi-app-event-chan app) (list 'session_state_error "disk full") 1000)
+  (chan-send! (pi-app-event-chan app)
+    (list 'session_state_error "disk full")
+    1000
+  ) ;chan-send!
   (pi-app-poll-events! app)
   (check (pi-app-model app) => "glm-5")
   (check (pi-app-provider app) => "zai")

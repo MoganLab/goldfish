@@ -1,0 +1,60 @@
+;; snake-compute-layout
+;; 按终端尺寸计算游戏区与侧栏的布局参数
+;;
+;; 语法
+;; ----
+;; (snake-compute-layout term-w term-h)
+;;
+;; 参数
+;; ----
+;; term-w, term-h : integer?\n终端列数与行数
+;;
+;; 返回值
+;; ------
+;; list?\n布局参数 alist：board-width/board-height/layout/show-help?
+
+(import (scheme base)
+  (liii check)
+  (liii tui snake view)
+) ;import
+
+(check-set-mode! 'report-failed)
+
+;; 1. 标准宽终端 (80x24)：水平并排布局，完整保留 STATS 与 HELP
+(let ((layout (snake-compute-layout 80 24)))
+  (check (cdr (assq 'board-width layout)) => 50)
+  (check (cdr (assq 'board-height layout)) => 22)
+  (check (cdr (assq 'layout layout)) => 'horizontal)
+  (check (cdr (assq 'show-help? layout)) => #t)
+) ;let
+
+;; 2. 超大终端 (120x40)：命中最大尺寸上限
+(let ((layout (snake-compute-layout 120 40)))
+  (check (cdr (assq 'board-width layout)) => 50)
+  (check (cdr (assq 'board-height layout)) => 25)
+  (check (cdr (assq 'layout layout)) => 'horizontal)
+  (check (cdr (assq 'show-help? layout)) => #t)
+) ;let
+
+;; 3. 中等宽度终端 (48x20)：水平布局，折叠 HELP 侧栏
+(let ((layout (snake-compute-layout 48 20)))
+  (check (cdr (assq 'board-width layout)) => 27)
+  (check (cdr (assq 'board-height layout)) => 18)
+  (check (cdr (assq 'layout layout)) => 'horizontal)
+  (check (cdr (assq 'show-help? layout)) => #f)
+) ;let
+
+;; 4. 窄终端 (30x20)：纵向垂直布局
+(let ((layout (snake-compute-layout 30 20)))
+  (check (cdr (assq 'board-width layout)) => 28)
+  (check (cdr (assq 'board-height layout)) => 11)
+  (check (cdr (assq 'layout layout)) => 'vertical)
+  (check (cdr (assq 'show-help? layout)) => #f)
+) ;let
+
+;; 5. 非法参数抛出 type-error
+(check-catch 'type-error (snake-compute-layout 0 24))
+(check-catch 'type-error (snake-compute-layout 80 -1))
+(check-catch 'type-error (snake-compute-layout "80" 24))
+
+(check-report)

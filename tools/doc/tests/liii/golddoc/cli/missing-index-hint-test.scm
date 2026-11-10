@@ -1,4 +1,19 @@
+;; missing-index-hint
+;; 索引文件缺失时的提示信息
 ;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
+
+;; 语法
+;; ----
+;; (missing-index-hint ...)
+
+;; 参数
+;; ----
+;; 见各断言场景
+
+;; 返回值
+;; ------
+;; 见各断言场景
+
 (set! *load-path* (append (list "tools/doc" ".") *load-path*))
 
 (import (liii check) (liii golddoc) (liii list) (liii os) (liii path) (liii string) (liii sys))

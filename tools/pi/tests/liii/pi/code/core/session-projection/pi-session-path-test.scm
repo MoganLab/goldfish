@@ -1,17 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii shutil)
-  (liii string)
-  (liii list)
-  (liii json)
-  (liii pi code core session-manager)
-  (liii pi code core session-projection)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-path
 ;; 从叶子条目沿 parentId 回溯到根，返回根到叶顺序的条目列表。
 ;;
@@ -33,10 +19,21 @@
 ;; path : list，根到叶顺序的条目；
 ;; reason : #f 或描述回溯中断原因的字符串（断链、成环、叶子不存在）。
 ;;
-;; 示例
-;; ----
-;; (pi-session-path (list (make-entry \"a\" 'null) (make-entry \"b\" \"a\")) \"b\")
-;; => 条目 (a b) 与 #f
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii shutil)
+  (liii string)
+  (liii list)
+  (liii json)
+  (liii pi code core session-manager)
+  (liii pi code core session-projection)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 ;; 建一个 message 条目 alist：parentId 为字符串或 'null
 

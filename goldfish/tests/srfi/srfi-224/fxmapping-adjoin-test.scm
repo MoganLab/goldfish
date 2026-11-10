@@ -1,0 +1,44 @@
+;; fxmapping-adjoin
+;; 添加键值对到映射，不覆盖已存在的键。
+;;
+;; 语法
+;; ----
+;; (fxmapping-adjoin fxmap key value ...)
+;;
+;; 参数
+;; ----
+;; fxmap : fxmapping
+;; 目标映射。
+;;
+;; key : exact-integer
+;; 要添加的键。
+;;
+;; value : any
+;; 关联的值。
+;;
+;; 返回值
+;; -----
+;; 返回新的 fxmapping，包含原映射的所有键值对以及新增的键值对。
+;; 如果键已存在，保留原值。
+;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
+(check (fxmapping-ref (fxmapping-adjoin (fxmapping 0 'a) 1 'b)
+         1
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  'b
+) ;check
+(check (fxmapping-ref (fxmapping-adjoin (fxmapping 0 'a) 0 'b)
+         0
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  'a
+) ;check
+
+(check-report)

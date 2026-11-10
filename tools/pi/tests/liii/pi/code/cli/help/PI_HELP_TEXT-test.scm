@@ -14,16 +14,13 @@
 ;; string
 ;; 完整的帮助文本字符串。
 
-(import (liii raw-string)
-  (liii pi code cli help)
-  (liii check)
-  (liii string)
-) ;import
+(import (liii raw-string) (liii pi code cli help) (liii check) (liii string))
 
 (check-set-mode! 'report-failed)
 
 (check-true (string? PI_HELP_TEXT))
-(check-true (string-contains? PI_HELP_TEXT "gf pi - AI coding assistant script mode"))
+(check-true (string-contains? PI_HELP_TEXT "gf pi - AI coding assistant script mode")
+) ;check-true
 (check-true (string-contains? PI_HELP_TEXT "--model"))
 (check-true (string-contains? PI_HELP_TEXT "--thinking"))
 

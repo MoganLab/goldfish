@@ -1,3 +1,23 @@
+;; pi-compact-session!
+;; 对会话执行一次压缩流程的端到端验证。
+;;
+;; 语法
+;; ----
+;; (pi-compact-session! session-file . opt-opts)
+;;
+;; 参数
+;; ----
+;; session-file : string
+;; 会话文件路径。
+;;
+;; opt-opts : list（可选）
+;; 压缩流程的可选参数。
+;;
+;; 返回值
+;; ----
+;; any
+;; 压缩流程的执行结果。
+
 (import (scheme process-context)
   (liii check)
   (liii string)
@@ -5,7 +25,11 @@
   (liii path)
   (liii subprocess)
   (liii sys)
-  (liii pi ai event) (liii pi ai message) (liii pi code core compaction session) (liii pi code core session-manager) (liii pi code core tools)
+  (liii pi ai event)
+  (liii pi ai message)
+  (liii pi code core compaction session)
+  (liii pi code core session-manager)
+  (liii pi code core tools)
   (liii uuid)
   (liii pi code core session-manager)
   (liii pi code core compaction)
@@ -36,13 +60,20 @@
 
 (define GF_BIN (executable))
 
-(define AGENT_DIR (path->string (path-join (path-temp-dir) "pi-compact-e2e-agent")))
+(define AGENT_DIR
+  (path->string (path-join (path-temp-dir) "pi-compact-e2e-agent"))
+) ;define
 
 (define (read-all p . maybe-stream)
   (let ((stream (if (null? maybe-stream) 'stdout (car maybe-stream))))
-    (let loop ((acc ""))
+    (let loop
+      ((acc ""))
       (let ((c (process-read p :stream stream)))
-        (if (eof-object? c) acc (loop (string-append acc c)))))))
+        (if (eof-object? c) acc (loop (string-append acc c)))
+      ) ;let
+    ) ;let
+  ) ;let
+) ;define
 
 (define (setup-agent-dir)
   (path-mkdir (path AGENT_DIR) :parents #t :exist-ok #t)
@@ -133,107 +164,103 @@
                  ) ;append
        ) ;test-env
       ) ;
-  (dynamic-wind
-    (lambda () #f)
+  (dynamic-wind (lambda () #f)
     (lambda ()
       (check-true (number? port))
 
-  ;; 1. --compact 不带 prompt：只压缩并退出
-  (let* ((p (process-spawn (list GF_BIN "pi" "--compact")
-              :env    test-env
-              :stdin  'null
-              :stdout 'pipe
-              :stderr 'pipe
-            ) ;process-spawn
-         ) ;p
-         (out (read-all p 'stdout))
-         (err (read-all p 'stderr))
-         (code (process-wait p 30000))
-         (entries (pi-read-session-entries session-file))
-         (messages
-           (filter
-             (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
-             entries
-           ) ;filter
-         ) ;messages
-         (last-entry (car (reverse entries)))
-        ) ;
-    (check code => 0)
-    (check-true (string-contains? out "Compacted session"))
-    (check-true (string-contains? err "Compacted session"))
-    (check (cdr (assoc "type" last-entry)) => "compaction")
-    (check-true (string? (cdr (assoc "firstKeptEntryId" last-entry))))
-    (check-true (if (assoc "firstKeptEntryId" last-entry) #t #f))
-    ;; 原文一条不少：4 条 message 仍在
-    (check (length messages) => 4)
-    (process-close p)
-  ) ;let*
+      ;; 1. --compact 不带 prompt：只压缩并退出
+      (let* ((p (process-spawn (list GF_BIN "pi" "--compact")
+                  :env    test-env
+                  :stdin  'null
+                  :stdout 'pipe
+                  :stderr 'pipe
+                ) ;process-spawn
+             ) ;p
+             (out (read-all p 'stdout))
+             (err (read-all p 'stderr))
+             (code (process-wait p 30000))
+             (entries (pi-read-session-entries session-file))
+             (messages
+               (filter
+                 (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
+                 entries
+               ) ;filter
+             ) ;messages
+             (last-entry (car (reverse entries)))
+            ) ;
+        (check code => 0)
+        (check-true (string-contains? out "Compacted session"))
+        (check-true (string-contains? err "Compacted session"))
+        (check (cdr (assoc "type" last-entry)) => "compaction")
+        (check-true (string? (cdr (assoc "firstKeptEntryId" last-entry))))
+        (check-true (if (assoc "firstKeptEntryId" last-entry) #t #f))
+        ;; 原文一条不少：4 条 message 仍在
+        (check (length messages) => 4)
+        (process-close p)
+      ) ;let*
 
-  ;; 2. --compact 带 prompt：压缩后继续本次请求
-  (let* ((p (process-spawn (list GF_BIN "pi" "--compact" "follow up")
-              :env    test-env
-              :stdin  'null
-              :stdout 'pipe
-              :stderr 'pipe
-            ) ;process-spawn
-         ) ;p
-         (out (read-all p 'stdout))
-         (err (read-all p 'stderr))
-         (code (process-wait p 30000))
-         (entries (pi-read-session-entries session-file))
-         (messages
-           (filter
-             (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
-             entries
-           ) ;filter
-         ) ;messages
-        ) ;
-    (check code => 0)
-    (check-true (string-contains? out "Hello stream!"))
-    ;; 新增 user prompt 与 assistant 回复
-    (check-true (> (length messages) 4))
-    (process-close p)
-  ) ;let*
+      ;; 2. --compact 带 prompt：压缩后继续本次请求
+      (let* ((p (process-spawn (list GF_BIN "pi" "--compact" "follow up")
+                  :env    test-env
+                  :stdin  'null
+                  :stdout 'pipe
+                  :stderr 'pipe
+                ) ;process-spawn
+             ) ;p
+             (out (read-all p 'stdout))
+             (err (read-all p 'stderr))
+             (code (process-wait p 30000))
+             (entries (pi-read-session-entries session-file))
+             (messages
+               (filter
+                 (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
+                 entries
+               ) ;filter
+             ) ;messages
+            ) ;
+        (check code => 0)
+        (check-true (string-contains? out "Hello stream!"))
+        ;; 新增 user prompt 与 assistant 回复
+        (check-true (> (length messages) 4))
+        (process-close p)
+      ) ;let*
 
-  ;; 3. -c 续接压缩后的会话：基于 summary + 保留消息
-  (let* ((p (process-spawn (list GF_BIN "pi" "-c" "-p" "continue after compact")
-              :env    test-env
-              :stdin  'null
-              :stdout 'pipe
-              :stderr 'pipe
-            ) ;process-spawn
-         ) ;p
-         (out (read-all p 'stdout))
-         (code (process-wait p 30000))
-        ) ;
-    (check code => 0)
-    (check-true (string-contains? out "Hello stream!"))
-    (process-close p)
-  ) ;let*
+      ;; 3. -c 续接压缩后的会话：基于 summary + 保留消息
+      (let* ((p (process-spawn (list GF_BIN "pi" "-c" "-p" "continue after compact")
+                  :env    test-env
+                  :stdin  'null
+                  :stdout 'pipe
+                  :stderr 'pipe
+                ) ;process-spawn
+             ) ;p
+             (out (read-all p 'stdout))
+             (code (process-wait p 30000))
+            ) ;
+        (check code => 0)
+        (check-true (string-contains? out "Hello stream!"))
+        (process-close p)
+      ) ;let*
 
-  ;; 4. 阈值自动压缩：reserveTokens 大于 contextWindow 时必然触发
-  (path-write-text (path-join (path AGENT_DIR) (path "settings.json"))
-    "{\"defaultProvider\":\"google\",\"defaultModel\":\"gemini-3.8-flash\",\"compaction\":{\"enabled\":true,\"reserveTokens\":2000000,\"keepRecentTokens\":20000}}"
-  ) ;path-write-text
-  (let* ((p (process-spawn (list GF_BIN "pi" "-c" "-p" "auto compact please")
-              :env    test-env
-              :stdin  'null
-              :stdout 'pipe
-              :stderr 'pipe
-            ) ;process-spawn
-         ) ;p
-         (err (read-all p 'stderr))
-         (code (process-wait p 30000))
-        ) ;
-    (check code => 0)
-    (check-true (string-contains? err "Auto-compacted session"))
-    (process-close p)
-  ) ;let*
+      ;; 4. 阈值自动压缩：reserveTokens 大于 contextWindow 时必然触发
+      (path-write-text (path-join (path AGENT_DIR) (path "settings.json"))
+        "{\"defaultProvider\":\"google\",\"defaultModel\":\"gemini-3.8-flash\",\"compaction\":{\"enabled\":true,\"reserveTokens\":2000000,\"keepRecentTokens\":20000}}"
+      ) ;path-write-text
+      (let* ((p (process-spawn (list GF_BIN "pi" "-c" "-p" "auto compact please")
+                  :env    test-env
+                  :stdin  'null
+                  :stdout 'pipe
+                  :stderr 'pipe
+                ) ;process-spawn
+             ) ;p
+             (err (read-all p 'stderr))
+             (code (process-wait p 30000))
+            ) ;
+        (check code => 0)
+        (check-true (string-contains? err "Auto-compacted session"))
+        (process-close p)
+      ) ;let*
     ) ;lambda
-    (lambda ()
-      (process-kill proc)
-      (process-close proc)
-    ) ;lambda
+    (lambda () (process-kill proc) (process-close proc))
   ) ;dynamic-wind
 ) ;let*
 

@@ -28,7 +28,8 @@
   ) ;if
 ) ;define
 
-(let* ((models (pi-user-provider-model-list (string-append FIXTURE "/full") "kimi-coding"))
+(let* ((models (pi-user-provider-model-list (string-append FIXTURE "/full") "kimi-coding")
+       ) ;models
        (first (car models))
       ) ;
   (check (pair? models) => #t)

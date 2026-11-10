@@ -1,0 +1,47 @@
+;; pi-config-provider-file
+;; 读取 provider 的本地配置文件相对路径。
+;;
+;; 语法
+;; ----
+;; (pi-config-provider-file p)
+;;
+;; 参数
+;; ----
+;; p : alist
+;; provider 条目。
+;;
+;; 返回值
+;; ----
+;; (or string #f)
+;; 相对配置目录的文件路径，不存在时为 #f。
+
+(import (scheme base)
+  (liii check)
+  (liii list)
+  (liii path)
+  (liii pi code modes config state)
+) ;import
+
+(check-set-mode! 'report-failed)
+
+(define FIXTURE
+  (if (file-exists? "tools/pi/tests/fixtures/user-config")
+    "tools/pi/tests/fixtures/user-config"
+    "tests/fixtures/user-config"
+  ) ;if
+) ;define
+
+(define DIR (string-append FIXTURE "/config-tui"))
+
+(define st (pi-config-state DIR :env '()))
+
+(define (prov id)
+  (pi-config-provider st id)
+) ;define
+
+(check (pi-config-provider-file (prov "kimi-coding"))
+  =>
+  "models/kimi-coding.json"
+) ;check
+
+(check-report)

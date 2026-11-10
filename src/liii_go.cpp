@@ -156,18 +156,23 @@ private:
     s7_scheme*  worker_sc= s7_init ();
     std::string lib_dir  = get_goldfish_lib_dir ();
     if (!lib_dir.empty ()) {
-      s7_add_to_load_path (worker_sc, lib_dir.c_str ());
+      add_goldfish_load_paths (worker_sc, lib_dir.c_str ());
     }
     glue_for_community_edition (worker_sc);
     if (!lib_dir.empty ()) {
-      namespace fs      = std::filesystem;
-      fs::path boot_path= fs::path (lib_dir) / "scheme" / "boot.scm";
+      namespace fs= std::filesystem;
+      // boot.scm 位于 R7RS 板块（r7rs/scheme/）：安装布局为 <lib_dir>/r7rs/，
+      // 源码布局为 <lib_dir>/../r7rs/。
+      fs::path boot_path= fs::path (lib_dir) / "r7rs" / "scheme" / "boot.scm";
+      if (!fs::exists (boot_path)) {
+        boot_path= fs::path (lib_dir).parent_path () / "r7rs" / "scheme" / "boot.scm";
+      }
       if (fs::exists (boot_path)) {
         s7_load (worker_sc, boot_path.string ().c_str ());
       }
     }
     else {
-      s7_load (worker_sc, "scheme/boot.scm");
+      s7_load (worker_sc, "r7rs/scheme/boot.scm");
     }
     s7_eval_c_string (worker_sc, "(import (scheme base) (scheme time) (liii base) (liii go))");
     // 错误处理闭包定义一次并锚定在 rootlet，避免每个任务重建及被 GC 回收

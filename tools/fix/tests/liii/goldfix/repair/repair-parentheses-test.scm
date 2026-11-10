@@ -1,9 +1,22 @@
+;; repair-parentheses
+;; 按可信缩进修正缺失或多余的右括号，返回修正后的源码与 repair-report 记录。
+;;
+;; 语法
+;; ----
+;; (repair-parentheses source)
+;;
+;; 参数
+;; ----
+;; source : string? 源码文本
+;;
+;; 返回值
+;; ------
+;; values
+;; 第一个值为修正后的源码字符串，第二个值为 repair-report 记录。
+
 (import (liii check) (liii goldfix) (liii goldfix record))
 
 (check-set-mode! 'report-failed)
-
-;; repair-parentheses
-;; 返回修正后的 source 和 repair-report。
 
 (call-with-values (lambda () (repair-parentheses "(define x 1"))
   (lambda (repaired report)

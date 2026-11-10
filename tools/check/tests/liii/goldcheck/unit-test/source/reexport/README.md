@@ -11,8 +11,7 @@ bin/gf doc "函数名"
 
 ## 函数分类索引
 
-### 一、基础路径与定义库查找
-- `find-base-for-source-path` - 查找源码文件所在的库基准目录
+### 一、定义库查找
 - `find-defining-library-test-dir` - 查找符号定义库对应的测试目录
 - `find-imported-export-for-stem` - 根据测试名主干查找对应的导入导出符号及目标目录
 

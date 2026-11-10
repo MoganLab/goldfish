@@ -25,13 +25,14 @@
     (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck unit-test source parse)
+    (liii goldcheck unit-test source exports)
     (liii goldcheck unit-test source reexport)
   ) ;import
   (export exported-name->test-stem find-library-source-for-test-dir
     extract-library-exports extract-library-defined-exports
     extract-library-reexported-entries check-missing-exported-tests
     check-reexported-tests check-reexported-test-file file-defines-library?
-    find-test-dir-for-library-source
+    find-test-dir-for-library-source hint-source-path?
   ) ;export
   (begin
 
@@ -45,6 +46,7 @@
             ((string=? name "<=") "le")
             ((string=? name ">") "gt")
             ((string=? name ">=") "ge")
+            ((string=? name "$") "dollar")
             (else #f)
       ) ;cond
     ) ;define
@@ -68,6 +70,9 @@
        ((string-starts-at? name index "<=") (cons "-le" 2))
        ((char=? (string-ref name index) #\?) (cons "-p" 1))
        ((char=? (string-ref name index) #\!) (cons "-bang" 1))
+       ((char=? (string-ref name index) #\:)
+        (cons (if (= (+ index 1) name-length) "-colon" "-colon-") 1)
+       ) ;
        ((char=? (string-ref name index) #\/)
         (cons (if (= (+ index 1) name-length) "-slash" "-slash-") 1)
        ) ;
@@ -115,16 +120,44 @@
       ) ;if
     ) ;define
 
-    (define (find-tests-library-source norm)
-      (if (string-starts? norm "tests/")
-        (let* ((parts (string-split norm "/"))
-               (subpath (string-join (cdr parts) "/"))
-               (candidate (resolve-repo-file (string-append "goldfish/" subpath ".scm")))
-              ) ;
-          (if (path-file? (path candidate)) candidate #f)
-        ) ;let*
+    (define (%find-legacy-tests-source norm)
+      (if (not (string-starts? norm "tests/"))
         #f
+        (let* ((rest (string-split norm "/"))
+               (sub
+                 (if (and (pair? rest) (string=? (car rest) "tests")) (cdr rest) rest)
+               ) ;sub
+               (c1 (resolve-repo-file (string-append "goldfish/" (string-join sub "/") ".scm"))
+               ) ;c1
+               (c2 (resolve-repo-file (string-append (string-join sub "/") ".scm")))
+              ) ;
+          (cond ((path-file? (path c1)) c1)
+                ((path-file? (path c2)) c2)
+                (else #f)
+          ) ;cond
+        ) ;let*
       ) ;if
+    ) ;define
+
+    (define (find-tests-library-source norm)
+      (let loop
+        ((ds (gfproject-domains-list)))
+        (if (null? ds)
+          (%find-legacy-tests-source norm)
+          (let* ((d (car ds)) (tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
+            (if (not (string-starts? norm prefix))
+              (loop (cdr ds))
+              (let* ((sub (substring norm (string-length prefix) (string-length norm)))
+                     (cand
+                       (resolve-repo-file (string-append (cdr (assq 'root d)) sub ".scm"))
+                     ) ;cand
+                    ) ;
+                (if (path-file? (path cand)) cand (loop (cdr ds)))
+              ) ;let*
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (find-fixture-library-source parent)
@@ -200,15 +233,43 @@
       ) ;if
     ) ;define
 
+    (define (hint-source-path? norm)
+      ;; hint 目录（类型提示库）不参与库源码与测试目录的互推导。
+      (or (string-starts? norm "hint/") (string-contains? norm "/hint/"))
+    ) ;define
+
+    (define (%domain-match-test-dir norm d)
+      (let ((root (cdr (assq 'root d))))
+        (cond
+         ((and (not (string=? root "")) (string-starts? norm root))
+          (let ((sub (substring norm (string-length root) (- (string-length norm) 4)))
+                (tdir (cdr (assq 'tests d)))
+               ) ;
+            (resolve-repo-file (string-append tdir "/" sub))
+          ) ;let
+         ) ;
+         ((and (string=? root "") (not (string-contains? norm "/")))
+          (let ((sub (substring norm 0 (- (string-length norm) 4))))
+            (resolve-repo-file (string-append "tests/" sub))
+          ) ;let
+         ) ;
+         (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (find-tests-test-dir norm)
-      (if (and (string-starts? norm "goldfish/")
-            (not (string-starts? norm "goldfish/hint/"))
-            (string-ends? norm ".scm")
-          ) ;and
-        (let ((subpath (substring norm 9 (- (string-length norm) 4))))
-          (resolve-repo-file (string-append "tests/" subpath))
-        ) ;let
+      (if (or (hint-source-path? norm) (not (string-ends? norm ".scm")))
         #f
+        (let loop
+          ((ds (gfproject-domains-list)))
+          (if (null? ds)
+            #f
+            (let ((res (%domain-match-test-dir norm (car ds))))
+              (if res res (loop (cdr ds)))
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
@@ -234,7 +295,12 @@
                (rel (relativize-path src-path))
                (norm (normalize-sep rel))
               ) ;
-          (cond ((string-contains? norm-abs "/tests/") #f)
+          (cond ((or (string-contains? norm-abs "/tests/")
+                   (string-starts? norm "tests/")
+                   (string-contains? norm "/tests/")
+                 ) ;or
+                 #f
+                ) ;
                 ((find-tools-test-dir norm) => (lambda (p) p))
                 ((find-tests-test-dir norm) => (lambda (p) p))
                 ((find-fixture-test-dir src-path) => (lambda (p) p))
@@ -287,6 +353,7 @@
 
     (set-exported-name-to-test-stem-fn! exported-name->test-stem)
     (set-find-library-source-fn! find-library-source-for-test-dir)
+    (set-find-test-dir-fn! find-test-dir-for-library-source)
 
   ) ;begin
 ) ;define-library

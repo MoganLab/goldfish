@@ -1,3 +1,25 @@
+;; pi-build-system-prompt
+;; 组装系统提示词：preamble、工具、规则与追加区段的拼接与 override 静默。
+;;
+;; 语法
+;; ----
+;; (pi-build-system-prompt tools cwd project-context ...) -> string
+;;
+;; 参数
+;; ----
+;; tools : list
+;; 生效工具列表。
+;; cwd : string
+;; 工作目录。
+;; project-context : string | #f
+;; 项目上下文。
+;; 其余可选参数见函数签名（override、追加区段、技能等）。
+;;
+;; 返回值
+;; ------
+;; string
+;; 组装后的系统提示词。
+
 (import (liii check)
   (liii string)
   (liii json)
@@ -53,13 +75,14 @@
                 "Session Timeout: None (no wall-clock deadline configured)."
               ) ;string-contains?
   ) ;check-true
-  (check-true (string-contains? sp "Max Turns: Unlimited (no turn limit configured)."))
+  (check-true (string-contains? sp "Max Turns: Unlimited (no turn limit configured).")
+  ) ;check-true
   (check-true (string-contains? sp "Pacing: Pace your work accordingly."))
   (check-true (string-contains? sp "</session_budget>"))
 ) ;let
 
 ;; 未指定 CLI 参数和配置时，会话流程同样默认不限时长。
-(let ((sp (prepare-system-prompt '((tools . ("read"))) (parse-pi-args '()))))
+(let ((sp (prepare-system-prompt '((tools "read")) (parse-pi-args '()))))
   (check-true (string-contains? sp
                 "Session Timeout: None (no wall-clock deadline configured)."
               ) ;string-contains?

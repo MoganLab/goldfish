@@ -1,6 +1,19 @@
-(import (scheme base)
-        (liii check)
-        (liii pi agent queue))
+;; pi-queue
+;; 消息队列状态机聚合测试：验证入队/出队/完成流转
+;;
+;; 语法
+;; ----
+;; (pi-queue ...)
+;;
+;; 参数
+;; ----
+;; 见各断言场景：本测试按用例组织，覆盖典型入参。
+;;
+;; 返回值
+;; ------
+;; 见各断言场景：按被测函数实际返回值断言。
+
+(import (scheme base) (liii check) (liii pi agent queue))
 
 (check-set-mode! 'report-failed)
 
@@ -15,7 +28,8 @@
   (check (pi-queue-busy? q) => #f)
   (check (pi-queue-items q) => '())
   ;; 空队列无法消费出队
-  (check (pi-queue-dequeue-next! q) => #f))
+  (check (pi-queue-dequeue-next! q) => #f)
+) ;let
 
 ;; -----------------------------------------------------------------------------
 ;; 测试项 2: 发送消息先入等待队列，出队消费后转为 busy 状态
@@ -26,18 +40,22 @@
   (check (pi-queue-empty? q) => #f)
   (check (pi-queue-length q) => 1)
   (check (pi-queue-items q) => '("hello agent"))
-  (check (pi-queue-idle? q) => #t) ;; 此时任务尚未开始消费，调度器依然是 idle
+  (check (pi-queue-idle? q) => #t)
+  ;; 此时任务尚未开始消费，调度器依然是 idle
 
   ;; 调度器出队消费这条消息
   (let ((consumed (pi-queue-dequeue-next! q)))
     (check consumed => "hello agent")
     (check (pi-queue-empty? q) => #t)
     (check (pi-queue-length q) => 0)
-    (check (pi-queue-busy? q) => #t)  ;; 消费后转入 busy 状态
-    (check (pi-queue-idle? q) => #f))
+    (check (pi-queue-busy? q) => #t)
+    ;; 消费后转入 busy 状态
+    (check (pi-queue-idle? q) => #f)
+  ) ;let
 
   ;; 当前任务正在执行中 (busy)，不允许并发提前出队
-  (check (pi-queue-dequeue-next! q) => #f))
+  (check (pi-queue-dequeue-next! q) => #f)
+) ;let
 
 ;; -----------------------------------------------------------------------------
 ;; 测试项 3: 前序任务未完成时，新消息持续排队；前序任务完成后按序消费
@@ -76,7 +94,8 @@
   (pi-queue-finish-task! q)
   (check (pi-queue-idle? q) => #t)
   (check (pi-queue-busy? q) => #f)
-  (check (pi-queue-dequeue-next! q) => #f))
+  (check (pi-queue-dequeue-next! q) => #f)
+) ;let
 
 ;; -----------------------------------------------------------------------------
 ;; 测试项 4: 撤回等待队列中的所有消息 (Dequeue 回到输入框)
@@ -90,6 +109,8 @@
   (let ((restored (pi-queue-restore-all! q)))
     (check restored => '("task A" "task B"))
     (check (pi-queue-empty? q) => #t)
-    (check (pi-queue-length q) => 0)))
+    (check (pi-queue-length q) => 0)
+  ) ;let
+) ;let
 
 (check-report)

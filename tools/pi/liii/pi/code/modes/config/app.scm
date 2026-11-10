@@ -5,7 +5,7 @@
 ;;
 
 ;; `gf pi config`：ranger 风格三列配置浏览 TUI。
-;;   ← → 切换激活列，↑ ↓ 在列内移动，Tab 循环切列，g/G 首尾，q/Esc/Ctrl+C 退出。
+;;   ← → 切换激活列，↑ ↓ 在列内移动，Tab 循环切列，g/G 首尾，q/Esc 退出（Ctrl+C 关闭覆盖层或忽略）。
 ;;   space：启停（写 models/providers.json 或 models/<provider>.json）
 ;;   v：只读查看光标条目对应的配置文件（覆盖层）
 (define-library (liii pi code modes config app)
@@ -82,10 +82,8 @@
              ) ;c
             ) ;
         (cond
-          ;; 退出
-          ((or (eq? key 'escape) (eq? key 'ctrl-c) (equal? c "q"))
-           (list cursor active #t)
-          ) ;
+          ;; 退出：仅 q 与 escape
+          ((or (eq? key 'escape) (equal? c "q")) (list cursor active #t))
           ;; 纵向移动
           ((or (eq? key 'up) (equal? c "k"))
            (list
@@ -303,7 +301,7 @@
                    (reload!)
                   ) ;
                   (else
-                    (when (or (equal? c "q") (eq? key 'escape) (eq? key 'ctrl-c))
+                    (when (or (equal? c "q") (eq? key 'escape))
                       (set! exit-mode (if (equal? c "q") 'chat 'quit))
                     ) ;when
                     (let ((r (pi-config-key-handler st cursor active key)))

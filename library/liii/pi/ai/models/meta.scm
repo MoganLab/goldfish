@@ -1,0 +1,183 @@
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the MIT License
+;;
+
+(define-library (liii pi ai models meta)
+  (import (scheme base)
+    (scheme process-context)
+    (liii string)
+    (liii list)
+    (liii uri)
+    (liii pi ai template)
+    (liii pi ai config types)
+    (liii pi ai config record)
+    (liii pi ai models builtin)
+  ) ;import
+  (export pi-resolve-model-metadata)
+  (begin
+
+    (define (%dict-ref obj key default-val)
+      (if (not (pair? obj))
+        default-val
+        (let* ((str-key (if (symbol? key) (symbol->string key) key))
+               (sym-key (if (string? key) (string->symbol key) key))
+               (pair (or (assoc str-key obj) (assoc sym-key obj)))
+              ) ;
+          (if pair (cdr pair) default-val)
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%find-model-in-list models model-id)
+      (and (pair? models)
+        (find (lambda (model) (string=? (%dict-ref model "id" "") model-id)) models)
+      ) ;and
+    ) ;define
+
+    (define (%get-provider-models models-store provider)
+      (let ((raw-models (%dict-ref (%dict-ref models-store provider '()) "models" '())))
+        (cond ((vector? raw-models) (vector->list raw-models))
+              ((list? raw-models) raw-models)
+              (else '())
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 在 URI 层面比较两个 API base URL：
+    ;; - 空 path 与 "/"、显式默认端口与无端口视为等价（RFC 3986 6.2.3）
+    ;; - path 尾斜杠不敏感（API base URL 的尾斜杠无语义，属本模块的宽松策略）
+    (define (%url=? a b)
+      (let ((ua (uri-normalize (make-uri a))) (ub (uri-normalize (make-uri b))))
+        (uri=?
+          (uri-with-path ua (string-remove-suffix (or (uri-path ua) "") "/"))
+          (uri-with-path ub (string-remove-suffix (or (uri-path ub) "") "/"))
+        ) ;uri=?
+      ) ;let
+    ) ;define
+
+    (define (%apply-meta-env-overrides base-url context-window max-tokens opt-env provider)
+      (let* ((env-url
+               (or
+                 (and (string? provider)
+                   (string=? provider "deepseek")
+                   (or (lookup-env-var "DEEPSEEK_BASE_URL" opt-env)
+                     (let ((ant-url (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)))
+                       (and (string? ant-url) (string-contains? ant-url "deepseek") ant-url)
+                     ) ;let
+                   ) ;or
+                 ) ;and
+                 (and (string? provider)
+                   (or (string=? provider "zai-coding-cn") (string=? provider "zai"))
+                   (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
+                 ) ;and
+                 (and (string? provider)
+                   (string=? provider "minimax-cn")
+                   (or (lookup-env-var "MINIMAX_CN_BASE_URL" opt-env)
+                     (lookup-env-var "MINIMAX_BASE_URL" opt-env)
+                   ) ;or
+                 ) ;and
+                 (and (string? provider)
+                   (or (string=? provider "opencode") (string=? provider "opencode-go"))
+                   (or (lookup-env-var "OPENCODE_BASE_URL" opt-env)
+                     (lookup-env-var "OPENCODE_GO_BASE_URL" opt-env)
+                   ) ;or
+                 ) ;and
+                 (lookup-env-var "GF_PI_BASE_URL" opt-env)
+               ) ;or
+             ) ;env-url
+             (env-cw (lookup-env-var "GF_PI_CONTEXT_WINDOW" opt-env))
+             (env-mt (lookup-env-var "GF_PI_MAX_TOKENS" opt-env))
+             (final-url
+               (if (and (string? env-url) (not (string-null? env-url))) env-url base-url)
+             ) ;final-url
+             (final-cw (if (and (string? env-cw) (string->number env-cw))
+                         (string->number env-cw)
+                         context-window
+                       ) ;if
+             ) ;final-cw
+             (final-mt (if (and (string? env-mt) (string->number env-mt))
+                         (string->number env-mt)
+                         max-tokens
+                       ) ;if
+             ) ;final-mt
+            ) ;
+        (values final-url final-cw final-mt)
+      ) ;let*
+    ) ;define
+
+    (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
+      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
+             (is-ant? #f)
+             (is-kimi? (string=? p-str "kimi-coding"))
+             (is-glm? #f)
+             (is-ds? (string=? p-str "deepseek"))
+             (is-mm? (string=? p-str "minimax-cn"))
+             (is-zai? (or (string=? p-str "zai-coding-cn") (string=? p-str "zai")))
+             (is-opencode? (or (string=? p-str "opencode") (string=? p-str "opencode-go")))
+             (def-url (cond (is-ant? "https://api.anthropic.com")
+                            (is-kimi? "https://api.kimi.com/coding/v1")
+                            (is-glm? "https://open.bigmodel.cn/api/anthropic")
+                            (is-ds? "https://api.deepseek.com/anthropic")
+                            (is-mm? "https://api.minimaxi.com/anthropic")
+                            (is-zai? "https://open.bigmodel.cn/api/coding/paas/v4")
+                            (is-opencode? "https://opencode.ai/zen/go/v1")
+                            ((string=? p-str "ollama") "http://localhost:11434/v1")
+                            (else "https://generativelanguage.googleapis.com/v1beta")
+                      ) ;cond
+             ) ;def-url
+             (m
+               (or (%find-model-in-list (%get-provider-models models-store p-str) model-id)
+                 (and (or is-mm? is-zai? is-opencode?)
+                   (%find-model-in-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()) model-id)
+                 ) ;and
+               ) ;or
+             ) ;m
+             (raw-url (if m (%dict-ref m "baseUrl" def-url) def-url))
+             (norm-url
+               (cond ((and is-kimi? (%url=? raw-url "https://api.kimi.com/coding"))
+                      "https://api.kimi.com/coding/v1"
+                     ) ;
+                     ((and is-ds? (%url=? raw-url "https://api.deepseek.com"))
+                      "https://api.deepseek.com/anthropic"
+                     ) ;
+                     (else raw-url)
+               ) ;cond
+             ) ;norm-url
+             (def-cw (cond (is-ant? 200000)
+                           (is-kimi? 262144)
+                           (is-mm? 1000000)
+                           (is-zai? 1000000)
+                           (is-opencode? 1000000)
+                           (else 128000)
+                     ) ;cond
+             ) ;def-cw
+             (def-mt (cond (is-ant? 8192)
+                           (is-kimi? 8192)
+                           (is-glm? 8192)
+                           (is-ds? 8192)
+                           (is-mm? 512000)
+                           (is-zai? 131072)
+                           (is-opencode? 131072)
+                           (else 16384)
+                     ) ;cond
+             ) ;def-mt
+             (cw (if m (%dict-ref m "contextWindow" def-cw) def-cw))
+             (mt (if m (%dict-ref m "maxTokens" def-mt) def-mt))
+            ) ;
+        (let-values (((f-url f-cw f-mt) (%apply-meta-env-overrides norm-url cw mt opt-env p-str)))
+          (%make-pi-model-metadata model-id
+            (if m (%dict-ref m "name" model-id) model-id)
+            p-str
+            f-url
+            f-cw
+            f-mt
+            (if m #t #f)
+          ) ;%make-pi-model-metadata
+        ) ;let-values
+      ) ;let*
+    ) ;define
+
+  ) ;begin
+) ;define-library

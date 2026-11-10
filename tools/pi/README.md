@@ -251,7 +251,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 ├──────────────────────────────┤
 │ 输入区（多行，busy 时显示动画） │
 ├──────────────────────────────┤
-│ 页脚（路径/分支、用量、模型）   │
+│ 页脚（路径/分支、用量、上下文占比、模型）│
 └──────────────────────────────┘
 ```
 
@@ -286,12 +286,14 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 - **硬退出不消费**：ESC 中止、请求 error/aborted、max-turns、会话超时
   结算时不轮询任何队列，消息保留在通道里，由下一个任务继续消费。
 - **待处理区**：busy 时输入区上方分组展示全部排队消息
-  （`Steering: ...` / `Follow-up: ...`）与撤回提示；worker 消费时
+  （两空格缩进的 dim 行 `Steering: ...` / `Follow-up: ...`，无方括号与 `Queued` 前缀）
+  与撤回提示行 `↳ Option+Up to edit all queued messages`（Linux/Windows 下显示
+  `↳ Alt+Up to edit all queued messages`）；worker 消费时
   上屏正式用户卡片并同步移除待处理项。
 - **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
   按 steering → follow-up 顺序合并回输入框。
 
-#### Windows 键位说明（任务 1197、1319）
+#### Windows 键位说明（任务 1197、1316、1319）
 
 Windows 控制台层（`src/liii_os.cpp` 的 `pump_console_input`）已为
 Alt+方向键/Home/End/PageUp/PageDown/Delete/Insert 保留 Alt 修饰位，
@@ -311,6 +313,7 @@ pty 路径（`ESC[1;3A` 等 CSI 序列）行为一致：
     「设置 → 操作」中重新绑定 `Alt+Enter` 为切换全屏，或直接编辑 `settings.json` 删除该条 `unbound` 配置。
   - 用户若选择拒绝，程序仍可正常启动，`Alt+Enter` 将继续触发终端全屏切换。
 - `Ctrl+Alt+方向键` 按优先级识别为 `Ctrl` 语义（沿用 Ctrl 码段）。
+- `Ctrl+C` 在 Windows Terminal、conhost、Git Bash (mintty) 下统一为清空输入框/中断语义，不再直接退出进程；退出请使用 `Ctrl+D`（输入框为空时）。
 
 实现分层：`(liii pi agent queue)` 提供 `pi-pending-queue` 双粒度队列；
 `(liii pi agent loop)` 的 `run-agent-loop` 经 config 的

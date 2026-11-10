@@ -1,4 +1,19 @@
+;; changed-files-since
+;; 收集自指定修订以来的变更文件
 ;; (liii path)/(liii list)/(liii sys) 属核心库，无需额外 load-path 条目即可导入。
+
+;; 语法
+;; ----
+;; (changed-files-since rev)
+
+;; 参数
+;; ----
+;; rev : string?，git 修订基准
+
+;; 返回值
+;; ------
+;; list of string，变更文件列表
+
 (import (liii path) (liii list) (liii sys))
 
 ;; load-path 条目以本测试文件自身位置为锚点绝对化：

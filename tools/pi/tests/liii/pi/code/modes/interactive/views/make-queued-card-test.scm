@@ -29,16 +29,19 @@
        (lines (component-render queued-card w))
       ) ;
   (check (component? queued-card) => #t)
-  (check (string-contains? (car lines) "Queued") => #t)
+  (check-false (string-contains? (car lines) "Queued"))
+  (check-false (string-contains? (strip-ansi (car lines)) "["))
+  (check-false (string-contains? (strip-ansi (car lines)) "]"))
   (check (string-contains? (car lines) "等待执行的后续指令") => #t)
   (check (string-contains? (car lines) "38;2;126;136;142") => #t)
+  (check (map strip-ansi lines) => '("  等待执行的后续指令"))
   (check (eq? lines (component-render queued-card w)) => #t)
   (check-false (eq? lines (component-render queued-card 20)))
 ) ;let*
 
 (check (map strip-ansi (component-render (make-queued-card "before\x1b;cafter") 80))
   =>
-  '("  ↳ [Queued: beforeafter]")
+  '("  beforeafter")
 ) ;check
 
 (check-report)
