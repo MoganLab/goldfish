@@ -55,6 +55,12 @@
       }
     ],
     "unit-test": [],
+    "define-record-type": [
+      {
+        "path": "r7rs/hint/scheme/base.scm",
+        "reason": "包含用于查询 hint 的符号 define-record-type"
+      }
+    ],
     "no-glue": [
       "bench/",
       "r7rs/scheme/boot.scm",
@@ -125,6 +131,10 @@
       {
         "path": "r7rs/scheme/base.scm",
         "reason": "R7RS 基础库聚合与核心导出定义"
+      },
+      {
+        "path": "r7rs/hint/scheme/base.scm",
+        "reason": "R7RS 基础库全量导出类型接口"
       },
       {
         "path": "r7rs/scheme/char.scm",

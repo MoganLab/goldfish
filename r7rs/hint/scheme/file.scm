@@ -20,12 +20,34 @@
   (export hint-scheme/file)
   (begin
 
-    ;; open-input-file : (string? -> input-port?)
+    ;; 文件端口打开
     (define hint-open-input-file '((string? -> input-port?)))
+    (define hint-open-output-file '((string? -> output-port?)))
+    (define hint-open-binary-input-file '((string? -> input-port?)))
+    (define hint-open-binary-output-file '((string? -> output-port?)))
+
+    ;; 文件操作与判断
+    (define hint-file-exists? '((string? -> boolean?)))
+    (define hint-delete-file '((string? -> any?)))
+
+    ;; 端口作用域与重定向
+    (define hint-call-with-input-file '((string? procedure? -> any?)))
+    (define hint-call-with-output-file '((string? procedure? -> any?)))
+    (define hint-with-input-from-file '((string? procedure? -> any?)))
+    (define hint-with-output-to-file '((string? procedure? -> any?)))
 
     (define (hint-scheme/file name)
       (case name
        ((open-input-file) hint-open-input-file)
+       ((open-output-file) hint-open-output-file)
+       ((open-binary-input-file) hint-open-binary-input-file)
+       ((open-binary-output-file) hint-open-binary-output-file)
+       ((file-exists?) hint-file-exists?)
+       ((delete-file) hint-delete-file)
+       ((call-with-input-file) hint-call-with-input-file)
+       ((call-with-output-file) hint-call-with-output-file)
+       ((with-input-from-file) hint-with-input-from-file)
+       ((with-output-to-file) hint-with-output-to-file)
        (else #f)
       ) ;case
     ) ;define

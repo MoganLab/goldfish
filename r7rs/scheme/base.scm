@@ -180,8 +180,6 @@
     bytevector-advance-utf8
     ;; Input and Output
     call-with-port
-    call-with-input-file
-    call-with-output-file
     input-port?
     output-port?
     port?
@@ -192,8 +190,6 @@
     current-input-port
     current-output-port
     current-error-port
-    open-input-file
-    open-output-file
     close-port
     close-input-port
     close-output-port
@@ -222,8 +218,6 @@
     eof-object?
     eof-object
     char-ready?
-    with-input-from-file
-    with-output-to-file
     ;; Control flow
     procedure?
     apply
@@ -1274,7 +1268,7 @@
     ;; 0-clause BSD
     ;; Bill Schottstaedt
     ;; from S7 source repo: r7rs.scm
-    (define* (vector->string v (start 0) end)
+    (define* (vector->string v (start 0) (end #f))
       (if (null? v)
         ""
         (if (not (vector? v))
@@ -1311,7 +1305,7 @@
     ;; 0-clause BSD
     ;; Bill Schottstaedt
     ;; from S7 source repo: r7rs.scm
-    (define* (string->vector s (start 0) end)
+    (define* (string->vector s (start 0) (end #f))
       (if (not (or (string? s) (vector? s) (list? s) (bytevector? s)))
         (error 'type-error "string->vector: first argument must be a sequence")
         (let ((stop (or end (length s))))
