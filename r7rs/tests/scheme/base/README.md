@@ -100,6 +100,7 @@ gf doc scheme/base "函数名"
 - `port?` - 是否为端口
 - `input-port?` - 是否为输入端口
 - `output-port?` - 是否为输出端口
+- `port-open?` - 端口是否打开
 - `input-port-open?` - 输入端口是否打开
 - `output-port-open?` - 输出端口是否打开
 - `eof-object?` - 是否为文件结束对象
