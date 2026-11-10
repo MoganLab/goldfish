@@ -28,11 +28,23 @@
 
     ;; xcons : (any? any? -> pair?)
     (define hint-xcons '((any? any? -> pair?)))
-
     ;; cons* : 可变参数；单参返回该值本身，多参返回点对
     (define hint-cons*
       '((any? -> any?) (any? any? -> pair?) (any? any? any? -> pair?))
     ) ;define
+
+    ;; 谓词
+    ;; circular-list? : (any? -> boolean?)
+    (define hint-circular-list? '((any? -> boolean?)))
+
+    ;; proper-list? : (any? -> boolean?)
+    (define hint-proper-list? '((any? -> boolean?)))
+
+    ;; dotted-list? : (any? -> boolean?)
+    (define hint-dotted-list? '((any? -> boolean?)))
+
+    ;; null-list? : (any? -> boolean?)
+    (define hint-null-list? '((any? -> boolean?)))
 
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
@@ -45,6 +57,10 @@
 
     (define (hint-srfi/srfi-1 name)
       (case name
+       ((circular-list?) hint-circular-list?)
+       ((proper-list?) hint-proper-list?)
+       ((dotted-list?) hint-dotted-list?)
+       ((null-list?) hint-null-list?)
        ((xcons) hint-xcons)
        ((cons*) hint-cons*)
        ((every) hint-every)
