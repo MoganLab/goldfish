@@ -419,6 +419,7 @@
 #include "s7_module.h"
 #include "s7_dtoa.h"
 #include "s7_scheme_let.h"
+#include "s7_scheme_file.h"
 #include "s7_op_names.h"
 #include "s7_ctables.h"
 #include "s7_stacktrace.h"
@@ -18228,111 +18229,7 @@ int32_t s7i_remember_file_name(s7_scheme *sc, const char *file)
   return(sc->file_names_top);
 }
 
-#ifndef MAX_SIZE_FOR_FILE_TO_STRING_PORT_CONVERSION
-  #define MAX_SIZE_FOR_FILE_TO_STRING_PORT_CONVERSION 10000000
-  /* I'd add this to *s7* but it doesn't make much difference unless you're reading a large text file */
-#endif
-
-static s7_pointer make_input_file(s7_scheme *sc, const char *name, FILE *fp)
-{
-  return(read_file(sc, fp, name, MAX_SIZE_FOR_FILE_TO_STRING_PORT_CONVERSION, "open"));
-}
-
-
-#if !MS_WINDOWS
-#include <sys/stat.h>
-#endif
-
-static bool is_directory(const char *filename)
-{
-#if !MS_WINDOWS
-  #ifdef S_ISDIR
-    struct stat statbuf;
-    return((stat(filename, &statbuf) >= 0) &&
-	   (S_ISDIR(statbuf.st_mode)));
-  #endif
-#endif
-  return(false);
-}
-
-static block_t *expand_filename(s7_scheme *sc, const char *name)
-{
-#if WITH_GCC
-  if ((name[0] == '~') && (name[1] == '/'))    /* catch one special case, "~/..." */
-    {
-      char *home = getenv("HOME");
-      if (home)
-	{
-	  s7_int len = safe_strlen(name) + safe_strlen(home) + 1;
-	  block_t *b = mallocate(sc, len);
-	  char *filename = (char *)block_data(b);
-	  filename[0] = '\0';
-	  catstrs(filename, len, home, (const char *)(name + 1), (char *)NULL);
-	  return(b);
-	}}
-#endif
-  return(NULL);
-}
-
-static s7_pointer open_input_file_1(s7_scheme *sc, const char *name, const char *mode, const char *caller)
-{
-  FILE *fp;
-#if WITH_GCC
-  block_t *b;
-#endif
-  /* see if we can open this file before allocating a port */
-  if (is_directory(name))
-    file_error_nr(sc, caller, "file is a directory:", name);
-  errno = 0;
-  fp = fopen(name, mode);
-  if (fp)
-    return(make_input_file(sc, name, fp));
-
-#if !MS_WINDOWS
-  if (errno == EINVAL)
-    file_error_nr(sc, caller, "invalid mode", mode);
-#if WITH_GCC
-  if ((!name) || (!*name))
-    file_error_nr(sc, caller, strerror(errno), name);
-  b = expand_filename(sc, name);
-  if (b)
-    {
-      char *new_name = (char *)block_data(b);
-      fp = fopen(new_name, mode);
-      liberate(sc, b);
-      if (fp)
-	return(make_input_file(sc, name, fp));
-    }
-#endif
-#endif
-  file_error_nr(sc, caller, strerror(errno), name);
-  return(sc->io_error_symbol);
-}
-
-s7_pointer s7_open_input_file(s7_scheme *sc, const char *name, const char *mode)
-{
-  return(open_input_file_1(sc, name, mode, "open-input-file"));
-}
-
-static s7_pointer g_open_input_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_open_input_file "(open-input-file filename (mode \"r\")) opens filename for reading"
-  #define Q_open_input_file s7_make_signature(sc, 3, sc->is_input_port_symbol, sc->is_string_symbol, sc->is_string_symbol)
-
-  const s7_pointer name = car(args);
-  /* open-input-file can create a new output file if the file to be opened does not exist, and the "a" mode is given */
-  if (!is_string(name))
-    return(method_or_bust(sc, name, sc->open_input_file_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_pair(cdr(args)))
-    return(open_input_file_1(sc, string_value(name), "r", "open-input-file"));
-  {
-    s7_pointer mode = cadr(args);
-    if (!is_string(mode))
-      return(method_or_bust(sc, mode, sc->open_input_file_symbol, args, wrap_string(sc, "a string (a mode such as \"r\")", 29), 2));
-    /* since scheme allows embedded nulls, dumb stuff is accepted here: (open-input-file file "a\x00b") -- should this be an error? */
-    return(open_input_file_1(sc, string_value(name), string_value(mode), "open-input-file"));
-  }
-}
+/* open-input-file moved to s7_scheme_file.c */
 
 static void close_stdin(s7_scheme *sc, s7_pointer port) {return;}
 static void close_stdout(s7_scheme *sc, s7_pointer port) {return;}
@@ -18416,59 +18313,10 @@ static void init_standard_ports(s7_scheme *sc)
 static const port_functions_t output_file_functions =
   {output_read_char, file_write_char, file_write_string, NULL, NULL, NULL, NULL, output_read_line, file_display, close_output_file};
 
-s7_pointer s7_open_output_file(s7_scheme *sc, const char *name, const char *mode)
-{
-  FILE *fp;
-  s7_pointer port;
-  block_t *block, *b;
-  /* see if we can open this file before allocating a port */
+const port_functions_t *s7i_output_file_functions(void) {return(&output_file_functions);}
+void s7i_file_error_nr(s7_scheme *sc, const char *caller, const char *descr, const char *name) {file_error_nr(sc, caller, descr, name);}
 
-  errno = 0;
-  fp = fopen(name, mode);
-  if (!fp)
-    {
-#if !MS_WINDOWS
-      if (errno == EINVAL)
-	file_error_nr(sc, "open-output-file", "invalid mode", mode);
-#endif
-      file_error_nr(sc, "open-output-file", strerror(errno), name);
-    }
-  new_cell(sc, port, T_OUTPUT_PORT);
-  b = mallocate_port(sc);
-  port_block(port) = b;
-  port_port(port) = (port_t *)block_data(b);
-  port_type(port) = file_port;
-  port_set_closed(port, false);
-  port_filename_length(port) = safe_strlen(name);
-  port_set_filename(sc, port, name, port_filename_length(port));
-  port_line_number(port) = 1;
-  port_file_number(port) = 0;
-  port_file(port) = fp;
-  port_needs_free(port) = true;  /* hmm -- I think these are freed via s7_close_output_port -> close_output_port */
-  port_position(port) = 0;
-  port_data_size(port) = sc->output_file_port_length;
-  block = mallocate(sc, sc->output_file_port_length);
-  port_data_block(port) = block;
-  port_data(port) = (uint8_t *)(block_data(block));
-  port_port(port)->pf = &output_file_functions;
-  add_output_port(sc, port);
-  return(port);
-}
-
-static s7_pointer g_open_output_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_open_output_file "(open-output-file filename (mode \"w\")) opens filename for writing"
-  #define Q_open_output_file s7_make_signature(sc, 3, sc->is_output_port_symbol, sc->is_string_symbol, sc->is_string_symbol)
-
-  const s7_pointer name = car(args);
-  if (!is_string(name))
-    return(method_or_bust(sc, name, sc->open_output_file_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_pair(cdr(args)))
-    return(s7_open_output_file(sc, string_value(name), "w"));
-  if (!is_string(cadr(args)))
-    return(method_or_bust(sc, cadr(args), sc->open_output_file_symbol, args, wrap_string(sc, "a string (a mode such as \"w\")", 29), 2));
-  return(s7_open_output_file(sc, string_value(name), string_value(cadr(args))));
-}
+/* open-output-file moved to s7_scheme_file.c */
 
 
 /* -------------------------------- open-input-string -------------------------------- */

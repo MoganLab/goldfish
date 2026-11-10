@@ -542,4 +542,6 @@ int32_t s7i_T_INTEGER(void);
 int32_t s7i_T_RATIO(void);
 int32_t s7i_T_STRING(void);
 
+void s7i_file_error_nr(s7_scheme *sc, const char *caller, const char *descr, const char *name);
+
 #endif /* S7_INTERNAL_HELPERS_H */
