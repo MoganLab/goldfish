@@ -65,6 +65,9 @@
     (define hint-reverse '((list? -> list?)))
     (define hint-vector->list '((vector? -> list?)))
 
+    ;; list-copy : (list? -> list?)，副本不与原表共享尾部
+    (define hint-list-copy '((list? -> list?)))
+
     ;; apply 的可变中间参数暂不能表达；登记无中间参数的形式。
     (define hint-apply '((procedure? list? -> any?)))
 
@@ -175,6 +178,7 @@
        ((append) hint-append)
        ((map) hint-map)
        ((vector->list) hint-vector->list)
+       ((list-copy) hint-list-copy)
        ((symbol->string) hint-symbol->string)
        ((string=?) hint-string=?)
        ((string-length) hint-string-length)
