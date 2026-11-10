@@ -16,9 +16,10 @@
 ;; 说明
 ;; ----
 ;; 验证在 pi-queue 繁忙状态下：
-;; 1. Alt+Enter 将消息作为 follow-up 提交并清空编辑器；
+;; 1. 非 Windows 的 Alt+Enter 与 Windows 的 Alt+Q 将消息作为 follow-up 提交并清空编辑器；
 ;; 2. 普通 Enter 仍然作为 steering 提交；
-;; 3. Shift+Enter 仅插入换行而不提交。
+;; 3. Shift+Enter 仅插入换行而不提交；
+;; 4. Windows 不再把 Alt+Enter 当作 follow-up，非 Windows 不使用 Alt+Q。
 
 (import (scheme base)
   (liii list)
@@ -43,7 +44,7 @@
       ) ;
   (pi-queue-set-busy! (pi-app-queue app))
   (editor-set-text! ed "等结束后总结")
-  (check (pi-app-handle-input! app 'alt-enter) => #t)
+  (check (pi-app-handle-input! app 'alt-enter #f) => #t)
   ;; follow-up 显示列表与通道就位；steering 不受影响
   (check (%pi-app-follow-up-pending app) => '("等结束后总结"))
   (check (%pi-app-steering-pending app) => '())
@@ -67,7 +68,7 @@
   (check (%pi-app-steering-pending app) => '("插话"))
   ;; alt+enter
   (editor-set-text! ed "排后面")
-  (check (pi-app-handle-input! app 'alt-enter) => #t)
+  (check (pi-app-handle-input! app 'alt-enter #f) => #t)
   (check (%pi-app-steering-pending app) => '("插话"))
   (check (%pi-app-follow-up-pending app) => '("排后面"))
 ) ;let*
@@ -86,7 +87,7 @@
        (ed (pi-app-editor app))
       ) ;
   (editor-set-text! ed "新任务")
-  (check (pi-app-handle-input! app 'alt-enter) => #t)
+  (check (pi-app-handle-input! app 'alt-enter #f) => #t)
   (check processed => '("新任务"))
   (check (pi-queue-idle? (pi-app-queue app)) => #t)
   (check (%pi-app-follow-up-pending app) => '())
@@ -99,7 +100,7 @@
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
       ) ;
   (pi-queue-set-busy! (pi-app-queue app))
-  (check (pi-app-handle-input! app 'alt-enter) => #t)
+  (check (pi-app-handle-input! app 'alt-enter #f) => #t)
   (check (%pi-app-follow-up-pending app) => '())
   (check (pi-queue-length (pi-app-queue app)) => 0)
 ) ;let*
@@ -166,6 +167,35 @@
   (check (editor-text ed) => "第一行\n")
   (check (editor-cursor ed) => '(1 0))
   (check submitted => #f)
+) ;let*
+
+;; -----------------------------------------------------------------------------
+;; 测试项 8: Windows 使用 alt+q；alt+enter 与非 Windows 的 alt+q 均不排队
+;; -----------------------------------------------------------------------------
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (ed (pi-app-editor app))
+      ) ;
+  (pi-queue-set-busy! (pi-app-queue app))
+  (editor-set-text! ed "Windows 后续任务")
+  (check (pi-app-handle-input! app 'alt-q #t) => #t)
+  (check (%pi-app-follow-up-pending app) => '("Windows 后续任务"))
+  (check (editor-text ed) => "")
+  (editor-set-text! ed "不触发")
+  (pi-app-handle-input! app 'alt-enter #t)
+  (check (%pi-app-follow-up-pending app) => '("Windows 后续任务"))
+  (check (editor-text ed) => "不触发")
+) ;let*
+
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (ed (pi-app-editor app))
+      ) ;
+  (pi-queue-set-busy! (pi-app-queue app))
+  (editor-set-text! ed "非 Windows 草稿")
+  (pi-app-handle-input! app 'alt-q #f)
+  (check (%pi-app-follow-up-pending app) => '())
+  (check (editor-text ed) => "非 Windows 草稿")
 ) ;let*
 
 (check-report)

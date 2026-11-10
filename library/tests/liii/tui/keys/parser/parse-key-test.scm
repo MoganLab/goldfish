@@ -181,6 +181,7 @@
 
 ;; Alt + 字符 / 键
 (check (parse-key "\x1b;a") => 'alt-a)
+(check (parse-key "\x1b;q") => 'alt-q)
 (check (parse-key "\x1b;B") => 'alt-B)
 (check (parse-key "\x1b;1") => 'alt-1)
 (check (parse-key "\x1b;\r") => 'alt-enter)

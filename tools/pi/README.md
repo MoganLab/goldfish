@@ -267,7 +267,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 | `ESC` | busy 时中断任务并把排队消息撤回到输入框；空闲时撤回排队消息到输入框 |
 | `Alt+Up` | 仅把排队消息（steering / follow-up）撤回到输入框，不中断运行中任务 |
 | `Enter`（busy 时） | steering：插话注入当前运行中的任务（工具批次结束后、下次请求前生效） |
-| `Alt+Enter` | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
+| `Option+Enter`（macOS）/ `Alt+Enter`（Linux）/ `Alt+Q`（Windows） | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
 | `Ctrl+O` | 展开/折叠工具与 bash 输出 |
 | `Ctrl+V` | 读取外部系统剪贴板并粘贴到输入框（Linux 支持 Wayland/X11） |
 | `Shift+Tab` | 循环切换 thinking level |
@@ -281,7 +281,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
   `run-agent-loop` 在**当前 assistant 轮的全部工具调用结束后、下一次 LLM
   请求前**注入为 user 消息；一次轮询注入一条（one-at-a-time），
   多条排队消息在后续轮次依次注入。
-- **follow-up（busy 时 `Alt+Enter`）**：消息在任务**自然结束**（无更多
+- **follow-up（busy 时 macOS 用 `Option+Enter`，Linux 用 `Alt+Enter`，Windows 用 `Alt+Q`）**：消息在任务**自然结束**（无更多
   工具调用且无 steering）时才注入并驱动新一轮，然后继续。
 - **硬退出不消费**：ESC 中止、请求 error/aborted、max-turns、会话超时
   结算时不轮询任何队列，消息保留在通道里，由下一个任务继续消费。
@@ -293,18 +293,16 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 - **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
   按 steering → follow-up 顺序合并回输入框。
 
-#### Windows 键位说明（任务 1197、1316）
+#### Windows 键位说明（任务 1197、1316、1319）
 
 Windows 控制台层（`src/liii_os.cpp` 的 `pump_console_input`）已为
 Alt+方向键/Home/End/PageUp/PageDown/Delete/Insert 保留 Alt 修饰位，
 编码为 DOS 101 键扩展码表的 Alt 行专属码，与 Linux/macOS 的
 pty 路径（`ESC[1;3A` 等 CSI 序列）行为一致：
 
-- `Alt+Up` / `Alt+Enter` 在 Windows Terminal、conhost 上均可正常使用。
-- 部分 Windows 终端自身把 `Alt+Enter` 绑定为「全屏切换」快捷键：
-  若按 `Alt+Enter` 后 pi 无响应而终端窗口全屏切换，请在终端设置中
-  取消该快捷键，或改用其他终端（如 Windows Terminal 可在
-  「设置 → 操作」中解除 `Alt+Enter` 绑定）。
+- `Alt+Up` 与 follow-up 快捷键 `Alt+Q` 在 Windows Terminal、conhost 上使用。
+- 为避免部分 Windows 终端将 `Alt+Enter` 用作全屏切换，Windows 的 follow-up
+  使用 `Alt+Q`；macOS 仍使用 `Option+Enter`，Linux 仍使用 `Alt+Enter`。
 - `Ctrl+Alt+方向键` 按优先级识别为 `Ctrl` 语义（沿用 Ctrl 码段）。
 - `Ctrl+C` 在 Windows Terminal、conhost、Git Bash (mintty) 下统一为清空输入框/中断语义，不再直接退出进程；退出请使用 `Ctrl+D`（输入框为空时）。
 

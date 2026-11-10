@@ -33,6 +33,7 @@
     (liii date-time)
     (liii string)
     (liii list)
+    (liii os)
     (liii tui)
     (liii pi agent queue)
     (liii pi code core session-stats)
@@ -117,15 +118,15 @@
 
     ;; 输入分发：命令菜单激活时处理选择键，其余输入仍交给编辑器；
     ;; thinking 选择器优先，与既有主循环行为一致；
-    ;; alt+enter：排队 follow-up（busy 时等运行结束，空闲时等同回车），
-    ;; 对齐上游 app.message.followUp 键位
-    (define (pi-app-handle-input! app key)
+    ;; Windows 使用 alt+q，其他平台使用 alt+enter 排队 follow-up；
+    ;; busy 时等运行结束，空闲时等同回车。
+    (define* (pi-app-handle-input! app key (is-windows (os-windows?)))
       (let ((selector (pi-app-active-selector app))
             (menu (pi-app-slash-command-menu app))
             (ed (pi-app-editor app))
            ) ;
         (cond (selector (component-handle-input selector key))
-              ((and (eq? key 'alt-enter) (not menu))
+              ((and (eq? key (if is-windows 'alt-q 'alt-enter)) (not menu))
                (let ((text (string-trim (editor-expanded-text ed))))
                  (unless (string-null? text)
                    ;; 与编辑器原生提交同步：入历史 + 清空输入框
@@ -147,7 +148,7 @@
               (else (component-handle-input ed key))
         ) ;cond
       ) ;let
-    ) ;define
+    ) ;define*
 
     ;; 鼠标事件处理：滚轮上下滚动对话记录；点击派发给 doc 组件树
     ;; （由卡片自身回调完成点击切换展开）
