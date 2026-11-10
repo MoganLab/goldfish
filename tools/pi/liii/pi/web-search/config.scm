@@ -16,96 +16,58 @@
     (liii pi ai auth)
     (liii pi ai template)
     (liii pi web-search proxy)
+    (liii pi web-search base-url)
   ) ;import
   (export pi-resolve-google-api-key pi-resolve-search-base-url
     pi-resolve-search-proxy-url pi-resolve-search-proxy-alist
     pi-resolve-search-model-id pi-load-web-search-config
     pi-web-search-config-model pi-web-search-config-proxy
-    pi-resolve-web-search-provider pi-resolve-deepseek-api-key
-    pi-resolve-deepseek-search-base-url
+    pi-web-search-config-base-url pi-resolve-web-search-provider
+    pi-resolve-deepseek-api-key pi-resolve-deepseek-search-base-url
   ) ;export
   (begin
 
-    (define (pi-resolve-google-api-key config opt-key)
-      (cond
-       ((string? opt-key)
-        (let ((trimmed (string-trim-both opt-key)))
-          (if (string-null? trimmed) #f trimmed)
-        ) ;let
-       ) ;
-       ((and (pair? config)
-          (let ((p (or (assoc 'provider config) (assoc "provider" config))))
-            (or (not p) (equal? (cdr p) "google"))
+    (define (pi-resolve-google-api-key config opt-key . opt-env)
+      (let ((env (if (pair? opt-env) (car opt-env) #f)))
+        (cond
+         ((string? opt-key)
+          (let ((trimmed (string-trim-both opt-key)))
+            (if (string-null? trimmed) #f trimmed)
           ) ;let
-          (assoc 'api-key config)
-        ) ;and
-        (let ((k (cdr (assoc 'api-key config))))
-          (if
-            (and (string? k) (not (string-null? (string-trim-both k))))
-            k
-            #f
-          ) ;if
-        ) ;let
-       ) ;
-       ((get-environment-variable "GOOGLE_API_KEY")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "GEMINI_API_KEY")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       (else
-         (catch #t
-           (lambda ()
-             (let* ((env-dir (get-environment-variable "PI_CODING_AGENT_DIR"))
-                    (config-dir (gf-get-config-dir env-dir))
-                    (auth (pi-load-auth config-dir))
-                   ) ;
-               (pi-resolve-provider-key "google" auth)
-             ) ;let*
-           ) ;lambda
-           (lambda _ #f)
-         ) ;catch
-       ) ;else
-      ) ;cond
-    ) ;define
-
-    (define (pi-resolve-search-base-url config opt-url)
-      (cond
-       ((and (string? opt-url) (not (string-null? (string-trim-both opt-url))))
-        opt-url
-       ) ;
-       ((get-environment-variable "GOOGLE_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "GEMINI_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "GF_PI_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((and (pair? config)
-          (let ((p (or (assoc 'provider config) (assoc "provider" config))))
-            (or (not p) (equal? (cdr p) "google"))
+         ) ;
+         ((and (pair? config)
+            (let ((p (or (assoc 'provider config) (assoc "provider" config))))
+              (or (not p) (equal? (cdr p) "google"))
+            ) ;let
+            (assoc 'api-key config)
+          ) ;and
+          (let ((k (cdr (assoc 'api-key config))))
+            (if
+              (and (string? k) (not (string-null? (string-trim-both k))))
+              k
+              #f
+            ) ;if
           ) ;let
-          (assoc 'model-meta config)
-        ) ;and
-        (let* ((meta (cdr (assoc 'model-meta config)))
-               (bu (if (pair? meta) (or (assoc 'base-url meta) (assoc "baseURL" meta)) #f))
-              ) ;
-          (if
-            (and bu (string? (cdr bu)) (not (string-null? (string-trim-both (cdr bu)))))
-            (cdr bu)
-            "https://generativelanguage.googleapis.com/v1beta"
-          ) ;if
-        ) ;let*
-       ) ;
-       (else "https://generativelanguage.googleapis.com/v1beta")
-      ) ;cond
+         ) ;
+         ((%env-ref-str "GOOGLE_API_KEY" env))
+         ((%env-ref-str "GEMINI_API_KEY" env))
+         (else
+           (catch #t
+             (lambda ()
+               (let* ((config-dir (%config-dir-from env))
+                      (auth (if (pair? env) (pi-load-auth config-dir env) (pi-load-auth config-dir)))
+                     ) ;
+                 (if (pair? env)
+                   (pi-resolve-provider-key "google" auth env)
+                   (pi-resolve-provider-key "google" auth)
+                 ) ;if
+               ) ;let*
+             ) ;lambda
+             (lambda _ #f)
+           ) ;catch
+         ) ;else
+        ) ;cond
+      ) ;let
     ) ;define
 
     (define (pi-resolve-search-model-id config opt-model)
@@ -283,49 +245,6 @@
           (else (%deepseek-key-from-auth env))
         ) ;cond
       ) ;let
-    ) ;define
-
-    (define (%strip-anthropic-suffix url)
-      (if (and (string? url)
-            (string-contains? url "/anthropic")
-            (string-ends? url "/anthropic")
-          ) ;and
-        (substring url 0 (- (string-length url) (string-length "/anthropic")))
-        url
-      ) ;if
-    ) ;define
-
-    (define (%deepseek-base-from-meta config)
-      (let* ((meta (%cfg-ref config 'model-meta))
-             (bu (if (pair? meta) (or (%cfg-ref meta 'base-url) (%cfg-ref meta "baseURL")) #f)
-             ) ;bu
-            ) ;
-        (if
-          (and (string? bu) (not (string-null? (string-trim-both bu))))
-          bu
-          #f
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (pi-resolve-deepseek-search-base-url config opt-url . opt-env)
-      (let* ((env (if (pair? opt-env) (car opt-env) #f))
-             (ds? (%config-wants-deepseek? config))
-             (raw
-               (cond
-                ((and (string? opt-url) (not (string-null? (string-trim-both opt-url))))
-                 opt-url
-                ) ;
-                ((%env-ref-str "DEEPSEEK_BASE_URL" env))
-                ;; config 的 base-url 仅当 provider 是 deepseek 时才可用
-                ((and ds? (%cfg-str config 'web-search-base-url)))
-                ((and ds? (%deepseek-base-from-meta config)))
-                (else "https://api.deepseek.com")
-               ) ;cond
-             ) ;raw
-            ) ;
-        (%strip-anthropic-suffix raw)
-      ) ;let*
     ) ;define
 
   ) ;begin
