@@ -46,6 +46,25 @@
     ;; null-list? : (any? -> boolean?)
     (define hint-null-list? '((any? -> boolean?)))
 
+    ;; 取值器
+    ;; first..tenth : (pair? -> any?)，实参需至少含对应数量的元素
+    (define hint-first '((pair? -> any?)))
+    (define hint-second '((pair? -> any?)))
+    (define hint-third '((pair? -> any?)))
+    (define hint-fourth '((pair? -> any?)))
+    (define hint-fifth '((pair? -> any?)))
+    (define hint-sixth '((pair? -> any?)))
+    (define hint-seventh '((pair? -> any?)))
+    (define hint-eighth '((pair? -> any?)))
+    (define hint-ninth '((pair? -> any?)))
+    (define hint-tenth '((pair? -> any?)))
+
+    ;; last : (pair? -> any?)，非空列表的末元素
+    (define hint-last '((pair? -> any?)))
+
+    ;; last-pair : (pair? -> pair?)，非空列表的末尾点对
+    (define hint-last-pair '((pair? -> pair?)))
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -57,6 +76,18 @@
 
     (define (hint-srfi/srfi-1 name)
       (case name
+       ((first) hint-first)
+       ((second) hint-second)
+       ((third) hint-third)
+       ((fourth) hint-fourth)
+       ((fifth) hint-fifth)
+       ((sixth) hint-sixth)
+       ((seventh) hint-seventh)
+       ((eighth) hint-eighth)
+       ((ninth) hint-ninth)
+       ((tenth) hint-tenth)
+       ((last) hint-last)
+       ((last-pair) hint-last-pair)
        ((circular-list?) hint-circular-list?)
        ((proper-list?) hint-proper-list?)
        ((dotted-list?) hint-dotted-list?)
