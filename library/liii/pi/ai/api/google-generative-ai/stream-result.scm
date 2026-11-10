@@ -26,7 +26,12 @@
       ) ;cond
     ) ;define
 
-    (define (gemini-finalize-stream-success stream-state on-event)
+    (define* (gemini-finalize-stream-success stream-state
+               on-event
+               (provider "google")
+               (model-id #f)
+               (api "google-generative-ai")
+             ) ;gemini-finalize-stream-success
       (gemini-stream-stop-active-block! stream-state on-event)
       (let* ((blocks (gemini-stream-state-blocks stream-state))
              (has-fn? (pair? (gemini-stream-state-tool-calls stream-state)))
@@ -39,13 +44,24 @@
           :stop-reason   stop-reason
           :error-message err-msg
           :usage         (gemini-stream-state-usage stream-state)
+          :provider      provider
+          :model         model-id
+          :api           api
         ) ;pi-assistant-message
       ) ;let*
-    ) ;define
+    ) ;define*
 
-    (define (gemini-classify-stream-result stream-state idle-timed-out? resp
-              status eff-idle on-event error-body-acc
-            ) ;gemini-classify-stream-result
+    (define* (gemini-classify-stream-result stream-state
+               idle-timed-out?
+               resp
+               status
+               eff-idle
+               on-event
+               error-body-acc
+               (provider "google")
+               (model-id #f)
+               (api "google-generative-ai")
+             ) ;gemini-classify-stream-result
       (let ((resp-err (or (%resp-field resp 'error) (%resp-field resp 'reason) "")))
         (cond
          ((or idle-timed-out?
@@ -60,7 +76,10 @@
               (number->string eff-idle)
               " seconds"
             ) ;string-append
-            :usage (gemini-stream-state-usage stream-state)
+            :usage    (gemini-stream-state-usage stream-state)
+            :provider provider
+            :model    model-id
+            :api      api
           ) ;pi-assistant-message
          ) ;
          ((and (not (zero? status)) (not (= status 200)))
@@ -80,7 +99,10 @@
                   (string-append "HTTP " (number->string status) " error")
                 ) ;if
               ) ;let
-              :usage (gemini-stream-state-usage stream-state)
+              :usage    (gemini-stream-state-usage stream-state)
+              :provider provider
+              :model    model-id
+              :api      api
             ) ;pi-assistant-message
           ) ;let
          ) ;
@@ -89,12 +111,16 @@
             :stop-reason   "error"
             :error-message (format-failed-stream-msg status resp)
             :usage         (gemini-stream-state-usage stream-state)
+            :provider      provider
+            :model         model-id
+            :api           api
           ) ;pi-assistant-message
          ) ;
-         (else (gemini-finalize-stream-success stream-state on-event))
+         (else (gemini-finalize-stream-success stream-state on-event provider model-id api)
+         ) ;else
         ) ;cond
       ) ;let
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

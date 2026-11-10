@@ -63,9 +63,12 @@
            ) ;
            ((equal? role "assistant")
             (list (pi-assistant-message (%lax-content role (%entry-ref msg "content"))
-                    (or (%entry-ref msg "stopReason") "stop")
-                    (%entry-ref msg "errorMessage")
-                    (%entry-ref msg "usage")
+                    :stop-reason   (or (%entry-ref msg "stopReason") "stop")
+                    :error-message (%entry-ref msg "errorMessage")
+                    :usage         (%entry-ref msg "usage")
+                    :provider      (%entry-ref msg "provider")
+                    :model         (%entry-ref msg "model")
+                    :api           (%entry-ref msg "api")
                   ) ;pi-assistant-message
             ) ;list
            ) ;

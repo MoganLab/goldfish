@@ -13,6 +13,7 @@
     (liii string)
     (liii list)
     (liii pi ai message)
+    (liii pi ai transcript cross-model)
   ) ;import
   (export pi-normalize-transcript pi-transcript-normalize-tool-call-id?)
   (begin
@@ -29,9 +30,12 @@
       ) ;if
     ) ;define
 
-    ;; 消息 role 统一以字符串比较；非 alist 原样跳过（防御）
+    ;; 消息 role 统一以字符串比较；支持 record 与 alist；非 alist/record 原样跳过（防御）
     (define (%msg-role m)
-      (if (pair? m) (%val "role" m "") "")
+      (cond ((pi-message? m) (pi-message-role m))
+            ((pair? m) (%val "role" m ""))
+            (else "")
+      ) ;cond
     ) ;define
 
     ;; 提取字符串起始连续数字构成的数值，未匹配返回 #f
@@ -105,40 +109,56 @@
       ) ;map
     ) ;define
 
-    ;; 归一化单个 toolCall block 并返回 (values new-block new-id-entry-or-#f)
-    (define (%normalize-one-block blk)
-      (if (and (pair? blk) (equal? (%val "type" blk "") "toolCall"))
-        (let* ((old-id (%val "id" blk "")) (new-id (%normalize-tool-call-id old-id)))
-          (values (%replace-kv blk "id" new-id) (cons old-id new-id))
-        ) ;let*
-        (values blk #f)
-      ) ;if
+    ;; 转换单个内容块：跨模型时过滤 thinking，剥离 toolCall 的 thoughtSignature 与 text 的签名
+    (define (%transform-one-block blk normalize? same-model? id-map)
+      (let ((nb (pi-transcript-normalize-block blk same-model?)))
+        (if (not nb)
+          (values #f id-map)
+          (if (and normalize? (equal? (%val "type" nb "") "toolCall"))
+            (let* ((old-id (%val "id" nb "")) (new-id (%normalize-tool-call-id old-id)))
+              (values (%replace-kv nb "id" new-id) (cons (cons old-id new-id) id-map))
+            ) ;let*
+            (values nb id-map)
+          ) ;if
+        ) ;if
+      ) ;let
     ) ;define
 
-    ;; 归一化 assistant 消息中的 toolCall 块，返回 (values new-blocks new-id-map)
-    (define (%normalize-assistant-blocks blocks id-map)
+    ;; 转换 assistant 消息中的内容块，返回 (values new-blocks new-id-map)
+    (define (%transform-assistant-blocks blocks normalize? same-model? id-map)
       (let loop
         ((rest blocks) (acc '()) (m id-map))
         (if (null? rest)
           (values (reverse acc) m)
-          (let-values (((new-blk id-entry) (%normalize-one-block (car rest))))
-            (loop (cdr rest) (cons new-blk acc) (if id-entry (cons id-entry m) m))
+          (let-values (((new-blk new-m) (%transform-one-block (car rest) normalize? same-model? m)))
+            (loop (cdr rest) (if new-blk (cons new-blk acc) acc) new-m)
           ) ;let-values
         ) ;if
       ) ;let
     ) ;define
 
-    ;; 处理 assistant 消息：若 error/aborted 则丢弃；若需要则归一化 toolCall id
-    (define (%transform-assistant msg normalize? id-map)
+    ;; 处理 assistant 消息：若 error/aborted 则丢弃；跨模型过滤与按需归一化 toolCall id
+    (define (%transform-assistant msg normalize? same-model? id-map)
       (let ((stop (%val "stopReason" msg "")))
         (cond ((or (equal? stop "error") (equal? stop "aborted")) (values #f id-map))
-              ((not normalize?) (values msg id-map))
               (else
-                (let ((content (%val "content" msg '())))
-                  (let-values (((new-blocks new-map) (%normalize-assistant-blocks content id-map)))
-                    (values (%replace-kv msg "content" new-blocks) new-map)
+                (let* ((raw-content (%val "content" msg '()))
+                       (is-vec? (vector? raw-content))
+                       (content (cond ((vector? raw-content) (vector->list raw-content))
+                                      ((pair? raw-content) raw-content)
+                                      (else '())
+                                ) ;cond
+                       ) ;content
+                      ) ;
+                  (let-values (((new-blocks new-map)
+                                (%transform-assistant-blocks content normalize? same-model? id-map)
+                               ) ;
+                              ) ;
+                    (let ((final-blocks (if is-vec? (list->vector new-blocks) new-blocks)))
+                      (values (%replace-kv msg "content" final-blocks) new-map)
+                    ) ;let
                   ) ;let-values
-                ) ;let
+                ) ;let*
               ) ;else
         ) ;cond
       ) ;let
@@ -157,22 +177,29 @@
       ) ;if
     ) ;define
 
-    ;; ---- 第一遍：error/aborted 过滤 + toolCall id 归一化 ----
-    (define (%transform-one msg normalize? id-map)
-      (let ((role (%msg-role msg)))
-        (cond ((equal? role "assistant") (%transform-assistant msg normalize? id-map))
-              ((equal? role "toolResult") (%transform-tool-result msg normalize? id-map))
-              (else (values msg id-map))
+    ;; ---- 第一遍：error/aborted 过滤 + 跨模型转换 + toolCall id 归一化 ----
+    (define (%transform-one raw-msg normalize? config id-map)
+      (let* ((msg (if (pi-message? raw-msg) (pi-message->alist raw-msg) raw-msg))
+             (role (%msg-role msg))
+            ) ;
+        (cond
+         ((equal? role "assistant")
+          (let ((same-model? (pi-transcript-same-model? msg config)))
+            (%transform-assistant msg normalize? same-model? id-map)
+          ) ;let
+         ) ;
+         ((equal? role "toolResult") (%transform-tool-result msg normalize? id-map))
+         (else (values msg id-map))
         ) ;cond
-      ) ;let
+      ) ;let*
     ) ;define
 
-    (define (%transform-pass messages normalize?)
+    (define (%transform-pass messages normalize? config)
       (let loop
         ((rest messages) (acc '()) (id-map '()))
         (if (null? rest)
           (values (reverse acc) id-map)
-          (let-values (((m new-map) (%transform-one (car rest) normalize? id-map)))
+          (let-values (((m new-map) (%transform-one (car rest) normalize? config id-map)))
             (loop (cdr rest) (if m (cons m acc) acc) new-map)
           ) ;let-values
         ) ;if
@@ -191,14 +218,18 @@
       ) ;list
     ) ;define
 
-    (define (%assistant-tool-calls msg)
-      (if (equal? (%msg-role msg) "assistant")
-        (filter
-          (lambda (b) (and (pair? b) (equal? (%val "type" b "") "toolCall")))
-          (%val "content" msg '())
-        ) ;filter
-        '()
-      ) ;if
+    (define (%assistant-tool-calls raw-msg)
+      (let ((msg (if (pi-message? raw-msg) (pi-message->alist raw-msg) raw-msg)))
+        (if (equal? (%msg-role msg) "assistant")
+          (let ((content (%val "content" msg '())))
+            (filter
+              (lambda (b) (and (pair? b) (equal? (%val "type" b "") "toolCall")))
+              (if (vector? content) (vector->list content) content)
+            ) ;filter
+          ) ;let
+          '()
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; 冲刷 pending 中尚未被 answered 的 toolCall
@@ -255,7 +286,7 @@
       (if (null? messages)
         '()
         (let ((normalize? (pi-transcript-normalize-tool-call-id? config)))
-          (let-values (((transformed id-map) (%transform-pass messages normalize?)))
+          (let-values (((transformed id-map) (%transform-pass messages normalize? config)))
             (%orphan-pass transformed)
           ) ;let-values
         ) ;let

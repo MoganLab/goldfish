@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (%make-pi-assistant-message content stop-reason error-message usage timestamp)
+;; (%make-pi-assistant-message content stop-reason error-message usage timestamp provider model api)
 ;;
 ;; 参数
 ;; ----
@@ -22,6 +22,15 @@
 ;; timestamp : number?
 ;; 消息创建时间戳（毫秒）
 ;;
+;; provider : string? 或 #f
+;; 服务商标识
+;;
+;; model : string? 或 #f
+;; 模型标识
+;;
+;; api : string? 或 #f
+;; 协议接口标识
+;;
 ;; 返回值
 ;; ----
 ;; pi-assistant-message?
@@ -36,6 +45,9 @@
              #f
              '((input . 10) (output . 20))
              3000
+             "google"
+             "gemini-2.5-flash"
+             "google-generative-ai"
            ) ;%make-pi-assistant-message
       ) ;obj
      ) ;
@@ -45,6 +57,9 @@
   (check (pi-assistant-message-error-message obj) => #f)
   (check (pi-assistant-message-usage obj) => '((input . 10) (output . 20)))
   (check (pi-assistant-message-timestamp obj) => 3000)
+  (check (pi-assistant-message-provider obj) => "google")
+  (check (pi-assistant-message-model obj) => "gemini-2.5-flash")
+  (check (pi-assistant-message-api obj) => "google-generative-ai")
 ) ;let
 
 (check-report)

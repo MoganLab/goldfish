@@ -10,17 +10,19 @@
     pi-user-message-timestamp %make-pi-assistant-message pi-assistant-message?
     pi-assistant-message-content pi-assistant-message-stop-reason
     pi-assistant-message-error-message pi-assistant-message-usage
-    pi-assistant-message-timestamp %make-pi-tool-result-message
-    pi-tool-result-message? pi-tool-result-message-tool-call-id
-    pi-tool-result-message-tool-name pi-tool-result-message-content
-    pi-tool-result-message-is-error pi-tool-result-message-timestamp
-    %make-pi-text-block pi-text-block? pi-text-block-text
-    pi-text-block-signature %make-pi-thinking-block pi-thinking-block?
-    pi-thinking-block-thinking pi-thinking-block-thinking-signature
-    %make-pi-tool-call-block pi-tool-call-block? pi-tool-call-block-id
-    pi-tool-call-block-name pi-tool-call-block-arguments
-    pi-tool-call-block-thought-signature %make-pi-image-block pi-image-block?
-    pi-image-block-data pi-image-block-mime-type
+    pi-assistant-message-timestamp pi-assistant-message-provider
+    pi-assistant-message-model pi-assistant-message-api
+    %make-pi-tool-result-message pi-tool-result-message?
+    pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
+    pi-tool-result-message-content pi-tool-result-message-is-error
+    pi-tool-result-message-timestamp %make-pi-text-block pi-text-block?
+    pi-text-block-text pi-text-block-signature %make-pi-thinking-block
+    pi-thinking-block? pi-thinking-block-thinking
+    pi-thinking-block-thinking-signature %make-pi-tool-call-block
+    pi-tool-call-block? pi-tool-call-block-id pi-tool-call-block-name
+    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    %make-pi-image-block pi-image-block? pi-image-block-data
+    pi-image-block-mime-type
   ) ;export
   (begin
 
@@ -32,13 +34,18 @@
     ) ;define-record-type
 
     (define-record-type <pi-assistant-message>
-      (%make-pi-assistant-message content stop-reason error-message usage timestamp)
+      (%make-pi-assistant-message content stop-reason error-message usage
+        timestamp provider model api
+      ) ;%make-pi-assistant-message
       pi-assistant-message?
       (content pi-assistant-message-content)
       (stop-reason pi-assistant-message-stop-reason)
       (error-message pi-assistant-message-error-message)
       (usage pi-assistant-message-usage)
       (timestamp pi-assistant-message-timestamp)
+      (provider pi-assistant-message-provider)
+      (model pi-assistant-message-model)
+      (api pi-assistant-message-api)
     ) ;define-record-type
 
     (define-record-type <pi-tool-result-message>

@@ -90,7 +90,7 @@
       ) ;let*
     ) ;define
 
-    (define (%finalize-stream stream-state)
+    (define (%finalize-stream stream-state provider model-id)
       (when (anthropic-stream-state-current-thinking stream-state)
         (anthropic-finish-thinking-block stream-state #f)
       ) ;when
@@ -103,12 +103,15 @@
           :stop-reason   stop-reason
           :usage         (anthropic-stream-state-usage stream-state)
           :error-message err-msg
+          :provider      provider
+          :model         model-id
+          :api           "anthropic-messages"
         ) ;pi-assistant-message
       ) ;let*
     ) ;define
 
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
-    (define (%finalize-aborted-stream stream-state)
+    (define (%finalize-aborted-stream stream-state provider model-id)
       (when (anthropic-stream-state-current-thinking stream-state)
         (anthropic-finish-thinking-block stream-state #f)
       ) ;when
@@ -116,10 +119,13 @@
         :stop-reason   "aborted"
         :usage         (anthropic-stream-state-usage stream-state)
         :error-message #f
+        :provider      provider
+        :model         model-id
+        :api           "anthropic-messages"
       ) ;pi-assistant-message
     ) ;define
 
-    (define (%make-idle-timeout-error eff-idle)
+    (define (%make-idle-timeout-error eff-idle provider model-id)
       (pi-assistant-message '()
         :stop-reason "error"
         :usage       (anthropic-map-usage '())
@@ -128,6 +134,9 @@
           (number->string eff-idle)
           " seconds"
         ) ;string-append
+        :provider provider
+        :model    model-id
+        :api      "anthropic-messages"
       ) ;pi-assistant-message
     ) ;define
 
@@ -159,7 +168,7 @@
       ) ;let
     ) ;define
 
-    (define (%make-stream-error status resp err-acc provider)
+    (define (%make-stream-error status resp err-acc provider model-id)
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
              (acc-body (vector-ref err-acc 0))
@@ -188,6 +197,9 @@
           :stop-reason   "error"
           :usage         (anthropic-map-usage '())
           :error-message err-msg
+          :provider      provider
+          :model         model-id
+          :api           "anthropic-messages"
         ) ;pi-assistant-message
       ) ;let*
     ) ;define
@@ -269,8 +281,10 @@
             ) ;when
             ;; 流尾补探测一次中止信号：单 chunk 交付时 on-event 发出的 abort
             ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
-            (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
-                  (idle-timed-out? (%make-idle-timeout-error eff-idle))
+            (cond ((or aborted? (pi-aborted?))
+                   (%finalize-aborted-stream stream-state provider model-id)
+                  ) ;
+                  (idle-timed-out? (%make-idle-timeout-error eff-idle provider model-id))
                   ((anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
                    (if (<= attempt provider-r)
                      (let* ((ra-raw (pi-extract-retry-after resp))
@@ -281,13 +295,13 @@
                        (sleep delay-sec)
                        (loop (+ attempt 1))
                      ) ;let*
-                     (%make-stream-error status resp err-acc provider)
+                     (%make-stream-error status resp err-acc provider model-id)
                    ) ;if
                   ) ;
                   ((or (zero? status) (not (= status 200)))
-                   (%make-stream-error status resp err-acc provider)
+                   (%make-stream-error status resp err-acc provider model-id)
                   ) ;
-                  (else (%finalize-stream stream-state))
+                  (else (%finalize-stream stream-state provider model-id))
             ) ;cond
           ) ;let*
         ) ;let

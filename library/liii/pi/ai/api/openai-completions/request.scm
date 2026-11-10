@@ -60,32 +60,31 @@
     ) ;define
 
     (define* (openai-build-headers api-key (extra-headers '()))
-      (let ((base (list (cons "Content-Type" "application/json")
-                    (cons "Authorization" (string-append "Bearer " (or api-key "")))
-                    (cons "User-Agent" "Goldfish-Pi/1.0")
-                  ) ;list
-           ))
-        (if (pair? extra-headers)
-          (append base extra-headers)
-          base
-        ) ;if
+      (let ((base
+              (list (cons "Content-Type" "application/json")
+                (cons "Authorization" (string-append "Bearer " (or api-key "")))
+                (cons "User-Agent" "Goldfish-Pi/1.0")
+              ) ;list
+            ) ;base
+           ) ;
+        (if (pair? extra-headers) (append base extra-headers) base)
       ) ;let
     ) ;define*
 
     (define (%opencode-extra-headers url provider session-id)
-      (if (or (and (string? url) (string-contains? url "opencode.ai"))
-            (and (string? provider)
-              (or (string=? provider "opencode")
-                (string=? provider "opencode-go")
-              ) ;or
-            ) ;and
-          ) ;or
-        (list (cons "x-opencode-session"
-                (if (and (string? session-id) (> (string-length session-id) 0))
-                  session-id
-                  (uuid4)
-                ) ;if
-              ) ;cons
+      (if
+        (or (and (string? url) (string-contains? url "opencode.ai"))
+          (and (string? provider)
+            (or (string=? provider "opencode") (string=? provider "opencode-go"))
+          ) ;and
+        ) ;or
+        (list
+          (cons "x-opencode-session"
+            (if (and (string? session-id) (> (string-length session-id) 0))
+              session-id
+              (uuid4)
+            ) ;if
+          ) ;cons
         ) ;list
         '()
       ) ;if
@@ -107,7 +106,7 @@
       (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
-    (define (%make-retry-error status attempt body-str provider)
+    (define (%make-retry-error status attempt body-str provider model-id)
       (let ((limit (pi-usage-limit-error? status body-str provider)))
         (pi-assistant-message (list (pi-text-block ""))
           :stop-reason "error"
@@ -122,7 +121,10 @@
               body-str
             ) ;string-append
           ) ;if
-          :usage (openai-map-usage '())
+          :usage    (openai-map-usage '())
+          :provider provider
+          :model    model-id
+          :api      "openai-completions"
         ) ;pi-assistant-message
       ) ;let
     ) ;define
@@ -194,7 +196,11 @@
                     ((proxy-alist) (openai-build-proxy-alist proxy-url))
                    ) ;
         (let ((key-rotation? (pi-key-rotation? config))
-              (session-id (let ((p (assoc 'session-id config))) (and p (cdr p))))
+              (session-id
+                (let ((p (assoc 'session-id config)))
+                  (and p (cdr p))
+                ) ;let
+              ) ;session-id
              ) ;
           (let loop
             ((attempt 1) (api-key (pi-request-api-key config)))
@@ -236,7 +242,7 @@
                     (sleep delay-sec)
                     (loop (+ attempt 1) api-key)
                   ) ;let*
-                  (%make-retry-error status attempt body-str provider)
+                  (%make-retry-error status attempt body-str provider model-id)
                 ) ;if
                ) ;
                (else
@@ -249,8 +255,13 @@
                        :usage       (openai-map-usage '())
                        :error-message
                        (pi-usage-limit-error-message limit provider)
+                       :provider provider
+                       :model    model-id
+                       :api      "openai-completions"
                      ) ;pi-assistant-message
-                     (openai-parse-response parsed-json status)
+                     (openai-parse-response parsed-json status provider model-id
+                       "openai-completions"
+                     ) ;openai-parse-response
                    ) ;if
                  ) ;let*
                ) ;else
