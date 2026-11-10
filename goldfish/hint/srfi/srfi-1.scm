@@ -76,6 +76,21 @@
     ;; split-at : (list? integer? -> (前缀 后缀))，多返回值用 list? 占位
     (define hint-split-at '((list? integer? -> list?)))
 
+    ;; 折叠：可变列表参数，登记 1~3 个列表的形式
+    ;; fold : (procedure? any? list? -> any?)
+    (define hint-fold
+      '((procedure? any? list? -> any?)
+        (procedure? any? list? list? -> any?)
+        (procedure? any? list? list? list? -> any?))
+    ) ;define
+
+    ;; fold-right : 同 fold
+    (define hint-fold-right
+      '((procedure? any? list? -> any?)
+        (procedure? any? list? list? -> any?)
+        (procedure? any? list? list? list? -> any?))
+    ) ;define
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -87,6 +102,8 @@
 
     (define (hint-srfi/srfi-1 name)
       (case name
+       ((fold) hint-fold)
+       ((fold-right) hint-fold-right)
        ((take) hint-take)
        ((drop) hint-drop)
        ((take-right) hint-take-right)
