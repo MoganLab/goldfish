@@ -107,6 +107,34 @@
         (procedure? list? list? -> (or #f integer?)))
     ) ;define
 
+    ;; count : 可变列表参数，登记 1~2 个列表的形式
+    (define hint-count
+      '((procedure? list? -> integer?) (procedure? list? list? -> integer?))
+    ) ;define
+
+    ;; append-map : 可变列表参数，登记 1~2 个列表的形式
+    (define hint-append-map
+      '((procedure? list? -> list?) (procedure? list? list? -> list?))
+    ) ;define
+
+    ;; partition : 返回 (满足 不满足) 两个列表组成的有对
+    (define hint-partition '((procedure? list? -> pair?)))
+
+    ;; remove : 与 filter 互补，保留不满足谓词的元素
+    (define hint-remove '((procedure? list? -> list?)))
+
+    ;; take-while/drop-while : (procedure? list? -> list?)
+    (define hint-take-while '((procedure? list? -> list?)))
+    (define hint-drop-while '((procedure? list? -> list?)))
+
+    ;; zip : 可变列表参数，登记 0~3 个列表的形式
+    (define hint-zip
+      '((-> list?)
+        (list? -> list?)
+        (list? list? -> list?)
+        (list? list? list? -> list?))
+    ) ;define
+
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
@@ -148,6 +176,13 @@
        ((find) hint-find)
        ((any) hint-any)
        ((list-index) hint-list-index)
+       ((count) hint-count)
+       ((append-map) hint-append-map)
+       ((partition) hint-partition)
+       ((remove) hint-remove)
+       ((take-while) hint-take-while)
+       ((drop-while) hint-drop-while)
+       ((zip) hint-zip)
        ((every) hint-every)
        ((filter) hint-filter)
        ((alist-cons) hint-alist-cons)
