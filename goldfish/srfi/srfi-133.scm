@@ -383,44 +383,39 @@
       ) ;let
     ) ;define
 
-    (define (vector-reverse! vec . args)
-      (let* ((args-length (length args))
-             (start (if (null? args) 0 (car args)))
-             (end (if (<= args-length 1) (vector-length vec) (cadr args)))
-            ) ;
-
-        (unless (and (< args-length 3) (>= args-length 0))
-          (error 'wrong-number-of-args "#<vector-reverse!>: too many args" args-length)
-        ) ;unless
-        (unless (and (integer? start) (integer? end))
-          (error 'type-error
-            "#<vector-reverse!>: *start* and *end* must be an integer"
-            start
-            end
-          ) ;error
-        ) ;unless
-        (when (< start 0)
-          (error 'out-of-range "#<vector-reverse!>: *start* cannot be negative" start)
+    (define*
+      (vector-reverse! vec (start 0) (end (if (vector? vec) (vector-length vec) 0)))
+      (unless (vector? vec)
+        (error 'type-error "#<vector-reverse!>: argument must be a vector" vec)
+      ) ;unless
+      (unless (and (integer? start) (integer? end))
+        (error 'type-error
+          "#<vector-reverse!>: *start* and *end* must be an integer"
+          start
+          end
+        ) ;error
+      ) ;unless
+      (when (< start 0)
+        (error 'out-of-range "#<vector-reverse!>: *start* cannot be negative" start)
+      ) ;when
+      (when (> end (vector-length vec))
+        (error 'out-of-range "#<vector-reverse!>: *end* exceeds vector length" end)
+      ) ;when
+      (when (> start end)
+        (error 'out-of-range
+          "#<vector-reverse!>: *start* must be less than or equal to *end*"
+          start
+          end
+        ) ;error
+      ) ;when
+      (let loop
+        ((i start) (j (- end 1)))
+        (when (< i j)
+          (vector-swap! vec i j)
+          (loop (+ i 1) (- j 1))
         ) ;when
-        (when (> end (vector-length vec))
-          (error 'out-of-range "#<vector-reverse!>: *end* exceeds vector length" end)
-        ) ;when
-        (when (> start end)
-          (error 'out-of-range
-            "#<vector-reverse!>: *start* must be less than or equal to *end*"
-            start
-            end
-          ) ;error
-        ) ;when
-        (let loop
-          ((i start) (j (- end 1)))
-          (when (< i j)
-            (vector-swap! vec i j)
-            (loop (+ i 1) (- j 1))
-          ) ;when
-        ) ;let
-      ) ;let*
-    ) ;define
+      ) ;let
+    ) ;define*
 
     (define* (vector-reverse-copy vec (start 0) (end (vector-length vec)))
       (let ((v (vector-copy vec start end)))
