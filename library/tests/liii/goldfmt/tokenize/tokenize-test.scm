@@ -285,3 +285,41 @@
 ) ;let
 
 (check-report)
+
+;; 测试 tokenize：单字符字面量 #\a 后紧跟换行（旧实现多跳一个字符，吞掉换行符）
+(let ((tokens (tokenize "(x #\\a\n(y)")))
+  (check (length tokens) => 2)
+  (check (car tokens) => '(code . "(x #\\a"))
+  (check (cadr tokens) => '(code . "(y)"))
+) ;let
+
+;; 测试 tokenize：单字符字面量 #\a 后的空行应被正确统计
+(let ((tokens (tokenize "(x #\\a\n\n(y)")))
+  (check (length tokens) => 3)
+  (check (car tokens) => '(code . "(x #\\a"))
+  (check (cadr tokens) => '(newline . 1))
+  (check (caddr tokens) => '(code . "(y)"))
+) ;let
+
+;; 测试 tokenize：单字符字面量 #\a 后的字符串应正确结束
+(let ((tokens (tokenize "(s #\\a\"str\")\n;; c\n(z)")))
+  (check (length tokens) => 3)
+  (check (car tokens) => '(code . "(s #\\a\"str\")"))
+  (check (cadr tokens) => '(comment . " c"))
+  (check (caddr tokens) => '(code . "(z)"))
+) ;let
+
+;; 测试 tokenize：单字符字面量 #\a 后的行注释仍能被识别
+(let ((tokens (tokenize "(f #\\a);; note")))
+  (check (length tokens) => 2)
+  (check (car tokens) => '(code . "(f #\\a)"))
+  (check (cadr tokens) => '(comment . " note"))
+) ;let
+
+;; 测试 tokenize：单字符字面量后紧跟右括号结尾不丢失字符
+(let ((tokens (tokenize "(x #\\a)")))
+  (check (length tokens) => 1)
+  (check (car tokens) => '(code . "(x #\\a)"))
+) ;let
+
+(check-report)

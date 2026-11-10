@@ -161,10 +161,6 @@
         "reason": "性能基准测试脚本包含大量展开测试数据与循环"
       },
       {
-        "path": "library/liii/goldfmt/tokenize.scm",
-        "reason": "排版词法分析器分词引擎"
-      },
-      {
         "path": "goldfish/liii/go.scm",
         "reason": "协程调度机核心算法不可分割"
       },
