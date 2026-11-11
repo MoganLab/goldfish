@@ -15,7 +15,7 @@
 ;;
 ;; info : list?
 ;; 可选元信息关联表，支持 provider、model、url、attempt、max-attempts、
-;; retryable、retry-after；额度耗尽时自动附带 limit 字段。
+;; retryable、retry-after、reason；额度耗尽时自动附带 limit 字段。
 ;;
 ;; 返回值
 ;; ----
@@ -90,9 +90,10 @@
 (pi-log-http-error! 500 multiline-body '())
 (check-true (string-contains? (log-content) multiline-body))
 
-;; 5. 空响应体（网络错误 status=0）也能记录
-(pi-log-http-error! 0 "" '())
+;; 5. 空响应体（网络错误 status=0）也记录具体网络原因
+(pi-log-http-error! 0 "" '((reason . "connection refused")))
 (check-true (string-contains? (log-content) "status=0"))
+(check-true (string-contains? (log-content) "reason=connection refused"))
 
 ;; 6. 额度耗尽类错误附带额度类型（按业务码判定，不看消息文本）
 (pi-log-http-error! 429

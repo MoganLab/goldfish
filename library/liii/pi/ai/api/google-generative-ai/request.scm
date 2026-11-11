@@ -291,6 +291,7 @@
                     (cons 'attempt attempt)
                     (cons 'max-attempts provider-max-retries)
                     (cons 'retryable (gemini-is-retriable-error? status body-str provider))
+                    (cons 'reason (%resp-field resp 'reason))
                   ) ;list
                 ) ;pi-log-http-error!
               ) ;when

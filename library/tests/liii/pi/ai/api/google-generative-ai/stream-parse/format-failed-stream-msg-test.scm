@@ -39,10 +39,10 @@
   "Request failed: first"
 ) ;check
 
-;; 空白 reason 被裁剪后视为空
+;; 空白 reason 被裁剪后，网络状态码 0 不再伪装成 HTTP 状态
 (check (format-failed-stream-msg 0 '((reason . "   ")))
   =>
-  "HTTP 0 stream error"
+  "Request failed: network error"
 ) ;check
 
 ;; 没有错误描述时使用状态码兜底

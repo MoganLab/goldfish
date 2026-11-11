@@ -14,7 +14,7 @@
     (liii pi ai providers registry)
     (liii pi ai transcript)
   ) ;import
-  (export pi-request-provider-stream pi-make-request-config)
+  (export pi-request-provider-stream pi-request-provider pi-make-request-config)
   (begin
 
     ;; 构造标准请求配置 alist：根据 provider / model-id / api-key 自动推导默认
@@ -106,6 +106,48 @@
     ;; 参数引用本函数，自身不依赖具体 provider）
     ;; 协议选择：优先用 config 中已解析的 provider-api（支持自定义 provider 的
     ;; models/<id>.json 声明），缺失时回退注册表内置值
+    ;; 非流式请求：与流式入口共享协议路由和配置规范化，直接返回一次完整响应。
+    ;; opt-retry 可显式禁用自动重试，供轻量探活保持单次、快速失败。
+    (define* (pi-request-provider provider
+               config
+               msgs
+               sys-prompt
+               tools
+               timeout
+               (opt-retry #f)
+             ) ;pi-request-provider
+      (let* ((cfg-p
+               (and (pair? config)
+                 (let ((p (or (assoc 'provider config) (assoc "provider" config))))
+                   (and p (cdr p))
+                 ) ;let
+               ) ;and
+             ) ;cfg-p
+             (eff-provider (or provider cfg-p "google"))
+             (eff-p-str (if (symbol? eff-provider) (symbol->string eff-provider) eff-provider)
+             ) ;eff-p-str
+             (cfg-api
+               (and (pair? config)
+                 (let ((v (or (assoc 'provider-api config) (assoc "provider-api" config))))
+                   (and v (cdr v))
+                 ) ;let
+               ) ;and
+             ) ;cfg-api
+             (api (or cfg-api (pi-provider-api eff-p-str)))
+             (eff-config (%normalize-config config eff-p-str api tools))
+             (norm-msgs (pi-normalize-transcript msgs eff-config))
+            ) ;
+        (cond ((string=? api "anthropic-messages")
+               (anthropic-request eff-config norm-msgs sys-prompt tools timeout opt-retry)
+              ) ;
+              ((string=? api "openai-completions")
+               (openai-request eff-config norm-msgs sys-prompt tools timeout opt-retry)
+              ) ;
+              (else (gemini-request eff-config norm-msgs sys-prompt tools timeout opt-retry))
+        ) ;cond
+      ) ;let*
+    ) ;define*
+
     (define (pi-request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
       (let* ((cfg-p
                (and (pair? config)

@@ -4,17 +4,18 @@
 ;; Licensed under the MIT License
 ;;
 
-;; 独立脚本模式 ping；不读写主会话，不加载工具与技能。
+;; 进程内轻量预检：使用 pi-request-provider 发起单次非流式探测请求。
+;; 避免子进程开销，不读写主会话，不加载工具与技能，失败统一追加到按天日志。
 (define-library (liii pi code all-in-one probe)
   (import (scheme base)
     (scheme char)
-    (scheme process-context)
-    (liii either)
     (liii list)
     (liii path)
     (liii string)
-    (liii subprocess)
-    (liii sys)
+    (liii pi ai dispatch)
+    (liii pi ai message)
+    (liii pi ai config record)
+    (liii pi agent tools)
     (liii pi code all-in-one alarm)
     (liii pi code all-in-one types)
     (liii pi code config)
@@ -34,110 +35,202 @@
       ) ;let
     ) ;define
 
-    ;; 从子进程错误文本提取 HTTP 状态码；无状态码时保留超时类别。
+    ;; 从错误文本或响应中提取 HTTP 状态码；无状态码时保留超时类别。
     (define (pi-probe-error-code message)
-      (let ((pos (and (string? message) (string-position "HTTP " message))))
-        (cond (pos (%http-code message (+ pos 5)))
-              ((and (string? message) (string-contains? (string-downcase message) "timeout"))
-               'timeout
-              ) ;
-              (else 'error)
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (%config-env config-dir)
-      (cons (cons "GF_CONFIG_DIR" config-dir)
-        (filter
-          (lambda (entry) (not (equal? (car entry) "GF_CONFIG_DIR")))
-          (get-environment-variables)
-        ) ;filter
-      ) ;cons
-    ) ;define
-
-    (define (%probe-command node)
-      (list (executable)
-        "pi"
-        "-p"
-        "--no-session"
-        "--no-tools"
-        "--no-skills"
-        "--provider"
-        (chain-node-provider node)
-        "--model"
-        (chain-node-model node)
-        "--thinking"
-        (chain-node-thinking-level node)
-        pi-probe-prompt
-      ) ;list
-    ) ;define
-
-    (define (%default-run command timeout-ms config-dir)
-      (let ((result (run-either command
-                      :env     (%config-env config-dir)
-                      :stdin   'null
-                      :stdout  'capture
-                      :stderr  'capture
-                      :timeout (/ timeout-ms 1000)
-                    ) ;run-either
-            ) ;result
-           ) ;
-        (if (either-right? result)
-          (values 0 (to-right result) "")
-          (let ((error (to-left result)))
-            (values (process-error-code error)
-              (process-error-stdout error)
-              (process-error-stderr error)
-            ) ;values
-          ) ;let
-        ) ;if
-      ) ;let
+      (cond ((number? message) message)
+            ((symbol? message) message)
+            ((string? message)
+             (let ((pos (string-position "HTTP " message)))
+               (cond (pos (%http-code message (+ pos 5)))
+                     ((or (string-contains? (string-downcase message) "timeout")
+                        (string-contains? (string-downcase message) "timed out")
+                      ) ;or
+                      'timeout
+                     ) ;
+                     (else 'error)
+               ) ;cond
+             ) ;let
+            ) ;
+            (else 'error)
+      ) ;cond
     ) ;define
 
     (define (%failure code message)
       (list code message)
     ) ;define
 
-    (define (%probe-failure exit-code stdout stderr)
-      (let ((message
-              (if (and (string? stderr) (not (string-null? stderr))) stderr stdout)
-            ) ;message
+    ;; 探活不给思考预算：只保留极小的输出上限，避免模型把时间花在长思考上，
+    ;; 同时让响应只返回结构化状态（stop/length 也算链路健康）。
+    (define %probe-max-tokens 16)
+
+    (define (%probe-node-config node dir-str)
+      (catch #t
+        (lambda ()
+          (let* ((parsed (list (cons 'provider (chain-node-provider node))
+                           (cons 'model (chain-node-model node))
+                           (cons 'thinking-level (chain-node-thinking-level node))
+                           (cons 'no-tools #t)
+                         ) ;list
+                 ) ;parsed
+                 (cfg (resolve-pi-config parsed (list (cons "PI_CODING_AGENT_DIR" dir-str))))
+                 (meta (cdr (or (assoc 'model-meta cfg) '(#f . #f))))
+                 (base-url
+                   (cond ((pi-model-metadata? meta) (pi-model-metadata-base-url meta))
+                         ((pair? meta) (cdr (or (assoc 'base-url meta) '(#f
+                                                                         . #f))))
+                         (else #f)
+                   ) ;cond
+                 ) ;base-url
+                 (probe-meta
+                   (pi-model-metadata-from-alist
+                     (append (list (cons 'base-url (or base-url "")) (cons 'max-tokens %probe-max-tokens))
+                       (if (pi-model-metadata? meta)
+                         (list (cons 'id (pi-model-metadata-id meta))
+                           (cons 'name (pi-model-metadata-name meta))
+                           (cons 'provider (pi-model-metadata-provider meta))
+                           (cons 'context-window (pi-model-metadata-context-window meta))
+                           (cons 'matched? (pi-model-metadata-matched? meta))
+                         ) ;list
+                         (if (pair? meta) meta '())
+                       ) ;if
+                     ) ;append
+                   ) ;pi-model-metadata-from-alist
+                 ) ;probe-meta
+                ) ;
+            (cons (cons 'model-meta probe-meta)
+              (filter
+                (lambda (p) (not (eq? (car p) 'model-meta)))
+                cfg
+              ) ;filter
+            ) ;cons
+          ) ;let*
+        ) ;lambda
+        (lambda _
+          (list (cons 'provider (chain-node-provider node))
+            (cons 'model-id (chain-node-model node))
+            (cons 'thinking-level (chain-node-thinking-level node))
+            (cons 'model-meta
+              (pi-model-metadata-from-alist (list (cons 'id (chain-node-model node))
+                                              (cons 'name (chain-node-model node))
+                                              (cons 'provider (chain-node-provider node))
+                                              (cons 'base-url "")
+                                              (cons 'max-tokens %probe-max-tokens)
+                                            ) ;list
+              ) ;pi-model-metadata-from-alist
+            ) ;cons
+            (cons 'config-dir (path dir-str))
+          ) ;list
+        ) ;lambda
+      ) ;catch
+    ) ;define
+
+    (define (%nonempty-response-text resp)
+      (let ((text (extract-assistant-text resp)))
+        (and (string? text) (not (string-null? (string-trim-both text))))
+      ) ;let
+    ) ;define
+
+    (define (%network-error-code message)
+      (if
+        (and (string? message)
+          (or (string-contains? (string-downcase message) "request failed:")
+            (string-contains? (string-downcase message) "network error")
+          ) ;or
+        ) ;and
+        (if (or (string-contains? (string-downcase message) "timeout")
+              (string-contains? (string-downcase message) "timed out")
+            ) ;or
+          'timeout
+          'network
+        ) ;if
+        'error
+      ) ;if
+    ) ;define
+
+    (define (%assistant-probe-failure resp)
+      (let ((stop (pi-assistant-message-stop-reason resp))
+            (err-msg (pi-assistant-message-error-message resp))
            ) ;
         (cond
-         ((eqv? exit-code -1)
-          (%failure 'timeout (if (string-null? message) "probe process timeout" message))
+         ((equal? stop "error")
+          (%failure
+            (let ((code (pi-probe-error-code (or err-msg "error"))))
+              (if (and (or (eqv? code 0) (eq? code 'error)) (string? err-msg))
+                (%network-error-code err-msg)
+                code
+              ) ;if
+            ) ;let
+            (or err-msg "probe request error")
+          ) ;%failure
          ) ;
-         ((not (zero? exit-code)) (%failure (pi-probe-error-code message) message))
-         ((and (string? stdout) (not (string-null? (string-trim-both stdout)))) #f)
-         (else (%failure 'empty-response "probe returned no text"))
+         ((equal? stop "aborted")
+          (%failure 'timeout
+            (if (and (string? err-msg) (not (string-null? err-msg)))
+              err-msg
+              "probe request timeout"
+            ) ;if
+          ) ;%failure
+         ) ;
+         ;; 探活只验证链路可用：非 error/aborted 的结构化 assistant 即健康，
+         ;; 即使 max_tokens 截断导致正文为空（stop=length）。
+         (else #f)
         ) ;cond
       ) ;let
     ) ;define
 
-    ;; run-fn 接收 command、timeout-ms、config-dir，返回退出码与两路输出。
-    ;; 正常文本返回 #t；任何错误统一写 FAIL 日志并返回 #f。
-    (define* (pi-probe-node node (timeout-ms 8000) (config-dir #f) (run-fn #f))
+    (define (%probe-response-failure resp)
+      (cond ((pi-assistant-message? resp) (%assistant-probe-failure resp))
+            ((and (string? resp) (not (string-null? (string-trim-both resp)))) #f)
+            ((string? resp) (%failure 'empty-response "probe returned no text"))
+            ((boolean? resp) (if resp #f (%failure 'error "probe returned false")))
+            ((and (pair? resp) (%nonempty-response-text resp)) #f)
+            ((pair? resp) (%failure 'empty-response "probe returned no text"))
+            (else (%failure 'error "probe returned unexpected response"))
+      ) ;cond
+    ) ;define
+
+    (define (%request-exception-failure tag args)
+      (let* ((detail
+               (if (pair? args)
+                 (let ((d (car args)))
+                   (if (string? d) d (object->string d))
+                 ) ;let
+                 (object->string tag)
+               ) ;if
+             ) ;detail
+             (code (pi-probe-error-code detail))
+            ) ;
+        (%failure (if (eq? code 'error) 'exception code) detail)
+      ) ;let*
+    ) ;define
+
+    ;; request-fn 接收 provider、config、messages、sys-prompt、tools、timeout、retry，
+    ;; 缺省为 (liii pi ai dispatch) 的 pi-request-provider。
+    ;; 正常返回非空文本时返回 #t；任何错误统一写 FAIL 日志并返回 #f。
+    (define* (pi-probe-node node (timeout-ms 8000) (config-dir #f) (request-fn #f))
       (let* ((provider (chain-node-provider node))
              (model (chain-node-model node))
-             (dir (path->string (or config-dir (gf-get-config-dir))))
-             (run-probe (or run-fn %default-run))
+             (dir
+               (if (string? config-dir)
+                 config-dir
+                 (path->string (or config-dir (gf-get-config-dir)))
+               ) ;if
+             ) ;dir
+             (req (or request-fn pi-request-provider))
              (failure
                (catch #t
                  (lambda ()
-                   (let-values (((exit-code stdout stderr) (run-probe (%probe-command node) timeout-ms dir)))
-                     (%probe-failure exit-code stdout stderr)
-                   ) ;let-values
+                   (let* ((node-cfg (%probe-node-config node dir))
+                          (msgs (list (pi-user-message pi-probe-prompt)))
+                          (timeout-sec (/ timeout-ms 1000))
+                          ;; 探活必须单次、快速失败，不在同一节点内自动重试。
+                          (resp (req provider node-cfg msgs #f '() timeout-sec '((enabled
+                                                                                   . #f))))
+                         ) ;
+                     (%probe-response-failure resp)
+                   ) ;let*
                  ) ;lambda
-                 (lambda (tag . args)
-                   (%failure 'exception
-                     (if (pair? args)
-                       (let ((detail (car args)))
-                         (if (string? detail) detail (object->string detail))
-                       ) ;let
-                       (object->string tag)
-                     ) ;if
-                   ) ;%failure
-                 ) ;lambda
+                 (lambda (tag . args) (%request-exception-failure tag args))
                ) ;catch
              ) ;failure
             ) ;
