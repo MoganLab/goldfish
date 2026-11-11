@@ -1,6 +1,6 @@
 # (liii pi code all-in-one chain) 模块函数分类索引
 
-`(liii pi code all-in-one chain)` 每轮从链头顺次调用金丝雀预检，首个健康节点接收边界清洗后的会话并执行真实业务。主力节点恢复后自然回溯，不维护持久禁用或冷却状态；全链失败返回 `all-nodes-exhausted`。
+`(liii pi code all-in-one chain)` 每轮从链头顺次调用预检，首个健康节点接收边界清洗后的会话并执行真实业务。主力节点恢复后自然回溯，不维护持久禁用或冷却状态；全链失败返回 `all-nodes-exhausted`。
 
 使用时导入：
 

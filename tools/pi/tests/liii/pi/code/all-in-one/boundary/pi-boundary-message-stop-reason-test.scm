@@ -15,14 +15,22 @@
 ;; (or string #f)
 ;; 停止原因；非 assistant 或缺少字段时返回 #f。
 
-(import (scheme base) (liii check) (liii pi ai message)
+(import (scheme base)
+  (liii check)
+  (liii pi ai message)
   (liii pi code all-in-one boundary)
 ) ;import
 
 (check-set-mode! 'report-failed)
-(check (pi-boundary-message-stop-reason (pi-assistant-message '() "error")) => "error")
+(check (pi-boundary-message-stop-reason (pi-assistant-message '() "error"))
+  =>
+  "error"
+) ;check
 (check (pi-boundary-message-stop-reason '((stopReason . "length"))) => "length")
-(check (pi-boundary-message-stop-reason '(("stopReason" . "aborted"))) => "aborted")
+(check (pi-boundary-message-stop-reason '(("stopReason" . "aborted")))
+  =>
+  "aborted"
+) ;check
 (check (pi-boundary-message-stop-reason (pi-user-message "hi")) => #f)
 
 (check-report)

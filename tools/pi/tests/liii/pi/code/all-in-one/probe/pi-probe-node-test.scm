@@ -12,7 +12,7 @@
 ;; timeout-ms : number (可选)
 ;; 子进程超时毫秒数。
 ;; config-dir : (or string path #f) (可选)
-;; 隔离配置目录，同时用于 alarm.log。
+;; 隔离配置目录，同时用于按天日志。
 ;; run-fn : procedure (可选)
 ;; 测试用运行器，接收 (command timeout-ms config-dir)，返回
 ;; (values exit-code stdout stderr)。
@@ -33,6 +33,7 @@
   (liii shutil)
   (liii string)
   (liii pi code all-in-one probe)
+  (liii pi code all-in-one alarm)
   (liii pi code all-in-one types)
 ) ;import
 
@@ -54,7 +55,7 @@
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
 
 (define (reset-log!)
-  (let ((file (path-join TMP-DIR "logs" "alarm.log")))
+  (let ((file (resolve-alarm-log-path TMP-DIR)))
     (when (file-exists? (path->string file))
       (delete-file (path->string file))
     ) ;when
@@ -62,7 +63,7 @@
 ) ;define
 
 (define (log-text)
-  (path-read-text (path->string (path-join TMP-DIR "logs" "alarm.log")))
+  (path-read-text (path->string (resolve-alarm-log-path TMP-DIR)))
 ) ;define
 
 (define (check-failure status expected-code expected-text)
@@ -149,12 +150,12 @@
 (reset-log!)
 (let ((captured #f))
   (check-true
-    (pi-probe-node NODE 2000 TMP-DIR
+    (pi-probe-node NODE
+      2000
+      TMP-DIR
       (lambda (command timeout config-dir)
         (set! captured command)
-        (let ((result (run-either '(printf "pong") :stdout 'capture :stderr 'capture
-                        :timeout 2
-                      ) ;run-either
+        (let ((result (run-either '(printf "pong") :stdout 'capture :stderr 'capture :timeout 2)
               ) ;result
              ) ;
           (values 0 (to-right result) "")

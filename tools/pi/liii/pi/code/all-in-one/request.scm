@@ -55,6 +55,10 @@
         (let ((node-config (%node-config config provider model-id thinking-level))
               (request (or request-fn pi-request-provider-stream))
              ) ;
+          ;; 交接前把实际节点告知前台，供页脚展示
+          (when (procedure? on-event)
+            (on-event 'active_node (list provider model-id thinking-level))
+          ) ;when
           (request provider node-config messages system-prompt tools on-event timeout)
         ) ;let
       ) ;lambda

@@ -22,6 +22,7 @@
   (liii shutil)
   (liii string)
   (liii pi code all-in-one chain)
+  (liii pi code all-in-one alarm)
   (liii pi code all-in-one types)
 ) ;import
 
@@ -34,9 +35,13 @@
     ) ;path-join
   ) ;path->string
 ) ;define
+
 (define N1 (make-chain-node "p1" "m1"))
+
 (define N2 (make-chain-node "p2" "m2"))
+
 (define CHAIN (make-chain-def "reset-test" "重置测试" (list N1 N2)))
+
 (define CFG (make-all-in-one-cfg #f 1000 10 1000 (list CHAIN)))
 
 (when (file-exists? TMP-DIR)
@@ -45,7 +50,12 @@
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
 
 (define (run-on-node-2)
-  (pi-chain-execute CHAIN '() (lambda args 'node-2) CFG TMP-DIR #f
+  (pi-chain-execute CHAIN
+    '()
+    (lambda args 'node-2)
+    CFG
+    TMP-DIR
+    #f
     (lambda (node timeout config-dir run-fn)
       (equal? (chain-node-provider node) "p2")
     ) ;lambda
@@ -55,10 +65,18 @@
 ;; 节点 2 成功后立即回链头本应产生 REWIND；重置记忆后则不再记录。
 (check (run-on-node-2) => 'node-2)
 (pi-chain-reset-rewind-state!)
-(check (pi-chain-execute CHAIN '() (lambda args 'node-1) CFG TMP-DIR #f (lambda args #t))
-  => 'node-1
+(check (pi-chain-execute CHAIN
+         '()
+         (lambda args 'node-1)
+         CFG
+         TMP-DIR
+         #f
+         (lambda args #t)
+       ) ;pi-chain-execute
+  =>
+  'node-1
 ) ;check
-(let ((content (path-read-text (path->string (path-join TMP-DIR "logs" "alarm.log")))))
+(let ((content (path-read-text (path->string (resolve-alarm-log-path TMP-DIR)))))
   (check (string-contains? content "[REWIND]") => #f)
   (check-true (string-contains? content "[SWITCH]"))
 ) ;let

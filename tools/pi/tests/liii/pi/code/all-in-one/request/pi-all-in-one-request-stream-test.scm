@@ -29,6 +29,7 @@
 (import (scheme base)
   (scheme file)
   (liii check)
+  (liii list)
   (liii os)
   (liii path)
   (liii shutil)
@@ -80,11 +81,19 @@
   ) ;list
 ) ;define
 
-;; 首节点失败、第二节点成功；真实请求收到实际节点凭据与模型元数据
-(let ((probed '()) (captured #f))
+;; 首节点失败、第二节点成功；真实请求收到实际节点凭据与模型元数据，
+;; 并在交接前用 active_node 事件告知前台当前节点
+(let ((probed '()) (captured #f) (node-events '()))
   (let ((response
-          (pi-all-in-one-request-stream "all-in-one" CONFIG (list (pi-user-message "work"))
-            "system" '(read) #f 60
+          (pi-all-in-one-request-stream "all-in-one"
+            CONFIG
+            (list (pi-user-message "work"))
+            "system"
+            '(read)
+            (lambda (type payload)
+              (set! node-events (cons (cons type payload) node-events))
+            ) ;lambda
+            60
             (lambda (node timeout-ms config-dir run-fn)
               (set! probed (cons (chain-node-model node) probed))
               (check timeout-ms => 1234)
@@ -110,16 +119,27 @@
     (check (list-ref captured 3) => "system")
     (check (list-ref captured 4) => '(read))
     (check (list-ref captured 5) => 60)
+    ;; 交接前已把实际节点回传给前台
+    (check
+      (filter (lambda (p) (eq? (car p) 'active_node)) node-events)
+      =>
+      (list (cons 'active_node '("stub" "two" "high")))
+    ) ;check
   ) ;let
 ) ;let
 
 ;; 全链失败或链不存在时不调用真实请求函数
 (let ((called? #f))
-  (let ((response
-          (pi-all-in-one-request-stream "all-in-one" CONFIG '() "" '() #f 60
-            (lambda args #f)
-            (lambda args (set! called? #t))
-          ) ;pi-all-in-one-request-stream
+  (let ((response (pi-all-in-one-request-stream "all-in-one"
+                    CONFIG
+                    '()
+                    ""
+                    '()
+                    #f
+                    60
+                    (lambda args #f)
+                    (lambda args (set! called? #t))
+                  ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
     (check (pi-assistant-message-stop-reason response) => "error")

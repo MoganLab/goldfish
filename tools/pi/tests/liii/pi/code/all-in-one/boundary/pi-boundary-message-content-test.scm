@@ -15,14 +15,22 @@
 ;; list
 ;; 内容块列表；字符串包装为单元素列表，无内容时为空列表。
 
-(import (scheme base) (liii check) (liii pi ai message)
+(import (scheme base)
+  (liii check)
+  (liii pi ai message)
   (liii pi code all-in-one boundary)
 ) ;import
 
 (check-set-mode! 'report-failed)
 (let ((block (pi-text-block "ok")))
-  (check (pi-boundary-message-content (pi-assistant-message (list block))) => (list block))
-  (check (pi-boundary-message-content (pi-user-message (vector block))) => (list block))
+  (check (pi-boundary-message-content (pi-assistant-message (list block)))
+    =>
+    (list block)
+  ) ;check
+  (check (pi-boundary-message-content (pi-user-message (vector block)))
+    =>
+    (list block)
+  ) ;check
   (check (pi-boundary-message-content '((content . "raw"))) => '("raw"))
 ) ;let
 (check (pi-boundary-message-content (pi-user-message "hi")) => '("hi"))

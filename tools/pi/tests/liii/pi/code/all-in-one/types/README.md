@@ -46,5 +46,5 @@ gf doc all-in-one-cfg?
 - `all-in-one-cfg-continuous?` - 获取是否开启连续等候
 - `all-in-one-cfg-max-wait-ms` - 获取全链等待单次最大耗时（毫秒）
 - `all-in-one-cfg-retry-interval-ms` - 获取全链等待重试轮询间隔（毫秒）
-- `all-in-one-cfg-probe-timeout-ms` - 获取单节点金丝雀预检探测超时（毫秒）
+- `all-in-one-cfg-probe-timeout-ms` - 获取单节点预检探测超时（毫秒）
 - `all-in-one-cfg-chains` - 获取链定义列表

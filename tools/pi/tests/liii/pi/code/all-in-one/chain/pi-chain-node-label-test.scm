@@ -15,7 +15,9 @@
 ;; string
 ;; provider/model 形式标签。
 
-(import (scheme base) (liii check) (liii pi code all-in-one chain)
+(import (scheme base)
+  (liii check)
+  (liii pi code all-in-one chain)
   (liii pi code all-in-one types)
 ) ;import
 

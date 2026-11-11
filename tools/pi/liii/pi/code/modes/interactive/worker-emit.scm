@@ -169,6 +169,16 @@
             ((eq? event-type 'compaction)
              (pi-tui-send-event! event-chan (list 'compaction))
             ) ;
+            ;; all-in-one 交接完成：携带当前实际节点（provider model thinking-level）
+            ((eq? event-type 'active_node)
+             (when (pair? args)
+               (let ((node (car args)))
+                 (when (pair? node)
+                   (pi-tui-send-event! event-chan (list 'active_node node))
+                 ) ;when
+               ) ;let
+             ) ;when
+            ) ;
             ;; 重试提示，转为卡片而非污染终端
             ((eq? event-type 'retry)
              (when (pair? args)
