@@ -19,4 +19,5 @@ gf doc pi-request-provider-stream
 ## 函数分类索引
 
 ### 协议派发
+- `pi-make-request-config` - 构造标准请求配置关联表，自动推导端点与协议
 - `pi-request-provider-stream` - 根据协议类型路由并执行流式请求

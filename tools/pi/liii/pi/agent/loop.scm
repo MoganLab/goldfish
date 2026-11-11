@@ -33,8 +33,10 @@
     ) ;define
 
     (define* (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
-      (let* ((active-tools (cdr (assoc 'tools config)))
-             (provider (cdr (or (assoc 'provider config) '(#f . "google"))))
+      (let* ((tools-pair (and (pair? config) (or (assoc 'tools config) (assoc "tools" config))))
+             (active-tools (if tools-pair (cdr tools-pair) '()))
+             (prov-pair (and (pair? config) (or (assoc 'provider config) (assoc "provider" config))))
+             (provider (if prov-pair (cdr prov-pair) "google"))
              (on-stream-ev
                (if (procedure? emit)
                  (lambda (ev)

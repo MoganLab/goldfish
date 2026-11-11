@@ -18,11 +18,9 @@
       (if (not (or (pair? resp) (pi-assistant-message? resp)))
         resp
         (let* ((u (pi-agent-assoc-val 'usage "usage" resp #f))
-               (provider (cdr (or (assoc 'provider config) '(#f . "google"))))
-               (model-id (cdr (or (assoc 'model-id config) '(#f . ""))))
-               (models-store (cdr (or (assoc 'models-store config) '(#f
-                                                                     #_quote
-                                                                     ()))))
+               (provider (pi-agent-assoc-val 'provider "provider" config "google"))
+               (model-id (pi-agent-assoc-val 'model-id "model-id" config ""))
+               (models-store (pi-agent-assoc-val 'models-store "models-store" config '()))
               ) ;
           (if (not (pair? u))
             resp
@@ -63,11 +61,9 @@
     ) ;define
 
     (define (pi-agent-session-cost-summary msgs config)
-      (let* ((provider (cdr (or (assoc 'provider config) '(#f . "google"))))
-             (model-id (cdr (or (assoc 'model-id config) '(#f . ""))))
-             (models-store (cdr (or (assoc 'models-store config) '(#f
-                                                                   #_quote
-                                                                   ()))))
+      (let* ((provider (pi-agent-assoc-val 'provider "provider" config "google"))
+             (model-id (pi-agent-assoc-val 'model-id "model-id" config ""))
+             (models-store (pi-agent-assoc-val 'models-store "models-store" config '()))
              (cost-rates (pi-model-cost provider model-id models-store))
             ) ;
         (pi-summarize-session-cost cost-rates

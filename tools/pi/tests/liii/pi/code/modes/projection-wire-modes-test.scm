@@ -44,6 +44,7 @@
   (liii subprocess)
   (liii sys)
   (liii pi ai message)
+  (liii pi ai dispatch)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)
@@ -101,15 +102,12 @@
 (define %captured (vector #f))
 
 (define (make-mock-cfg agent-dir base-url)
-  (list (cons 'agent-dir agent-dir)
-    (cons 'tools '())
-    (cons 'provider "google")
-    (cons 'api-key "mock-key")
-    (cons 'model-id "gemini-3.8-flash")
-    (cons 'model-meta (list (cons 'base-url base-url)))
-    (cons 'settings '((max-retries . 0)))
-    (cons 'proxy-url #f)
-  ) ;list
+  (cons (cons 'agent-dir agent-dir)
+    (pi-make-request-config "google" "gemini-3.8-flash" "mock-key"
+      :base-url base-url
+      :settings '((max-retries . 0))
+    ) ;pi-make-request-config
+  ) ;cons
 ) ;define
 
 (define (project-messages sfile)

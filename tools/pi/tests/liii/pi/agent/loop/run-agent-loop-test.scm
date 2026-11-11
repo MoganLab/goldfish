@@ -25,6 +25,7 @@
 (import (scheme base)
   (liii check)
   (liii pi ai message)
+  (liii pi ai dispatch)
   (liii pi ai tools record)
   (liii pi agent loop)
 ) ;import
@@ -93,6 +94,47 @@
   ;; 消息历史包含：第1轮assistant、第1轮toolResult、第2轮assistant，共3条
   (check (length res) => 3)
   (check-true (pi-tool-result-message? (cadr res)))
+) ;let*
+
+;; 3. 极简配置（由 pi-make-request-config 构建）支持
+(let* ((mock-req
+         (lambda (provider cfg msgs sp tools on-stream to)
+           (pi-assistant-message (list (list (cons 'type "text") (cons 'text "minimal ok")))
+             :stop-reason "stop"
+             :usage       '((input . 1) (output . 1) (total . 2))
+           ) ;pi-assistant-message
+         ) ;lambda
+       ) ;mock-req
+       (cfg (pi-make-request-config "google" "gemini-3.8-flash" "test-key"))
+       (res (run-agent-loop cfg (list (pi-user-message "hi")) "" #f 10 0 0 #f mock-req))
+      ) ;
+  (check (length res) => 2)
+  (check (pi-assistant-message-content (cadr res))
+    =>
+    '(((type . "text") (text . "minimal ok")))
+  ) ;check
+) ;let*
+
+;; 4. 缺失 tools 等非必需字段的最小 alist 配置支持
+(let* ((mock-req
+         (lambda (provider cfg msgs sp tools on-stream to)
+           (pi-assistant-message (list (list (cons 'type "text") (cons 'text "bare ok")))
+             :stop-reason "stop"
+             :usage       '((input . 1) (output . 1) (total . 2))
+           ) ;pi-assistant-message
+         ) ;lambda
+       ) ;mock-req
+       (cfg '((provider . "deepseek")
+              (model-id . "deepseek-chat")
+              (api-key . "sk-test"))
+       ) ;cfg
+       (res (run-agent-loop cfg (list (pi-user-message "hi")) "" #f 10 0 0 #f mock-req))
+      ) ;
+  (check (length res) => 2)
+  (check (pi-assistant-message-content (cadr res))
+    =>
+    '(((type . "text") (text . "bare ok")))
+  ) ;check
 ) ;let*
 
 (check-report)

@@ -22,6 +22,7 @@
   (liii pi agent loop)
   (liii pi agent tools)
   (liii pi ai message)
+  (liii pi ai dispatch)
   (liii pi code core session-manager)
 ) ;import
 
@@ -46,16 +47,13 @@
 
 (define (make-test-cfg provider api-key model-id base-url max-turns . tools-opt)
   (let ((tools (if (pair? tools-opt) (car tools-opt) '("read" "bash"))))
-    (list (cons 'provider provider)
-      (cons 'api-key api-key)
-      (cons 'model-id model-id)
-      (cons 'model-meta (list (cons 'base-url base-url) (cons 'max-tokens 4096)))
-      (cons 'proxy-url #f)
-      (cons 'tools tools)
-      (cons 'settings '())
-      (cons 'timeout 10)
-      (cons 'max-turns max-turns)
-    ) ;list
+    (append
+      (pi-make-request-config provider model-id api-key
+        :base-url base-url
+        :tools tools
+      ) ;pi-make-request-config
+      (list (cons 'timeout 10) (cons 'max-turns max-turns))
+    ) ;append
   ) ;let
 ) ;define
 
