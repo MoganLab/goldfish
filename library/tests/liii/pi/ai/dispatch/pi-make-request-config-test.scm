@@ -29,7 +29,7 @@
 ;; alist?
 ;; 符合下游协议流式请求规范的配置关联表。
 
-(import (liii check) (liii pi ai dispatch))
+(import (liii check) (liii pi ai dispatch) (liii pi ai config record))
 
 (check-set-mode! 'report-failed)
 
@@ -43,8 +43,8 @@
   (check (cdr (assoc 'provider-api cfg)) => "anthropic-messages")
   (check (cdr (assoc 'model-id cfg)) => "deepseek-chat")
   (check (cdr (assoc 'api-key cfg)) => "sk-test")
-  (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
-  (check (cdr (assoc 'max-tokens meta)) => 4096)
+  (check (pi-model-metadata-base-url meta) => "https://api.deepseek.com/anthropic")
+  (check (pi-model-metadata-max-tokens meta) => 4096)
   (check (cdr (assoc 'tools cfg)) => '())
   (check (cdr (assoc 'proxy-url cfg)) => #f)
   (check (cdr (assoc 'settings cfg)) => '())
@@ -66,8 +66,8 @@
   (check (cdr (assoc 'provider cfg)) => "deepseek")
   (check (cdr (assoc 'provider-api cfg)) => "openai-completions")
   (check (cdr (assoc 'api-key cfg)) => "sk-custom")
-  (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com")
-  (check (cdr (assoc 'max-tokens meta)) => 8192)
+  (check (pi-model-metadata-base-url meta) => "https://api.deepseek.com")
+  (check (pi-model-metadata-max-tokens meta) => 8192)
   (check (cdr (assoc 'proxy-url cfg)) => "http://127.0.0.1:7890")
   (check (cdr (assoc 'tools cfg)) => '(my-tool))
 ) ;let*
@@ -84,7 +84,7 @@
       ) ;
   (check (cdr (assoc 'provider cfg)) => "unknown-prov")
   (check (cdr (assoc 'provider-api cfg)) => "google-generative-ai")
-  (check (cdr (assoc 'base-url meta)) => "")
+  (check (pi-model-metadata-base-url meta) => "")
 ) ;let*
 
 (check-report)

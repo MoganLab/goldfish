@@ -15,12 +15,12 @@
     pi-settings->alist pi-credential pi-credential? pi-credential-provider
     pi-settings-hide-thinking-block pi-settings-session-dir pi-credential-key
     pi-settings-model-thinking-level pi-settings-model-thinking-levels
-    pi-settings-enable-skill-commands
-    pi-credential-type pi-credential->alist pi-model-metadata pi-model-metadata?
-    pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
-    pi-model-metadata-base-url pi-model-metadata-context-window
-    pi-model-metadata-max-tokens pi-model-metadata-matched?
-    pi-model-metadata->alist
+    pi-settings-enable-skill-commands pi-credential-type pi-credential->alist
+    pi-model-metadata pi-model-metadata? pi-model-metadata-id
+    pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
+    pi-model-metadata-context-window pi-model-metadata-max-tokens
+    pi-model-metadata-matched? pi-model-metadata->alist
+    pi-model-metadata-from-alist
   ) ;export
   (begin
 
@@ -155,6 +155,30 @@
           (cons 'max-tokens (pi-model-metadata-max-tokens m))
           (cons 'matched? (pi-model-metadata-matched? m))
         ) ;list
+      ) ;if
+    ) ;define
+
+    ;; alist → record：会话从 JSON 载入后把旧形态的 model-meta 规范化为
+    ;; record；已是 record 则原样返回。字段容错：缺失或 #f 时给安全默认值。
+    (define (%meta-field alist key default)
+      (let ((p (assoc key alist)))
+        (if (and p (cdr p)) (cdr p) default)
+      ) ;let
+    ) ;define
+
+    (define (pi-model-metadata-from-alist m)
+      (if (pi-model-metadata? m)
+        m
+        (and (pair? m)
+          (%make-pi-model-metadata (%meta-field m 'id "")
+            (%meta-field m 'name "")
+            (%meta-field m 'provider "")
+            (%meta-field m 'base-url "")
+            (%meta-field m 'context-window #f)
+            (%meta-field m 'max-tokens #f)
+            (%meta-field m 'matched? #t)
+          ) ;%make-pi-model-metadata
+        ) ;and
       ) ;if
     ) ;define
 

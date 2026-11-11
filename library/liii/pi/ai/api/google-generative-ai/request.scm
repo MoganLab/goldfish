@@ -14,6 +14,7 @@
     (liii http)
     (liii error)
     (liii time)
+    (liii pi ai event)
     (liii pi ai retry)
     (liii pi ai limits)
     (liii pi ai log)

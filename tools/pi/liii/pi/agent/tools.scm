@@ -215,7 +215,7 @@
                          (list :on-update on-update :check-abort pi-aborted?)
                          '()
                        ) ;if
-                       (if (pair? opt-config) (list (list :config opt-config)) '())
+                       (if (pair? opt-config) (list :config opt-config) '())
                      ) ;append
                    ) ;exec-opts
                    (started-at (current-jiffy))
