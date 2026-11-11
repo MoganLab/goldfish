@@ -740,6 +740,37 @@
 
     (define %guard-tag (list 'guard 'tag))
 
+    ;; 启发式轻量推断错误类型：根据消息字符串特征推断 file-error/read-error，
+    ;; 推断不出时默认 'user（对齐 chibi-scheme 的 'user 命名）。
+    (define (%string-starts-with? prefix str)
+      (and (string? str)
+        (string? prefix)
+        (>= (string-length str) (string-length prefix))
+        (string=? prefix (substring str 0 (string-length prefix)))
+      ) ;and
+    ) ;define
+
+    (define (%infer-error-kind msg)
+      (cond
+       ((and (string? msg)
+          (or (%string-starts-with? "file error" msg)
+            (%string-starts-with? "cannot open" msg)
+            (%string-starts-with? "no such file" msg)
+          ) ;or
+        ) ;and
+        'file-error
+       ) ;
+       ((and (string? msg)
+          (or (%string-starts-with? "read error" msg)
+            (%string-starts-with? "unexpected EOF" msg)
+          ) ;or
+        ) ;and
+        'read-error
+       ) ;
+       (else 'user)
+      ) ;cond
+    ) ;define
+
     ;; 执行 body：异常时打包标记。S7 会复用/改写 catch handler 的参数列表，
     ;; 且内层 payload 列表与异常结构共享（跨求值步骤会被改写为循环结构），
     ;; 故逐层拷贝两层结构。
@@ -773,9 +804,25 @@
 
     ;; 从打包的异常参数中提取条件值：caught-args 形如 (tag (payload ...))，
     ;; guard 变量绑定到首个 payload（raise 'b → b；error 'k "m" 42 → "m"）。
+    ;; 若首个 payload 是 R7RS <error-object>（由标准 (error "m" ...) 构造），
+    ;; 直接把错误对象本身交给 guard 子句，便于用 error-object? 等谓词匹配。
     (define (%guard-condition caught-args)
       (if (and (pair? caught-args) (pair? (cdr caught-args)) (pair? (cadr caught-args)))
-        (car (cadr caught-args))
+        (let ((tag (car caught-args)) (payload (car (cadr caught-args))))
+          (cond ((error-object? payload) payload)
+                ((and (eq? tag 'no-catch) (string? payload))
+                 ;; R7RS 风格 (error "msg" irritants ...)：C 层 g_error 以 'no-catch
+                 ;; 抛出且 info 为原始实参列表的深拷贝，信封形如 (no-catch ("msg" irritants ...))，
+                 ;; payload 即消息字符串，irritants 为信封尾部的其余元素，
+                 ;; 即时转译为标准 <error-object>（kind 由消息特征推断）。
+                 (%make-error-object (%infer-error-kind payload)
+                   payload
+                   (list-copy (cdr (cadr caught-args)))
+                 ) ;%make-error-object
+                ) ;
+                (else payload)
+          ) ;cond
+        ) ;let
         (if (pair? caught-args) (car caught-args) caught-args)
       ) ;if
     ) ;define
@@ -864,57 +911,15 @@
       (irritants error-object-irritants)
     ) ;define-record-type
 
-    ;; 缓存底层 s7 原生 error 过程
-    (define %s7-error ((rootlet) 'error))
-
-    (define (%string-starts-with? prefix str)
-      (and (string? str)
-        (string? prefix)
-        (>= (string-length str) (string-length prefix))
-        (string=? prefix (substring str 0 (string-length prefix)))
-      ) ;and
-    ) ;define
-
-    ;; 启发式轻量推断错误类型
-    (define (%infer-error-kind msg irritants)
-      (cond
-       ((and (string? msg)
-          (or (%string-starts-with? "file error" msg)
-            (%string-starts-with? "cannot open" msg)
-            (%string-starts-with? "no such file" msg)
-          ) ;or
-        ) ;and
-        'file-error
-       ) ;
-       ((and (string? msg)
-          (or (%string-starts-with? "read error" msg)
-            (%string-starts-with? "unexpected EOF" msg)
-          ) ;or
-        ) ;and
-        'read-error
-       ) ;
-       (else 'user)
-      ) ;cond
-    ) ;define
-
-    (define (error . args)
-      (cond
-        ;; A. s7 显式指定符号类型 (老签名): (error 'type-error "msg" ...)
-        ((and (pair? args) (symbol? (car args))) (apply %s7-error args))
-        ;; B. R7RS-small 标准规范: (error "msg" ...)
-        ((and (pair? args) (string? (car args)))
-         (let ((kind (%infer-error-kind (car args) (cdr args))))
-           (raise (%make-error-object kind (car args) (cdr args)))
-         ) ;let
-        ) ;
-        ;; C. 零参兜底
-        ((null? args) (raise (%make-error-object 'user "unknown error" '())))
-        ;; D. 其它首参
-        (else
-          (raise (%make-error-object 'user (object->string (car args)) (cdr args)))
-        ) ;else
-      ) ;cond
-    ) ;define
+    ;; R7RS 的 error 直接引用底层 s7 原生原语对象（而非 Scheme lambda 包装）。
+    ;; s7 的 g_error 天然是 R7RS 签名的超集：
+    ;;   首参 string? → 以 'no-catch 抛出（R7RS 规范路径）
+    ;;   首参 symbol? → 以该符号为 tag 抛出（s7 显式类型路径）
+    ;; 用 lambda 包装会遮蔽 C 原语，在大对象场景（如 srfi-113 set-size 百万元素）
+    ;; 引发段错误；直接别名则与原生行为完全一致。
+    ;; R7RS 语义补全（error-object 构造）由 %guard-condition 桥接层完成：
+    ;; guard 捕获 'no-catch 信封时即时转译为标准 <error-object>。
+    (define error ((rootlet) 'error))
 
     (define (read-error? obj)
       (cond

@@ -1812,7 +1812,28 @@ s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args)
 s7_pointer g_error(s7_scheme *sc, s7_pointer args)
 {
   if (s7_is_string(s7_car(args)))
-    s7_error(sc, s7_make_symbol(sc, "no-catch"), args);
+    { /* R7RS-style (error message obj ...): pass a copy of args as the error info.
+       * The caller's arg list may be a VM-managed list that gets reused (its car can be
+       * overwritten to build a circular structure) after the longjmp unwinds, so handlers
+       * observing the info would see corrupted data (Goldfish issue 1263: (error "m") lost
+       * its message). Copying here keeps (error-object-message (guard (e ...))) intact.
+       */
+      s7_pointer copy = s7_nil(sc);
+      for (s7_pointer p = args; s7_is_pair(p); p = s7_cdr(p))
+        copy = s7_cons(sc, s7_car(p), copy);
+      { /* reverse in place */
+        s7_pointer prev = s7_nil(sc), cur = copy;
+        while (s7_is_pair(cur))
+          {
+            s7_pointer next = s7_cdr(cur);
+            s7_set_cdr(cur, prev);
+            prev = cur;
+            cur = next;
+          }
+        copy = prev;
+      }
+      s7_error(sc, s7_make_symbol(sc, "no-catch"), copy);
+    }
   s7_error(sc, s7_car(args), s7_cdr(args));
   return(s7_unspecified(sc));
 }
