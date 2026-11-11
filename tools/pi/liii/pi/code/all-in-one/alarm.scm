@@ -5,14 +5,14 @@
 ;;
 
 (define-library (liii pi code all-in-one alarm)
-  (import (scheme base) (liii path) (liii string) (liii pi ai time))
+  (import (scheme base) (liii path) (liii string) (liii date-time))
   (export resolve-alarm-log-path pi-alarm-log!)
   (begin
 
     ;; resolve-alarm-log-path
     ;; 解析 alarm.log 完整文件路径。
-    ;; 缺省或传入 #f 时返回默认路径 ~/.gf/agent/alarm.log，
-    ;; 显式指定非空配置目录时返回该目录下的 alarm.log。
+    ;; 缺省或传入 #f 时返回默认路径 ~/.gf/agent/logs/alarm.log，
+    ;; 显式指定非空配置目录时返回该目录下的 logs/alarm.log。
     (define (resolve-alarm-log-path . opt-config-dir)
       (let ((base-dir (if (and (pair? opt-config-dir) (car opt-config-dir))
                         (car opt-config-dir)
@@ -20,7 +20,7 @@
                       ) ;if
             ) ;base-dir
            ) ;
-        (path->string (path-join base-dir "alarm.log"))
+        (path->string (path-join base-dir "logs" "alarm.log"))
       ) ;let
     ) ;define
 
@@ -30,7 +30,8 @@
     (define (pi-alarm-log! log-type provider model err-code message . opt-config-dir)
       (let* ((log-file (apply resolve-alarm-log-path opt-config-dir))
              (parent (path-parent (path log-file)))
-             (now-iso (pi-iso-8601-utc-now))
+             ;; 机器本地时区，带显式 UTC 偏移；UTC 环境输出 Z。
+             (now-iso (timestamp->iso-8601 (current-system-timestamp)))
              (type-str (cond ((string? log-type) log-type)
                              ((symbol? log-type) (symbol->string log-type))
                              (else (object->string log-type))

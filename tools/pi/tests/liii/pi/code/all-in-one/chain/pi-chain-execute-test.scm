@@ -88,7 +88,7 @@
     (check (list-ref call 3) => (list USER))
   ) ;let
   (check-true
-    (string-contains? (path-read-text (path->string (path-join TMP-DIR "alarm.log")))
+    (string-contains? (path-read-text (path->string (path-join TMP-DIR "logs" "alarm.log")))
       "[SWITCH]"
     ) ;string-contains?
   ) ;check-true
@@ -113,7 +113,7 @@
   (check (reverse probed) => '("kimi1"))
   (check executed => "kimi1")
   (check-true
-    (string-contains? (path-read-text (path->string (path-join TMP-DIR "alarm.log")))
+    (string-contains? (path-read-text (path->string (path-join TMP-DIR "logs" "alarm.log")))
       "[REWIND]"
     ) ;string-contains?
   ) ;check-true
@@ -135,7 +135,7 @@
   (check (reverse probed) => '("kimi1" "deepseek1" "google1"))
   (check-false called?)
   (check-true
-    (string-contains? (path-read-text (path->string (path-join TMP-DIR "alarm.log")))
+    (string-contains? (path-read-text (path->string (path-join TMP-DIR "logs" "alarm.log")))
       "[EXHAUSTED]"
     ) ;string-contains?
   ) ;check-true

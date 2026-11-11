@@ -54,7 +54,7 @@
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
 
 (define (reset-log!)
-  (let ((file (path-join TMP-DIR "alarm.log")))
+  (let ((file (path-join TMP-DIR "logs" "alarm.log")))
     (when (file-exists? (path->string file))
       (delete-file (path->string file))
     ) ;when
@@ -62,7 +62,7 @@
 ) ;define
 
 (define (log-text)
-  (path-read-text (path->string (path-join TMP-DIR "alarm.log")))
+  (path-read-text (path->string (path-join TMP-DIR "logs" "alarm.log")))
 ) ;define
 
 (define (check-failure status expected-code expected-text)

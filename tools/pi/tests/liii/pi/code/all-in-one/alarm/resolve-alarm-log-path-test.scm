@@ -8,7 +8,7 @@
 ;; 参数
 ;; ----
 ;; opt-config-dir : (or string path #f) (可选)
-;; 可选配置目录，未提供或为 #f 时返回默认的 ~/.gf/agent/alarm.log。
+;; 可选配置目录，未提供或为 #f 时返回默认的 ~/.gf/agent/logs/alarm.log。
 ;;
 ;; 返回值
 ;; ----
@@ -40,21 +40,21 @@
 
 ;; 1. 未传配置目录时返回用户主目录下 .gf/agent/alarm.log
 (let ((default-path (resolve-alarm-log-path))
-      (expected-default (path->string (path-join (path-home) ".gf" "agent" "alarm.log"))
+      (expected-default (path->string (path-join (path-home) ".gf" "agent" "logs" "alarm.log"))
       ) ;expected-default
      ) ;
   (check default-path => expected-default)
   ;; 2. 可选参数为 #f 时仍走默认路径
   (check (resolve-alarm-log-path #f) => expected-default)
-  ;; 3. 显式传入临时配置目录时返回该目录下 alarm.log
+  ;; 3. 显式传入临时配置目录时返回该目录下 logs/alarm.log
   (let ((custom-dir (path-join TMP-DIR "custom-conf")))
     (check (resolve-alarm-log-path custom-dir)
       =>
-      (path->string (path-join custom-dir "alarm.log"))
+      (path->string (path-join custom-dir "logs" "alarm.log"))
     ) ;check
     (check (resolve-alarm-log-path (path->string custom-dir))
       =>
-      (path->string (path-join custom-dir "alarm.log"))
+      (path->string (path-join custom-dir "logs" "alarm.log"))
     ) ;check
   ) ;let
 ) ;let

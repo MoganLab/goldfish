@@ -58,7 +58,7 @@
 (check (pi-chain-execute CHAIN '() (lambda args 'node-1) CFG TMP-DIR #f (lambda args #t))
   => 'node-1
 ) ;check
-(let ((content (path-read-text (path->string (path-join TMP-DIR "alarm.log")))))
+(let ((content (path-read-text (path->string (path-join TMP-DIR "logs" "alarm.log")))))
   (check (string-contains? content "[REWIND]") => #f)
   (check-true (string-contains? content "[SWITCH]"))
 ) ;let

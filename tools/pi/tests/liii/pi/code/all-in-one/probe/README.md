@@ -1,6 +1,6 @@
 # (liii pi code all-in-one probe) 模块函数分类索引
 
-`(liii pi code all-in-one probe)` 通过独立 `gf pi -p --no-session --no-tools --no-skills` 子进程向候选节点发送 `ping`。预检不恢复或写入主会话，不加载工具与技能；失败统一追加到配置目录下的 `alarm.log`。
+`(liii pi code all-in-one probe)` 通过独立 `gf pi -p --no-session --no-tools --no-skills` 子进程向候选节点发送 `ping`。预检不恢复或写入主会话，不加载工具与技能；失败统一追加到配置目录下的 `logs/alarm.log`。
 
 使用时导入：
 
