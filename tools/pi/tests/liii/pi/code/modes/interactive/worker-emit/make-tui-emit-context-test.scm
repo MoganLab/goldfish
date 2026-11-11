@@ -53,7 +53,21 @@
   (check (recv-ev! ch) => '(message_usage ((input . 1)) #f))
 ) ;let*
 
-;; 3. compaction 事件透传给前端
+;; 3. all-in-one 实际节点切换后，usage 使用该节点的窗口而不是伪模型窗口
+(let* ((ch (make-chan 16))
+       (emit (make-tui-emit ch 128000))
+       (msg '((role . "assistant") (content . "hi") (usage (input . 1))))
+      ) ;
+  (emit 'active_node '("zai-coding-cn" "glm-5.3" "high" 204800))
+  (check (recv-ev! ch)
+    =>
+    '(active_node ("zai-coding-cn" "glm-5.3" "high" 204800))
+  ) ;check
+  (emit 'message_end msg)
+  (check (recv-ev! ch) => '(message_usage ((input . 1)) 204800))
+) ;let*
+
+;; 4. compaction 事件透传给前端
 (let* ((ch (make-chan 16)) (emit (make-tui-emit ch 1048576)))
   (emit 'compaction)
   (check (recv-ev! ch) => '(compaction))

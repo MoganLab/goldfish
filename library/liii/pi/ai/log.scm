@@ -193,7 +193,7 @@
     ;; 记录一次异常 HTTP 请求：首行是请求上下文，随后原样记录响应体。
     ;;
     ;; info 为可选关联表，支持字段：
-    ;;   provider model url attempt max-attempts retryable retry-after
+    ;;   provider model url attempt max-attempts retryable retry-after reason
     (define* (pi-log-http-error! status body (info '()))
       (let* ((status-str (%as-string (or status 0)))
              (body-str (if (string? body) body ""))
@@ -212,6 +212,7 @@
                      (%bool-field 'retryable (%alist-ref 'retryable info #f))
                      (%meta-field 'limit kind)
                      (%meta-field 'retry-after (%alist-ref 'retry-after info #f))
+                     (%meta-field 'reason (%alist-ref 'reason info #f))
                    ) ;string-append
              ) ;head
              (url-line

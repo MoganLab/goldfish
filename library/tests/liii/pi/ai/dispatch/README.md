@@ -14,6 +14,7 @@
 
 ```bash
 gf doc pi-request-provider-stream
+gf doc pi-request-provider
 ```
 
 ## 函数分类索引
@@ -21,3 +22,4 @@ gf doc pi-request-provider-stream
 ### 协议派发
 - `pi-make-request-config` - 构造标准请求配置关联表，自动推导端点与协议
 - `pi-request-provider-stream` - 根据协议类型路由并执行流式请求
+- `pi-request-provider` - 根据协议类型路由并执行单次非流式请求

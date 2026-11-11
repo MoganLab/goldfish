@@ -35,6 +35,7 @@
   (liii shutil)
   (liii pi ai message)
   (liii pi code all-in-one request)
+  (liii pi code all-in-one chain)
   (liii pi code all-in-one types)
 ) ;import
 
@@ -68,7 +69,7 @@
   "{\"id\":\"one\",\"name\":\"one\"}"
 ) ;path-write-text
 (path-write-text (path->string (path-join TMP-DIR "models" "stub" "two.json"))
-  "{\"id\":\"two\",\"name\":\"two\",\"reasoning\":true}"
+  "{\"id\":\"two\",\"name\":\"two\",\"reasoning\":true,\"contextWindow\":234567}"
 ) ;path-write-text
 
 (define CONFIG
@@ -80,6 +81,8 @@
     (cons 'tools '())
   ) ;list
 ) ;define
+
+(pi-chain-reset-sticky-state!)
 
 ;; 首节点失败、第二节点成功；真实请求收到实际节点凭据与模型元数据，
 ;; 并在交接前用 active_node 事件告知前台当前节点
@@ -128,12 +131,46 @@
     (check
       (filter (lambda (p) (eq? (car p) 'active_node)) node-events)
       =>
-      (list (cons 'active_node '("stub" "two" "high")))
+      (list (cons 'active_node '("stub" "two" "high" 234567)))
     ) ;check
   ) ;let
 ) ;let
 
+;; 探活通过但真实请求失败时，清除当前粘性并顺延到下一健康节点
+(pi-chain-reset-sticky-state!)
+(let ((probed '()) (requested '()))
+  (let ((response
+          (pi-all-in-one-request-stream "all-in-one"
+            CONFIG
+            (list (pi-user-message "work"))
+            "system"
+            '()
+            #f
+            60
+            (lambda (node timeout-ms config-dir request-fn)
+              (set! probed (cons (chain-node-model node) probed))
+              #t
+            ) ;lambda
+            (lambda (provider config messages system-prompt tools on-event timeout)
+              (let ((model-id (cdr (assoc 'model-id config))))
+                (set! requested (cons model-id requested))
+                (if (equal? model-id "one")
+                  (pi-assistant-message '() "error" "HTTP 503: unavailable")
+                  (pi-assistant-message (list (pi-text-block "fallback ok")) "stop")
+                ) ;if
+              ) ;let
+            ) ;lambda
+          ) ;pi-all-in-one-request-stream
+        ) ;response
+       ) ;
+    (check (pi-assistant-message-stop-reason response) => "stop")
+    (check (reverse probed) => '("one" "two"))
+    (check (reverse requested) => '("one" "two"))
+  ) ;let
+) ;let
+
 ;; 全链失败或链不存在时不调用真实请求函数
+(pi-chain-reset-sticky-state!)
 (let ((called? #f))
   (let ((response (pi-all-in-one-request-stream "all-in-one"
                     CONFIG

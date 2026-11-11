@@ -73,20 +73,32 @@
       (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
-    (define (%make-retry-error status attempt body-str provider model-id)
+    (define (%request-error-text status attempt body-str reason)
+      (if (zero? status)
+        (let ((detail (if (string? reason) (string-trim-both reason) "")))
+          (if (string-null? detail)
+            "Request failed: network error"
+            (string-append "Request failed: " detail)
+          ) ;if
+        ) ;let
+        (string-append "HTTP "
+          (number->string status)
+          " after "
+          (number->string attempt)
+          " attempts: "
+          body-str
+        ) ;string-append
+      ) ;if
+    ) ;define
+
+    (define (%make-retry-error status attempt body-str provider model-id reason)
       (let ((limit (pi-usage-limit-error? status body-str provider)))
         (pi-assistant-message (list (pi-text-block ""))
           :stop-reason "error"
           :error-message
           (if limit
             (pi-usage-limit-error-message limit provider)
-            (string-append "HTTP "
-              (number->string status)
-              " after "
-              (number->string attempt)
-              " attempts: "
-              body-str
-            ) ;string-append
+            (%request-error-text status attempt body-str reason)
           ) ;if
           :usage    (anthropic-map-usage '())
           :provider provider
@@ -176,6 +188,7 @@
                   (cons 'attempt attempt)
                   (cons 'max-attempts provider-max-retries)
                   (cons 'retryable (anthropic-is-retriable-error? status body-str provider))
+                  (cons 'reason (%resp-field resp 'reason))
                 ) ;list
               ) ;pi-log-http-error!
             ) ;when
@@ -189,7 +202,13 @@
                   (sleep delay-sec)
                   (loop (+ attempt 1))
                 ) ;let*
-                (%make-retry-error status attempt body-str provider model-id)
+                (%make-retry-error status
+                  attempt
+                  body-str
+                  provider
+                  model-id
+                  (%resp-field resp 'reason)
+                ) ;%make-retry-error
               ) ;if
               (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
                      (limit (pi-usage-limit-error? status body-str provider))

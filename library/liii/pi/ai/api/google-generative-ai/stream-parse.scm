@@ -35,10 +35,10 @@
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
             ) ;
-        (if (not (string-null? err-text))
-          (string-append "Request failed: " err-text)
-          (string-append "HTTP " (number->string status) " stream error")
-        ) ;if
+        (cond ((not (string-null? err-text)) (string-append "Request failed: " err-text))
+              ((zero? status) "Request failed: network error")
+              (else (string-append "HTTP " (number->string status) " stream error"))
+        ) ;cond
       ) ;let*
     ) ;define
 

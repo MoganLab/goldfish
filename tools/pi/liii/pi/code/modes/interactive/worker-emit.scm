@@ -174,6 +174,10 @@
              (when (pair? args)
                (let ((node (car args)))
                  (when (pair? node)
+                   ;; 第四项为实际节点的上下文窗口；同时更新后续 usage 事件容量
+                   (when (and (>= (length node) 4) (number? (list-ref node 3)))
+                     (set! context-window (list-ref node 3))
+                   ) ;when
                    (pi-tui-send-event! event-chan (list 'active_node node))
                  ) ;when
                ) ;let
