@@ -25,6 +25,12 @@
 (check-true (equal? #t #t))
 (check-true (equal? 42 42))
 (check-true (equal? 3.14 3.14))
+(check-true (equal? 0.0 0.0))
+(check-true (equal? -0.0 -0.0))
+(check-false (equal? 0.0 -0.0))
+(check-false (equal? -0.0 0.0))
+(check-false (equal? 0 0.0))
+(check-false (equal? 0 -0.0))
 (check-true (equal? "hello" "hello"))
 (check-true (equal? 'abc 'abc))
 ;; Test equal? for lists

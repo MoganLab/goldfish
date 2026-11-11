@@ -75,7 +75,9 @@
 
 ;; 边界情况
 (check (= 0 0.0) => #t)
+(check (= 0 -0.0) => #t)
 (check (= -0.0 0.0) => #t)
+(check (= 0.0 -0.0) => #t)
 
 ;; 错误处理：参数不足
 (check-catch 'wrong-number-of-args (=))
