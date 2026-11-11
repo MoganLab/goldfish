@@ -3,6 +3,7 @@
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
     getcwd listdir access getlogin getpid isdir os-tty? console-kbhit?
     console-getch console-raw-mode! console-raw-mode-state os-terminal-size
+    urandom
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -196,6 +197,19 @@
 
     (define (os-terminal-size)
       (g_terminal_size)
+    ) ;define
+
+    ;; urandom: 生成 n 字节的密码学安全随机数据（CSPRNG）。
+    ;; 底层对接操作系统熵源（Linux getrandom / macOS getentropy /
+    ;; Windows BCryptGenRandom），不可用于普通伪随机场景之外的猜测。
+    (define (urandom n)
+      (cond ((not (exact-integer? n))
+             (type-error "urandom: length must be an exact integer" n)
+            ) ;
+            ((< n 0) (value-error "urandom: length must be non-negative" n))
+            ((= n 0) #u8())
+            (else (g_urandom n))
+      ) ;cond
     ) ;define
 
   ) ;begin

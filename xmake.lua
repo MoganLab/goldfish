@@ -98,6 +98,8 @@ target ("goldfish") do
     end
     if is_plat("windows") then
         add_syslinks("psapi")
+        -- CNG 随机数接口 BCryptGenRandom（src/liii_os.cpp 的 g_urandom）
+        add_syslinks("bcrypt")
     end
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
