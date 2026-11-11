@@ -126,4 +126,7 @@
   ) ;let
 ) ;check-true
 
+;; read-error 测试
+(check-catch 'read-error (read (open-input-string "(1 2")))
+
 (check-report)

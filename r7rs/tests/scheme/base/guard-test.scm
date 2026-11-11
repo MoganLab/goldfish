@@ -34,6 +34,7 @@
 
 (import (liii check))
 (import (scheme base))
+(import (scheme read))
 
 (check-set-mode! 'report-failed)
 
@@ -201,6 +202,75 @@
   ) ;let
   =>
   505
+) ;check
+
+;; 9. guard 与 error-object 深度联动测试
+
+;; 9.1 guard 模式匹配谓词分发 (file-error? / read-error? / error-object?)
+(check
+  (guard (ex
+          ((file-error? ex) 'handled-file)
+          ((read-error? ex) 'handled-read)
+          ((error-object? ex) (error-object-message ex))
+          (else 'unknown))
+    (open-input-file "tests/scheme/base/nonexistent-file-12345.scm"))
+  =>
+  'handled-file
+) ;check
+
+(check
+  (guard (ex
+          ((file-error? ex) 'handled-file)
+          ((read-error? ex) 'handled-read)
+          ((error-object? ex) (error-object-message ex))
+          (else 'unknown))
+    (read (open-input-string "(")))
+  =>
+  'handled-read
+) ;check
+
+(check
+  (guard (ex
+          ((file-error? ex) 'handled-file)
+          ((error-object? ex) (list (error-object-message ex) (error-object-irritants ex)))
+          (else 'unknown))
+    (error "standard failure" 100 200))
+  =>
+  '("standard failure" (100 200))
+) ;check
+
+;; 9.2 guard => 接收器子句处理 error-object
+(check
+  (guard (ex
+          ((and (error-object? ex) ex) => (lambda (err) (string-append "prefix: " (error-object-message err))))
+          (else "fallback"))
+    (error "core dumped"))
+  =>
+  "prefix: core dumped"
+) ;check
+
+;; 9.3 嵌套 guard 未匹配 re-raise 透传保持 error-object 完整性
+(check
+  (guard (outer
+          ((file-error? outer) (list 'outer-caught (error-object-message outer)))
+          (else 'unexpected))
+    (guard (inner
+            ((read-error? inner) 'handled-read))
+      ;; 抛出 file-error，内层只处理 read-error，自动在原动态环境 re-raise 给外层
+      (error 'file-error "no such file: data.db")))
+  =>
+  '(outer-caught "no such file: data.db")
+) ;check
+
+;; 9.4 遮蔽内部关键字环境下 guard 与 error-object 正常联动
+(check
+  (let ((cond 'shadowed) (apply 'shadowed) (throw 'shadowed))
+    (guard (ex
+            ((error-object? ex) (error-object-message ex))
+            (else 'failed))
+      (error "hygiene ok")))
+  =>
+  "hygiene ok"
 ) ;check
 
 (check-report)

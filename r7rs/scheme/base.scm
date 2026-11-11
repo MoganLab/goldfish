@@ -210,7 +210,6 @@
     u8-ready?
     read-bytevector
     read-bytevector!
-    read
     write-char
     write-string
     write-u8
@@ -236,7 +235,13 @@
     make-parameter
     parameterize
     ;; Exception
+    error
+    error-object?
+    error-object-message
+    error-object-irritants
+    with-exception-handler
     raise
+    raise-continuable
     guard
     read-error?
     file-error?
@@ -721,10 +726,6 @@
 
     (define* (string->utf8 str (start 0) (end #t)) (g_string->utf8 str start end))
 
-    (define (raise . args)
-      (apply throw #t args)
-    ) ;define
-
     ;; guard 的卫生基础设施（Issue 1341）。
     ;;
     ;; 旧 define-macro 实现的展开产物里含裸的 cond/else/apply/throw，会被使用点
@@ -737,6 +738,12 @@
     ;; (list %guard-tag args)，作为唯一返回值与正常路径区分。
 
     (define %guard-tag (list 'guard 'tag))
+
+    (define %file-error-tags
+      '(file file-error io-error file-not-found-error permission-denied-error)
+    ) ;define
+
+    (define %read-error-tags '(read read-error string-read-error read-incomplete))
 
     ;; 执行 body：异常时打包标记。S7 会复用/改写 catch handler 的参数列表，
     ;; 且内层 payload 列表与异常结构共享（跨求值步骤会被改写为循环结构），
@@ -769,11 +776,37 @@
       ) ;call-with-values
     ) ;define
 
-    ;; 从打包的异常参数中提取条件值：caught-args 形如 (tag (payload ...))，
-    ;; guard 变量绑定到首个 payload（raise 'b → b；error 'k "m" 42 → "m"）。
+    ;; 从打包的异常参数中提取条件值：caught-args 形如 (tag (payload ...))。
+    ;; 1. 若首个 payload 是 R7RS <error-object>，直接交付该错误对象。
+    ;; 2. 若 tag 为 'no-catch（由 R7RS 标准 (error "m" ...) 产生），转译为 kind 为 'user 的标准 <error-object>。
+    ;; 3. 若 tag 为文件错误相关符号，转译为相应 kind 的 <error-object>。
+    ;; 4. 若 tag 为读取错误相关符号，转译为 kind 为 'read-error 的 <error-object>。
+    ;; 5. 其余情况原样提取首个 payload，兼容底层与既有测试。
     (define (%guard-condition caught-args)
       (if (and (pair? caught-args) (pair? (cdr caught-args)) (pair? (cadr caught-args)))
-        (car (cadr caught-args))
+        (let ((tag (car caught-args)) (payload (car (cadr caught-args))))
+          (cond ((error-object? payload) payload)
+                ((and (eq? tag 'no-catch) (string? payload))
+                 (%make-error-object 'user payload (list-copy (cdr (cadr caught-args))))
+                ) ;
+                ((memq tag %file-error-tags)
+                 (%make-error-object tag
+                   (catch #t
+                     (lambda () (apply format #f (cadr caught-args)))
+                     (lambda _ (if (string? payload) payload (object->string payload)))
+                   ) ;catch
+                   (list-copy (cdr (cadr caught-args)))
+                 ) ;%make-error-object
+                ) ;
+                ((memq tag %read-error-tags)
+                 (%make-error-object 'read-error
+                   (if (string? payload) payload (object->string payload))
+                   (list-copy (cdr (cadr caught-args)))
+                 ) ;%make-error-object
+                ) ;
+                (else payload)
+          ) ;cond
+        ) ;let
         (if (pair? caught-args) (car caught-args) caught-args)
       ) ;if
     ) ;define
@@ -853,8 +886,22 @@
       ) ;let*
     ) ;define-macro
 
+    ;; R7RS 的 error 直接引用底层 s7 原生原语对象（而非 Scheme lambda 包装）。
+    ;; s7 的 g_error 天然是 R7RS 签名的超集：
+    ;;   首参 string? → 以 'no-catch 抛出（R7RS 规范路径）
+    ;;   首参 symbol? → 以该符号为 tag 抛出（s7 显式类型路径）
+    ;; 用 lambda 包装会遮蔽 C 原语，在大对象场景（如 srfi-113 set-size 百万元素）
+    ;; 引发段错误；直接别名则与原生行为完全一致。
+    ;; R7RS 语义补全（error-object 构造）由 %guard-condition 桥接层完成：
+    ;; guard 捕获 'no-catch 信封时即时转译为标准 <error-object>。
+    (define error ((rootlet) 'error))
+
     (define (read-error? obj)
-      (eq? (car obj) 'read-error)
+      (cond
+       ((error-object? obj) (and (memq (%error-object-kind obj) %read-error-tags) #t))
+       ((and (pair? obj) (memq (car obj) %read-error-tags)) #t)
+       (else #f)
+      ) ;cond
     ) ;define
 
     ;; R7RS 4.2.2 参数对象：参数对象是过程，零参调用返回当前值。
@@ -925,7 +972,56 @@
     ) ;define-syntax
 
     (define (file-error? obj)
-      (eq? (car obj) 'io-error)
+      (cond
+       ((error-object? obj) (and (memq (%error-object-kind obj) %file-error-tags) #t))
+       ((and (pair? obj) (memq (car obj) %file-error-tags)) #t)
+       (else #f)
+      ) ;cond
+    ) ;define
+
+    ;; R7RS 6.11 Exceptions: with-exception-handler, raise, raise-continuable
+    (define %default-exception-handler
+      (lambda (exn)
+        (if (error-object? exn)
+          (apply throw
+            (%error-object-kind exn)
+            (cons (error-object-message exn) (error-object-irritants exn))
+          ) ;apply
+          (apply throw #t (list exn))
+        ) ;if
+      ) ;lambda
+    ) ;define
+
+    (define current-exception-handler (make-parameter %default-exception-handler))
+
+    (define %continuable-tag (list 'continuable 'tag))
+
+    (define (raise-continuable obj)
+     ((current-exception-handler) (cons %continuable-tag obj))
+    ) ;define
+
+    (define (raise obj)
+     ((current-exception-handler) obj)
+     (error "exception handler returned")
+    ) ;define
+
+    (define (with-exception-handler handler thunk)
+      (letrec ((orig-handler (current-exception-handler))
+               (self
+                 (lambda (exn)
+                   (parameterize ((current-exception-handler orig-handler))
+                     (cond
+                      ((and (pair? exn) (eq? (car exn) %continuable-tag)) (handler (cdr exn)))
+                      (else (handler exn) (error "exception handler returned"))
+                     ) ;cond
+                   ) ;parameterize
+                 ) ;lambda
+               ) ;self
+              ) ;
+        (parameterize ((current-exception-handler self))
+          (thunk)
+        ) ;parameterize
+      ) ;letrec
     ) ;define
 
     (define (call-with-port port proc)

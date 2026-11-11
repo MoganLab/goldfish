@@ -28,8 +28,8 @@
 (check-set-mode! 'report-failed)
 
 ;; 测试输入端口
-(let ((result (call-with-port (open-input-string "hello") (lambda (p) (read p)))))
-  (check result => 'hello)
+(let ((result (call-with-port (open-input-string "hello") (lambda (p) (read-char p)))))
+  (check result => #\h)
 ) ;let
 ;; 测试输出端口
 (let ((result (call-with-port (open-output-string)

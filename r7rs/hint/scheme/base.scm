@@ -81,6 +81,9 @@
     (define hint-u8-ready? '((-> boolean?) (input-port? -> boolean?)))
     (define hint-read-error? '((any? -> boolean?)))
     (define hint-file-error? '((any? -> boolean?)))
+    (define hint-error-object? '((any? -> boolean?)))
+    (define hint-error-object-message '((any? -> string?)))
+    (define hint-error-object-irritants '((any? -> list?)))
 
     ;; -------------------- 等价与比较 --------------------
     (define hint-eq? '((any? any? -> boolean?)))
@@ -395,7 +398,6 @@
     (define hint-open-input-bytevector '((bytevector? -> input-port?)))
     (define hint-open-output-bytevector '((-> output-port?)))
     (define hint-get-output-bytevector '((output-port? -> bytevector?)))
-    (define hint-read '((-> any?) (input-port? -> any?)))
     (define hint-read-char '((-> any?) (input-port? -> any?)))
     (define hint-peek-char '((-> any?) (input-port? -> any?)))
     (define hint-read-line '((-> any?) (input-port? -> any?)))
@@ -444,6 +446,8 @@
     ) ;define
     (define hint-catch '((any? procedure? procedure? -> any?)))
     (define hint-raise '((any? -> any?)))
+    (define hint-raise-continuable '((any? -> any?)))
+    (define hint-with-exception-handler '((procedure? procedure? -> any?)))
     (define hint-error '((any? any? -> any?) (any? any? any? -> any?)))
 
     ;; -------------------- 标准查询函数 --------------------
@@ -499,6 +503,9 @@
        ((u8-ready?) hint-u8-ready?)
        ((read-error?) hint-read-error?)
        ((file-error?) hint-file-error?)
+       ((error-object?) hint-error-object?)
+       ((error-object-message) hint-error-object-message)
+       ((error-object-irritants) hint-error-object-irritants)
        ((eq?) hint-eq?)
        ((eqv?) hint-eqv?)
        ((equal?) hint-equal?)
@@ -637,7 +644,6 @@
        ((open-input-bytevector) hint-open-input-bytevector)
        ((open-output-bytevector) hint-open-output-bytevector)
        ((get-output-bytevector) hint-get-output-bytevector)
-       ((read) hint-read)
        ((read-char) hint-read-char)
        ((peek-char) hint-peek-char)
        ((read-line) hint-read-line)
@@ -662,6 +668,8 @@
        ((make-parameter) hint-make-parameter)
        ((catch) hint-catch)
        ((raise) hint-raise)
+       ((raise-continuable) hint-raise-continuable)
+       ((with-exception-handler) hint-with-exception-handler)
        ((error) hint-error)
        (else #f)
       ) ;case

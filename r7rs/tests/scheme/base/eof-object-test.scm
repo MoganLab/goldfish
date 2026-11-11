@@ -23,13 +23,13 @@
 (check (eof-object) => #<eof>)
 ;; 测试从空输入读取返回 eof-object
 (let ((p (open-input-string "")))
-  (check (read p) => #<eof>)
+  (check (read-char p) => #<eof>)
   (close-port p)
 ) ;let
 ;; 测试多次读取空输入
 (let ((p (open-input-string "")))
-  (check (read p) => #<eof>)
-  (check (read p) => #<eof>)
+  (check (read-char p) => #<eof>)
+  (check (read-char p) => #<eof>)
   (close-port p)
 ) ;let
 

@@ -15,7 +15,36 @@
 ;;
 
 (define-library (scheme read)
+  (import (scheme base))
   (export read)
   (begin
+
+    (define %s7-read ((rootlet) 'read))
+
+    ;; R7RS 6.13.2 Reading: read
+    ;; 若读取时发生语法错误或意外 EOF，read 按 R7RS 规范抛出满足 read-error? 的错误对象。
+    (define* (read (port (current-input-port)))
+      (catch #t
+        (lambda () (%s7-read port))
+        (lambda (tag . args)
+          (if (memq tag '(read-error string-read-error))
+            (let ((msg
+                    (if (and (pair? args) (pair? (car args)) (string? (caar args)))
+                      (caar args)
+                      "read error"
+                    ) ;if
+                  ) ;msg
+                  (irritants
+                    (if (and (pair? args) (pair? (car args))) (cdar args) args)
+                  ) ;irritants
+                 ) ;
+              (raise (%make-error-object 'read-error msg irritants))
+            ) ;let
+            (apply throw tag args)
+          ) ;if
+        ) ;lambda
+      ) ;catch
+    ) ;define*
+
   ) ;begin
 ) ;define-library

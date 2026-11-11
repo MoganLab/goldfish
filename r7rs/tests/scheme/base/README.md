@@ -236,12 +236,18 @@ gf doc scheme/base "函数名"
 - `open-output-string` - 打开字符串输出端口
 - `get-output-string` - 获取输出字符串
 - `close-port` - 关闭端口
-- `read` - 读取对象
 - `read-line` - 读取一行
 - `write` - 写入对象
 - `write-string` - 按 display 风格写入字符串
 
 ### 十二、异常处理 (R7RS 6.11 Exceptions)
-- `raise` - 抛出异常
-- `guard` - 捕获并处理异常
-- `error` - 报错
+- `error` - 报错并引发异常
+- `error-object?` - 判断是否为错误对象
+- `error-object-message` - 获取错误对象的消息字符串
+- `error-object-irritants` - 获取错误对象的刺激物列表
+- `file-error?` - 是否为文件相关错误
+- `read-error?` - 是否为读取解析错误
+- `with-exception-handler` - 安装异常处理器并执行 thunk
+- `raise` - 抛出不可继续异常
+- `raise-continuable` - 抛出可继续异常
+- `guard` - 捕获并条件处理异常
