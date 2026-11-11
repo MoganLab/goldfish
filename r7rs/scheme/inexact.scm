@@ -15,7 +15,7 @@
 ;;
 
 (define-library (scheme inexact)
-  (export acos asin atan cos exp finite? infinite? log nan? sin sqrt s7-sqrt tan)
+  (export acos asin atan cos exp finite? infinite? log nan? sin sqrt tan)
   (begin
 
     (define s7-sqrt sqrt)

@@ -16,6 +16,18 @@
 ;; real?
 ;; 返回 dividend 除以 divisor 的余数。
 ;;
+;; 说明
+;; ----
+;; 与 S7 原生函数 `s7-modulo` 的区别：
+;; - `modulo` 先校验参数必须是实数，并对除数为 0 抛出 division-by-zero；
+;;   `s7-modulo` 交由 S7 内建处理，除数为 0 时不报错（(s7-modulo 13 0) => 13）。
+;; - `modulo` 允许实数参数（(modulo 13.5 4) => 1.5），与 `s7-modulo` 行为一致。
+;;
+;; 选择建议：常规代码用 `modulo`（参数校验完整、错误类型统一、可移植）；
+;; 确认参数合法且只追求 S7 原生性能时用 `s7-modulo`。
+;;
+;; 参见: gf doc liii/s7 "s7-modulo"
+;;
 ;; 错误处理
 ;; ----
 ;; type-error

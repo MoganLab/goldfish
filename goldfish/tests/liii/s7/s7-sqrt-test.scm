@@ -11,25 +11,34 @@
 ;; 被开方数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number?
 ;; 返回z的平方根。
 ;;
 ;; 注意
 ;; ----
-;; 这是 s7 Scheme 内置的 sqrt 实现，与 scheme inexact 中的 sqrt 行为略有不同。
-;; scheme inexact 中的 sqrt 对负数的精确值有特殊处理。
+;; 这是 s7 Scheme 内置的 sqrt 实现。
 ;;
 ;; (s7-sqrt 9) => 3
 ;; (s7-sqrt 25.0) => 5.0
 ;;
 ;; 错误处理
-;; ------
+;; ----
 ;; type-error
 ;; 当参数不是数值时抛出错误。
-;; s7-sqrt 基本测试
+;;
+;; 说明
+;; ----
+;; 1. 与 `sqrt` 的区别：`sqrt` 先把精确负数转成不精确数再计算，保证负数一律返回
+;;    复数结果（(sqrt -1) => 0.0+1.0i）；`s7-sqrt` 把参数原样交给 S7 内建计算。
+;; 2. 对正数而言两者结果一致（(sqrt 9) => 3，(s7-sqrt 9) => 3）。
+;; 3. `s7-sqrt` 不做 R7RS 的参数检查，非法参数会抛出 S7 原生错误。
+;;
+;; 选择建议：常规代码用 `sqrt`；参数确定非负且只追求 S7 原生性能时用 `s7-sqrt`。
+;;
+;; 参见: gf doc scheme/inexact "sqrt"
 
-(import (liii check) (scheme inexact))
+(import (liii check) (liii s7))
 (check-set-mode! 'report-failed)
 
 (check (s7-sqrt 9) => 3)
