@@ -28,6 +28,8 @@
 ;; 当额外参数个数为 0 或奇数时抛出错误。
 ;; type-error
 ;; 当 ht 不是哈希表时抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-hash-table-set!"
 
 (import (liii check) (liii error) (liii hash-table))
 

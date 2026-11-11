@@ -20,6 +20,8 @@
 ;; ----
 ;; 1. 与 round 行为一致
 ;; 2. 半数时采用银行家舍入（向偶数靠近）
+;;
+;; 参见: gf doc scheme/base "round"
 
 (import (liii check) (liii s7))
 

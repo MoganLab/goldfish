@@ -22,6 +22,8 @@
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-truncate"
 
 (import (liii check))
 (import (scheme base))
@@ -37,7 +39,5 @@
 (check-catch 'type-error (truncate 2.0+4.0i))
 (check-catch 'type-error (truncate 'hello'))
 (check-catch 'wrong-number-of-args (truncate 4 5))
-(check (s7-truncate 1.1) => 1)
-(check (s7-truncate -1.2) => -1)
 
 (check-report)

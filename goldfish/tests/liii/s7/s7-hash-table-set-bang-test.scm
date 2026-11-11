@@ -22,6 +22,8 @@
 ;; 说明
 ;; ----
 ;; 向 S7 原生哈希表中插入或更新键值映射。
+;;
+;; 参见: gf doc srfi/srfi-125 "hash-table-set!"
 
 (import (liii check) (liii s7))
 

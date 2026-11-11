@@ -22,6 +22,8 @@
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-floor"
 
 (import (liii check))
 (import (scheme base))

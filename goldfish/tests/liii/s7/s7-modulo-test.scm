@@ -20,6 +20,8 @@
 ;; 说明
 ;; ----
 ;; 结果的符号与除数 divisor 相同。
+;;
+;; 参见: gf doc scheme/base "modulo"
 
 (import (liii check) (liii s7))
 

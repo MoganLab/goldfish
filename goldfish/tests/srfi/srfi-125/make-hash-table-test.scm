@@ -24,6 +24,8 @@
 ;; ----
 ;; type-error
 ;; 当参数不是比较器时抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-make-hash-table"
 
 (import (liii check) (liii comparator) (liii error) (liii hash-table))
 

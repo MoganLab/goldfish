@@ -22,6 +22,8 @@
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-ceiling"
 
 (import (liii check))
 (import (scheme base))
@@ -37,7 +39,5 @@
 (check-catch 'type-error (ceiling 2.0+4.0i))
 (check-catch 'type-error (ceiling 'hello'))
 (check-catch 'wrong-number-of-args (ceiling 4 5))
-(check (s7-ceiling 1.1) => 2)
-(check (s7-ceiling -1.2) => -1)
 
 (check-report)

@@ -20,6 +20,8 @@
 ;; ----
 ;; 1. 与 truncate 行为一致
 ;; 2. 对于整数返回自身
+;;
+;; 参见: gf doc scheme/base "truncate"
 
 (import (liii check) (liii s7))
 

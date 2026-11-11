@@ -26,6 +26,8 @@
 ;;
 ;; wrong-number-of-args
 ;; 当参数数量不为两个时抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-modulo"
 
 (import (liii check))
 (import (scheme base))

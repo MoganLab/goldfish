@@ -21,6 +21,8 @@
 ;; 1. 与 lcm 行为一致
 ;; 2. 无参数时返回 1
 ;; 3. 单参数时返回该参数的绝对值
+;;
+;; 参见: gf doc scheme/base "lcm"
 
 (import (liii check) (liii s7))
 

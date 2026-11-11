@@ -24,6 +24,8 @@
 ;; 如果存在任何参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果没有提供参数，抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-min"
 
 (import (liii check))
 (import (scheme base))

@@ -22,6 +22,8 @@
 ;; 说明
 ;; ----
 ;; 创建 S7 原生哈希表。
+;;
+;; 参见: gf doc srfi/srfi-125 "make-hash-table"
 
 (import (liii check) (liii s7))
 

@@ -40,6 +40,9 @@
 ;; 当参数不是数值时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-sqrt"
+;;
 ;; sqrt 基本测试
 
 (import (liii check) (scheme inexact))

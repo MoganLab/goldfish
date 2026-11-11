@@ -19,6 +19,8 @@
 ;; ----
 ;; 1. 与 max 基本行为一致
 ;; 2. 至少需要一个参数
+;;
+;; 参见: gf doc scheme/base "max"
 
 (import (liii check) (liii s7))
 

@@ -20,6 +20,8 @@
 ;; ----
 ;; 1. 与 ceiling 行为一致
 ;; 2. 对于整数返回自身
+;;
+;; 参见: gf doc scheme/base "ceiling"
 
 (import (liii check) (liii s7))
 

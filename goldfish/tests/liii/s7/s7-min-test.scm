@@ -19,6 +19,8 @@
 ;; ----
 ;; 1. 与 min 基本行为一致
 ;; 2. 至少需要一个参数
+;;
+;; 参见: gf doc scheme/base "min"
 
 (import (liii check) (liii s7))
 

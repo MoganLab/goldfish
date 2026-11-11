@@ -21,6 +21,8 @@
 ;; ----
 ;; type-error
 ;; 当参数不是实数时抛出错误。
+;;
+;; 参见: gf doc liii/s7 "s7-lcm"
 
 (import (liii check))
 (import (scheme base))

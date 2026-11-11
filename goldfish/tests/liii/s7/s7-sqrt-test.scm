@@ -31,6 +31,8 @@
 ;; 说明
 ;; ----
 ;; s7-sqrt 基本测试
+;;
+;; 参见: gf doc scheme/inexact "sqrt"
 
 (import (liii check) (liii s7))
 (check-set-mode! 'report-failed)
