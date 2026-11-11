@@ -81,6 +81,9 @@
     (define hint-u8-ready? '((-> boolean?) (input-port? -> boolean?)))
     (define hint-read-error? '((any? -> boolean?)))
     (define hint-file-error? '((any? -> boolean?)))
+    (define hint-error-object? '((any? -> boolean?)))
+    (define hint-error-object-message '((any? -> string?)))
+    (define hint-error-object-irritants '((any? -> list?)))
 
     ;; -------------------- 等价与比较 --------------------
     (define hint-eq? '((any? any? -> boolean?)))
@@ -444,6 +447,8 @@
     ) ;define
     (define hint-catch '((any? procedure? procedure? -> any?)))
     (define hint-raise '((any? -> any?)))
+    (define hint-raise-continuable '((any? -> any?)))
+    (define hint-with-exception-handler '((procedure? procedure? -> any?)))
     (define hint-error '((any? any? -> any?) (any? any? any? -> any?)))
 
     ;; -------------------- 标准查询函数 --------------------
@@ -499,6 +504,9 @@
        ((u8-ready?) hint-u8-ready?)
        ((read-error?) hint-read-error?)
        ((file-error?) hint-file-error?)
+       ((error-object?) hint-error-object?)
+       ((error-object-message) hint-error-object-message)
+       ((error-object-irritants) hint-error-object-irritants)
        ((eq?) hint-eq?)
        ((eqv?) hint-eqv?)
        ((equal?) hint-equal?)
@@ -662,6 +670,8 @@
        ((make-parameter) hint-make-parameter)
        ((catch) hint-catch)
        ((raise) hint-raise)
+       ((raise-continuable) hint-raise-continuable)
+       ((with-exception-handler) hint-with-exception-handler)
        ((error) hint-error)
        (else #f)
       ) ;case
