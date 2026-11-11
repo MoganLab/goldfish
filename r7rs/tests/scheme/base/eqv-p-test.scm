@@ -31,6 +31,12 @@
 ;; Test eqv? for inexact numbers
 (check-true (eqv? 3.14 3.14))
 (check-false (eqv? 3.14 2.71))
+(check-true (eqv? 0.0 0.0))
+(check-true (eqv? -0.0 -0.0))
+(check-false (eqv? 0.0 -0.0))
+(check-false (eqv? -0.0 0.0))
+(check-false (eqv? 0 0.0))
+(check-false (eqv? 0 -0.0))
 ;; Test eqv? for characters
 (check-true (eqv? #\a #\a))
 (check-false (eqv? #\a #\b))

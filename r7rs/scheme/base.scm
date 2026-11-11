@@ -390,19 +390,28 @@
     ) ;define
 
     (define (floor x)
-      (if (inexact? x) (inexact (s7-floor x)) (s7-floor x))
+      (if (inexact? x) (if (eqv? x -0.0) -0.0 (inexact (s7-floor x))) (s7-floor x))
     ) ;define
 
     (define (ceiling x)
-      (if (inexact? x) (inexact (s7-ceiling x)) (s7-ceiling x))
+      (if (inexact? x)
+        (if (eqv? x -0.0) -0.0 (inexact (s7-ceiling x)))
+        (s7-ceiling x)
+      ) ;if
     ) ;define
 
     (define (truncate x)
-      (if (inexact? x) (inexact (s7-truncate x)) (s7-truncate x))
+      (if (inexact? x)
+        (if (eqv? x -0.0) -0.0 (inexact (s7-truncate x)))
+        (s7-truncate x)
+      ) ;if
     ) ;define
 
     (define (round x)
-      (if (inexact? x) (inexact (s7-round x)) (s7-round x))
+      (if (inexact? x)
+        (if (or (= x -0.5) (eqv? x -0.0)) -0.0 (inexact (s7-round x)))
+        (s7-round x)
+      ) ;if
     ) ;define
 
     (define (floor-quotient x y)

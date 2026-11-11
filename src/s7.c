@@ -21912,10 +21912,11 @@ static bool numbers_are_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
   /* if (type(x) != type(y)) return(false); */   /* (eqv? 1 1.0) -> #f! but assume that we've checked types already */
   /* switch is apparently as expensive as 3-4 if's! so this only loses if every call involves complex numbers? */
   if (is_t_integer(x)) return(integer(x) == integer(y));
-  if (is_t_real(x)) return(real(x) == real(y));  /* NaNs are not equal to anything including themselves */
+  if (is_t_real(x)) return((real(x) == real(y)) && (!signbit(real(x)) == !signbit(real(y))));  /* NaNs are not equal to anything including themselves */
   if (is_t_ratio(x)) return((numerator(x) == numerator(y)) && (denominator(x) == denominator(y)));
   if (!is_t_complex(x)) return(false);
-  return((real_part(x) == real_part(y)) && (imag_part(x) == imag_part(y)));
+  return((real_part(x) == real_part(y)) && (!signbit(real_part(x)) == !signbit(real_part(y))) &&
+         (imag_part(x) == imag_part(y)) && (!signbit(imag_part(x)) == !signbit(imag_part(y))));
 }
 
 static s7_pointer memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
@@ -30115,14 +30116,15 @@ static bool fraction_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_inf
 static bool real_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
 {
   if (is_t_real(y))
-    return(real(x) == real(y));
+    return((real(x) == real(y)) && (!signbit(real(x)) == !signbit(real(y))));
   return(false);
 }
 
 static bool complex_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
 {
   if (is_t_complex(y))
-    return((real_part(x) == real_part(y)) && (imag_part(x) == imag_part(y)));
+    return((real_part(x) == real_part(y)) && (!signbit(real_part(x)) == !signbit(real_part(y))) &&
+	   (imag_part(x) == imag_part(y)) && (!signbit(imag_part(x)) == !signbit(imag_part(y))));
   return(false);
 }
 

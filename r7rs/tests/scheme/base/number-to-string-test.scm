@@ -66,6 +66,7 @@
 ;; 浮点数转换测试
 (check (number->string 123.456) => "123.456")
 (check (number->string 0.0) => "0.0")
+(check (number->string -0.0) => "-0.0")
 (check (number->string -0.123) => "-0.123")
 (check (number->string 0.3) => "0.3")
 (check (number->string -0.3) => "-0.3")
