@@ -21,7 +21,7 @@
     (liii pi ai models builtin)
     (liii pi ai providers registry)
     (liii pi ai config record)
-    (liii pi all_in_one provider)
+    (liii pi code all-in-one provider)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
     (liii pi code config user-models)

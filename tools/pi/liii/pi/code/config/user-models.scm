@@ -14,7 +14,7 @@
     (liii string)
     (liii os)
     (liii pi ai models builtin)
-    (liii pi all_in_one provider)
+    (liii pi code all-in-one provider)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
   ) ;import
