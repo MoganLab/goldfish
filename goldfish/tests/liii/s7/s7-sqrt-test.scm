@@ -11,7 +11,7 @@
 ;; 被开方数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number?
 ;; 返回z的平方根。
 ;;
@@ -24,12 +24,15 @@
 ;; (s7-sqrt 25.0) => 5.0
 ;;
 ;; 错误处理
-;; ------
+;; ----
 ;; type-error
 ;; 当参数不是数值时抛出错误。
+;;
+;; 说明
+;; ----
 ;; s7-sqrt 基本测试
 
-(import (liii check) (scheme inexact))
+(import (liii check) (liii s7))
 (check-set-mode! 'report-failed)
 
 (check (s7-sqrt 9) => 3)

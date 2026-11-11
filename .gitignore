@@ -21,7 +21,6 @@ repl/goldfish_repl_wasm.data
 repl/goldfish_repl_wasm.js
 repl/goldfish_repl_wasm.wasm
 repl/node_modules
-goldfish/**/*-test.scm
 compile_commands.json
 .cache/
 *~

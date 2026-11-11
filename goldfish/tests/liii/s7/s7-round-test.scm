@@ -21,8 +21,7 @@
 ;; 1. 与 round 行为一致
 ;; 2. 半数时采用银行家舍入（向偶数靠近）
 
-(import (liii check))
-(import (scheme base))
+(import (liii check) (liii s7))
 
 (check-set-mode! 'report-failed)
 

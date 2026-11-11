@@ -21,8 +21,7 @@
 ;; 1. 与 ceiling 行为一致
 ;; 2. 对于整数返回自身
 
-(import (liii check))
-(import (scheme base))
+(import (liii check) (liii s7))
 
 (check-set-mode! 'report-failed)
 

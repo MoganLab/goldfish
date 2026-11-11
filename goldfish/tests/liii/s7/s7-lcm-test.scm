@@ -22,8 +22,7 @@
 ;; 2. 无参数时返回 1
 ;; 3. 单参数时返回该参数的绝对值
 
-(import (liii check))
-(import (scheme base))
+(import (liii check) (liii s7))
 
 (check-set-mode! 'report-failed)
 
