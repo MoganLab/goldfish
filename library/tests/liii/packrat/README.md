@@ -1,6 +1,15 @@
 # (liii packrat) 模块函数分类索引
 
 `(liii packrat)` 提供 Packrat 解析算法：解析规则以宏定义，非终结符结果按位置记忆化，避免重复解析。
+本模块为统一入口，具体实现与单测按职责拆分在各子模块中。
+
+## 子模块
+
+- `(liii packrat position)` - 解析位置记录与更新、比较
+- `(liii packrat error)` - 解析错误记录与合并
+- `(liii packrat result)` - 解析结果与惰性记忆化结果流
+- `(liii packrat combinator)` - 记号检查、择一与排除等解析组合子
+- `(liii packrat parser)` - 规则定义宏 `packrat-parser`
 
 ## 查看函数文档
 
