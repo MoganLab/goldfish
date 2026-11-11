@@ -106,7 +106,8 @@
          ) ;lambda
        ) ;mock-req
        (cfg (pi-make-request-config "google" "gemini-3.8-flash" "test-key"))
-       (res (run-agent-loop cfg (list (pi-user-message "hi")) "" #f 10 0 0 #f mock-req))
+       (res (run-agent-loop cfg (list (pi-user-message "hi")) "" #f 10 0 0 #f mock-req)
+       ) ;res
       ) ;
   (check (length res) => 2)
   (check (pi-assistant-message-content (cadr res))
@@ -128,7 +129,8 @@
               (model-id . "deepseek-chat")
               (api-key . "sk-test"))
        ) ;cfg
-       (res (run-agent-loop cfg (list (pi-user-message "hi")) "" #f 10 0 0 #f mock-req))
+       (res (run-agent-loop cfg (list (pi-user-message "hi")) "" #f 10 0 0 #f mock-req)
+       ) ;res
       ) ;
   (check (length res) => 2)
   (check (pi-assistant-message-content (cadr res))

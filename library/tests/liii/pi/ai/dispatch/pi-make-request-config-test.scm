@@ -51,12 +51,14 @@
 ) ;let*
 
 ;; 2. 关键字参数覆盖
-(let* ((cfg (pi-make-request-config "deepseek" "deepseek-chat" "sk-custom"
-              :base-url "https://api.deepseek.com"
+(let* ((cfg (pi-make-request-config "deepseek"
+              "deepseek-chat"
+              "sk-custom"
+              :base-url     "https://api.deepseek.com"
               :provider-api "openai-completions"
-              :max-tokens 8192
-              :proxy-url "http://127.0.0.1:7890"
-              :tools '(my-tool)
+              :max-tokens   8192
+              :proxy-url    "http://127.0.0.1:7890"
+              :tools        '(my-tool)
             ) ;pi-make-request-config
        ) ;cfg
        (meta (cdr (assoc 'model-meta cfg)))

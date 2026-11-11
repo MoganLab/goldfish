@@ -83,8 +83,10 @@
 ;; 发起一轮请求：实时输出增量文本，返回助手消息（失败返回 #f）
 
 (define (ask api-key messages)
-  (let* ((cfg (pi-make-request-config "deepseek" model-id api-key
-                :base-url base-url
+  (let* ((cfg (pi-make-request-config "deepseek"
+                model-id
+                api-key
+                :base-url     base-url
                 :provider-api "openai-completions"
               ) ;pi-make-request-config
          ) ;cfg

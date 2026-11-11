@@ -47,11 +47,12 @@
 
 (define (make-test-cfg provider api-key model-id base-url max-turns . tools-opt)
   (let ((tools (if (pair? tools-opt) (car tools-opt) '("read" "bash"))))
-    (append
-      (pi-make-request-config provider model-id api-key
-        :base-url base-url
-        :tools tools
-      ) ;pi-make-request-config
+    (append (pi-make-request-config provider
+              model-id
+              api-key
+              :base-url base-url
+              :tools    tools
+            ) ;pi-make-request-config
       (list (cons 'timeout 10) (cons 'max-turns max-turns))
     ) ;append
   ) ;let

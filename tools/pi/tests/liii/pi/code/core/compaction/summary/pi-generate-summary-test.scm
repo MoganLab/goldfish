@@ -49,10 +49,11 @@
 ) ;define
 
 (define (make-config base-url)
-  (append
-    (pi-make-request-config "google" "gemini-3.8-flash" "test-stub-key"
-      :base-url base-url
-    ) ;pi-make-request-config
+  (append (pi-make-request-config "google"
+            "gemini-3.8-flash"
+            "test-stub-key"
+            :base-url base-url
+          ) ;pi-make-request-config
     (list (cons 'timeout 10))
   ) ;append
 ) ;define
