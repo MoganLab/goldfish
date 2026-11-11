@@ -4,7 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi all_in_one alarm)
+(define-library (liii pi code all-in-one alarm)
   (import (scheme base) (liii path) (liii string) (liii pi ai time))
   (export resolve-alarm-log-path pi-alarm-log!)
   (begin

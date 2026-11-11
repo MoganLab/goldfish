@@ -19,7 +19,12 @@
 ;; boolean
 ;; 模型存在时返回 #t，否则返回 #f。
 
-(import (liii check) (liii pi code config user-models))
+(import (scheme base)
+  (liii check)
+  (liii path)
+  (liii shutil)
+  (liii pi code config user-models)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -62,5 +67,19 @@
   =>
   #t
 ) ;check
+
+;; all-in-one 链式伪模型存在性
+(let ((tmp-dir (path->string (path-join (path-temp-dir) "pi-aio-exists-test"))))
+  (when (file-exists? tmp-dir)
+    (rmtree tmp-dir #t)
+  ) ;when
+  (path-mkdir tmp-dir :parents #t :exist-ok #t)
+  (path-write-text (path->string (path-join tmp-dir "all-in-one.json"))
+    "{\"provider\":\"all-in-one\",\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"p\",\"model\":\"m\"}]}]}"
+  ) ;path-write-text
+  (check (pi-user-model-exists? tmp-dir "all-in-one" "coding-deep") => #t)
+  (check (pi-user-model-exists? tmp-dir "all-in-one" "no-such-chain") => #f)
+  (rmtree tmp-dir #t)
+) ;let
 
 (check-report)

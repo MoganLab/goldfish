@@ -31,7 +31,7 @@
   (liii shutil)
   (liii string)
   (liii os)
-  (liii pi all_in_one alarm)
+  (liii pi code all-in-one alarm)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -84,10 +84,22 @@
   (pi-alarm-log! "EXHAUSTED" "p-ex" "m-ex" 503 "exhausted message" type-dir)
   (pi-alarm-log! 'FAIL "p-sym" "m-sym" 500 "symbol fail" type-dir)
   (let ((content (path-read-text log-file)))
-    (check-true (string-contains? content " [SWITCH] provider=p-switch model=m-switch error=429 message=\"switch message\"\n"))
-    (check-true (string-contains? content " [REWIND] provider=p-rewind model=m-rewind error=0 message=\"rewind message\"\n"))
-    (check-true (string-contains? content " [EXHAUSTED] provider=p-ex model=m-ex error=503 message=\"exhausted message\"\n"))
-    (check-true (string-contains? content " [FAIL] provider=p-sym model=m-sym error=500 message=\"symbol fail\"\n"))
+    (check-true (string-contains? content
+                  " [SWITCH] provider=p-switch model=m-switch error=429 message=\"switch message\"\n"
+                ) ;string-contains?
+    ) ;check-true
+    (check-true (string-contains? content
+                  " [REWIND] provider=p-rewind model=m-rewind error=0 message=\"rewind message\"\n"
+                ) ;string-contains?
+    ) ;check-true
+    (check-true (string-contains? content
+                  " [EXHAUSTED] provider=p-ex model=m-ex error=503 message=\"exhausted message\"\n"
+                ) ;string-contains?
+    ) ;check-true
+    (check-true (string-contains? content
+                  " [FAIL] provider=p-sym model=m-sym error=500 message=\"symbol fail\"\n"
+                ) ;string-contains?
+    ) ;check-true
   ) ;let
 ) ;let*
 
@@ -98,8 +110,14 @@
   (pi-alarm-log! "FAIL" #f #f 'timeout #f edge-dir)
   (pi-alarm-log! "SWITCH" 'kimi 'k3 "network-error" "no quote" edge-dir)
   (let ((content (path-read-text log-file)))
-    (check-true (string-contains? content " [FAIL] provider=none model=none error=timeout message=\"\"\n"))
-    (check-true (string-contains? content " [SWITCH] provider=kimi model=k3 error=\"network-error\" message=\"no quote\"\n"))
+    (check-true (string-contains? content
+                  " [FAIL] provider=none model=none error=timeout message=\"\"\n"
+                ) ;string-contains?
+    ) ;check-true
+    (check-true (string-contains? content
+                  " [SWITCH] provider=kimi model=k3 error=\"network-error\" message=\"no quote\"\n"
+                ) ;string-contains?
+    ) ;check-true
   ) ;let
 ) ;let*
 

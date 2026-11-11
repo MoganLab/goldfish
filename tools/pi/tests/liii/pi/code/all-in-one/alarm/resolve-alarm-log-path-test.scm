@@ -20,7 +20,7 @@
   (liii path)
   (liii shutil)
   (liii os)
-  (liii pi all_in_one alarm)
+  (liii pi code all-in-one alarm)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -40,8 +40,7 @@
 
 ;; 1. 未传配置目录时返回用户主目录下 .gf/agent/alarm.log
 (let ((default-path (resolve-alarm-log-path))
-      (expected-default
-        (path->string (path-join (path-home) ".gf" "agent" "alarm.log"))
+      (expected-default (path->string (path-join (path-home) ".gf" "agent" "alarm.log"))
       ) ;expected-default
      ) ;
   (check default-path => expected-default)

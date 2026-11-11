@@ -1,11 +1,11 @@
-# (liii pi all_in_one alarm) 模块函数分类索引
+# (liii pi code all-in-one alarm) 模块函数分类索引
 
-`(liii pi all_in_one alarm)` 提供安全、原子的日志追加能力，专职向配置目录下的 `alarm.log`（默认为 `~/.gf/agent/alarm.log`）写入节点失败、切换、回溯与全链耗尽的异常记录。
+`(liii pi code all-in-one alarm)` 提供安全、原子的日志追加能力，专职向配置目录下的 `alarm.log`（默认为 `~/.gf/agent/alarm.log`）写入节点失败、切换、回溯与全链耗尽的异常记录。
 
 使用时导入：
 
 ```scheme
-(import (liii pi all_in_one alarm))
+(import (liii pi code all-in-one alarm))
 ```
 
 ## 查看函数文档
