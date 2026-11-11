@@ -206,17 +206,16 @@
                        ) ;when
                      ) ;lambda
                    ) ;on-update
-                   (exec-opts
-                     (append (list :timeout timeout)
-                       ;; bash 流式执行时注入 ESC 中止探测（对齐上游 signal：
-                       ;; abort 后 run-streaming-chunks 立即杀进程树并返回
-                       ;; "Command aborted"，无需等命令自然结束）
-                       (if (equal? name "bash")
-                         (list :on-update on-update :check-abort pi-aborted?)
-                         '()
-                       ) ;if
-                       (if (pair? opt-config) (list :config opt-config) '())
-                     ) ;append
+                   (exec-opts (append (list :timeout timeout)
+                                ;; bash 流式执行时注入 ESC 中止探测（对齐上游 signal：
+                                ;; abort 后 run-streaming-chunks 立即杀进程树并返回
+                                ;; "Command aborted"，无需等命令自然结束）
+                                (if (equal? name "bash")
+                                  (list :on-update on-update :check-abort pi-aborted?)
+                                  '()
+                                ) ;if
+                                (if (pair? opt-config) (list :config opt-config) '())
+                              ) ;append
                    ) ;exec-opts
                    (started-at (current-jiffy))
                    (raw-res (apply exec name effective-args exec-opts))

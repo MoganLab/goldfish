@@ -298,7 +298,9 @@
         (lambda ()
           (pi-provider-model-entry (cdr (assoc 'provider opt-cfg))
             (cdr (assoc 'model-id opt-cfg))
-            (cdr (assoc 'models-store opt-cfg))))
+            (cdr (assoc 'models-store opt-cfg))
+          ) ;pi-provider-model-entry
+        ) ;lambda
         (lambda _ #f)
       ) ;catch
     ) ;define
