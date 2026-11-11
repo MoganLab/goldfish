@@ -337,14 +337,17 @@
   (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
 ) ;let*
 
-;; T8 跨模型：toolCall 的 thoughtSignature 不回传
+;; T8 跨模型：原 toolCall 签名不回传，Gemini 3+ 首个 functionCall 补兼容哨兵
 (let* ((msgs
          (list (mk-assistant-model (list (mk-tool-call "c1" "read" "QUJD")) "gemini-2.5-flash")
          ) ;list
        ) ;msgs
        (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
       ) ;
-  (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
+  (check (cdr (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)))
+    =>
+    "skip_thought_signature_validator"
+  ) ;check
 ) ;let*
 
 ;; T9 非 base64 签名不回传（长度非 4 倍数）

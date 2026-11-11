@@ -131,7 +131,7 @@
       ) ;let*
     ) ;define
 
-    (define (%build-assistant-turn content same-model?)
+    (define (%build-assistant-turn content same-model? model-id)
       (let* ((blks (cond ((vector? content) (vector->list content))
                          ((list? content) content)
                          (else '())
@@ -143,6 +143,10 @@
                  (map (lambda (b) (gemini-assistant-block->part b same-model?)) blks)
                ) ;filter
              ) ;parts
+             ;; Gemini 3+ 强制要求每个 model turn 的首个 functionCall 携带
+             ;; thought signature；跨模型交接（如 all-in-one 链切换）后真实签名
+             ;; 已不可用，须补 Google 文档的兼容哨兵，否则 HTTP 400。
+             (parts (gemini-ensure-thought-signature parts model-id))
             ) ;
         (if (null? parts)
           #f
@@ -153,17 +157,23 @@
 
     (define (%build-single-content msg model-id provider)
       (let ((role (if (pi-message? msg) (pi-message-role msg) (%val 'role msg "")))
-            (content (if (pi-message? msg)
-                       (if (pi-assistant-message? msg)
-                         (pi-assistant-message-content msg)
-                         (if (pi-user-message? msg)
-                           (pi-user-message-content msg)
-                           (%val 'content msg '())))
-                       (%val 'content msg '()))))
+            (content
+              (if (pi-message? msg)
+                (if (pi-assistant-message? msg)
+                  (pi-assistant-message-content msg)
+                  (if (pi-user-message? msg)
+                    (pi-user-message-content msg)
+                    (%val 'content msg '())
+                  ) ;if
+                ) ;if
+                (%val 'content msg '())
+              ) ;if
+            ) ;content
+           ) ;
         (cond ((equal? role "user") (%build-user-turn content))
               ((equal? role "assistant")
                (let ((same-model? (%is-same-model? msg model-id provider)))
-                 (%build-assistant-turn content same-model?)
+                 (%build-assistant-turn content same-model? model-id)
                ) ;let
               ) ;
               (else #f)
@@ -241,8 +251,10 @@
     (define (%take-tool-results rest parts-acc)
       (if
         (and (pair? rest)
-          (equal?
-            (if (pi-message? (car rest)) (pi-message-role (car rest)) (%val 'role (car rest) ""))
+          (equal? (if (pi-message? (car rest))
+                    (pi-message-role (car rest))
+                    (%val 'role (car rest) "")
+                  ) ;if
             "toolResult"
           ) ;equal?
         ) ;and

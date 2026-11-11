@@ -248,6 +248,7 @@
 ) ;let*
 
 ;; 4. 同 Provider 跨模型切换：Gemini 2.5 -> Gemini 3
+;; 原签名与思维链必须剥离；首个 functionCall 使用 Google 文档的兼容哨兵。
 (let* ((g25-msg
          (mk-assistant "google"
            "gemini-2.5-flash"
@@ -266,9 +267,14 @@
        ) ;g25-msg
        (contents (gemini-build-contents (list g25-msg) "gemini-3-flash-preview" "google")
        ) ;contents
+       (parts (cdr (assoc "parts" (vector-ref contents 0))))
       ) ;
   (check (vector-length contents) => 1)
-  (check-false (has-thought-signature? contents))
+  (check (vector-length parts) => 1)
+  (check (cdr (assoc "thoughtSignature" (vector-ref parts 0)))
+    =>
+    "skip_thought_signature_validator"
+  ) ;check
   (check-false (has-thought-block? contents))
 ) ;let*
 
