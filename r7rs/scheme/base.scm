@@ -240,7 +240,9 @@
     error-object?
     error-object-message
     error-object-irritants
+    with-exception-handler
     raise
+    raise-continuable
     guard
     read-error?
     file-error?
@@ -725,10 +727,6 @@
 
     (define* (string->utf8 str (start 0) (end #t)) (g_string->utf8 str start end))
 
-    (define (raise . args)
-      (apply throw #t args)
-    ) ;define
-
     ;; guard 的卫生基础设施（Issue 1341）。
     ;;
     ;; 旧 define-macro 实现的展开产物里含裸的 cond/else/apply/throw，会被使用点
@@ -1008,6 +1006,41 @@
        ((and (pair? obj) (eq? (car obj) 'io-error)) #t)
        (else #f)
       ) ;cond
+    ) ;define
+
+    ;; R7RS 6.11 Exceptions: with-exception-handler, raise, raise-continuable
+    (define %default-exception-handler (lambda (exn) (apply throw #t (list exn))))
+
+    (define current-exception-handler (make-parameter %default-exception-handler))
+
+    (define %continuable-tag (list 'continuable 'tag))
+
+    (define (raise-continuable obj)
+     ((current-exception-handler) (cons %continuable-tag obj))
+    ) ;define
+
+    (define (raise obj)
+     ((current-exception-handler) obj)
+     (error "exception handler returned")
+    ) ;define
+
+    (define (with-exception-handler handler thunk)
+      (letrec ((orig-handler (current-exception-handler))
+               (self
+                 (lambda (exn)
+                   (parameterize ((current-exception-handler orig-handler))
+                     (cond
+                      ((and (pair? exn) (eq? (car exn) %continuable-tag)) (handler (cdr exn)))
+                      (else (handler exn) (error "exception handler returned"))
+                     ) ;cond
+                   ) ;parameterize
+                 ) ;lambda
+               ) ;self
+              ) ;
+        (parameterize ((current-exception-handler self))
+          (thunk)
+        ) ;parameterize
+      ) ;letrec
     ) ;define
 
     (define (call-with-port port proc)
