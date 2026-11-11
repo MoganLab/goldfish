@@ -21,7 +21,13 @@
 ;;
 ;; 说明
 ;; ----
-;; 向 S7 原生哈希表中插入或更新键值映射。
+;; 1. 与 `hash-table-set!` 的区别：`s7-hash-table-set!` 写入 S7 原生哈希表
+;;    （由 `s7-make-hash-table` 创建），只能写入 S7 原生表；
+;;    `hash-table-set!` 写入 Goldfish 自己的哈希表（由 `make-hash-table` 创建），
+;;    可配合完整 API 使用。两种哈希表互不通用。
+;; 2. `s7-hash-table-set!` 不做 R7RS 的参数检查，非法参数会抛出 S7 原生错误。
+;;
+;; 选择建议：常规代码用 `hash-table-set!`；需要操作 S7 原生哈希表时用 `s7-hash-table-set!`。
 ;;
 ;; 参见: gf doc srfi/srfi-125 "hash-table-set!"
 
