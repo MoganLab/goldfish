@@ -27,6 +27,7 @@
   (liii string)
   (liii subprocess)
   (liii pi ai message)
+  (liii pi ai dispatch)
   (liii pi code core compaction summary)
 ) ;import
 
@@ -48,13 +49,13 @@
 ) ;define
 
 (define (make-config base-url)
-  (list (cons 'provider "google")
-    (cons 'api-key "test-stub-key")
-    (cons 'model-id "gemini-3.8-flash")
-    (cons 'model-meta (list (cons 'base-url base-url) (cons 'max-tokens 4096)))
-    (cons 'proxy-url #f)
-    (cons 'timeout 10)
-  ) ;list
+  (append (pi-make-request-config "google"
+            "gemini-3.8-flash"
+            "test-stub-key"
+            :base-url base-url
+          ) ;pi-make-request-config
+    (list (cons 'timeout 10))
+  ) ;append
 ) ;define
 
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))

@@ -44,6 +44,7 @@
   (liii subprocess)
   (liii sys)
   (liii pi ai message)
+  (liii pi ai dispatch)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)
@@ -64,23 +65,21 @@
 (define GF-BIN (executable))
 
 (define STUB
-  (if (file-exists? "tools/pi/tests/stub_gemini_server.py")
-    "tools/pi/tests/stub_gemini_server.py"
-    (if (file-exists? "tests/stub_gemini_server.py")
-      "tests/stub_gemini_server.py"
-      "../../tools/pi/tests/stub_gemini_server.py"
-    ) ;if
-  ) ;if
+  (cond ((file-exists? "tools/pi/tests/stub_gemini_server.py")
+         "tools/pi/tests/stub_gemini_server.py"
+        ) ;
+        ((file-exists? "tests/stub_gemini_server.py") "tests/stub_gemini_server.py")
+        (else "../../tools/pi/tests/stub_gemini_server.py")
+  ) ;cond
 ) ;define
 
 (define FIXTURE-DIR
-  (if (file-exists? "tools/pi/tests/fixtures/direct")
-    "tools/pi/tests/fixtures/direct"
-    (if (file-exists? "tests/fixtures/direct")
-      "tests/fixtures/direct"
-      "../../tools/pi/tests/fixtures/direct"
-    ) ;if
-  ) ;if
+  (cond ((file-exists? "tools/pi/tests/fixtures/direct")
+         "tools/pi/tests/fixtures/direct"
+        ) ;
+        ((file-exists? "tests/fixtures/direct") "tests/fixtures/direct")
+        (else "../../tools/pi/tests/fixtures/direct")
+  ) ;cond
 ) ;define
 
 (define TMP-AGENT-DIR
@@ -91,25 +90,21 @@
   (path->string (path-join (path-temp-dir) "pi-1205-compact-e2e-agent"))
 ) ;define
 
-(when (file-exists? TMP-AGENT-DIR)
-  (rmtree TMP-AGENT-DIR)
-) ;when
-(when (file-exists? E2E-AGENT-DIR)
-  (rmtree E2E-AGENT-DIR)
-) ;when
+(for-each (lambda (d) (when (file-exists? d) (rmtree d #t)))
+  (list TMP-AGENT-DIR E2E-AGENT-DIR)
+) ;for-each
 
 (define %captured (vector #f))
 
 (define (make-mock-cfg agent-dir base-url)
-  (list (cons 'agent-dir agent-dir)
-    (cons 'tools '())
-    (cons 'provider "google")
-    (cons 'api-key "mock-key")
-    (cons 'model-id "gemini-3.8-flash")
-    (cons 'model-meta (list (cons 'base-url base-url)))
-    (cons 'settings '((max-retries . 0)))
-    (cons 'proxy-url #f)
-  ) ;list
+  (cons (cons 'agent-dir agent-dir)
+    (pi-make-request-config "google"
+      "gemini-3.8-flash"
+      "mock-key"
+      :base-url base-url
+      :settings '((max-retries . 0))
+    ) ;pi-make-request-config
+  ) ;cons
 ) ;define
 
 (define (project-messages sfile)
@@ -147,9 +142,10 @@
 ) ;define
 
 ;; ---- 用例 1：run-session-flow 恢复压缩会话 --------------------------------
+
 (define (%test-case-1 base-url)
   (let* ((env (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)
-                    (cons "GF_PI_BASE_URL" base-url)
+                (cons "GF_PI_BASE_URL" base-url)
               ) ;list
          ) ;env
          (parsed (parse-pi-args '()))
@@ -163,8 +159,15 @@
         0
       ) ;persist-new-messages!
       (let* ((entries (pi-read-session-entries sfile))
-             (msg-entries (filter (lambda (e) (equal? (cdr (assoc "type" e)) "message")) entries))
-             (m2-id (cdr (assoc "id" (car (reverse msg-entries)))))
+             (msg-entries
+               (filter
+                 (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
+                 entries
+               ) ;filter
+             ) ;msg-entries
+             (m2-id
+               (cdr (assoc "id" (car (reverse msg-entries))))
+             ) ;m2-id
             ) ;
         (append-manual-compaction! sfile "历史已压缩为这句摘要" m2-id)
         (run-session-flow parsed
@@ -179,7 +182,12 @@
         (let* ((msgs (project-messages sfile))
                (contents (map pi-user-message-content (filter pi-user-message? msgs)))
                (final-entries (pi-read-session-entries sfile))
-               (final-msgs (filter (lambda (e) (equal? (cdr (assoc "type" e)) "message")) final-entries))
+               (final-msgs
+                 (filter
+                   (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
+                   final-entries
+                 ) ;filter
+               ) ;final-msgs
               ) ;
           (check (length msgs) => 4)
           (check-true (string-contains? (car contents) "历史已压缩为这句摘要"))
@@ -194,9 +202,10 @@
 ) ;define
 
 ;; ---- 用例 2：--continue 恢复路径 ------------------------------------------
+
 (define (%test-case-2 base-url)
   (let* ((env (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)
-                    (cons "GF_PI_BASE_URL" base-url)
+                (cons "GF_PI_BASE_URL" base-url)
               ) ;list
          ) ;env
          (cwd (path->string (path-cwd)))
@@ -235,6 +244,7 @@
 ) ;define
 
 ;; ---- 用例 3：手动 compact 继续路径（run-compact-flow，stub 服务器 e2e） ----
+
 (define (%test-case-3 base-url)
   (let* ((test-env (append (get-environment-variables)
                      (list (cons "PI_CODING_AGENT_DIR" E2E-AGENT-DIR)
@@ -269,7 +279,8 @@
       '()
       (list (pi-user-message (string-append "早期问题一：" (make-string 100000 #\a)))
         (pi-assistant-message
-          (list (pi-text-block (string-append "早期回答一：" (make-string 100000 #\b))))
+          (list (pi-text-block (string-append "早期回答一：" (make-string 100000 #\b)))
+          ) ;list
           :stop-reason "stop"
         ) ;pi-assistant-message
         (pi-user-message "近期问题二")
@@ -290,8 +301,18 @@
            (err (read-all p 'stderr))
            (code (process-wait p 30000))
            (entries (pi-read-session-entries sfile))
-           (msg-entries (filter (lambda (e) (equal? (cdr (assoc "type" e)) "message")) entries))
-           (comp-entries (filter (lambda (e) (equal? (cdr (assoc "type" e)) "compaction")) entries))
+           (msg-entries
+             (filter
+               (lambda (e) (equal? (cdr (assoc "type" e)) "message"))
+               entries
+             ) ;filter
+           ) ;msg-entries
+           (comp-entries
+             (filter
+               (lambda (e) (equal? (cdr (assoc "type" e)) "compaction"))
+               entries
+             ) ;filter
+           ) ;comp-entries
           ) ;
       (check-true (= code 0))
       (check-true (string-contains? err "Compacted session"))
@@ -305,7 +326,10 @@
                     ) ;string-starts?
         ) ;check-true
         (check (pi-message-role (cadr (reverse proj-msgs))) => "user")
-        (check (pi-user-message-content (cadr (reverse proj-msgs))) => "压缩后追问")
+        (check (pi-user-message-content (cadr (reverse proj-msgs)))
+          =>
+          "压缩后追问"
+        ) ;check
         (check (pi-message-role (car (reverse proj-msgs))) => "assistant")
         (check (length msg-entries) => 6)
         (check-false (string-contains? (path-read-text sfile)
@@ -337,7 +361,8 @@
        (first-line (process-read-line proc))
        (port
          (if (and (string? first-line) (string-starts? first-line "PORT:"))
-           (string->number (string-trim-both (substring first-line 5 (string-length first-line))))
+           (string->number (string-trim-both (substring first-line 5 (string-length first-line)))
+           ) ;string->number
            #f
          ) ;if
        ) ;port
@@ -346,17 +371,12 @@
   (check-true (number? port))
   (putenv "GF_PI_BASE_URL" base-url)
   (putenv "GF_PI_MODEL" "gemini-3.8-flash")
-  (putenv "https_proxy" "")
-  (putenv "http_proxy" "")
-  (putenv "all_proxy" "")
-  (putenv "ALL_PROXY" "")
-  (putenv "HTTPS_PROXY" "")
-  (putenv "HTTP_PROXY" "")
-  (putenv "no_proxy" "")
-  (putenv "NO_PROXY" "")
+  (for-each (lambda (k) (putenv k ""))
+    '("https_proxy" "http_proxy" "all_proxy" "ALL_PROXY" "HTTPS_PROXY"
+      "HTTP_PROXY" "no_proxy" "NO_PROXY")
+  ) ;for-each
 
-  (dynamic-wind
-    (lambda () #f)
+  (dynamic-wind (lambda () #f)
     (lambda ()
       (%test-case-1 base-url)
       (%test-case-2 base-url)
@@ -365,8 +385,9 @@
     (lambda ()
       (process-kill proc)
       (process-close proc)
-      (when (file-exists? TMP-AGENT-DIR) (rmtree TMP-AGENT-DIR #t))
-      (when (file-exists? E2E-AGENT-DIR) (rmtree E2E-AGENT-DIR #t))
+      (for-each (lambda (d) (when (file-exists? d) (rmtree d #t)))
+        (list TMP-AGENT-DIR E2E-AGENT-DIR)
+      ) ;for-each
     ) ;lambda
   ) ;dynamic-wind
 ) ;let*
