@@ -27,3 +27,7 @@ gf doc liii/base64 "base64-encode"
 ### 三、字节向量编解码
 - `bytevector-base64-encode` - 将字节向量编码为 Base64 字节向量
 - `bytevector-base64-decode` - 将 Base64 字节向量解码为原始字节向量
+
+### 四、URL 安全编解码（RFC 4648 §5）
+- `base64url-encode` - 将字节向量编码为 URL 安全的 Base64 字符串（无填充）
+- `base64url-decode` - 将 URL 安全的 Base64 字符串解码为原始字节向量
