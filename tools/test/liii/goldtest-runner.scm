@@ -19,8 +19,8 @@
 ;;    掉进 REPL 时立即读到 EOF 退出，而不是阻塞在等输入卡死 CI），
 ;;    并施加超时（默认 300s，环境变量 GOLDFISH_TEST_TIMEOUT 可覆盖），
 ;;    超时强杀子进程并记为 FAIL，单文件挂起不再拖死整个测试步骤；
-;; 2. 并行模式逐文件打印 [n/total] RUNNING/PASS/FAIL 进度（即时 flush），
-;;    失败时输出捕获的 stdout/stderr 尾部，方便定位卡点；
+;; 2. 并行模式逐文件在执行完毕后原子打印 [n/total] path ... PASS/FAIL 进度（即时 flush），
+;;    避免多 worker 并发写控制台导致路径与结果被拆散；失败时输出捕获的 stdout/stderr 尾部；
 ;; 注意：并行闭包经 (liii par) 跨 (liii go) worker 会话执行，其自由符号
 ;; 必须是主库导出绑定（display/run-either 等），不能引用本库内部函数。
 (define-library (liii goldtest-runner)
@@ -132,27 +132,28 @@
 
     (define (run-test-file test-file)
       (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
-        (display "----------->")
-        (newline)
+        (display "----------->\n")
         (display cmd)
         (newline)
         (flush-output-port (current-output-port))
-        (let ((result (%run-test-process cmd 'inherit)))
-          (if (= (cdr result) -1)
+        (let* ((result (%run-test-process cmd 'inherit))
+               (code (car result))
+               (timeout? (cdr result))
+              ) ;
+          (if timeout?
             (show #t
               (as-red "FAIL")
               " (timeout "
               (number->string (%test-timeout-seconds))
-              "s, killed)"
-              "\n"
+              "s, killed)\n"
             ) ;show
-            (if (zero? (cdr result))
+            (if (zero? code)
               (show #t (as-green "PASS") "\n")
-              (show #t (as-red "FAIL") " exit-code=" (number->string (cdr result)) "\n")
+              (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
             ) ;if
           ) ;if
-          (cons test-file (car result))
-        ) ;let
+          (cons test-file code)
+        ) ;let*
       ) ;let
     ) ;define
 
@@ -163,9 +164,7 @@
             ()
             (let ((line (read-line port)))
               (unless (eof-object? line)
-                (display "    ")
-                (display line)
-                (newline)
+                (display (string-append "    " line "\n"))
                 (loop)
               ) ;unless
             ) ;let
@@ -236,7 +235,6 @@
              (run-one-test
                (lambda (pair)
                  (let ((idx (car pair)) (test-file (cadr pair)))
-                   (%print-progress-marker idx total test-file)
                    (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
                      (let ((res (catch #t
                                   (lambda ()
@@ -246,7 +244,7 @@
                                 ) ;catch
                            ) ;res
                           ) ;
-                       (%parallel-result res test-file tmo)
+                       (%parallel-result idx total res test-file tmo)
                      ) ;let
                    ) ;let
                  ) ;let
@@ -261,13 +259,24 @@
     ) ;define
 
     ;; 打印单文件失败行与捕获输出尾部（导出以便 worker 会话可见）
-    (define (%report-test-failure tmo code out err)
-      (if (= code -1)
-        (show #t (as-red "FAIL") " (timeout " (number->string tmo) "s, killed)" "\n")
-        (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
-      ) ;if
-      (%dump-captured-tail "stdout" out)
-      (%dump-captured-tail "stderr" err)
+    (define (%report-test-failure . args)
+      (let* ((p5 (= (length args) 5))
+             (prefix (if p5 (car args) ""))
+             (tmo (if p5 (cadr args) (car args)))
+             (code (if p5 (caddr args) (cadr args)))
+             (out (if p5 (cadddr args) (caddr args)))
+             (err (if p5 (car (cddddr args)) (cadddr args)))
+             (reason (if (= code -1)
+                       (string-append " (timeout " (number->string tmo) "s, killed)\n")
+                       (string-append " exit-code=" (number->string code) "\n")
+                     ) ;if
+             ) ;reason
+            ) ;
+        (display (show #f prefix (as-red "FAIL") reason))
+        (%dump-captured-tail "stdout" out)
+        (%dump-captured-tail "stderr" err)
+        (flush-output-port (current-output-port))
+      ) ;let*
     ) ;define
 
     ;; 从 run-either 结果提取退出码（导出以便 worker 会话可见）
@@ -289,17 +298,20 @@
       (if (either-left? res) (process-error-stderr (to-left res)) "")
     ) ;define
 
+    (define (%progress-prefix idx total test-file)
+      (string-append "  ["
+        (number->string (+ idx 1))
+        "/"
+        (number->string total)
+        "] "
+        test-file
+        " ... "
+      ) ;string-append
+    ) ;define
+
     ;; 打印 [n/total] file ... 进度标记并立即 flush（导出以便 worker 会话可见）
     (define (%print-progress-marker idx total test-file)
-      (display (string-append "  ["
-                 (number->string (+ idx 1))
-                 "/"
-                 (number->string total)
-                 "] "
-                 test-file
-                 " ... "
-               ) ;string-append
-      ) ;display
+      (display (%progress-prefix idx total test-file))
       (flush-output-port (current-output-port))
     ) ;define
 
@@ -307,30 +319,49 @@
     ;; 整体防御性 catch：报告路径出错时降级为 FAIL 结果，
     ;; 不让单个异常炸掉整个 runner（之前 CI 上曾因处理超时结果时
     ;; 的访问错误导致 runner 崩溃，掩盖真实卡点）
-    (define (%parallel-result res test-file tmo)
-      (catch #t
-        (lambda () (%parallel-result% res test-file tmo))
-        (lambda args
-          (show #t
-            (as-red "FAIL")
-            " (report error: "
-            (object->string (car args))
-            ")"
-            "\n"
-          ) ;show
-          (list test-file -1 "")
-        ) ;lambda
-      ) ;catch
+    (define (%parallel-result . args)
+      (let* ((p5 (= (length args) 5))
+             (prefix (if p5
+                       (%progress-prefix (car args) (cadr args) (cadddr args))
+                       (string-append "  " (cadr args) " ... ")
+                     ) ;if
+             ) ;prefix
+             (res (if p5 (caddr args) (car args)))
+             (test-file (if p5 (cadddr args) (cadr args)))
+             (tmo (if p5 (car (cddddr args)) (caddr args)))
+            ) ;
+        (catch #t
+          (lambda () (%parallel-result% prefix res test-file tmo))
+          (lambda err-args
+            (display (show #f
+                       prefix
+                       (as-red "FAIL")
+                       " (report error: "
+                       (object->string (car err-args))
+                       ")\n"
+                     ) ;show
+            ) ;display
+            (flush-output-port (current-output-port))
+            (list test-file -1 "")
+          ) ;lambda
+        ) ;catch
+      ) ;let*
     ) ;define
 
-    (define (%parallel-result% res test-file tmo)
+    (define (%parallel-result% prefix res test-file tmo)
       (if (either-right? res)
         (begin
-          (show #t (as-green "PASS") "\n")
+          (display (show #f prefix (as-green "PASS") "\n"))
+          (flush-output-port (current-output-port))
           (list test-file 0 "")
         ) ;begin
         (let ((code (%process-exit-code res)))
-          (%report-test-failure tmo code (%captured-stdout res) (%captured-stderr res))
+          (%report-test-failure prefix
+            tmo
+            code
+            (%captured-stdout res)
+            (%captured-stderr res)
+          ) ;%report-test-failure
           (list test-file code "")
         ) ;let
       ) ;if

@@ -92,7 +92,7 @@
     ) ;define
 
     (define (normalize-test-file-path file)
-      (if (os-windows?) (string-replace file "\\" "/") file)
+      (if (and (string? file) (os-windows?)) (string-replace file "\\" "/") file)
     ) ;define
 
     (define (filter-changed-test-files test-files since)
