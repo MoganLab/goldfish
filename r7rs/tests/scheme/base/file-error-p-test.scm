@@ -25,11 +25,21 @@
 (check (file-error? '(io-error)) => #t)
 (check (file-error? '(io-error "message")) => #t)
 (check (file-error? '(read-error)) => #f)
-;; 测试非错误对象（使用 guard 来安全地测试）
-(check (guard (ex (else #f)) (file-error? "error")) => #f)
-(check (guard (ex (else #f)) (file-error? 123)) => #f)
-(check (guard (ex (else #f)) (file-error? #t)) => #f)
-(check (guard (ex (else #f)) (file-error? 'io-error)) => #f)
+
+;; 测试标准 error 产生的对象（自动推断为 file-error）
+(check (file-error? (guard (ex (else ex)) (error "cannot open file: missing.scm"))) => #t)
+(check (file-error? (guard (ex (else ex)) (error "no such file or directory"))) => #t)
+(check (file-error? (guard (ex (else ex)) (error "file error occurred"))) => #t)
+(check (file-error? (guard (ex (else ex)) (error "general error"))) => #f)
+
+;; 测试非错误对象安全返回 #f
+(check (file-error? "error") => #f)
+(check (file-error? 123) => #f)
+(check (file-error? #t) => #f)
+(check (file-error? #f) => #f)
+(check (file-error? 'io-error) => #f)
+(check (file-error? '()) => #f)
+
 ;; 测试 read-error? 与 file-error? 的区别
 (check (read-error? '(read-error)) => #t)
 (check (file-error? '(read-error)) => #f)

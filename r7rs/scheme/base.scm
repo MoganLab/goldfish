@@ -236,6 +236,10 @@
     make-parameter
     parameterize
     ;; Exception
+    error
+    error-object?
+    error-object-message
+    error-object-irritants
     raise
     guard
     read-error?
@@ -853,8 +857,75 @@
       ) ;let*
     ) ;define-macro
 
+    ;; R7RS 6.11 Exceptions: error-object
+    (define-record-type <error-object>
+      (%make-error-object kind message irritants)
+      error-object?
+      (kind %error-object-kind)
+      (message error-object-message)
+      (irritants error-object-irritants)
+    ) ;define-record-type
+
+    ;; 缓存底层 s7 原生 error 过程
+    (define %s7-error ((rootlet) 'error))
+
+    (define (%string-starts-with? prefix str)
+      (and (string? str)
+        (string? prefix)
+        (>= (string-length str) (string-length prefix))
+        (string=? prefix (substring str 0 (string-length prefix)))
+      ) ;and
+    ) ;define
+
+    ;; 启发式轻量推断错误类型
+    (define (%infer-error-kind msg irritants)
+      (cond
+       ((and (string? msg)
+          (or (%string-starts-with? "file error" msg)
+            (%string-starts-with? "cannot open" msg)
+            (%string-starts-with? "no such file" msg)
+          ) ;or
+        ) ;and
+        'file-error
+       ) ;
+       ((and (string? msg)
+          (or (%string-starts-with? "read error" msg)
+            (%string-starts-with? "unexpected EOF" msg)
+          ) ;or
+        ) ;and
+        'read-error
+       ) ;
+       (else 'user)
+      ) ;cond
+    ) ;define
+
+    (define (error . args)
+      (cond
+        ;; A. s7 显式指定符号类型 (老签名): (error 'type-error "msg" ...)
+        ((and (pair? args) (symbol? (car args))) (apply %s7-error args))
+        ;; B. R7RS-small 标准规范: (error "msg" ...)
+        ((and (pair? args) (string? (car args)))
+         (let ((kind (%infer-error-kind (car args) (cdr args))))
+           (raise (%make-error-object kind (car args) (cdr args)))
+         ) ;let
+        ) ;
+        ;; C. 零参兜底
+        ((null? args) (raise (%make-error-object 'user "unknown error" '())))
+        ;; D. 其它首参
+        (else
+          (raise (%make-error-object 'user (object->string (car args)) (cdr args)))
+        ) ;else
+      ) ;cond
+    ) ;define
+
     (define (read-error? obj)
-      (eq? (car obj) 'read-error)
+      (cond
+       ((error-object? obj)
+        (and (memq (%error-object-kind obj) '(read read-error read-incomplete)) #t)
+       ) ;
+       ((and (pair? obj) (eq? (car obj) 'read-error)) #t)
+       (else #f)
+      ) ;cond
     ) ;define
 
     ;; R7RS 4.2.2 参数对象：参数对象是过程，零参调用返回当前值。
@@ -925,7 +996,18 @@
     ) ;define-syntax
 
     (define (file-error? obj)
-      (eq? (car obj) 'io-error)
+      (cond
+       ((error-object? obj)
+        (and (memq (%error-object-kind obj)
+               '(file file-error io-error file-not-found-error
+                  permission-denied-error)
+             ) ;memq
+          #t
+        ) ;and
+       ) ;
+       ((and (pair? obj) (eq? (car obj) 'io-error)) #t)
+       (else #f)
+      ) ;cond
     ) ;define
 
     (define (call-with-port port proc)
