@@ -35,4 +35,15 @@
   (check-catch 'type-error (get-output-string port))
 ) ;let
 
+;; 错误处理：二进制输出端口不是文本输出端口
+(let ((port (open-output-bytevector)))
+  (check-catch 'type-error (get-output-string port))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((port (open-output-string)))
+  (close-output-port port)
+  (check-catch 'type-error (get-output-string port))
+) ;let
+
 (check-report)

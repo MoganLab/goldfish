@@ -35,4 +35,21 @@
   (check (read-string 5 p) => "world")
 ) ;let
 
+;; 错误处理：二进制端口不是文本端口
+(let ((p (open-input-bytevector (bytevector 1 2 3))))
+  (check-catch 'type-error (read-string 2 p))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((p (open-input-string "hello")))
+  (close-input-port p)
+  (check-catch 'type-error (read-string 2 p))
+) ;let
+
+;; 错误处理：非法的 k
+(let ((p (open-input-string "hello")))
+  (check-catch 'type-error (read-string -1 p))
+  (check-catch 'type-error (read-string "abc" p))
+) ;let
+
 (check-report)

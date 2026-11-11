@@ -34,4 +34,15 @@
   (check (peek-char p) => #\b)
 ) ;let
 
+;; 错误处理：二进制端口不是文本端口
+(let ((p (open-input-bytevector (bytevector 65 66))))
+  (check-catch 'type-error (peek-char p))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((p (open-input-string "abc")))
+  (close-input-port p)
+  (check-catch 'type-error (peek-char p))
+) ;let
+
 (check-report)

@@ -62,4 +62,9 @@
   (check-catch 'type-error (write-u8 65 p))
 ) ;let
 
+;; 错误处理：文本端口不是二进制端口
+(let ((p (open-output-string)))
+  (check-catch 'type-error (write-u8 65 p))
+) ;let
+
 (check-report)

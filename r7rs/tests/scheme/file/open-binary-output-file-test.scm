@@ -50,11 +50,13 @@
 (let ((port (open-binary-output-file chinese-file)))
   (check-true (output-port? port))
   (check-true (binary-port? port))
-  (display "中文输出" port)
+  (write-bytevector (string->utf8 "中文输出") port)
+  ;; 验证端口隔离：二进制端口不能使用文本写入过程
+  (check-catch 'type-error (write-string "文本" port))
   (close-port port)
 ) ;let
 (let ((port (open-binary-input-file chinese-file)))
-  (check (read-string 100 port) => "中文输出")
+  (check (utf8->string (read-bytevector 100 port)) => "中文输出")
   (close-port port)
 ) ;let
 (delete-file chinese-file)

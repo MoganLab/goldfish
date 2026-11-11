@@ -39,4 +39,15 @@
   "a\nb"
 ) ;check
 
+;; 错误处理：二进制端口不是文本端口
+(let ((p (open-output-bytevector)))
+  (check-catch 'type-error (newline p))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((p (open-output-string)))
+  (close-output-port p)
+  (check-catch 'type-error (newline p))
+) ;let
+
 (check-report)

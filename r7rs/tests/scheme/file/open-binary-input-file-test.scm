@@ -50,11 +50,16 @@
 ;; 测试中文文件名
 
 (define chinese-file (string-append base-dir "中文二进制输入.bin"))
-(with-output-to-file chinese-file (lambda () (display "中文二进制内容")))
+(let ((out (open-binary-output-file chinese-file)))
+  (write-bytevector (string->utf8 "中文二进制内容") out)
+  (close-port out)
+) ;let
 (let ((port (open-binary-input-file chinese-file)))
   (check-true (input-port? port))
   (check-true (binary-port? port))
-  (check (read-string 100 port) => "中文二进制内容")
+  (check (utf8->string (read-bytevector 100 port)) => "中文二进制内容")
+  ;; 验证端口隔离：二进制端口不能使用文本读取过程
+  (check-catch 'type-error (read-string 10 port))
   (close-port port)
 ) ;let
 (delete-file chinese-file)

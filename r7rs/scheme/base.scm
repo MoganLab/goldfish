@@ -1066,6 +1066,29 @@
       (mark-port-binary! (open-output-string))
     ) ;define
 
+    (define %s7-get-output-string get-output-string)
+    (define %s7-read-char read-char)
+    (define %s7-peek-char peek-char)
+    (define %s7-read-line read-line)
+    (define %s7-read-string read-string)
+    (define %s7-char-ready? char-ready?)
+    (define %s7-write-char write-char)
+    (define %s7-write-string write-string)
+    (define %s7-newline newline)
+
+    ;; R7RS 6.13.1 Ports: 端口类型的防御性隔离检查
+    ;; 文本端口与二进制端口必须隔离，对文本端口执行二进制操作或对二进制端口执行文本操作均属于错误。
+
+    (define (get-output-string port)
+      (unless (and (output-port? port) (output-port-open? port))
+        (error 'type-error "get-output-string: expected an open output port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "get-output-string: expected a textual port" port)
+      ) ;unless
+      (%s7-get-output-string port)
+    ) ;define
+
     (define (get-output-bytevector port)
       (unless (and (output-port? port) (output-port-open? port))
         (error 'type-error "get-output-bytevector: expected an open output port" port)
@@ -1073,10 +1096,18 @@
       (unless (binary-port? port)
         (error 'type-error "get-output-bytevector: expected a binary port" port)
       ) ;unless
-      (string->byte-vector (get-output-string port))
+      (string->byte-vector (%s7-get-output-string port))
     ) ;define
 
-    (define read-u8 read-byte)
+    (define* (read-u8 (port (current-input-port)))
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "read-u8: expected an open input port" port)
+      ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "read-u8: expected a binary port" port)
+      ) ;unless
+      (read-byte port)
+    ) ;define*
 
     (define* (peek-u8 (port (current-input-port)))
       (unless (and (input-port? port) (input-port-open? port))
@@ -1085,12 +1116,20 @@
       (unless (binary-port? port)
         (error 'type-error "peek-u8: expected a binary port" port)
       ) ;unless
-      (let ((c (peek-char port)))
+      (let ((c (%s7-peek-char port)))
         (if (eof-object? c) c (char->integer c))
       ) ;let
     ) ;define*
 
-    (define u8-ready? char-ready?)
+    (define* (u8-ready? (port (current-input-port)))
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "u8-ready?: expected an open input port" port)
+      ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "u8-ready?: expected a binary port" port)
+      ) ;unless
+      (%s7-char-ready? port)
+    ) ;define*
 
     (define*
       (read-bytevector! bytevector
@@ -1157,7 +1196,130 @@
       ) ;if
     ) ;define*
 
-    (define write-u8 write-byte)
+    (define* (write-u8 byte (port (current-output-port)))
+      (unless (and (integer? byte) (exact? byte) (<= 0 byte 255))
+        (error 'type-error "write-u8: expected a byte (exact integer in 0..255)" byte)
+      ) ;unless
+      (unless (and (output-port? port) (output-port-open? port))
+        (error 'type-error "write-u8: expected an open output port" port)
+      ) ;unless
+      (unless (binary-port? port)
+        (error 'type-error "write-u8: expected a binary port" port)
+      ) ;unless
+      (write-byte byte port)
+    ) ;define*
+
+    ;; 文本输入: read-char, peek-char, read-line, read-string, char-ready?
+    (define* (read-char (port (current-input-port)))
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "read-char: expected an open input port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "read-char: expected a textual port" port)
+      ) ;unless
+      (%s7-read-char port)
+    ) ;define*
+
+    (define* (peek-char (port (current-input-port)))
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "peek-char: expected an open input port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "peek-char: expected a textual port" port)
+      ) ;unless
+      (%s7-peek-char port)
+    ) ;define*
+
+    (define* (read-line (port (current-input-port)) (with-eol #f))
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "read-line: expected an open input port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "read-line: expected a textual port" port)
+      ) ;unless
+      (%s7-read-line port with-eol)
+    ) ;define*
+
+    (define* (read-string k (port (current-input-port)))
+      (unless (and (integer? k) (exact? k) (>= k 0))
+        (error 'type-error "read-string: k must be a non-negative integer" k)
+      ) ;unless
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "read-string: expected an open input port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "read-string: expected a textual port" port)
+      ) ;unless
+      (%s7-read-string k port)
+    ) ;define*
+
+    (define* (char-ready? (port (current-input-port)))
+      (unless (and (input-port? port) (input-port-open? port))
+        (error 'type-error "char-ready?: expected an open input port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "char-ready?: expected a textual port" port)
+      ) ;unless
+      (%s7-char-ready? port)
+    ) ;define*
+
+    ;; 文本输出: write-char, write-string, newline
+    (define* (write-char char (port (current-output-port)))
+      (unless (char? char)
+        (error 'type-error "write-char: first argument must be a character" char)
+      ) ;unless
+      (unless (and (output-port? port) (output-port-open? port))
+        (error 'type-error "write-char: expected an open output port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "write-char: expected a textual port" port)
+      ) ;unless
+      (%s7-write-char char port)
+    ) ;define*
+
+    (define (write-string string . rest)
+      (unless (string? string)
+        (error 'type-error "write-string: first argument must be a string" string)
+      ) ;unless
+      (let ((port (if (null? rest) (current-output-port) (car rest)))
+            (start
+              (if (or (null? rest) (null? (cdr rest))) 0 (cadr rest))
+            ) ;start
+            (end
+              (if (or (null? rest) (null? (cdr rest)) (null? (cddr rest)))
+                (string-length string)
+                (caddr rest)
+              ) ;if
+            ) ;end
+           ) ;
+        (unless (and (output-port? port) (output-port-open? port))
+          (error 'type-error "write-string: expected an open output port" port)
+        ) ;unless
+        (unless (textual-port? port)
+          (error 'type-error "write-string: expected a textual port" port)
+        ) ;unless
+        (unless (and (integer? start) (exact? start) (<= 0 start))
+          (error 'type-error "write-string: start must be a non-negative integer" start)
+        ) ;unless
+        (unless (and (integer? end) (exact? end) (<= start end (string-length string)))
+          (error 'out-of-range
+            "write-string: invalid start or end index"
+            (list start end)
+          ) ;error
+        ) ;unless
+        (%s7-write-string string port start end)
+      ) ;let
+    ) ;define
+
+    (define* (newline (port (current-output-port)))
+      (unless (and (output-port? port) (output-port-open? port))
+        (error 'type-error "newline: expected an open output port" port)
+      ) ;unless
+      (unless (textual-port? port)
+        (error 'type-error "newline: expected a textual port" port)
+      ) ;unless
+      (%s7-newline port)
+    ) ;define*
 
     (define*
       (write-bytevector bytevector

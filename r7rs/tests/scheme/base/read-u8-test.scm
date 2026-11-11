@@ -57,6 +57,11 @@
   (check-catch 'type-error (read-u8 p))
 ) ;let
 
+;; 错误处理：文本端口不是二进制端口
+(let ((p (open-input-string "abc")))
+  (check-catch 'type-error (read-u8 p))
+) ;let
+
 (check-catch 'wrong-number-of-args (read-u8 1 2))
 
 (check-report)
