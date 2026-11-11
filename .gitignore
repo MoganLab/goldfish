@@ -34,11 +34,7 @@ node_modules/
 .envrc
 .direnv/
 goldfish/tests/resources/hashlib-test-large-local.txt
-goldfish/tests/function-library-index.json
-library/tests/function-library-index.json
-tools/doc/tests/function-library-index.json
-tools/pi/tests/function-library-index.json
-r7rs/tests/function-library-index.json
+function-library-index.json
 .codex
 .sisyphus/
 .vscode/
