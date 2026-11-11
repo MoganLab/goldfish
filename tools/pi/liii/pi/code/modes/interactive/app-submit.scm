@@ -6,7 +6,9 @@
 
 ;; 编辑器输入变化：识别 bash 模式并联动边框颜色
 (define-library (liii pi code modes interactive app-submit)
-  (export %starts-with-char? %pi-app-editor-on-change pi-app-submit!)
+  (export %starts-with-char? %pi-app-editor-on-change pi-app-submit!
+    pi-app-submit-initial!
+  ) ;export
   (import (scheme base)
     (liii string)
     (liii tui)
@@ -30,6 +32,14 @@
 
     (define (%starts-with-char? s c)
       (and (> (string-length s) 0) (char=? (string-ref s 0) c))
+    ) ;define
+
+    ;; 启动初始消息：按顺序提交，保证接在恢复的历史之后
+    (define (pi-app-submit-initial! app initial-msg rest-msgs)
+      (unless (string-null? initial-msg)
+        (pi-app-submit! app initial-msg)
+      ) ;unless
+      (for-each (lambda (msg) (pi-app-submit! app msg)) rest-msgs)
     ) ;define
 
     ;; bash 模式边框联动（对齐 pi onChange + updateEditorBorderColor）：

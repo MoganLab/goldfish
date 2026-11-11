@@ -17,9 +17,14 @@
 
 (import (scheme base)
   (liii check)
+  (liii list)
+  (liii path)
+  (liii shutil)
   (liii string)
   (liii tui)
+  (liii pi code core session-manager)
   (liii pi code modes interactive app)
+  (liii pi code modes interactive app-history)
 ) ;import
 
 (check-set-mode! 'report)
@@ -93,6 +98,39 @@
     (check-true (string-contains? (string-join plain "\n") "msg-0"))
     (check-true (string-contains? (string-join plain "\n") "msg-9"))
   ) ;let
+) ;let*
+
+;; 5. 恢复的历史进入退出 transcript：历史与本轮新消息都在，且不重复
+(let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-transcript-history-1323")))
+       (file (path->string (path-join tmp-dir "session.jsonl")))
+       (vt (make-virtual-terminal :width 100 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a msg) #t)))
+      ) ;
+  (when (file-exists? tmp-dir)
+    (rmtree tmp-dir)
+  ) ;when
+  (path-mkdir tmp-dir :parents #t :exist-ok #t)
+  (save-session-header! file "sess-transcript" "2026-11-04T08:00:00.000Z" tmp-dir)
+  (save-session-message! file
+    "{\"role\":\"user\",\"content\":\"恢复的历史提问\"}" "m1" #f
+    "2026-11-04T08:00:01.000Z"
+  ) ;save-session-message!
+  (save-session-message! file
+    "{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"恢复的历史回答\"}]}"
+    "m2" "m1" "2026-11-04T08:00:02.000Z"
+  ) ;save-session-message!
+  (pi-app-rebuild-history! app file)
+  (pi-app-add-user-message! app "本轮新消息")
+  (let* ((plain (map strip-ansi (pi-app-transcript-lines app)))
+         (joined (string-join plain "\n"))
+        ) ;
+    (check-true (string-contains? joined "恢复的历史提问"))
+    (check-true (string-contains? joined "恢复的历史回答"))
+    (check-true (string-contains? joined "本轮新消息"))
+    ;; 历史只出现一次
+    (check (= (length (filter (lambda (line) (string-contains? line "恢复的历史提问")) plain)) 1) => #t)
+  ) ;let*
+  (rmtree tmp-dir)
 ) ;let*
 
 (check-report)

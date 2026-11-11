@@ -9,12 +9,32 @@
   (import (scheme base)
     (liii time)
     (liii tui)
+    (liii pi code cli args)
     (liii pi code core session-manager)
     (liii pi code core session-list)
     (liii pi code modes interactive session-selector)
   ) ;import
-  (export pi-run-session-selector pi-load-resume-sessions)
+  (export pi-run-session-selector pi-load-resume-sessions pi-resolve-history-file)
   (begin
+
+    ;; 启动恢复用的会话文件：显式 --session 优先，其次 --continue 取目录最新会话；
+    ;; 与 worker 的 setup-session-file 共用同一解析入口，保证前台可见历史与
+    ;; 后台落盘目标同源；--no-session 时恒为 #f（不读取也不伪造历史）
+    (define (pi-resolve-history-file parsed cfg cwd)
+      (if (pi-args-ref parsed 'no-session)
+        #f
+        (or (pi-args-ref parsed 'session-file)
+          (and (pi-args-ref parsed 'continue)
+            (catch #t
+              (lambda ()
+                (resolve-resume-session-file parsed (resolve-session-dir parsed cfg cwd))
+              ) ;lambda
+              (lambda args #f)
+            ) ;catch
+          ) ;and
+        ) ;or
+      ) ;if
+    ) ;define
 
     (define (pi-load-resume-sessions parsed cfg cwd)
       (let* ((current-dir (resolve-session-dir parsed cfg cwd))
