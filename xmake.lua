@@ -100,8 +100,10 @@ target ("goldfish") do
         add_syslinks("psapi")
         -- CNG 随机数接口 BCryptGenRandom（src/liii_os.cpp 的 g_urandom）
         add_syslinks("bcrypt")
+        add_syslinks("ws2_32")
     end
     add_files ("src/goldfish.cpp")
+    add_files ("src/liii_net.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_signal.cpp")
     if has_config("http") and not is_plat("wasm") then

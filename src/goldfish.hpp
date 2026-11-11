@@ -38,6 +38,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "liii_net.hpp"
 #include "liii_signal.hpp"
 #include "liii_subprocess.hpp"
 
@@ -647,6 +648,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_os (sc);
   glue_liii_fs_watch (sc);
   glue_subprocess (sc);
+  glue_liii_net (sc);
   glue_liii_signal (sc);
   glue_liii_path (sc);
   glue_liii_path_stat (sc);
