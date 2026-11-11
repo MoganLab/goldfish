@@ -21,22 +21,46 @@
 ;; ----
 ;; record 状态直接更新记录字段；vector 状态更新对应的下标。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
 ;; record 状态
 (let ((state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
-  (gemini-stream-state-usage-set! state '((input . 4) (output . 5) (cacheRead . 0) (cacheWrite . 0) (totalTokens . 9)))
-  (check (gemini-stream-state-usage state) => '((input . 4) (output . 5) (cacheRead . 0) (cacheWrite . 0) (totalTokens . 9)))
-) ;let*
+  (gemini-stream-state-usage-set! state
+    '((input . 4)
+      (output . 5)
+      (cacheRead . 0)
+      (cacheWrite . 0)
+      (totalTokens . 9))
+  ) ;gemini-stream-state-usage-set!
+  (check (gemini-stream-state-usage state)
+    =>
+    '((input . 4)
+      (output . 5)
+      (cacheRead . 0)
+      (cacheWrite . 0)
+      (totalTokens . 9))
+  ) ;check
+) ;let
 
 ;; vector 状态（兼容旧调用）
 (let ((state (vector '() #f '() '() "STOP" #f "" "")))
-  (gemini-stream-state-usage-set! state '((input . 4) (output . 5) (cacheRead . 0) (cacheWrite . 0) (totalTokens . 9)))
-  (check (gemini-stream-state-usage state) => '((input . 4) (output . 5) (cacheRead . 0) (cacheWrite . 0) (totalTokens . 9)))
-) ;let*
+  (gemini-stream-state-usage-set! state
+    '((input . 4)
+      (output . 5)
+      (cacheRead . 0)
+      (cacheWrite . 0)
+      (totalTokens . 9))
+  ) ;gemini-stream-state-usage-set!
+  (check (gemini-stream-state-usage state)
+    =>
+    '((input . 4)
+      (output . 5)
+      (cacheRead . 0)
+      (cacheWrite . 0)
+      (totalTokens . 9))
+  ) ;check
+) ;let
 
 (check-report)

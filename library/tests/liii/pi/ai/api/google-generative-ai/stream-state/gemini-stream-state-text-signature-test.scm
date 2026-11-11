@@ -15,9 +15,7 @@
 ;; string | #f
 ;; 当前文本块的签名；若无则为 #f。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
@@ -25,11 +23,11 @@
 (let ((state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "" #f)))
   (check (gemini-stream-state? state) => #t)
   (check (gemini-stream-state-text-signature state) => #f)
-) ;let*
+) ;let
 
 ;; vector 状态（兼容旧调用，长度 >= 9）
 (let ((state (vector '() #f '() '() "STOP" #f "" "" "sig-9")))
   (check (gemini-stream-state-text-signature state) => "sig-9")
-) ;let*
+) ;let
 
 (check-report)

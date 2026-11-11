@@ -15,16 +15,15 @@
 ;; boolean
 ;; 是流状态记录返回 #t，否则返回 #f。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
 ;; 流状态记录
-(check (gemini-stream-state?
-         (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
-  => #t)
+(check (gemini-stream-state? (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
+  =>
+  #t
+) ;check
 
 ;; 其它对象
 (check (gemini-stream-state? '()) => #f)

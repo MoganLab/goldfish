@@ -32,89 +32,163 @@
 
 ;; text 块：无签名
 (check (gemini-assistant-block->part '(("type" . "text") ("text" . "visible")) #t)
-  => '(("text" . "visible")))
+  =>
+  '(("text" . "visible"))
+) ;check
 
 ;; text 块：同模型回放签名
-(check (gemini-assistant-block->part '(("type" . "text") ("text" . "visible")
-                                         ("textSignature" . "QUJD")) #t)
-  => '(("thoughtSignature" . "QUJD") ("text" . "visible")))
+(check (gemini-assistant-block->part '(("type" . "text")
+                                       ("text" . "visible")
+                                       ("textSignature" . "QUJD"))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("thoughtSignature" . "QUJD") ("text" . "visible"))
+) ;check
 
 ;; text 块：跨模型不回放签名
-(check (gemini-assistant-block->part '(("type" . "text") ("text" . "visible")
-                                         ("textSignature" . "QUJD")) #f)
-  => '(("text" . "visible")))
+(check (gemini-assistant-block->part '(("type" . "text")
+                                       ("text" . "visible")
+                                       ("textSignature" . "QUJD"))
+         #f
+       ) ;gemini-assistant-block->part
+  =>
+  '(("text" . "visible"))
+) ;check
 
 ;; text 块：空文本且无签名 → 丢弃
-(check (gemini-assistant-block->part '(("type" . "text") ("text" . "")) #t) => #f)
+(check (gemini-assistant-block->part '(("type" . "text") ("text" . "")) #t)
+  =>
+  #f
+) ;check
 
 ;; text 块：空文本但带签名 → 保留
-(check (gemini-assistant-block->part '(("type" . "text") ("text" . "")
-                                         ("textSignature" . "QUJD")) #t)
-  => '(("thoughtSignature" . "QUJD") ("text" . "")))
+(check (gemini-assistant-block->part '(("type" . "text")
+                                       ("text" . "")
+                                       ("textSignature" . "QUJD"))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("thoughtSignature" . "QUJD") ("text" . ""))
+) ;check
 
 ;; text 块：非法签名不回放
-(check (gemini-assistant-block->part '(("type" . "text") ("text" . "visible")
-                                         ("textSignature" . "ab!!")) #t)
-  => '(("text" . "visible")))
+(check (gemini-assistant-block->part '(("type" . "text")
+                                       ("text" . "visible")
+                                       ("textSignature" . "ab!!"))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("text" . "visible"))
+) ;check
 
 ;; thinking 块：同模型带 thought 标记
-(check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "reasoning...")) #t)
-  => '(("thought" . #t) ("text" . "reasoning...")))
+(check (gemini-assistant-block->part '(("type" . "thinking")
+                                       ("thinking" . "reasoning..."))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("thought" . #t) ("text" . "reasoning..."))
+) ;check
 
 ;; thinking 块：同模型回放签名
-(check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "reasoning...")
-                                         ("thinkingSignature" . "QUJD")) #t)
-  => '(("thoughtSignature" . "QUJD") ("thought" . #t) ("text" . "reasoning...")))
+(check (gemini-assistant-block->part '(("type" . "thinking")
+                                       ("thinking" . "reasoning...")
+                                       ("thinkingSignature" . "QUJD"))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("thoughtSignature" . "QUJD") ("thought" . #t) ("text" . "reasoning..."))
+) ;check
 
 ;; thinking 块：跨模型丢弃（返回 #f）
-(check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "reasoning...")
-                                         ("thinkingSignature" . "QUJD")) #f)
-  => #f)
+(check (gemini-assistant-block->part '(("type" . "thinking")
+                                       ("thinking" . "reasoning...")
+                                       ("thinkingSignature" . "QUJD"))
+         #f
+       ) ;gemini-assistant-block->part
+  =>
+  #f
+) ;check
 
 ;; thinking 块：空内容且无签名 → 丢弃
-(check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "")) #t) => #f)
+(check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "")) #t)
+  =>
+  #f
+) ;check
 
 ;; thinking 块：空内容但带签名 → 保留
-(check (gemini-assistant-block->part '(("type" . "thinking") ("thinking" . "")
-                                         ("thinkingSignature" . "QUJD")) #t)
-  => '(("thoughtSignature" . "QUJD") ("thought" . #t) ("text" . "")))
+(check (gemini-assistant-block->part '(("type" . "thinking")
+                                       ("thinking" . "")
+                                       ("thinkingSignature" . "QUJD"))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("thoughtSignature" . "QUJD") ("thought" . #t) ("text" . ""))
+) ;check
 
 ;; toolCall 块：转换为 functionCall
-(check (gemini-assistant-block->part '(("type" . "toolCall") ("id" . "c1")
-                                         ("name" . "read") ("arguments" . ())) #t)
-  => '(("functionCall" . (("name" . "read") ("args" . ()) ("id" . "c1")))))
+(check (gemini-assistant-block->part '(("type" . "toolCall")
+                                       ("id" . "c1")
+                                       ("name" . "read")
+                                       ("arguments"))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("functionCall" ("name" . "read") ("args") ("id" . "c1")))
+) ;check
 
 ;; toolCall 块：同模型回放 thoughtSignature
-(check (gemini-assistant-block->part '(("type" . "toolCall") ("id" . "c1")
-                                         ("name" . "read") ("arguments" . ())
-                                         ("thoughtSignature" . "QUJD")) #t)
-  => '(("thoughtSignature" . "QUJD")
-      ("functionCall" . (("name" . "read") ("args" . ()) ("id" . "c1")))))
+(check (gemini-assistant-block->part '(("type" . "toolCall")
+                                       ("id" . "c1")
+                                       ("name" . "read")
+                                       ("arguments")
+                                       ("thoughtSignature" . "QUJD"))
+         #t
+       ) ;gemini-assistant-block->part
+  =>
+  '(("thoughtSignature" . "QUJD")
+    ("functionCall" ("name" . "read") ("args") ("id" . "c1")))
+) ;check
 
 ;; toolCall 块：跨模型不回放 thoughtSignature
-(check (gemini-assistant-block->part '(("type" . "toolCall") ("id" . "c1")
-                                         ("name" . "read") ("arguments" . ())
-                                         ("thoughtSignature" . "QUJD")) #f)
-  => '(("functionCall" . (("name" . "read") ("args" . ()) ("id" . "c1")))))
+(check (gemini-assistant-block->part '(("type" . "toolCall")
+                                       ("id" . "c1")
+                                       ("name" . "read")
+                                       ("arguments")
+                                       ("thoughtSignature" . "QUJD"))
+         #f
+       ) ;gemini-assistant-block->part
+  =>
+  '(("functionCall" ("name" . "read") ("args") ("id" . "c1")))
+) ;check
 
 ;; 未知块类型 → #f
 (check (gemini-assistant-block->part '(("type" . "unknown")) #t) => #f)
 
 ;; record 形态：text 块
 (check (gemini-assistant-block->part (pi-text-block "visible") #t)
-  => '(("text" . "visible")))
+  =>
+  '(("text" . "visible"))
+) ;check
 
 ;; record 形态：text 块带签名
 (check (gemini-assistant-block->part (pi-text-block "visible" "QUJD") #t)
-  => '(("thoughtSignature" . "QUJD") ("text" . "visible")))
+  =>
+  '(("thoughtSignature" . "QUJD") ("text" . "visible"))
+) ;check
 
 ;; record 形态：thinking 块带签名
 (check (gemini-assistant-block->part (pi-thinking-block "think" "QUJD") #t)
-  => '(("thoughtSignature" . "QUJD") ("thought" . #t) ("text" . "think")))
+  =>
+  '(("thoughtSignature" . "QUJD") ("thought" . #t) ("text" . "think"))
+) ;check
 
 ;; record 形态：toolCall 块带签名
 (check (gemini-assistant-block->part (pi-tool-call-block "c1" "read" '() "QUJD") #t)
-  => '(("thoughtSignature" . "QUJD")
-      ("functionCall" . (("name" . "read") ("args" . ()) ("id" . "c1")))))
+  =>
+  '(("thoughtSignature" . "QUJD")
+    ("functionCall" ("name" . "read") ("args") ("id" . "c1")))
+) ;check
 
 (check-report)

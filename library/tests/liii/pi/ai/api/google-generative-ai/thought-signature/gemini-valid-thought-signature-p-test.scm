@@ -20,9 +20,7 @@
 ;; 合法签名须满足：长度为 4 的倍数，且仅包含 [A-Za-z0-9+/] 字符，
 ;; 允许至多两个末尾的 = 填充字符（对齐上游 isValidThoughtSignature）。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai thought-signature)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai thought-signature))
 
 (check-set-mode! 'report-failed)
 

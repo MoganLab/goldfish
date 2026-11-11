@@ -21,16 +21,12 @@
 ;; 未指定
 ;; 通过副作用派发 text_start 与 text_delta 事件。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-parse)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-parse))
 
 (check-set-mode! 'report-failed)
 
 ;; 派发两个事件
-(let* ((events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
-      ) ;
+(let* ((events '()) (emit (lambda (ev) (set! events (append events (list ev))))))
   (emit-text-start-and-delta emit 0 "hello" '((input . 1)))
   (check (length events) => 2)
   (check (cdr (assoc 'type (car events))) => "text_start")
@@ -45,6 +41,6 @@
 (let ((events '()))
   (emit-text-start-and-delta #f 0 "hello" '())
   (check (length events) => 0)
-) ;let*
+) ;let
 
 (check-report)

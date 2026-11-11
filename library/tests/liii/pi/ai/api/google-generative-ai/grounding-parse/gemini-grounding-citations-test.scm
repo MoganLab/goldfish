@@ -25,10 +25,17 @@
 ;; 从已提取的 details 读取
 (let* ((item '((title . "A") (url . "https://a.com") (citedText . "hello")))
        (details (list (cons 'searchQueries '())
-                      (cons 'searchResults '())
-                      (cons 'citations (list item)))))
+                  (cons 'searchResults '())
+                  (cons 'citations (list item))
+                ) ;list
+       ) ;details
+      ) ;
   (check (length (gemini-grounding-citations details)) => 1)
-  (check (cdr (assoc 'citedText (car (gemini-grounding-citations details)))) => "hello")
+  (check
+    (cdr (assoc 'citedText (car (gemini-grounding-citations details))))
+    =>
+    "hello"
+  ) ;check
 ) ;let*
 
 ;; 空 details 返回空列表

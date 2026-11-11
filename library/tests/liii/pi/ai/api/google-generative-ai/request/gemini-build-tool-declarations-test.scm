@@ -33,14 +33,19 @@
          (lambda (name)
            (list (cons 'name name)
              (cons 'description (string-append "Run " name))
-             (cons 'parameters '(("type" . "object"))))
+             (cons 'parameters '(("type" . "object")))
+           ) ;list
          ) ;lambda
-        )
-       (decls (gemini-build-tool-declarations '("bash" "read") resolver)))
+       ) ;resolver
+       (decls (gemini-build-tool-declarations '("bash" "read") resolver))
+      ) ;
   (check (length decls) => 2)
   (check (cdr (assoc "name" (car decls))) => "bash")
   (check (cdr (assoc "description" (car decls))) => "Run bash")
-  (check (cdr (assoc "parametersJsonSchema" (car decls))) => '(("type" . "object")))
+  (check (cdr (assoc "parametersJsonSchema" (car decls)))
+    =>
+    '(("type" . "object"))
+  ) ;check
   (check (cdr (assoc "name" (cadr decls))) => "read")
 ) ;let*
 
@@ -49,12 +54,16 @@
          (lambda (name)
            (pi-tool-definition name "desc" '(("type" . "object")) (lambda (args) "ok"))
          ) ;lambda
-        )
-       (decls (gemini-build-tool-declarations '("bash") resolver)))
+       ) ;resolver
+       (decls (gemini-build-tool-declarations '("bash") resolver))
+      ) ;
   (check (length decls) => 1)
   (check (cdr (assoc "name" (car decls))) => "bash")
   (check (cdr (assoc "description" (car decls))) => "desc")
-  (check (cdr (assoc "parametersJsonSchema" (car decls))) => '(("type" . "object")))
+  (check (cdr (assoc "parametersJsonSchema" (car decls)))
+    =>
+    '(("type" . "object"))
+  ) ;check
 ) ;let*
 
 ;; 解析失败的工具被过滤
@@ -65,8 +74,9 @@
              #f
            ) ;if
          ) ;lambda
-        )
-       (decls (gemini-build-tool-declarations '("bash" "missing") resolver)))
+       ) ;resolver
+       (decls (gemini-build-tool-declarations '("bash" "missing") resolver))
+      ) ;
   (check (length decls) => 1)
   (check (cdr (assoc "name" (car decls))) => "bash")
 ) ;let*

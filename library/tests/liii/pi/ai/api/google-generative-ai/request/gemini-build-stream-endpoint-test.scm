@@ -18,9 +18,7 @@
 ;; string
 ;; 形如 <base-url>/models/<model-id>:streamGenerateContent?alt=sse 的请求 URL。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai request)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai request))
 
 (check-set-mode! 'report-failed)
 

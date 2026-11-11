@@ -15,9 +15,7 @@
 ;; string
 ;; 规范化后的工具调用 id。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai tool-call-id)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai tool-call-id))
 
 (check-set-mode! 'report-failed)
 
@@ -36,6 +34,6 @@
 ;; 超长 id 被截断到 64 个字符
 (let ((long-id (string-append "a" (make-string 100 #\b))))
   (check (string-length (gemini-normalize-tool-call-id long-id)) => 64)
-) ;let*
+) ;let
 
 (check-report)

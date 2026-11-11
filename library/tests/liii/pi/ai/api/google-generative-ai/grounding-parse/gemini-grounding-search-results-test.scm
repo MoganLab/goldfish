@@ -25,10 +25,17 @@
 ;; 从已提取的 details 读取
 (let* ((item '((title . "Goldfish") (url . "https://goldfish.scheme.org")))
        (details (list (cons 'searchQueries '())
-                      (cons 'searchResults (list item))
-                      (cons 'citations '()))))
+                  (cons 'searchResults (list item))
+                  (cons 'citations '())
+                ) ;list
+       ) ;details
+      ) ;
   (check (length (gemini-grounding-search-results details)) => 1)
-  (check (cdr (assoc 'title (car (gemini-grounding-search-results details)))) => "Goldfish")
+  (check
+    (cdr (assoc 'title (car (gemini-grounding-search-results details))))
+    =>
+    "Goldfish"
+  ) ;check
 ) ;let*
 
 ;; 空 details 返回空列表

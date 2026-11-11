@@ -32,36 +32,51 @@
   (check (assoc "systemInstruction" body) => #f)
   (check (assoc "tools" body) => #f)
   (check (assoc "toolConfig" body) => #f)
-) ;let*
+) ;let
 
 ;; 带系统提示词
 (let ((body (gemini-build-request-body #() "You are a helpful assistant" '())))
   (check (cdr (assoc "systemInstruction" body))
-    => '(("role" . "user") ("parts" . #((("text" . "You are a helpful assistant")))))
-  )
-) ;let*
+    =>
+    '(("role" . "user")
+      ("parts" . #((("text" . "You are a helpful assistant")))))
+  ) ;check
+) ;let
 
 ;; 空白系统提示词被忽略
 (let ((body (gemini-build-request-body #() "   " '())))
   (check (assoc "systemInstruction" body) => #f)
-) ;let*
+) ;let
 
 ;; 带工具声明
-(let* ((tool-decls (list (list (cons "name" "bash")
-                            (cons "description" "Run shell")
-                            (cons "parameters" '(("type" . "object"))))))
-       (body (gemini-build-request-body #() #f tool-decls)))
+(let* ((tool-decls
+         (list
+           (list (cons "name" "bash")
+             (cons "description" "Run shell")
+             (cons "parameters" '(("type" . "object")))
+           ) ;list
+         ) ;list
+       ) ;tool-decls
+       (body (gemini-build-request-body #() #f tool-decls))
+      ) ;
   (check (vector-length (cdr (assoc "tools" body))) => 1)
-  (check (cdr (assoc "mode" (cdr (assoc "functionCallingConfig"
-                                           (cdr (assoc "toolConfig" body))))))
-    => "AUTO")
+  (check
+    (cdr
+      (assoc "mode"
+        (cdr (assoc "functionCallingConfig" (cdr (assoc "toolConfig" body))))
+      ) ;assoc
+    ) ;cdr
+    =>
+    "AUTO"
+  ) ;check
 ) ;let*
 
 ;; 字段顺序：contents、systemInstruction、tools、toolConfig
-(let ((body (gemini-build-request-body #()
-                                     "sys"
-                                     (list (list (cons "name" "bash"))))))
+(let ((body
+        (gemini-build-request-body #() "sys" (list (list (cons "name" "bash"))))
+      ) ;body
+     ) ;
   (check (map car body) => '("contents" "systemInstruction" "tools" "toolConfig"))
-) ;let*
+) ;let
 
 (check-report)

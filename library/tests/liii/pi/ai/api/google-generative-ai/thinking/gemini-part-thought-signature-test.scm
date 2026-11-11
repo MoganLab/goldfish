@@ -20,16 +20,25 @@
 (check-set-mode! 'report-failed)
 
 ;; 字符串键的 thoughtSignature 字段
-(check (gemini-part-thought-signature '(("thoughtSignature" . "sig-1"))) => "sig-1")
+(check (gemini-part-thought-signature '(("thoughtSignature" . "sig-1")))
+  =>
+  "sig-1"
+) ;check
 
 ;; symbol 键的 thoughtSignature 字段
-(check (gemini-part-thought-signature '((thoughtSignature . "sig-1"))) => "sig-1")
+(check (gemini-part-thought-signature '((thoughtSignature . "sig-1")))
+  =>
+  "sig-1"
+) ;check
 
 ;; 与其它字段共存
 (check (gemini-part-thought-signature '(("text" . "hi")
                                         ("thought" . #t)
-                                        ("thoughtSignature" . "sig-2")))
-  => "sig-2")
+                                        ("thoughtSignature" . "sig-2"))
+       ) ;gemini-part-thought-signature
+  =>
+  "sig-2"
+) ;check
 
 ;; 缺少 thoughtSignature 字段
 (check (gemini-part-thought-signature '(("text" . "hi"))) => #f)

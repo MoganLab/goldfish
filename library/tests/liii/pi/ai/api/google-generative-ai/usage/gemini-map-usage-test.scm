@@ -17,9 +17,7 @@
 ;; alist
 ;; 内部 usage alist，包含 input、output、cacheRead、cacheWrite 与 totalTokens。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai usage)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai usage))
 
 (check-set-mode! 'report-failed)
 
@@ -28,13 +26,16 @@
                                  ("candidatesTokenCount" . 45)
                                  ("thoughtsTokenCount" . 5)
                                  ("cachedContentTokenCount" . 20)
-                                 ("totalTokenCount" . 150)))))
+                                 ("totalTokenCount" . 150))
+             ) ;gemini-map-usage
+      ) ;usage
+     ) ;
   (check (cdr (assoc 'input usage)) => 80)
   (check (cdr (assoc 'output usage)) => 50)
   (check (cdr (assoc 'cacheRead usage)) => 20)
   (check (cdr (assoc 'cacheWrite usage)) => 0)
   (check (cdr (assoc 'totalTokens usage)) => 150)
-) ;let*
+) ;let
 
 ;; 缺省字段补零
 (let ((usage (gemini-map-usage '(("promptTokenCount" . 7)))))
@@ -42,24 +43,33 @@
   (check (cdr (assoc 'output usage)) => 0)
   (check (cdr (assoc 'cacheRead usage)) => 0)
   (check (cdr (assoc 'totalTokens usage)) => 0)
-) ;let*
+) ;let
 
 ;; 空 usage
 (let ((usage (gemini-map-usage '())))
   (check (cdr (assoc 'input usage)) => 0)
   (check (cdr (assoc 'output usage)) => 0)
   (check (cdr (assoc 'totalTokens usage)) => 0)
-) ;let*
+) ;let
 
 ;; reasoning 字段：thoughtsTokenCount 单列（output 的子集）
 (let ((usage (gemini-map-usage '(("promptTokenCount" . 100)
                                  ("candidatesTokenCount" . 45)
-                                 ("thoughtsTokenCount" . 5)))))
+                                 ("thoughtsTokenCount" . 5))
+             ) ;gemini-map-usage
+      ) ;usage
+     ) ;
   (check (cdr (assoc 'reasoning usage)) => 5)
   (check (cdr (assoc 'output usage)) => 50)
-) ;let*
+) ;let
 
 ;; 无 thinking 时 reasoning 为 0
-(check (cdr (assoc 'reasoning (gemini-map-usage '(("promptTokenCount" . 10))))) => 0)
+(check
+  (cdr
+    (assoc 'reasoning (gemini-map-usage '(("promptTokenCount" . 10))))
+  ) ;cdr
+  =>
+  0
+) ;check
 
 (check-report)

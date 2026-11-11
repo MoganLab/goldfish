@@ -166,13 +166,17 @@
     ;; 合并后一次滚动处理完所有已到达事件，视图不再滞后。
     ;; 返回 #t 表示需要重绘。
     (define (pi-app-handle-mouse-events! app events)
-      (let ((acc (pi-app-wheel-accelerator app)) (delta 0) (handled? #f))
+      (let ((acc (pi-app-wheel-accelerator app))
+            (batch-now (current-monotonic-millis))
+            (delta 0)
+            (handled? #f)
+           ) ;
         (for-each
           (lambda (ev)
             ;; 用事件自带的到达时刻而非处理时刻：合并批次内各事件的间隔
             ;; 是滚轮加速的唯一依据，统一取处理时刻会把间隔记为 0 而抹平加速
             ;; （Issue #1382）。无时间戳的旧事件回退到处理时刻，行为不变。
-            (let ((now (or (mouse-event-time ev) (current-monotonic-millis))))
+            (let ((now (or (mouse-event-time ev) batch-now)))
               (if (pi-app-handle-scroll-hint-mouse! app ev)
                 (set! handled? #t)
                 (case (mouse-event-type ev)

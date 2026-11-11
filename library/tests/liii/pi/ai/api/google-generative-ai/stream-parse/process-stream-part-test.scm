@@ -35,11 +35,16 @@
 ;; 普通文本 part
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
       ) ;
   (process-stream-part '(("text" . "Hello")) stream-state emit)
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state))) => "Hello")
+  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state)))
+    =>
+    "Hello"
+  ) ;check
   (check (gemini-stream-state-current-active-type stream-state) => "text")
   (check (length events) => 2)
   (check (cdr (assoc 'type (car events))) => "text_start")
@@ -49,16 +54,23 @@
 ;; functionCall part
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
       ) ;
-  (process-stream-part '(("functionCall" . (("name" . "bash")
-                                            ("args" . (("command" . "ls")))
-                                            ("id" . "call_1"))))
+  (process-stream-part
+    '(("functionCall"
+       ("name" . "bash")
+       ("args" ("command" . "ls"))
+       ("id" . "call_1")))
     stream-state
     emit
   ) ;process-stream-part
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-  (check (pi-tool-call-block-name (car (gemini-stream-state-blocks stream-state))) => "bash")
+  (check (pi-tool-call-block-name (car (gemini-stream-state-blocks stream-state)))
+    =>
+    "bash"
+  ) ;check
   (check (length events) => 3)
   (check (cdr (assoc 'type (car events))) => "toolcall_start")
 ) ;let*
@@ -66,7 +78,9 @@
 ;; 未知 part 被忽略
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
       ) ;
   (process-stream-part '(("unknown" . "x")) stream-state emit)
   (check (length (gemini-stream-state-blocks stream-state)) => 0)
@@ -80,7 +94,10 @@
        (emit (lambda (ev) #t))
       ) ;
   ;; 第一个 text part 带签名，第二个 text part 不带签名（同一块累积）
-  (process-stream-part '(("text" . "Hello") ("thoughtSignature" . "QUJD")) stream-state emit)
+  (process-stream-part '(("text" . "Hello") ("thoughtSignature" . "QUJD"))
+    stream-state
+    emit
+  ) ;process-stream-part
   (process-stream-part '(("text" . " world")) stream-state emit)
   (let ((blk (car (gemini-stream-state-blocks stream-state))))
     (check (pi-text-block-text blk) => "Hello world")
@@ -92,8 +109,14 @@
 (let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
        (emit (lambda (ev) #t))
       ) ;
-  (process-stream-part '(("text" . "a") ("thoughtSignature" . "QUJD")) stream-state emit)
-  (process-stream-part '(("text" . "b") ("thoughtSignature" . "REVG")) stream-state emit)
+  (process-stream-part '(("text" . "a") ("thoughtSignature" . "QUJD"))
+    stream-state
+    emit
+  ) ;process-stream-part
+  (process-stream-part '(("text" . "b") ("thoughtSignature" . "REVG"))
+    stream-state
+    emit
+  ) ;process-stream-part
   (let ((blk (car (gemini-stream-state-blocks stream-state))))
     (check (pi-text-block-text blk) => "ab")
     (check (pi-text-block-signature blk) => "REVG")
@@ -105,7 +128,10 @@
        (emit (lambda (ev) #t))
       ) ;
   (process-stream-part '(("text" . "plain")) stream-state emit)
-  (check (pi-text-block-signature (car (gemini-stream-state-blocks stream-state))) => #f)
+  (check (pi-text-block-signature (car (gemini-stream-state-blocks stream-state)))
+    =>
+    #f
+  ) ;check
 ) ;let*
 
 (check-report)

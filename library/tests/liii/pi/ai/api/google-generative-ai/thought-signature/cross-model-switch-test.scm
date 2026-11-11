@@ -25,7 +25,6 @@
 ;; ----
 ;; 当 Coding Agent 从 MiniMax / Anthropic 等模型切换到 Gemini 时，
 ;; 历史异构签名若回传会导致 HTTP 400: Corrupted thought signature。
-;; 本测试断言块级与请求体级别的双重净化，确保无残留签名。
 
 (import (liii check)
   (liii list)
@@ -64,6 +63,63 @@
    ) ;
    (else #f)
   ) ;cond
+) ;define
+
+;; 递归检测数据结构中是否存在指定的原始签名值
+
+(define (has-raw-signature? obj sig)
+  (cond
+   ((pair? obj)
+    (or (and (pair? (car obj)) (has-raw-signature? (car obj) sig))
+      (and (equal? (cdr obj) sig) #t)
+      (has-raw-signature? (cdr obj) sig)
+    ) ;or
+   ) ;
+   ((vector? obj)
+    (let loop
+      ((i 0))
+      (cond ((>= i (vector-length obj)) #f)
+            ((has-raw-signature? (vector-ref obj i) sig) #t)
+            (else (loop (+ i 1)))
+      ) ;cond
+    ) ;let
+   ) ;
+   (else #f)
+  ) ;cond
+) ;define
+
+;; 取 Gemini content 的第 idx 个 part
+
+(define (part-of content idx)
+  (vector-ref (cdr (assoc "parts" content)) idx)
+) ;define
+
+;; 紧凑块构造：thinking / toolCall / text
+
+(define (mk-th t . sig)
+  (if (pair? sig)
+    (list (cons "type" "thinking")
+      (cons "thinking" t)
+      (cons "thinkingSignature" (car sig))
+    ) ;list
+    (list (cons "type" "thinking") (cons "thinking" t))
+  ) ;if
+) ;define
+
+(define (mk-tc id name . sig)
+  (if (pair? sig)
+    (list (cons "type" "toolCall")
+      (cons "id" id)
+      (cons "name" name)
+      (cons "arguments" '())
+      (cons "thoughtSignature" (car sig))
+    ) ;list
+    (list (cons "type" "toolCall")
+      (cons "id" id)
+      (cons "name" name)
+      (cons "arguments" '())
+    ) ;list
+  ) ;if
 ) ;define
 
 ;; 递归检测数据结构中是否存在 thought 块标记
@@ -169,21 +225,12 @@
 ) ;let*
 
 ;; 2. MiniMax -> Gemini 切换
-(let* ((mm-msg
-         (mk-assistant "minimax"
-           "MiniMax-M2.7"
-           (list (list (cons "type" "thinking")
-                   (cons "thinking" "MiniMax thought")
-                   (cons "thinkingSignature" "bWluaW1heC1zaWc=")
+(let* ((mm-msg (mk-assistant "minimax"
+                 "MiniMax-M2.7"
+                 (list (mk-th "MiniMax thought" "bWluaW1heC1zaWc=")
+                   (mk-tc "c_mm" "bash" "bWluaW1heC1zaWc=")
                  ) ;list
-             (list (cons "type" "toolCall")
-               (cons "id" "c_mm")
-               (cons "name" "bash")
-               (cons "arguments" '(("command" . "test")))
-               (cons "thoughtSignature" "bWluaW1heC1zaWc=")
-             ) ;list
-           ) ;list
-         ) ;mk-assistant
+               ) ;mk-assistant
        ) ;mm-msg
        (msgs (list (list (cons "role" "user") (cons "content" "run")) mm-msg))
        (contents (gemini-build-contents msgs "gemini-2.5-flash" "google"))
@@ -231,85 +278,58 @@
 ) ;let*
 
 ;; 3.2 纯思考消息过滤后整条跳过
-(let* ((deepseek-msg
-         (mk-assistant "deepseek"
-           "deepseek-reasoner"
-           (list (list (cons "type" "thinking")
-                   (cons "thinking" "R1 thought")
-                   (cons "thinkingSignature" "c2ln")
-                 ) ;list
-           ) ;list
-         ) ;mk-assistant
-       ) ;deepseek-msg
-       (contents (gemini-build-contents (list deepseek-msg) "gemini-2.5-flash" "google")
-       ) ;contents
-      ) ;
-  (check (vector-length contents) => 0)
-) ;let*
+(let ((deepseek-msg
+        (mk-assistant "deepseek"
+          "deepseek-reasoner"
+          (list (list (cons "type" "thinking")
+                  (cons "thinking" "R1 thought")
+                  (cons "thinkingSignature" "c2ln")
+                ) ;list
+          ) ;list
+        ) ;mk-assistant
+      ) ;deepseek-msg
+     ) ;
+  (check (vector-length (gemini-build-contents (list deepseek-msg) "gemini-2.5-flash" "google")
+         ) ;vector-length
+    =>
+    0
+  ) ;check
+) ;let
 
-;; 4. 同 Provider 跨模型切换：Gemini 2.5 -> Gemini 3
-(let* ((g25-msg
-         (mk-assistant "google"
-           "gemini-2.5-flash"
-           (list (list (cons "type" "thinking")
-                   (cons "thinking" "2.5 thought")
-                   (cons "thinkingSignature" "c2ln")
-                 ) ;list
-             (list (cons "type" "toolCall")
-               (cons "id" "cg")
-               (cons "name" "read")
-               (cons "arguments" '())
-               (cons "thoughtSignature" "c2ln")
-             ) ;list
-           ) ;list
-         ) ;mk-assistant
+;; 4. 同 Provider 跨模型（2.5 -> 3）：异构签名不回传，
+;;    Gemini 3+ 目标下无签名 toolCall 补哨兵
+(let* ((g25-msg (mk-assistant "google"
+                  "gemini-2.5-flash"
+                  (list (mk-th "2.5 thought" "c2ln") (mk-tc "cg" "read" "c2ln"))
+                ) ;mk-assistant
        ) ;g25-msg
        (contents (gemini-build-contents (list g25-msg) "gemini-3-flash-preview" "google")
        ) ;contents
       ) ;
   (check (vector-length contents) => 1)
-  (check-false (has-thought-signature? contents))
+  (check
+    (cdr (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)))
+    =>
+    "skip_thought_signature_validator"
+  ) ;check
   (check-false (has-thought-block? contents))
+  (check-false (has-raw-signature? contents "c2ln"))
 ) ;let*
 
 ;; 5. 缺省元数据安全兜底
-(let* ((no-m-msg
-         (mk-assistant "google"
-           #f
-           (list (list (cons "type" "thinking")
-                   (cons "thinking" "th")
-                   (cons "thinkingSignature" "QUJD")
-                 ) ;list
-             (list (cons "type" "toolCall")
-               (cons "id" "c1")
-               (cons "name" "ls")
-               (cons "arguments" '())
-               (cons "thoughtSignature" "QUJD")
-             ) ;list
-           ) ;list
-         ) ;mk-assistant
+(let* ((no-m-msg (mk-assistant "google" #f (list (mk-th "th" "QUJD") (mk-tc "c1" "ls" "QUJD")))
        ) ;no-m-msg
-       (no-p-msg
-         (mk-assistant #f
-           "gemini-2.5-flash"
-           (list (list (cons "type" "toolCall")
-                   (cons "id" "c2")
-                   (cons "name" "ls")
-                   (cons "arguments" '())
-                   (cons "thoughtSignature" "QUJD")
-                 ) ;list
-           ) ;list
-         ) ;mk-assistant
-       ) ;no-p-msg
+       (no-p-msg (mk-assistant #f "gemini-2.5-flash" (list (mk-tc "c2" "ls" "QUJD"))))
        (c1 (gemini-build-contents (list no-m-msg) "gemini-2.5-flash" "google"))
        (c2 (gemini-build-contents (list no-p-msg) "gemini-2.5-flash" "google"))
        (c3 (gemini-build-contents (list no-m-msg)))
       ) ;
-  (check-false (has-thought-signature? c1))
-  (check-false (has-thought-block? c1))
-  (check-false (has-thought-signature? c2))
-  (check-false (has-thought-signature? c3))
-  (check-false (has-thought-block? c3))
+  (for-each (lambda (cc)
+              (check-false (has-thought-signature? cc))
+              (check-false (has-thought-block? cc))
+            ) ;lambda
+    (list c1 c2 c3)
+  ) ;for-each
 ) ;let*
 
 ;; 6. Record 结构体形态（pi-assistant-message）验证
@@ -342,10 +362,7 @@
          (list (list (cons "role" "user") (cons "content" "fix code"))
            (mk-assistant "minimax"
              "MiniMax-M2.7"
-             (list (list (cons "type" "thinking")
-                     (cons "thinking" "analyzing...")
-                     (cons "thinkingSignature" "bWluaW1heC1zaWc=")
-                   ) ;list
+             (list (mk-th "analyzing..." "bWluaW1heC1zaWc=")
                (list (cons "type" "toolCall")
                  (cons "id" "c_read")
                  (cons "name" "read")

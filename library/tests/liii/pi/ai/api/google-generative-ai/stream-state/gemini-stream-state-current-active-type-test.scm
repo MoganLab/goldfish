@@ -15,9 +15,7 @@
 ;; string | #f
 ;; 当前活动块类型，可取 text 或 thinking；没有活动块时为 #f。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
@@ -25,11 +23,11 @@
 (let ((state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (check (gemini-stream-state? state) => #t)
   (check (gemini-stream-state-current-active-type state) => #f)
-) ;let*
+) ;let
 
 ;; vector 状态（兼容旧调用）
 (let ((state (vector '() #f '() '() "STOP" #f "" "")))
   (check (gemini-stream-state-current-active-type state) => #f)
-) ;let*
+) ;let
 
 (check-report)

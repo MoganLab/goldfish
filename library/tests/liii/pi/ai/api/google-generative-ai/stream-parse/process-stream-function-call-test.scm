@@ -36,10 +36,12 @@
 ;; 带 id 的函数调用
 (let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
       ) ;
   (process-stream-function-call '(("name" . "bash")
-                                  ("args" . (("command" . "ls")))
+                                  ("args" ("command" . "ls"))
                                   ("id" . "call_1"))
     '()
     stream-state
@@ -63,21 +65,21 @@
 
 ;; 缺少 id 时生成规范化 id
 (let ((stream-state (vector '() #f '() '() "STOP" #f "" "")))
-  (process-stream-function-call '(("name" . "bash") ("args" . ())) '() stream-state #f)
+  (process-stream-function-call '(("name" . "bash") ("args")) '() stream-state #f)
   (let ((tc (car (gemini-stream-state-blocks stream-state))))
     (check (pi-tool-call-block-id tc) => "bash_0_1")
     (check (pi-tool-call-block-name tc) => "bash")
   ) ;let
-) ;let*
+) ;let
 
 ;; 回调为 #f 时不派发事件，但状态仍然更新
 (let ((stream-state (vector '() #f '() '() "STOP" #f "" "")))
-  (process-stream-function-call '(("name" . "bash") ("args" . ()) ("id" . "call_x"))
+  (process-stream-function-call '(("name" . "bash") ("args") ("id" . "call_x"))
     '()
     stream-state
     #f
   ) ;process-stream-function-call
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-) ;let*
+) ;let
 
 (check-report)

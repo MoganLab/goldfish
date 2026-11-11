@@ -15,15 +15,15 @@
 ;; string | #f
 ;; 错误信息；无法解析或没有 error 字段时返回 #f。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-parse)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-parse))
 
 (check-set-mode! 'report-failed)
 
 ;; error 对象中的 message
 (check (extract-stream-error-message "{\"error\":{\"message\":\"quota exceeded\"}}")
-  => "quota exceeded")
+  =>
+  "quota exceeded"
+) ;check
 
 ;; error 为字符串
 (check (extract-stream-error-message "{\"error\":\"boom\"}") => "boom")

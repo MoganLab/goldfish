@@ -148,9 +148,15 @@
                            ("parts"
                             . #((("functionCall"
                                   ("name" . "bash")
-                                  ("args" ("command" . "ls")))))))
-                          ("finishReason" . "STOP"))))))
-       (parsed (gemini-parse-response resp-json 200)))
+                                  ("args" ("command" . "ls"))))
+                              ) ;#
+                           ))
+                          ("finishReason" . "STOP"))
+                       ) ;#
+                    ))
+       ) ;resp-json
+       (parsed (gemini-parse-response resp-json 200))
+      ) ;
   (check (cdr (assoc 'stopReason parsed)) => "toolUse")
   (let ((content (cdr (assoc 'content parsed))))
     (check (length content) => 1)
@@ -158,7 +164,9 @@
       (check (cdr (assoc 'type blk)) => "toolCall")
       (check (cdr (assoc 'name blk)) => "bash")
       (check-true (string? (cdr (assoc 'id blk))))
-      (check-true (> (string-length (cdr (assoc 'id blk))) 0))
+      (check-true
+        (> (string-length (cdr (assoc 'id blk))) 0)
+      ) ;check-true
     ) ;let
   ) ;let
 ) ;let*
