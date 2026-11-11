@@ -1,3 +1,29 @@
+;; http-post
+;; 发送 HTTP POST 请求，支持通过 :progress 回调按节拍探测并中止流式传输。
+;;
+;; 语法
+;; ----
+;; (http-post url :progress progress ...)
+;;
+;; 参数
+;; ----
+;; url : string
+;; 请求的目标 URL。
+;; progress : procedure | #f，可选
+;; 进度回调函数，签名 (lambda (dl-total dl-now ul-total ul-now) ...)。返回 #f 时中止传输。
+;;
+;; 返回值
+;; ----
+;; hash-table
+;; 包含 status-code、error-code 等字段的响应对象。
+;;
+;; 说明
+;; ----
+;; 流式请求只有 WriteCallback（收到 chunk 才触发），LLM 思考期间
+;; 长时间无数据到达，用户 ESC 后信号无法被探测，取消明显延迟。
+;; :progress 注册 curl ProgressCallback，libcurl 在无数据时也按节拍轮询
+;; （poll 超时上限 1000ms），空闲期最长约 1 秒即可探测到中止信号。
+
 (import (liii check)
   (liii http)
   (liii go)
@@ -9,13 +35,6 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; g_http-post / http-post 的 :progress 回调中止测试 (devel/1227.md)
-;;
-;; 背景：流式请求只有 WriteCallback（收到 chunk 才触发），LLM 思考期间
-;; 长时间无数据到达，用户 ESC 后信号无法被探测，取消明显延迟。
-;; :progress 注册 curl ProgressCallback，libcurl 在无数据时也按节拍轮询
-;; （poll 超时上限 1000ms），空闲期最长约 1 秒即可探测到中止信号。
 
 (define (parse-port-line line)
   (if (and (string? line) (string-starts? line "PORT:"))
