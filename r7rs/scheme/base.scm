@@ -186,6 +186,7 @@
     port?
     binary-port?
     textual-port?
+    port-open?
     input-port-open?
     output-port-open?
     current-input-port
@@ -940,6 +941,11 @@
 
     ;; textual-port? / binary-port? 由 C 层原语提供（rootlet），
     ;; 这里不再定义同名别名，端口必须恰为 textual 或 binary 之一（R7RS 6.13.1）。
+
+    ;; [1263] port-open? 判断端口是否打开（R7RS 6.13.1）
+    (define (port-open? p)
+      (not (port-closed? p))
+    ) ;define
 
     (define (input-port-open? p)
       (not (port-closed? p))
