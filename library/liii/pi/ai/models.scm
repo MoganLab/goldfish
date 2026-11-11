@@ -28,7 +28,7 @@
     pi-route-provider-and-model pi-ensure-catalog-meta pi-builtin-augment-store
     pi-builtin-augment-all pi-catalog-provider-names pi-catalog-provider-models
     pi-catalog-merge-provider-models pi-fuzzy-match-model?
-    pi-split-search-tokens pi-usable-models
+    pi-split-search-tokens pi-usable-models pi-provider-model-entry
   ) ;export
   (begin
 

@@ -33,7 +33,15 @@
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (eff-api (or provider-api (pi-provider-api p-str)))
              (eff-base-url (or base-url (pi-provider-base-url p-str) ""))
-             (meta (list (cons 'base-url eff-base-url) (cons 'max-tokens (or max-tokens 4096)))
+             ;; model-meta 统一为 record（issue #1172 后续收敛）
+             (meta (pi-model-metadata (or model-id "")
+                     (or model-id "")
+                     p-str
+                     eff-base-url
+                     #f
+                     (or max-tokens 4096)
+                     #t
+                   ) ;pi-model-metadata
              ) ;meta
             ) ;
         (list (cons 'provider p-str)
@@ -65,23 +73,28 @@
              (c5 (if settings-pair c4 (cons (cons 'settings '()) c4)))
              (meta-pair (or (assoc 'model-meta c5) (assoc "model-meta" c5)))
              (raw-meta (and meta-pair (cdr meta-pair)))
+             ;; model-meta 统一为 record：旧 alist（含会话 JSON 载入）规范化，
+             ;; 缺失时用注册表默认值补齐；不再把 record 降级为 alist
              (c6
-               (cond
-                ((not meta-pair)
-                 (cons
-                   (cons 'model-meta
-                     (list (cons 'base-url (or (pi-provider-base-url provider) ""))
-                       (cons 'max-tokens 4096)
-                     ) ;list
-                   ) ;cons
-                   c5
-                 ) ;cons
-                ) ;
-                ((pi-model-metadata? raw-meta)
-                 (cons (cons 'model-meta (pi-model-metadata->alist raw-meta)) c5)
-                ) ;
-                (else c5)
-               ) ;cond
+               (let ((m
+                      (cond (raw-meta
+                             (pi-model-metadata-from-alist raw-meta)
+                            ) ;
+                            (else
+                              (pi-model-metadata ""
+                                ""
+                                provider
+                                (or (pi-provider-base-url provider) "")
+                                #f
+                                4096
+                                #t
+                              ) ;pi-model-metadata
+                            ) ;else
+                      ) ;cond
+                    ) ;m
+                   ) ;
+                 (cons (cons 'model-meta m) c5)
+               ) ;let
              ) ;c6
             ) ;
         c6

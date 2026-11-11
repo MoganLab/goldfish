@@ -147,8 +147,8 @@
       ) ;if
     ) ;define
 
-    ;; 从 cfg 读取当前模型的上下文窗口 Token 数：
-    ;; model-meta 可能是 pi-model-metadata record，也可能是 alist
+    ;; 从 cfg 读取当前模型的上下文窗口 Token 数：model-meta 统一为 record，
+    ;; alist 形态仅在会话边界规范化前短暂存在，此处仅作兑底
     (define (%cfg-context-window cfg)
       (let ((meta (cdr (or (assoc 'model-meta cfg) '(#f . #f)))))
         (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))

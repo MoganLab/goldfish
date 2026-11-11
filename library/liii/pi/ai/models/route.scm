@@ -16,6 +16,7 @@
   ) ;import
   (export pi-provider-default-model pi-provider-has-model?
     pi-find-model-provider pi-route-provider-and-model pi-ensure-catalog-meta
+    pi-provider-model-entry
   ) ;export
   (begin
 
@@ -80,6 +81,16 @@
         (or (equal? p-str "ollama")
           (and (%find-model-in-list store-models model-id) #t)
         ) ;or
+      ) ;let*
+    ) ;define
+
+    ;; 按目录取模型条目（alist，含 "input" 等原始字段）；未命中返回 #f。
+    ;; 供视觉能力等需要目录原始字段的消费方使用（model-meta record 不含这些字段）
+    (define (pi-provider-model-entry provider model-id models-store)
+      (let* ((p-str (%canonical-provider (if (symbol? provider) (symbol->string provider) provider)))
+             (store-models (%get-provider-models models-store p-str))
+            ) ;
+        (%find-model-in-list store-models model-id)
       ) ;let*
     ) ;define
 

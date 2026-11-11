@@ -17,6 +17,9 @@
     (liii base64)
     (liii pi ai message)
     (liii pi ai tools record)
+    (liii pi ai config types)
+    (liii pi ai config record)
+    (liii pi ai models)
     (liii pi code core tools truncate)
   ) ;import
   (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path pi-abs-path
@@ -209,6 +212,9 @@
       ) ;let
     ) ;define
 
+    ;; model 判断：model-meta 统一为 record 后，视觉能力查询改从
+    ;; models-store 目录行（alist，含 "input" 字段）进行；record 无法查询时
+    ;; 保守地返回 #t（旧 alist 形态保留兼容）
     (define (%model-supports-images? model)
       (if (not (pair? model))
         #t
@@ -285,15 +291,31 @@
       ) ;let*
     ) ;define
 
+    ;; 从 cfg 的 models-store 目录查当前模型原始条目（含 "input" 字段）；未命中返回 #f
+    (define (%catalog-model-entry opt-cfg)
+      (catch #t
+        (lambda ()
+          (pi-provider-model-entry (cdr (assoc 'provider opt-cfg))
+            (cdr (assoc 'model-id opt-cfg))
+            (cdr (assoc 'models-store opt-cfg))
+          ) ;pi-provider-model-entry
+        ) ;lambda
+        (lambda _ #f)
+      ) ;catch
+    ) ;define
+
     (define (%execute-read-image abs-path opts mime)
       (let* ((bytes (path-read-bytes (path abs-path)))
              (b64 (utf8->string (bytevector-base64-encode bytes)))
              (opt-model (pi-keyword-value :model opts #f))
              (opt-cfg (pi-keyword-value :config opts #f))
+             ;; 优先级：显式 :model > cfg 的 models-store 目录行 > cfg 的 model-meta；
+             ;; 目录行是唯一携带 "input" 视觉能力信息的形态
              (model
                (or opt-model
                  (and (pair? opt-cfg)
-                   (or (and (assoc 'model-meta opt-cfg) (cdr (assoc 'model-meta opt-cfg)))
+                   (or (%catalog-model-entry opt-cfg)
+                     (and (assoc 'model-meta opt-cfg) (cdr (assoc 'model-meta opt-cfg)))
                      (and (assoc 'model opt-cfg) (cdr (assoc 'model opt-cfg)))
                    ) ;or
                  ) ;and
