@@ -202,6 +202,51 @@
   (check-true (string-contains? (string-join (path-read-lines file) "\n") "{ this is not json"))
 ) ;let*
 
+;; 9. 压缩会话：显示摘要与压缩点保留的消息，不重铺被裁掉的旧消息
+(let* ((file (path->string (path-join %tmp-dir "compacted.jsonl")))
+       (vt (make-virtual-terminal :width 100 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a msg) #t)))
+      ) ;
+  (save-session-header! file "sess-compact" "2026-11-04T12:00:00.000Z" %tmp-dir)
+  (save-session-message! file
+    "{\"role\":\"user\",\"content\":\"被裁掉的早期提问\"}" "m1" #f
+    "2026-11-04T12:00:01.000Z"
+  ) ;save-session-message!
+  (save-session-message! file
+    "{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"压缩点保留的回答\"}]}"
+    "m2" "m1" "2026-11-04T12:00:02.000Z"
+  ) ;save-session-message!
+  (append-session-entry! file
+    (string-append
+      "{\"type\":\"compaction\",\"id\":\"c1\",\"parentId\":\"m2\","
+      "\"timestamp\":\"2026-11-04T12:00:03.000Z\","
+      "\"summary\":\"早期对话摘要\",\"firstKeptEntryId\":\"m2\"}"
+    ) ;string-append
+  ) ;append-session-entry!
+  (save-session-message! file
+    "{\"role\":\"user\",\"content\":\"压缩之后的新提问\"}" "m3" "c1"
+    "2026-11-04T12:00:04.000Z"
+  ) ;save-session-message!
+  (check-true (pi-app-rebuild-history! app file))
+  (let ((text (chat-text app)))
+    (check-true (string-contains? text "早期对话摘要"))
+    (check-true (string-contains? text "压缩点保留的回答"))
+    (check-true (string-contains? text "压缩之后的新提问"))
+    ;; 压缩点之前被裁掉的旧消息不重新铺开
+    (check-false (string-contains? text "被裁掉的早期提问"))
+  ) ;let
+) ;let*
+
+;; 10. 重建复位旧会话的 ! 命令卡片索引（避免事件回填到已移除的卡片）
+(let* ((file (write-sample-session! (make-session-file "h")))
+       (vt (make-virtual-terminal :width 100 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a msg) #t)))
+      ) ;
+  (%pi-app-bash-cards-set! app '(("1" . stale)))
+  (check-true (pi-app-rebuild-history! app file))
+  (check (%pi-app-bash-cards app) => '())
+) ;let*
+
 (when (file-exists? %tmp-dir)
   (rmtree %tmp-dir)
 ) ;when

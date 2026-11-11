@@ -201,7 +201,10 @@
     ;; 历史 bash 执行卡片：命令、输出与退出码取自会话条目本身，
     ;; 不从投影后的用户文本反解；excludeFromContext 只影响模型上下文，
     ;; 此类历史仍要在 TUI 中可见（且不重新执行命令）
-    (define (%bash-pairs msg)
+    ;;
+    ;; 折叠状态与实时 ! 命令卡片保持一致：同样服从 Ctrl+O 的全局展开偏好，
+    ;; 否则同一屏内历史卡片与新卡片会出现两种折叠状态
+    (define (%bash-pairs msg tools-expanded?)
       (let ((command (%safe-ref msg "command"))
             (output (%safe-ref msg "output"))
             (code (%safe-ref msg "exitCode"))
@@ -209,7 +212,8 @@
            ) ;
         (if (not (string? command))
           '()
-          (let ((card (make-bash-card command :excluded? excluded?)))
+          (let ((card (make-bash-card command :expanded? tools-expanded? :excluded? excluded?))
+               ) ;
             (bash-card-set-output! card (if (string? output) output ""))
             (bash-card-set-complete! card (if (number? code) code 0))
             (list (cons card #f))
@@ -237,7 +241,7 @@
             ) ;map
           ) ;apply
          ) ;
-         ((equal? role "bashExecution") (%bash-pairs msg))
+         ((equal? role "bashExecution") (%bash-pairs msg tools-expanded?))
          (else '())
         ) ;cond
       ) ;let
@@ -322,6 +326,9 @@
                   ;; 复位旧会话的引用：工具卡片索引、thinking 引用与文本选区
                   (%pi-app-tool-cards-set! app index)
                   (%pi-app-thinking-card-set! app #f)
+                  ;; 旧会话的 ! 命令卡片索引一并复位：历史 bash 卡片由条目重建，
+                  ;; 不复用旧索引，避免后续 bash_complete 事件回填到已移除的卡片
+                  (%pi-app-bash-cards-set! app '())
                   (pi-app-selection-clear! app)
                   ;; 滚动行数缓存失效并定位到末尾
                   (scroll-view-invalidate! (pi-app-scroll-view app))

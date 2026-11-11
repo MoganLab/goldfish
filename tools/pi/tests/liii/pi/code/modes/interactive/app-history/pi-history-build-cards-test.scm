@@ -28,6 +28,7 @@
   (liii tui)
   (liii pi code modes interactive app-history)
   (liii pi code modes interactive views)
+  (liii pi code modes interactive bash)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -309,6 +310,24 @@
              ) ;
   (check (length cards) => 1)
   (check-true (string-contains? (card-text (car cards)) "正常消息"))
+) ;let*-values
+
+;; 13. 历史 bash 卡片服从 Ctrl+O 的全局展开偏好（与实时 ! 命令卡片一致）
+(let*-values (((collapsed _c-index) (pi-history-build-cards
+                     (list (make-bash-entry "b1" 'null "echo hi" "hi\n" 0 #f))
+                     #f
+                     #f
+                   ) ;pi-history-build-cards
+                )
+               ((expanded _e-index) (pi-history-build-cards
+                     (list (make-bash-entry "b1" 'null "echo hi" "hi\n" 0 #f))
+                     #f
+                     #t
+                   ) ;pi-history-build-cards
+                )
+               ) ;
+  (check-false (bash-card-expanded? (car collapsed)))
+  (check-true (bash-card-expanded? (car expanded)))
 ) ;let*-values
 
 (check-report)

@@ -211,8 +211,9 @@
              ) ;app
             ) ;
         ;; --continue 复用目录内最新会话：app 未持有 session-file，
-        ;; 在此按同一解析入口补齐可见历史（只读，不改写会话文件）
-        (when (pi-args-ref parsed 'continue)
+        ;; 在此按同一解析入口补齐可见历史（只读，不改写会话文件）；
+        ;; 显式 session-file（--resume 的选择结果）已在 make-pi-app 内重建过，不重复重建
+        (when (and (pi-args-ref parsed 'continue) (not (pi-args-ref parsed 'session-file)))
           (pi-app-rebuild-history! app (%tui-history-file parsed))
         ) ;when
         (pi-app-run app initial-msg rest-msgs)
