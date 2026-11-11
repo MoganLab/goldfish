@@ -1,5 +1,5 @@
 ;; pi-alarm-log!
-;; 向 alarm.log 安全追加单行异常汇总记录。
+;; 向按天日志安全追加单行异常汇总记录。
 ;;
 ;; 语法
 ;; ----
@@ -18,7 +18,7 @@
 ;; message : (or string #f)
 ;; 错误描述信息，双引号将被替换为单引号，#f 时输出空字符串。
 ;; opt-config-dir : (or string path #f) (可选)
-;; 可选配置目录，用于指定 alarm.log 所在位置。
+;; 可选配置目录，用于指定按天日志所在位置。
 ;;
 ;; 返回值
 ;; ----
@@ -27,6 +27,7 @@
 (import (scheme base)
   (scheme file)
   (liii check)
+  (liii date-time)
   (liii path)
   (liii shutil)
   (liii string)
@@ -62,11 +63,31 @@
          (ts (substring content 1 first-close))
          (rest-line (substring content (+ first-close 1) (string-length content)))
         ) ;
-    ;; TIMESTAMP 格式检查：UTC ISO-8601
+    ;; TIMESTAMP 使用机器本地时区，ISO-8601 带 UTC 偏移（UTC 环境为 Z）
     (check (char=? (string-ref ts 4) #\-) => #t)
     (check (char=? (string-ref ts 7) #\-) => #t)
     (check (char=? (string-ref ts 10) #\T) => #t)
-    (check-true (string-ends? ts "Z"))
+    ;; 与机器当前时区的小时和 UTC 偏移一致
+    (let ((local-now (timestamp->iso-8601 (current-system-timestamp))))
+      (check (substring ts 0 13) => (substring local-now 0 13))
+      (if (string-ends? local-now "Z")
+        (check-true (string-ends? ts "Z"))
+        (check (substring ts (- (string-length ts) 6) (string-length ts))
+          =>
+          (substring local-now (- (string-length local-now) 6) (string-length local-now))
+        ) ;check
+      ) ;if
+    ) ;let
+    (check-true
+      (or (string-ends? ts "Z")
+        (and (> (string-length ts) 6)
+          (let ((sign (string-ref ts (- (string-length ts) 6))))
+            (or (char=? sign #\+) (char=? sign #\-))
+          ) ;let
+          (char=? (string-ref ts (- (string-length ts) 3)) #\:)
+        ) ;and
+      ) ;or
+    ) ;check-true
     ;; 双引号替换为单引号，结构格式严格匹配
     (check rest-line
       =>

@@ -264,6 +264,8 @@
             ) ;
             ;; 自动压缩后上下文已重建，占比未知（显示 "?"，对齐上游）
             ((compaction) (pi-footer-set-context-unknown! (%pi-app-footer app)))
+            ;; all-in-one 交接后刷新页脚当前节点；普通供应商清空为 #f
+            ((active_node) (pi-footer-set-active-node! (%pi-app-footer app) (cadr ev)))
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
             ;; 移除待处理显示并上屏正式用户卡片（对齐上游 message_start 双动作）

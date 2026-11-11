@@ -10,7 +10,7 @@
     pi-footer-set-session-name! pi-footer-set-model! pi-footer-set-message!
     pi-footer-message pi-footer-stats pi-footer-set-stats!
     pi-footer-set-token-stats! pi-footer-set-context-unknown!
-    pi-footer-context-window
+    pi-footer-context-window pi-footer-set-active-node! pi-footer-active-node
   ) ;export
   (import (scheme base)
     (liii string)
@@ -74,7 +74,7 @@
     (define-record-type <pi-footer-state>
       (%make-pi-footer-state cwd branch provider model stats thinking-level
         supports-thinking? session-name message context-info context-percent
-        context-window
+        context-window active-node
       ) ;%make-pi-footer-state
       pi-footer-state?
       (cwd pi-footer-state-cwd)
@@ -98,6 +98,8 @@
       (context-window pi-footer-state-context-window
         pi-footer-state-context-window-set!
       ) ;context-window
+      ;; all-in-one 伪模型当前实际执行节点（provider . model . thinking-level）
+      (active-node pi-footer-state-active-node pi-footer-state-active-node-set!)
     ) ;define-record-type
 
     (define (pi-footer? obj)
@@ -129,20 +131,21 @@
                ) ;if
              ) ;line1
              (right-part
-               (if (and provider (not (string-null? provider)))
-                 (string-append "("
-                   provider
-                   ") "
-                   (pi-footer-model-label model
-                     (pi-footer-state-thinking-level st)
-                     (pi-footer-state-supports-thinking? st)
-                   ) ;pi-footer-model-label
-                 ) ;string-append
-                 (pi-footer-model-label model
-                   (pi-footer-state-thinking-level st)
-                   (pi-footer-state-supports-thinking? st)
-                 ) ;pi-footer-model-label
-               ) ;if
+               (let* ((tl (pi-footer-state-thinking-level st))
+                      (supports? (pi-footer-state-supports-thinking? st))
+                      (base
+                        (string-append
+                          (if (and provider (not (string-null? provider)))
+                            (string-append "(" provider ") ")
+                            ""
+                          ) ;if
+                          (pi-footer-model-label model tl supports?)
+                        ) ;string-append
+                      ) ;base
+                      (node (%active-node-label (pi-footer-state-active-node st)))
+                     ) ;
+                 (if node (string-append base " -> " node) base)
+               ) ;let*
              ) ;right-part
              (left-part
                (cond
@@ -192,6 +195,24 @@
       ) ;if
     ) ;define
 
+    ;; 当前节点串：(provider) model • level；模型缺失时返回 #f
+    (define (%active-node-label node)
+      (and (pair? node)
+        (let ((provider (car node)) (model (cadr node)))
+          (and (string? model)
+            (not (string-null? model))
+            (string-append
+              (if (and (string? provider) (not (string-null? provider)))
+                (string-append "(" provider ") ")
+                ""
+              ) ;if
+              (pi-footer-model-label model (caddr node) #t)
+            ) ;string-append
+          ) ;and
+        ) ;let
+      ) ;and
+    ) ;define
+
     (define (%footer-state comp)
       (component-data comp)
     ) ;define
@@ -216,6 +237,7 @@
              (tl (%keyword-value :thinking-level args "off"))
              (supports? (%keyword-value :supports-thinking args #f))
              (session-name (%keyword-value :session-name args #f))
+             (active-node (%keyword-value :active-node args #f))
              (comp
                (make-component
                  :render
@@ -229,7 +251,7 @@
             ) ;
         (component-data-set! comp
           (%make-pi-footer-state cwd branch provider model stats tl supports?
-            session-name #f context-info 0.0 context-window
+            session-name #f context-info 0.0 context-window active-node
           ) ;%make-pi-footer-state
         ) ;component-data-set!
         comp
@@ -258,6 +280,15 @@
     ;; 会话内切换 thinking level 后同步 footer 右下角标签
     (define (pi-footer-set-thinking-level! comp tl)
       (pi-footer-state-thinking-level-set! (%footer-state comp) tl)
+    ) ;define
+
+    ;; all-in-one 交接后同步当前实际节点；#f 恢复常规显示
+    (define (pi-footer-set-active-node! comp node)
+      (pi-footer-state-active-node-set! (%footer-state comp) node)
+    ) ;define
+
+    (define (pi-footer-active-node comp)
+      (pi-footer-state-active-node (%footer-state comp))
     ) ;define
 
     (define (pi-footer-set-session-name! comp session-name)

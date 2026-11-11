@@ -160,4 +160,17 @@
   (check (recv-ev! ch) => 'none)
 ) ;let*
 
+;; active_node：all-in-one 交接后转发当前节点，供页脚展示；
+;; 事件源必须是 cfg 注入的 emit（单参数流式 on-event 不能收此事件）
+(let* ((ch (make-chan 16)) (emit (make-tui-emit ch)))
+  (emit 'active_node (list "google" "gemini-3.8-flash" "medium"))
+  (check-true (equal? (recv-ev! ch) '(active_node ("google"
+                                                   "gemini-3.8-flash"
+                                                   "medium")))
+  ) ;check-true
+  ;; 非法载荷不投递
+  (emit 'active_node #f)
+  (check (recv-ev! ch) => 'none)
+) ;let*
+
 (check-report)

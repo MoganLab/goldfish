@@ -21,7 +21,7 @@
 ;; 两个值
 ;; 合并后的配置与警告文本列表。
 
-(import (liii check) (liii pi code session-state))
+(import (scheme base) (liii check) (liii path) (liii pi code session-state))
 
 (check-set-mode! 'report-failed)
 
@@ -30,5 +30,29 @@
   (check cfg => '((provider . "kimi")))
   (check warnings => '())
 ) ;let-values
+
+;; 2. 恢复元供应商模型不检查自身凭据，实际凭据由选中节点解析
+(let ((state (list (cons 'model
+                     (list (cons 'provider "all-in-one") (cons 'modelId "coding-deep"))
+                   ) ;cons
+             ) ;list
+      ) ;state
+     ) ;
+  (let-values (((cfg warnings)
+                (pi-resolve-session-state
+                  (list (cons 'provider "all-in-one")
+                    (cons 'model-id "coding-deep")
+                    (cons 'config-dir (path "/tmp/nonexistent-aio-session-state"))
+                  ) ;list
+                  state
+                  '()
+                ) ;pi-resolve-session-state
+               ) ;
+              ) ;
+    (check (cdr (assoc 'provider cfg)) => "all-in-one")
+    (check (cdr (assoc 'model-id cfg)) => "coding-deep")
+    (check warnings => '())
+  ) ;let-values
+) ;let
 
 (check-report)

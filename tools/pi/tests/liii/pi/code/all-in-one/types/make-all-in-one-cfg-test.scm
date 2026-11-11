@@ -14,7 +14,7 @@
 ;; retry-interval-ms : number
 ;; 重试轮询间隔毫秒数。
 ;; probe-timeout-ms : number
-;; 单节点金丝雀预检探测超时毫秒数。
+;; 单节点预检探测超时毫秒数。
 ;; chains : list of <chain-def>
 ;; 链定义列表。
 ;;
