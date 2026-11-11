@@ -86,13 +86,18 @@
 (let ((probed '()) (captured #f) (node-events '()))
   (let ((response
           (pi-all-in-one-request-stream "all-in-one"
-            CONFIG
+            (cons
+              (cons 'emit
+                (lambda (type payload)
+                  (set! node-events (cons (cons type payload) node-events))
+                ) ;lambda
+              ) ;cons
+              CONFIG
+            ) ;cons
             (list (pi-user-message "work"))
             "system"
             '(read)
-            (lambda (type payload)
-              (set! node-events (cons (cons type payload) node-events))
-            ) ;lambda
+            #f
             60
             (lambda (node timeout-ms config-dir run-fn)
               (set! probed (cons (chain-node-model node) probed))

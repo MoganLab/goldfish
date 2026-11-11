@@ -50,15 +50,23 @@
       ) ;let*
     ) ;define
 
+    ;; 当前实际节点上报给 TUI：emit 为 agent 事件回调（来自 cfg），
+    ;; 与请求层只接单参数的流式 on-event 区分开。
+    (define (%emit-active-node cfg provider model-id thinking-level)
+      (let ((emit (and (pair? cfg) (assoc 'emit cfg))))
+        (when (and emit (procedure? (cdr emit)))
+          ((cdr emit) 'active_node (list provider model-id thinking-level))
+        ) ;when
+      ) ;let
+    ) ;define
+
     (define (%execute-node config system-prompt tools on-event timeout request-fn)
       (lambda (provider model-id thinking-level messages)
         (let ((node-config (%node-config config provider model-id thinking-level))
               (request (or request-fn pi-request-provider-stream))
              ) ;
           ;; 交接前把实际节点告知前台，供页脚展示
-          (when (procedure? on-event)
-            (on-event 'active_node (list provider model-id thinking-level))
-          ) ;when
+          (%emit-active-node config provider model-id thinking-level)
           (request provider node-config messages system-prompt tools on-event timeout)
         ) ;let
       ) ;lambda

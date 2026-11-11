@@ -170,8 +170,16 @@
             compaction
             (if all-in-one?
               (lambda (provider config messages system-prompt tools on-event timeout)
-                (pi-all-in-one-request-stream provider config messages
-                  system-prompt tools on-event timeout probe-fn request-fn
+                ;; 把 agent emit 注入给请求适配器，用于上报实际节点
+                (pi-all-in-one-request-stream provider
+                  (cons (cons 'emit emit) config)
+                  messages
+                  system-prompt
+                  tools
+                  on-event
+                  timeout
+                  probe-fn
+                  request-fn
                 ) ;pi-all-in-one-request-stream
               ) ;lambda
               (or request-fn pi-request-provider-stream)
