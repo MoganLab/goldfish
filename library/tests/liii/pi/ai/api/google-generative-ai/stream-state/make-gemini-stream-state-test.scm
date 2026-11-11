@@ -29,9 +29,7 @@
 ;; gemini-stream-state
 ;; 流状态记录。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
@@ -46,10 +44,20 @@
   (check (gemini-stream-state-current-active-type state) => #f)
   (check (gemini-stream-state-thinking-text state) => "")
   (check (gemini-stream-state-thinking-signature state) => "")
-) ;let*
+) ;let
 
 ;; 入参非默认值时同样被保留
-(let ((state (make-gemini-stream-state '(blk) "text" '(usage) '(tc) "MAX_TOKENS" "thinking" "why" "sig")))
+(let ((state (make-gemini-stream-state '(blk)
+               "text"
+               '(usage)
+               '(tc)
+               "MAX_TOKENS"
+               "thinking"
+               "why"
+               "sig"
+             ) ;make-gemini-stream-state
+      ) ;state
+     ) ;
   (check (gemini-stream-state-blocks state) => '(blk))
   (check (gemini-stream-state-last-text state) => "text")
   (check (gemini-stream-state-usage state) => '(usage))
@@ -58,6 +66,6 @@
   (check (gemini-stream-state-current-active-type state) => "thinking")
   (check (gemini-stream-state-thinking-text state) => "why")
   (check (gemini-stream-state-thinking-signature state) => "sig")
-) ;let*
+) ;let
 
 (check-report)

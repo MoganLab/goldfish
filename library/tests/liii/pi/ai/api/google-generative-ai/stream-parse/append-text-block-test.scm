@@ -38,11 +38,16 @@
 ;; 首个增量新建文本块并派发 text_start 与 text_delta
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
       ) ;
   (append-text-block '() #f "hello" 0 '((input . 1)) stream-state emit)
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state))) => "hello")
+  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state)))
+    =>
+    "hello"
+  ) ;check
   (check (gemini-stream-state-last-text stream-state) => "hello")
   (check (length events) => 2)
   (check (cdr (assoc 'type (car events))) => "text_start")
@@ -52,7 +57,9 @@
 ;; 后续增量合并到最后一个文本块，只派发 text_delta
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
       ) ;
   (append-text-block '() #f "hello" 0 '() stream-state emit)
   (set! events '())
@@ -65,7 +72,10 @@
     emit
   ) ;append-text-block
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state))) => "hello world")
+  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state)))
+    =>
+    "hello world"
+  ) ;check
   (check (length events) => 1)
   (check (cdr (assoc 'type (car events))) => "text_delta")
 ) ;let*
@@ -73,7 +83,9 @@
 ;; 空文本被忽略
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
       ) ;
   (check (append-text-block '() #f "" 0 '() stream-state emit) => #t)
   (check (length (gemini-stream-state-blocks stream-state)) => 0)

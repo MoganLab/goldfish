@@ -337,14 +337,19 @@
   (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
 ) ;let*
 
-;; T8 跨模型：toolCall 的 thoughtSignature 不回传
+;; T8 跨模型：toolCall 的原 thoughtSignature 不回传，但 Gemini 3+ 补哨兵
+;; （skip_thought_signature_validator，对齐上游 pi a0d839ce8）
 (let* ((msgs
          (list (mk-assistant-model (list (mk-tool-call "c1" "read" "QUJD")) "gemini-2.5-flash")
          ) ;list
        ) ;msgs
        (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
       ) ;
-  (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
+  (check
+    (cdr (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)))
+    =>
+    "skip_thought_signature_validator"
+  ) ;check
 ) ;let*
 
 ;; T9 非 base64 签名不回传（长度非 4 倍数）

@@ -15,9 +15,7 @@
 ;; string | #f
 ;; 当前思考块的签名；没有活动思考块时为空字符串。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
@@ -25,11 +23,11 @@
 (let ((state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (check (gemini-stream-state? state) => #t)
   (check (gemini-stream-state-thinking-signature state) => "")
-) ;let*
+) ;let
 
 ;; vector 状态（兼容旧调用）
 (let ((state (vector '() #f '() '() "STOP" #f "" "")))
   (check (gemini-stream-state-thinking-signature state) => "")
-) ;let*
+) ;let
 
 (check-report)

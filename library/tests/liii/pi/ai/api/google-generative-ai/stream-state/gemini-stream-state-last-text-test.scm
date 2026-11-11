@@ -15,9 +15,7 @@
 ;; string | #f
 ;; 当前累积的文本；没有活动文本块时为 #f。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
@@ -25,11 +23,11 @@
 (let ((state (make-gemini-stream-state '() "partial" '() '() "STOP" #f "" "")))
   (check (gemini-stream-state? state) => #t)
   (check (gemini-stream-state-last-text state) => "partial")
-) ;let*
+) ;let
 
 ;; vector 状态（兼容旧调用）
 (let ((state (vector '() "partial" '() '() "STOP" #f "" "")))
   (check (gemini-stream-state-last-text state) => "partial")
-) ;let*
+) ;let
 
 (check-report)

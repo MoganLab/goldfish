@@ -32,27 +32,41 @@
 (check-set-mode! 'report-failed)
 
 ;; 普通结束：stopReason 为 stop
-(let ((stream-state (make-gemini-stream-state '() #f '((input . 1) (output . 2)) '() "STOP" #f "" "")))
+(let ((stream-state (make-gemini-stream-state '()
+                      #f
+                      '((input . 1) (output . 2))
+                      '()
+                      "STOP"
+                      #f
+                      ""
+                      ""
+                    ) ;make-gemini-stream-state
+      ) ;stream-state
+     ) ;
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
     (check (cdr (assoc 'role msg)) => "assistant")
     (check (cdr (assoc 'stopReason msg)) => "stop")
-    (check (cdr (assoc 'input (cdr (assoc 'usage msg)))) => 1)
+    (check
+      (cdr (assoc 'input (cdr (assoc 'usage msg))))
+      =>
+      1
+    ) ;check
   ) ;let
-) ;let*
+) ;let
 
 ;; 存在工具调用时 stopReason 为 toolUse
 (let ((stream-state (make-gemini-stream-state '() #f '() '(tc) "STOP" #f "" "")))
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
     (check (cdr (assoc 'stopReason msg)) => "toolUse")
   ) ;let
-) ;let*
+) ;let
 
 ;; MAX_TOKENS 截断
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "MAX_TOKENS" #f "" "")))
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
     (check (cdr (assoc 'stopReason msg)) => "length")
   ) ;let
-) ;let*
+) ;let
 
 ;; 未知 finishReason 映射为 error 并带错误信息
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "SAFETY" #f "" "")))
@@ -60,13 +74,13 @@
     (check (cdr (assoc 'stopReason msg)) => "error")
     (check (cdr (assoc 'errorMessage msg)) => "SAFETY")
   ) ;let
-) ;let*
+) ;let
 
 ;; 缺少 finishReason 时按 STOP 处理
 (let ((stream-state (make-gemini-stream-state '() #f '() '() #f #f "" "")))
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
     (check (cdr (assoc 'stopReason msg)) => "stop")
   ) ;let
-) ;let*
+) ;let
 
 (check-report)

@@ -24,9 +24,14 @@
 
 ;; 从已提取的 details 读取
 (let ((details '((searchQueries "goldfish scheme" "goldfish github")
-                 (searchResults . ())
-                 (citations . ()))))
-  (check (gemini-grounding-search-queries details) => '("goldfish scheme" "goldfish github"))
+                 (searchResults)
+                 (citations))
+      ) ;details
+     ) ;
+  (check (gemini-grounding-search-queries details)
+    =>
+    '("goldfish scheme" "goldfish github")
+  ) ;check
 ) ;let
 
 ;; 从原始 groundingMetadata alist 自动提取

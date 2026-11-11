@@ -44,73 +44,83 @@
 
 ;; 成功结算
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
-  (let ((msg (gemini-classify-stream-result stream-state #f '() 200 60 #f (vector ""))))
+  (let ((msg (gemini-classify-stream-result stream-state #f '() 200 60 #f (vector "")))
+       ) ;
     (check (cdr (assoc 'stopReason msg)) => "stop")
   ) ;let
-) ;let*
+) ;let
 
 ;; 空闲超时
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
-  (let ((msg (gemini-classify-stream-result stream-state #t '() 200 60 #f (vector ""))))
+  (let ((msg (gemini-classify-stream-result stream-state #t '() 200 60 #f (vector "")))
+       ) ;
     (check (cdr (assoc 'stopReason msg)) => "error")
-    (check-true (string-contains? (cdr (assoc 'errorMessage msg)) "Stream idle timed out after 60 seconds"))
+    (check-true (string-contains? (cdr (assoc 'errorMessage msg))
+                  "Stream idle timed out after 60 seconds"
+                ) ;string-contains?
+    ) ;check-true
   ) ;let
-) ;let*
+) ;let
 
 ;; 错误描述命中超时关键词
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (let ((msg (gemini-classify-stream-result stream-state
-                 #f
-                 '((error . "request too slow"))
-                 200
-                 30
-                 #f
-                 (vector "")
-               ) ;gemini-classify-stream-result
-             ))
+               #f
+               '((error . "request too slow"))
+               200
+               30
+               #f
+               (vector "")
+             ) ;gemini-classify-stream-result
+        ) ;msg
+       ) ;
     (check (cdr (assoc 'stopReason msg)) => "error")
-    (check-true (string-contains? (cdr (assoc 'errorMessage msg)) "Stream idle timed out"))
+    (check-true (string-contains? (cdr (assoc 'errorMessage msg)) "Stream idle timed out")
+    ) ;check-true
   ) ;let
-) ;let*
+) ;let
 
 ;; HTTP 500 且响应体带错误信息
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (let ((msg (gemini-classify-stream-result stream-state
-                 #f
-                 '()
-                 500
-                 60
-                 #f
-                 (vector "{\"error\":{\"message\":\"boom\"}}")
-               ) ;gemini-classify-stream-result
-             ))
+               #f
+               '()
+               500
+               60
+               #f
+               (vector "{\"error\":{\"message\":\"boom\"}}")
+             ) ;gemini-classify-stream-result
+        ) ;msg
+       ) ;
     (check (cdr (assoc 'stopReason msg)) => "error")
     (check (cdr (assoc 'errorMessage msg)) => "HTTP 500: boom")
   ) ;let
-) ;let*
+) ;let
 
 ;; HTTP 500 且响应体无错误信息
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
-  (let ((msg (gemini-classify-stream-result stream-state #f '() 500 60 #f (vector ""))))
+  (let ((msg (gemini-classify-stream-result stream-state #f '() 500 60 #f (vector "")))
+       ) ;
     (check (cdr (assoc 'stopReason msg)) => "error")
     (check (cdr (assoc 'errorMessage msg)) => "HTTP 500 error")
   ) ;let
-) ;let*
+) ;let
 
 ;; 状态码为 0 表示网络错误
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (let ((msg (gemini-classify-stream-result stream-state
-                 #f
-                 '((reason . "connection refused"))
-                 0
-                 60
-                 #f
-                 (vector "")
-               ) ;gemini-classify-stream-result
-             ))
+               #f
+               '((reason . "connection refused"))
+               0
+               60
+               #f
+               (vector "")
+             ) ;gemini-classify-stream-result
+        ) ;msg
+       ) ;
     (check (cdr (assoc 'stopReason msg)) => "error")
     (check (cdr (assoc 'errorMessage msg)) => "Request failed: connection refused")
   ) ;let
-) ;let*
+) ;let
 
 (check-report)

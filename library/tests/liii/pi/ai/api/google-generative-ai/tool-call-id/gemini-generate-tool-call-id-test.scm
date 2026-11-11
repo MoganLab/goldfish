@@ -19,14 +19,15 @@
 ;; string
 ;; 规范化后的工具调用 id，形如 <name>_<timestamp>_<counter>。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai tool-call-id)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai tool-call-id))
 
 (check-set-mode! 'report-failed)
 
 ;; 常规组合
-(check (gemini-generate-tool-call-id "bash" 1700000000 1) => "bash_1700000000_1")
+(check (gemini-generate-tool-call-id "bash" 1700000000 1)
+  =>
+  "bash_1700000000_1"
+) ;check
 
 ;; 工具名中的非法字符被替换为下划线
 (check (gemini-generate-tool-call-id "my/tool" 1 2) => "my_tool_1_2")

@@ -29,13 +29,13 @@
   (check (gemini-stream-state-active-type state) => "text")
   (gemini-stream-state-current-active-type-set! state "thinking")
   (check (gemini-stream-state-active-type state) => "thinking")
-) ;let*
+) ;let
 
 ;; vector 状态（兼容旧调用）
 (let ((state (vector '() #f '() '() "STOP" #f #f #f)))
   (check (gemini-stream-state-active-type state) => #f)
   (vector-set! state 5 "thinking")
   (check (gemini-stream-state-active-type state) => "thinking")
-) ;let*
+) ;let
 
 (check-report)

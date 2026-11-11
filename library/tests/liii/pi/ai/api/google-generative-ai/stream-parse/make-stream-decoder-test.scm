@@ -28,13 +28,18 @@
 ;; 文本流式增量
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
        (decoder (make-stream-decoder stream-state emit))
       ) ;
   (decoder "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]},\"finishReason\":\"STOP\"}]}\n\n"
   ) ;decoder
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state))) => "Hello")
+  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state)))
+    =>
+    "Hello"
+  ) ;check
   (check (gemini-stream-state-finish-reason stream-state) => "STOP")
   (check (length events) => 2)
   (check (cdr (assoc 'type (car events))) => "text_start")
@@ -43,7 +48,9 @@
 ;; 非 JSON 数据被忽略
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
        (decoder (make-stream-decoder stream-state emit))
       ) ;
   (decoder "data: not-a-json\n\n")

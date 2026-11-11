@@ -34,23 +34,31 @@
 ;; 文本 part 与 finishReason
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
        (events '())
-       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (emit
+         (lambda (ev) (set! events (append events (list ev))))
+       ) ;emit
        (part (list (cons "text" "Hi")))
        (candidate
-         (list (cons "content" (list (cons "parts" (vector part))))
-               (cons "finishReason" "STOP")))
-       (usage-meta
-         (list (cons "promptTokenCount" 10)
-               (cons "candidatesTokenCount" 4)
-               (cons "totalTokenCount" 14)))
-       (json-obj
-         (list (cons "candidates" (vector candidate))
-               (cons "usageMetadata" usage-meta)))
+         (list
+           (cons "content" (list (cons "parts" (vector part))))
+           (cons "finishReason" "STOP")
+         ) ;list
+       ) ;candidate
+       (usage-meta (list (cons "promptTokenCount" 10)
+                     (cons "candidatesTokenCount" 4)
+                     (cons "totalTokenCount" 14)
+                   ) ;list
+       ) ;usage-meta
+       (json-obj (list (cons "candidates" (vector candidate)) (cons "usageMetadata" usage-meta))
+       ) ;json-obj
       ) ;
   (process-sse-chunk-data json-obj stream-state emit)
   (check (gemini-stream-state-finish-reason stream-state) => "STOP")
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state))) => "Hi")
+  (check (pi-text-block-text (car (gemini-stream-state-blocks stream-state)))
+    =>
+    "Hi"
+  ) ;check
   (check (cdr (assoc 'input (gemini-stream-state-usage stream-state))) => 10)
   (check (cdr (assoc 'output (gemini-stream-state-usage stream-state))) => 4)
   (check (length events) => 2)
@@ -58,22 +66,32 @@
 
 ;; functionCall part
 (let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
-       (fc (list (cons "name" "bash")
-                 (cons "args" (list (cons "command" "ls")))
-                 (cons "id" "call_1")))
+       (fc
+         (list (cons "name" "bash")
+           (cons "args" (list (cons "command" "ls")))
+           (cons "id" "call_1")
+         ) ;list
+       ) ;fc
        (part (list (cons "functionCall" fc)))
-       (candidate (list (cons "content" (list (cons "parts" (vector part))))))
+       (candidate
+         (list
+           (cons "content" (list (cons "parts" (vector part))))
+         ) ;list
+       ) ;candidate
        (json-obj (list (cons "candidates" (vector candidate))))
       ) ;
   (process-sse-chunk-data json-obj stream-state #f)
   (check (length (gemini-stream-state-blocks stream-state)) => 1)
-  (check (pi-tool-call-block-name (car (gemini-stream-state-blocks stream-state))) => "bash")
+  (check (pi-tool-call-block-name (car (gemini-stream-state-blocks stream-state)))
+    =>
+    "bash"
+  ) ;check
 ) ;let*
 
 ;; 空 candidates 被忽略
 (let ((stream-state (vector '() #f '() '() "STOP" #f "" "")))
   (process-sse-chunk-data (list (cons "candidates" (vector))) stream-state #f)
   (check (length (gemini-stream-state-blocks stream-state)) => 0)
-) ;let*
+) ;let
 
 (check-report)

@@ -17,26 +17,33 @@
 ;; string
 ;; 错误提示信息。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-parse)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-parse))
 
 (check-set-mode! 'report-failed)
 
 ;; 带 reason 的响应
 (check (format-failed-stream-msg 0 '((reason . "connection refused")))
-  => "Request failed: connection refused")
+  =>
+  "Request failed: connection refused"
+) ;check
 
 ;; 带 error 字段的响应
 (check (format-failed-stream-msg 500 '((error . "server error")))
-  => "Request failed: server error")
+  =>
+  "Request failed: server error"
+) ;check
 
 ;; reason 优先于 error
 (check (format-failed-stream-msg 0 '((reason . "first") (error . "second")))
-  => "Request failed: first")
+  =>
+  "Request failed: first"
+) ;check
 
 ;; 空白 reason 被裁剪后视为空
-(check (format-failed-stream-msg 0 '((reason . "   "))) => "HTTP 0 stream error")
+(check (format-failed-stream-msg 0 '((reason . "   ")))
+  =>
+  "HTTP 0 stream error"
+) ;check
 
 ;; 没有错误描述时使用状态码兜底
 (check (format-failed-stream-msg 500 '()) => "HTTP 500 stream error")

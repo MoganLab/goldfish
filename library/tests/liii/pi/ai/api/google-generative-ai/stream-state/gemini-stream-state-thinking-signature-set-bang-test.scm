@@ -21,9 +21,7 @@
 ;; ----
 ;; record 状态直接更新记录字段；vector 状态更新对应的下标。
 
-(import (liii check)
-  (liii pi ai api google-generative-ai stream-state)
-) ;import
+(import (liii check) (liii pi ai api google-generative-ai stream-state))
 
 (check-set-mode! 'report-failed)
 
@@ -31,12 +29,12 @@
 (let ((state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (gemini-stream-state-thinking-signature-set! state "sig-1")
   (check (gemini-stream-state-thinking-signature state) => "sig-1")
-) ;let*
+) ;let
 
 ;; vector 状态（兼容旧调用）
 (let ((state (vector '() #f '() '() "STOP" #f "" "")))
   (gemini-stream-state-thinking-signature-set! state "sig-1")
   (check (gemini-stream-state-thinking-signature state) => "sig-1")
-) ;let*
+) ;let
 
 (check-report)

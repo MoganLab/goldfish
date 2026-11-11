@@ -131,7 +131,7 @@
       ) ;let*
     ) ;define
 
-    (define (%build-assistant-turn content same-model?)
+    (define (%build-assistant-turn content same-model? model-id)
       (let* ((blks (cond ((vector? content) (vector->list content))
                          ((list? content) content)
                          (else '())
@@ -140,7 +140,7 @@
              (parts
                (filter
                  (lambda (p) (and p (not (null? p))))
-                 (map (lambda (b) (gemini-assistant-block->part b same-model?)) blks)
+                 (map (lambda (b) (gemini-assistant-block->part b same-model? model-id)) blks)
                ) ;filter
              ) ;parts
             ) ;
@@ -153,17 +153,23 @@
 
     (define (%build-single-content msg model-id provider)
       (let ((role (if (pi-message? msg) (pi-message-role msg) (%val 'role msg "")))
-            (content (if (pi-message? msg)
-                       (if (pi-assistant-message? msg)
-                         (pi-assistant-message-content msg)
-                         (if (pi-user-message? msg)
-                           (pi-user-message-content msg)
-                           (%val 'content msg '())))
-                       (%val 'content msg '()))))
+            (content
+              (if (pi-message? msg)
+                (if (pi-assistant-message? msg)
+                  (pi-assistant-message-content msg)
+                  (if (pi-user-message? msg)
+                    (pi-user-message-content msg)
+                    (%val 'content msg '())
+                  ) ;if
+                ) ;if
+                (%val 'content msg '())
+              ) ;if
+            ) ;content
+           ) ;
         (cond ((equal? role "user") (%build-user-turn content))
               ((equal? role "assistant")
                (let ((same-model? (%is-same-model? msg model-id provider)))
-                 (%build-assistant-turn content same-model?)
+                 (%build-assistant-turn content same-model? model-id)
                ) ;let
               ) ;
               (else #f)
@@ -241,8 +247,10 @@
     (define (%take-tool-results rest parts-acc)
       (if
         (and (pair? rest)
-          (equal?
-            (if (pi-message? (car rest)) (pi-message-role (car rest)) (%val 'role (car rest) ""))
+          (equal? (if (pi-message? (car rest))
+                    (pi-message-role (car rest))
+                    (%val 'role (car rest) "")
+                  ) ;if
             "toolResult"
           ) ;equal?
         ) ;and
