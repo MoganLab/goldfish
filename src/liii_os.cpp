@@ -30,19 +30,26 @@
 #include <conio.h>
 #include <io.h>
 #include <windows.h>
+// CNG 随机数接口：BCryptGenRandom（依赖 windows.h 先引入的窗口类型）
+#include <bcrypt.h>
 #ifdef _MSC_VER
 #include <crtdbg.h>
 #endif
 #elif TB_CONFIG_OS_MACOSX
 #include <limits.h>
+#include <sys/random.h>
 #elif defined(__EMSCRIPTEN__)
 #include <limits.h>
 #else
 #include <linux/limits.h>
+#if defined(TB_CONFIG_OS_LINUX)
+#include <sys/random.h>
+#endif
 #endif
 
 #if !defined(TB_CONFIG_OS_WINDOWS)
 #include <errno.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <pwd.h>
 #include <sys/ioctl.h>
@@ -51,6 +58,17 @@
 #if !defined(__EMSCRIPTEN__)
 #include <wordexp.h>
 #endif
+#endif
+
+// glibc 2.25 之前没有 getrandom(2) 声明，此时退化到 /dev/urandom。
+#if defined(TB_CONFIG_OS_LINUX) && !defined(__EMSCRIPTEN__)
+#if defined(__GLIBC__) && (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 25))
+#define GOLDFISH_HAS_GETRANDOM 0
+#else
+#define GOLDFISH_HAS_GETRANDOM 1
+#endif
+#else
+#define GOLDFISH_HAS_GETRANDOM 0
 #endif
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
@@ -1213,6 +1231,138 @@ glue_os_set_clipboard_text (s7_scheme* sc) {
   glue_define (sc, name, desc, f_os_set_clipboard_text, 1, 0);
 }
 
+// ---------------------------------------------------------------------------
+// 密码学安全随机字节源（CSPRNG）
+//
+// - Windows：CNG 原生接口 BCryptGenRandom(NULL, buf, len,
+//   BCRYPT_USE_SYSTEM_PREFERRED_RNG)，使用系统首选熵源。
+// - Linux：getrandom(2) 系统调用；内核过旧（ENOSYS）时平滑降级到
+//   /dev/urandom。
+// - macOS：getentropy(2)（单次最多 256 字节，分片调用）；失败时降级到
+//   /dev/urandom。
+// - 其它平台（含 Emscripten）：直接读取 /dev/urandom。
+// ---------------------------------------------------------------------------
+
+#if !defined(TB_CONFIG_OS_WINDOWS)
+// 从 /dev/urandom 读取随机字节，直到填满缓冲区或发生不可恢复的错误。
+static bool
+os_fill_from_dev_urandom (uint8_t* buf, size_t len) {
+  int fd= open ("/dev/urandom", O_RDONLY);
+  if (fd < 0) {
+    return false;
+  }
+  size_t got= 0;
+  bool   ok = true;
+  while (got < len) {
+    ssize_t n= read (fd, buf + got, len - got);
+    if (n < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      ok= false;
+      break;
+    }
+    if (n == 0) {
+      ok= false;
+      break;
+    }
+    got+= (size_t) n;
+  }
+  close (fd);
+  return ok;
+}
+#endif
+
+#if defined(TB_CONFIG_OS_LINUX) && !defined(__EMSCRIPTEN__) && GOLDFISH_HAS_GETRANDOM
+// Linux：优先使用 getrandom(2)，内核不支持时返回 false 以便降级。
+static bool
+os_fill_from_getrandom (uint8_t* buf, size_t len) {
+  size_t got= 0;
+  while (got < len) {
+    ssize_t n= getrandom (buf + got, len - got, 0);
+    if (n < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      return false;
+    }
+    got+= (size_t) n;
+  }
+  return true;
+}
+#endif
+
+#ifdef TB_CONFIG_OS_MACOSX
+// macOS：getentropy(2) 单次最多填充 256 字节，超出部分分片调用。
+static bool
+os_fill_from_getentropy (uint8_t* buf, size_t len) {
+  size_t got= 0;
+  while (got < len) {
+    size_t chunk= len - got;
+    if (chunk > 256) {
+      chunk= 256;
+    }
+    if (getentropy (buf + got, chunk) != 0) {
+      return false;
+    }
+    got+= chunk;
+  }
+  return true;
+}
+#endif
+
+// 统一的熵源入口：按平台优先选择内核级 CSPRNG，失败时降级到 /dev/urandom。
+static bool
+os_fill_csprng (uint8_t* buf, size_t len) {
+  if (len == 0) {
+    return true;
+  }
+#ifdef TB_CONFIG_OS_WINDOWS
+  return BCryptGenRandom (NULL, (PUCHAR) buf, (ULONG) len, BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0;
+#else
+#if defined(TB_CONFIG_OS_MACOSX)
+  if (os_fill_from_getentropy (buf, len)) {
+    return true;
+  }
+#elif defined(TB_CONFIG_OS_LINUX) && !defined(__EMSCRIPTEN__) && GOLDFISH_HAS_GETRANDOM
+  if (os_fill_from_getrandom (buf, len)) {
+    return true;
+  }
+#endif
+  return os_fill_from_dev_urandom (buf, len);
+#endif
+}
+
+static s7_pointer
+f_urandom (s7_scheme* sc, s7_pointer args) {
+  s7_pointer n_arg= s7_car (args);
+  if (!s7_is_integer (n_arg)) {
+    return string_type_error (sc, "urandom: length must be an exact integer", n_arg);
+  }
+  s7_int n= s7_integer (n_arg);
+  if (n < 0) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "urandom: length must be non-negative"), n_arg));
+  }
+  s7_pointer bv= s7_make_byte_vector (sc, n, 1, NULL);
+  if (n == 0) {
+    return bv;
+  }
+  uint8_t* buf= (uint8_t*) s7_byte_vector_elements (bv);
+  if (!os_fill_csprng (buf, (size_t) n)) {
+    return s7_error (sc, s7_make_symbol (sc, "os-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "urandom: failed to read the system entropy source"), n_arg));
+  }
+  return bv;
+}
+
+static void
+glue_urandom (s7_scheme* sc) {
+  const char* name= "g_urandom";
+  const char* desc= "(g_urandom n) => bytevector, generate n cryptographically secure random bytes";
+  glue_define (sc, name, desc, f_urandom, 1, 0);
+}
+
 void
 glue_liii_os (s7_scheme* sc) {
   glue_os_arch (sc);
@@ -1239,6 +1389,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_console_kbhit (sc);
   glue_console_getch (sc);
   glue_os_set_clipboard_text (sc);
+  glue_urandom (sc);
 }
 
 } // namespace goldfish

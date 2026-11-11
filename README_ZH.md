@@ -44,6 +44,7 @@
 | [(liii json schema)](library/liii/json/schema.scm) | JSON Schema 2020-12 校验      | `json-schema-valid?`, `json-schema-errors`                         |
 | [(liii subprocess)](library/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
 | [(liii base64)](library/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
+| [(liii secrets)](library/liii/secrets.scm)       | 密码学安全随机数工具库         | `token-bytes`, `token-hex`, `token-urlsafe`                          |
 | [(liii hashlib)](library/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 编码转换           | `utf8->utf16le`, `utf16be->utf8`                                    |
 | [(liii sort)](goldfish/liii/sort.scm)             | 排序函数库                      | `list-sort`, `list-stable-sort`, `vector-sort`                      |

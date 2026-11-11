@@ -83,3 +83,11 @@ gf doc liii/os "listdir"
 | `console-getch` | 读取一个按键字节 |
 | `console-raw-mode!` | 开启/关闭终端 raw mode |
 | `console-raw-mode-state` | 读取终端模式诊断信息 |
+
+### 六、密码学安全随机数
+
+对接操作系统熵源，提供不可预测的随机字节：
+
+| 函数 | 说明 |
+|---|---|
+| `urandom` | 生成指定字节长度的密码学安全随机 bytevector |
