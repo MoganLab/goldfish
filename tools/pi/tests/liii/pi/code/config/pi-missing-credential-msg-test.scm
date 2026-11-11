@@ -43,5 +43,10 @@
   =>
   #f
 ) ;check
+;; 元供应商没有独立凭据，由调度器选择的实际节点提供凭据
+(check (pi-missing-credential-msg '((provider . "all-in-one") (api-key . #f)))
+  =>
+  #f
+) ;check
 
 (check-report)

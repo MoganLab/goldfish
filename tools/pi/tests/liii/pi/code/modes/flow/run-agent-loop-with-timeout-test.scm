@@ -3,7 +3,8 @@
 ;;
 ;; 语法
 ;; ----
-;; (run-agent-loop-with-timeout cfg init-msgs system-prompt emit parsed compaction emit-initial?)
+;; (run-agent-loop-with-timeout cfg init-msgs system-prompt emit parsed
+;;   compaction emit-initial? probe-fn request-fn)
 ;;
 ;; 参数
 ;; ----
@@ -21,6 +22,8 @@
 ;; 上下文压缩配置。
 ;; emit-initial? : boolean
 ;; 是否派发初始消息的上屏事件。
+;; probe-fn、request-fn : procedure | #f
+;; all-in-one 隔离测试用预检与真实请求函数。
 ;;
 ;; 返回值
 ;; ----
@@ -28,8 +31,14 @@
 ;; 执行完成后的完整消息历史列表。
 
 (import (scheme base)
+  (scheme file)
   (liii check)
+  (liii os)
+  (liii path)
+  (liii shutil)
   (liii pi ai message)
+  (liii pi code all-in-one chain)
+  (liii pi code all-in-one types)
   (liii pi code modes flow)
 ) ;import
 
@@ -97,6 +106,67 @@
       ) ;
   (check (length res) => 2)
   (check msg-starts => 1)
+) ;let*
+
+;; 4. all-in-one 必须进入链式调度，不再交给真实协议直接请求元供应商
+(let* ((dir (path->string (path-join (path-temp-dir)
+                          (string-append "aio-flow-test-" (number->string (getpid)))
+                        ) ;path-join
+            ) ;path->string
+       ) ;dir
+       (cfg (list (cons 'tools '())
+              (cons 'provider "all-in-one")
+              (cons 'model-id "coding-deep")
+              (cons 'config-dir dir)
+            ) ;list
+       ) ;cfg
+       (probed '())
+       (requests '())
+      ) ;
+  (when (file-exists? dir)
+    (rmtree dir #t)
+  ) ;when
+  (path-mkdir (path (path-join dir "models" "stub")) :parents #t :exist-ok #t)
+  (path-write-text (path->string (path-join dir "models" "providers.json"))
+    "[\"stub\"]"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "auth.json"))
+    "{\"stub\":{\"type\":\"api_key\",\"key\":\"fixture-key\"}}"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "models" "stub.json"))
+    "{\"api\":\"openai-completions\",\"baseUrl\":\"http://127.0.0.1:1\",\"models\":[\"m1\",\"m2\"]}"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "models" "stub" "m1.json"))
+    "{\"name\":\"m1\"}"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "models" "stub" "m2.json"))
+    "{\"name\":\"m2\",\"reasoning\":true}"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "all-in-one.json"))
+    "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1000,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"m1\"},{\"provider\":\"stub\",\"model\":\"m2\",\"thinkingLevel\":\"high\"}]}]}"
+  ) ;path-write-text
+  (let ((res (run-agent-loop-with-timeout cfg (list (pi-user-message "hi")) "" #f '()
+               #f #t
+               (lambda (node timeout-ms config-dir run-fn)
+                 (set! probed (cons (chain-node-provider node) probed))
+                 (equal? (chain-node-model node) "m2")
+               ) ;lambda
+               (lambda (provider config messages system-prompt tools on-event timeout)
+                 (set! requests (cons (list provider config messages) requests))
+                 (pi-assistant-message (list (pi-text-block "pong")) "stop")
+               ) ;lambda
+             ) ;run-agent-loop-with-timeout
+        ) ;res
+       ) ;
+    (check (reverse probed) => '("stub" "stub"))
+    (check (length requests) => 1)
+    (check (caar requests) => "stub")
+    (check (cdr (assoc 'provider (cadar requests))) => "stub")
+    (check (cdr (assoc 'model-id (cadar requests))) => "m2")
+    (check (cdr (assoc 'thinking-level (cadar requests))) => "high")
+    (check (pi-assistant-message-stop-reason (car (reverse res))) => "stop")
+  ) ;let
+  (rmtree dir #t)
 ) ;let*
 
 (check-report)

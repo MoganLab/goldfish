@@ -72,57 +72,57 @@
                    ) ;pi-ensure-catalog-meta
              ) ;meta
             ) ;
-        (cond
-         ((not (%non-empty-string? api-key))
-          (values cfg
-            (list (string-append "Session state model skipped: no credentials for provider \""
-                    provider
-                    "\"; using \""
-                    (%cfg-ref cfg 'provider)
-                    "/"
-                    (%cfg-ref cfg 'model-id)
-                    "\""
-                  ) ;string-append
-            ) ;list
-          ) ;values
-         ) ;
-         ((not (and (pi-provider-has-model? provider model-id models-store)
-                 (pi-model-metadata-matched? meta)
-               ) ;and
-          ) ;not
-          (values cfg
-            (list (string-append "Session state model skipped: \""
-                    provider
-                    "/"
-                    model-id
-                    "\" is unavailable; using \""
-                    (%cfg-ref cfg 'provider)
-                    "/"
-                    (%cfg-ref cfg 'model-id)
-                    "\""
-                  ) ;string-append
-            ) ;list
-          ) ;values
-         ) ;
-         (else
-           (values
-             (%cfg-override cfg
-               (list (cons 'provider provider)
-                 ;; 协议标识随 provider 变化而更新
-                 (cons 'provider-api (pi-cfg-provider-api cfg provider))
-                 (cons 'model-id model-id)
-                 (cons 'model-meta meta)
-                 (cons 'api-key api-key)
-                 (cons 'supports-thinking
-                   (pi-model-supports-thinking? models-store provider model-id)
-                 ) ;cons
-                 ;; provider 级代理随 provider 变化而重算
-                 (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
-               ) ;list
-             ) ;%cfg-override
-             '()
-           ) ;values
-         ) ;else
+        (cond ((equal? provider "all-in-one") (values cfg '()))
+              ((not (%non-empty-string? api-key))
+               (values cfg
+                 (list (string-append "Session state model skipped: no credentials for provider \""
+                         provider
+                         "\"; using \""
+                         (%cfg-ref cfg 'provider)
+                         "/"
+                         (%cfg-ref cfg 'model-id)
+                         "\""
+                       ) ;string-append
+                 ) ;list
+               ) ;values
+              ) ;
+              ((not (and (pi-provider-has-model? provider model-id models-store)
+                      (pi-model-metadata-matched? meta)
+                    ) ;and
+               ) ;not
+               (values cfg
+                 (list (string-append "Session state model skipped: \""
+                         provider
+                         "/"
+                         model-id
+                         "\" is unavailable; using \""
+                         (%cfg-ref cfg 'provider)
+                         "/"
+                         (%cfg-ref cfg 'model-id)
+                         "\""
+                       ) ;string-append
+                 ) ;list
+               ) ;values
+              ) ;
+              (else
+                (values
+                  (%cfg-override cfg
+                    (list (cons 'provider provider)
+                      ;; 协议标识随 provider 变化而更新
+                      (cons 'provider-api (pi-cfg-provider-api cfg provider))
+                      (cons 'model-id model-id)
+                      (cons 'model-meta meta)
+                      (cons 'api-key api-key)
+                      (cons 'supports-thinking
+                        (pi-model-supports-thinking? models-store provider model-id)
+                      ) ;cons
+                      ;; provider 级代理随 provider 变化而重算
+                      (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
+                    ) ;list
+                  ) ;%cfg-override
+                  '()
+                ) ;values
+              ) ;else
         ) ;cond
       ) ;let*
     ) ;define

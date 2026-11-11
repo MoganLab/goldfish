@@ -374,7 +374,7 @@
       (let ((provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
             (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
            ) ;
-        (cond ((equal? provider "ollama") #f)
+        (cond ((member provider '("ollama" "all-in-one")) #f)
               ((or (not api-key) (and (string? api-key) (string-null? api-key)))
                (string-append "No credentials found for provider \"" provider "\"")
               ) ;

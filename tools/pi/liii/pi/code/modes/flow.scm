@@ -27,6 +27,7 @@
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
     (liii pi code core skills)
+    (liii pi code all-in-one request)
   ) ;import
   (export prepare-system-prompt persist-initial-user-msg!
     run-agent-loop-with-timeout emit-json-event run-session-flow
@@ -139,6 +140,8 @@
                parsed
                (compaction #f)
                (emit-initial? #t)
+               (probe-fn #f)
+               (request-fn #f)
              ) ;run-agent-loop-with-timeout
       (let* ((timeout (pi-resolve-timeout parsed cfg))
              (max-turns
@@ -153,9 +156,29 @@
                ) ;let
              ) ;session-timeout
             ) ;
-        (run-agent-loop cfg init-msgs system-prompt emit timeout max-turns
-          session-timeout compaction pi-request-provider-stream emit-initial?
-        ) ;run-agent-loop
+        (let ((all-in-one?
+                (equal? (cdr (or (assoc 'provider cfg) '(#f . #f))) "all-in-one")
+              ) ;all-in-one?
+             ) ;
+          (run-agent-loop cfg
+            init-msgs
+            system-prompt
+            emit
+            timeout
+            max-turns
+            session-timeout
+            compaction
+            (if all-in-one?
+              (lambda (provider config messages system-prompt tools on-event timeout)
+                (pi-all-in-one-request-stream provider config messages
+                  system-prompt tools on-event timeout probe-fn request-fn
+                ) ;pi-all-in-one-request-stream
+              ) ;lambda
+              (or request-fn pi-request-provider-stream)
+            ) ;if
+            emit-initial?
+          ) ;run-agent-loop
+        ) ;let
       ) ;let*
     ) ;define*
 
