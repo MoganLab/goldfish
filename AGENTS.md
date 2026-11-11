@@ -118,7 +118,7 @@ R7RS-small 规范定义的库及其在仓库中的对应关系：
 | `(scheme load)` | `load` | 已实现 |
 | `(scheme process-context)` | `command-line` / `exit` / `get-environment-variable` | 已实现 |
 | `(scheme read)` | `read` | 已实现 |
-| `(scheme repl)` | `interaction-environment` | 待实现 |
+| `(scheme repl)` | `interaction-environment` | 已实现 |
 | `(scheme r5rs)` | R5RS 兼容层：`exact->inexact` / `inexact->exact` / `null-environment` / `scheme-report-environment` 等 | 待实现 |
 | `(scheme time)` | `current-second` / `current-jiffy` / `jiffies-per-second` | 已实现 |
 | `(scheme write)` | `write` / `write-shared` / `write-simple` | 已实现 |
