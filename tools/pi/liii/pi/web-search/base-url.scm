@@ -12,6 +12,7 @@
     (liii path)
     (liii pi code core tools read)
     (liii pi code config)
+    (liii pi ai config types)
   ) ;import
   (export pi-resolve-search-base-url
     pi-resolve-deepseek-search-base-url
@@ -155,9 +156,17 @@
       ) ;and
     ) ;define
 
+    ;; model-meta 可能是 pi-model-metadata record（会话配置的常态），也可能是 alist；
+    ;; record 不能用 pair?/assoc 读取字段，必须用访问器（issue #1172）
     (define (%model-meta-base-url config)
       (let ((meta (%cfg-ref config 'model-meta)))
-        (and (pair? meta)
+        (cond
+         ((pi-model-metadata? meta)
+          (let ((u (pi-model-metadata-base-url meta)))
+            (and (string? u) (not (string-null? (string-trim-both u))) u)
+          ) ;let
+         ) ;
+         ((pair? meta)
           (or (%cfg-str meta 'base-url)
             (%cfg-str meta "base-url")
             (%cfg-str meta 'baseURL)
@@ -165,7 +174,9 @@
             (%cfg-str meta 'baseUrl)
             (%cfg-str meta "baseUrl")
           ) ;or
-        ) ;and
+         ) ;
+         (else #f)
+        ) ;cond
       ) ;let
     ) ;define
 

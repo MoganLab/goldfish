@@ -21,6 +21,7 @@
 (import (scheme base)
   (liii check)
   (liii path)
+  (liii pi ai config types)
   (liii pi web-search base-url)
 ) ;import
 
@@ -52,6 +53,52 @@
     ) ;pi-resolve-search-base-url
     =>
     "http://meta-base:8080"
+  ) ;check
+
+  ;; 2b. model-meta 为 pi-model-metadata record 时，用访问器读取 base-url（issue #1172）
+  (check
+    (pi-resolve-search-base-url
+      `((provider . "google")
+        (model-meta . ,(%make-pi-model-metadata "gemini-2.5-flash"
+                          "Gemini 2.5 Flash"
+                          "google"
+                          "http://record-meta-base:8080"
+                          1048576
+                          8192
+                          #t
+                        ) ;%make-pi-model-metadata
+         ) ;model-meta
+      ) ;config
+      #f
+      #f
+      "google"
+      clean-env
+    ) ;pi-resolve-search-base-url
+    =>
+    "http://record-meta-base:8080"
+  ) ;check
+
+  ;; 2c. record 的 base-url 为空白字符串时视为未配置，回退默认地址（issue #1172）
+  (check
+    (pi-resolve-search-base-url
+      `((provider . "google")
+        (model-meta . ,(%make-pi-model-metadata "gemini-2.5-flash"
+                          "Gemini 2.5 Flash"
+                          "google"
+                          "   "
+                          1048576
+                          8192
+                          #t
+                        ) ;%make-pi-model-metadata
+         ) ;model-meta
+      ) ;config
+      #f
+      #f
+      "google"
+      clean-env
+    ) ;pi-resolve-search-base-url
+    =>
+    "https://generativelanguage.googleapis.com/v1beta"
   ) ;check
 
   ;; 3. web-search.json 覆盖
