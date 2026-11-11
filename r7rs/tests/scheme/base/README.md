@@ -236,7 +236,6 @@ gf doc scheme/base "函数名"
 - `open-output-string` - 打开字符串输出端口
 - `get-output-string` - 获取输出字符串
 - `close-port` - 关闭端口
-- `read` - 读取对象
 - `read-line` - 读取一行
 - `write` - 写入对象
 - `write-string` - 按 display 风格写入字符串

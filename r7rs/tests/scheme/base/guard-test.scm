@@ -34,6 +34,7 @@
 
 (import (liii check))
 (import (scheme base))
+(import (scheme read))
 
 (check-set-mode! 'report-failed)
 
@@ -212,7 +213,7 @@
           ((read-error? ex) 'handled-read)
           ((error-object? ex) (error-object-message ex))
           (else 'unknown))
-    (error "cannot open file: test.txt"))
+    (open-input-file "tests/scheme/base/nonexistent-file-12345.scm"))
   =>
   'handled-file
 ) ;check
@@ -223,7 +224,7 @@
           ((read-error? ex) 'handled-read)
           ((error-object? ex) (error-object-message ex))
           (else 'unknown))
-    (error "unexpected EOF"))
+    (read (open-input-string "(")))
   =>
   'handled-read
 ) ;check
@@ -256,7 +257,7 @@
     (guard (inner
             ((read-error? inner) 'handled-read))
       ;; 抛出 file-error，内层只处理 read-error，自动在原动态环境 re-raise 给外层
-      (error "no such file: data.db")))
+      (error 'file-error "no such file: data.db")))
   =>
   '(outer-caught "no such file: data.db")
 ) ;check

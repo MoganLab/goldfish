@@ -49,6 +49,15 @@
 ;; 注意：本文件的符号位于 rootlet，(scheme ...) 库可以直接使用（与
 ;; syntax-rules.scm 提供的 syntax-rules / define-syntax 同一惯例）。
 
+;; R7RS 6.11 Exceptions: error-object
+(define-record-type <error-object>
+  (%make-error-object kind message irritants)
+  error-object?
+  (kind %error-object-kind)
+  (message error-object-message)
+  (irritants error-object-irritants)
+) ;define-record-type
+
 (define (codepoint->utf8 codepoint)
   (unless (integer? codepoint)
     (error 'type-error "codepoint->utf8: expected integer, got" codepoint)
