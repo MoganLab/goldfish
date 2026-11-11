@@ -24,7 +24,9 @@
     (liii pi code core session-projection context-edit)
     (liii pi code core session-projection state)
   ) ;import
-  (export pi-session-path pi-context-entries pi-build-session-projection)
+  (export pi-session-path pi-context-entries pi-build-session-projection
+    pi-build-session-context-entries
+  ) ;export
   (begin
 
     ;; 字段访问兼容字符串键与符号键；JSON null 解析为符号 'null，与 #f 区分
@@ -281,16 +283,15 @@
       ) ;let
     ) ;define
 
-    ;; pi-build-session-projection：投影入口（对齐上游 buildSessionProjection）
+    ;; pi-build-session-context-entries：投影的条目层入口
     ;; 纯组合 1201-1204 的能力并补齐 context_edit 与状态导出：
     ;; 1) pi-session-path：从叶子沿 parentId 回溯路径（1202）
     ;; 2) 状态提取：从完整路径取最后的 thinkingLevel 与 model（1209）
     ;; 3) pi-context-entries：压缩感知的路径裁剪（1203）
     ;; 4) context_edit 应用：在裁剪结果上删除 / 替换目标（1208），先于消息构造
-    ;; 5) pi-entry-to-context-messages：逐条目到消息的映射（1201）
-    ;; 返回三部分（values messages state diagnostics）：
-    ;; - messages：LLM 上下文消息列表；裁剪返回摘要时，头部插入一条用户消息，
-    ;;   文本为既有摘要前缀 + 摘要 + 后缀；其后为保留条目的消息（含压缩点之后）
+    ;; 返回三部分（values entries state diagnostics）：
+    ;; - entries：当前有效分支的条目列表（根到叶顺序，压缩点保留 + 压缩点之后）；
+    ;;   compaction 条目保留在列表首位，context_edit 条目已被应用并移除
     ;; - state：#f（路径上无状态条目）或 alist：
     ;;   (thinkingLevel . 字符串|#f)
     ;;   (thinkingLevelEntryId . 条目 id|#f)
@@ -302,7 +303,10 @@
     ;;   model_change、thinking_level_change 均属已知类型），
     ;;   无法应用的编辑目标 id 计入 ignored-edits（无则 '()）
     ;; 纯函数：不读文件、不写日志、不改写会话文件，所有 I/O 由调用方完成
-    (define (pi-build-session-projection entries . opt-leaf-id)
+    ;;
+    ;; 展示层（恢复会话后的 TUI 历史重建）与模型上下文共用本入口，
+    ;; 避免另写一套只供显示、会与模型恢复规则分叉的 JSONL 遍历算法。
+    (define (pi-build-session-context-entries entries . opt-leaf-id)
       (let* ((leaf-id (and (pair? opt-leaf-id) (car opt-leaf-id)))
              (call-path (lambda ()
                           (if leaf-id (pi-session-path entries leaf-id) (pi-session-path entries))
@@ -312,37 +316,58 @@
         (let*-values (((path path-reason) (call-path)))
           (let*-values (((context-entries trim-reason) (pi-context-entries path)))
             (let*-values (((edited-entries ignored-edits) (pi-apply-context-edits context-entries)))
-              (let* ((msgs (apply append (map pi-entry-to-context-messages edited-entries)))
-                     ;; 未知类型在编辑前的条目上统计：应用编辑后会移除 context_edit 条目
-                     (summary (%first-compaction-summary edited-entries))
-                     (unknown-types (%unknown-types context-entries))
-                     ;; 状态必须基于完整 path 而非裁剪后的 context-entries
-                     (state (pi-collect-projection-state path))
-                     (msgs
-                       (if summary
-                         (cons (pi-user-message (string-append %projection-summary-prefix
-                                                  (%summary->string summary)
-                                                  %projection-summary-suffix
-                                                ) ;string-append
-                               ) ;pi-user-message
-                           msgs
-                         ) ;cons
-                         msgs
-                       ) ;if
-                     ) ;msgs
-                     (diagnostics (list (cons 'path-reason path-reason)
-                                    (cons 'trim-reason trim-reason)
-                                    (cons 'skipped-unknown-types unknown-types)
-                                    (cons 'ignored-edits ignored-edits)
-                                  ) ;list
-                     ) ;diagnostics
+              (let* (
+                      ;; 未知类型在编辑前的条目上统计：应用编辑后会移除 context_edit 条目
+                      (unknown-types (%unknown-types context-entries))
+                      ;; 状态必须基于完整 path 而非裁剪后的 context-entries
+                      (state (pi-collect-projection-state path))
+                      (diagnostics (list (cons 'path-reason path-reason)
+                                     (cons 'trim-reason trim-reason)
+                                     (cons 'skipped-unknown-types unknown-types)
+                                     (cons 'ignored-edits ignored-edits)
+                                   ) ;list
+                      ) ;diagnostics
                     ) ;
-                (values msgs state diagnostics)
+                (values edited-entries state diagnostics)
               ) ;let*
             ) ;let*-values
           ) ;let*-values
         ) ;let*-values
       ) ;let*
+    ) ;define
+
+    ;; pi-build-session-projection：投影入口（对齐上游 buildSessionProjection）
+    ;; 在条目层入口之上做消息构造：
+    ;; 1) pi-build-session-context-entries：路径、裁剪、编辑与状态
+    ;; 2) pi-entry-to-context-messages：逐条目到消息的映射（1201）
+    ;; 返回三部分（values messages state diagnostics）：
+    ;; - messages：LLM 上下文消息列表；裁剪返回摘要时，头部插入一条用户消息，
+    ;;   文本为既有摘要前缀 + 摘要 + 后缀；其后为保留条目的消息（含压缩点之后）
+    ;; - state / diagnostics：与条目层入口一致
+    ;; 纯函数：不读文件、不写日志、不改写会话文件，所有 I/O 由调用方完成
+    (define (pi-build-session-projection entries . opt-leaf-id)
+      (let*-values (((edited-entries state diagnostics)
+                     (apply pi-build-session-context-entries entries opt-leaf-id)
+                    ) ;
+                   ) ;
+        (let* ((msgs (apply append (map pi-entry-to-context-messages edited-entries)))
+               (summary (%first-compaction-summary edited-entries))
+               (msgs
+                 (if summary
+                   (cons (pi-user-message (string-append %projection-summary-prefix
+                                            (%summary->string summary)
+                                            %projection-summary-suffix
+                                          ) ;string-append
+                         ) ;pi-user-message
+                     msgs
+                   ) ;cons
+                   msgs
+                 ) ;if
+               ) ;msgs
+              ) ;
+          (values msgs state diagnostics)
+        ) ;let*
+      ) ;let*-values
     ) ;define
 
   ) ;begin

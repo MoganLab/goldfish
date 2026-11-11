@@ -46,6 +46,7 @@
     (liii pi code modes interactive bash)
     (liii pi code modes interactive app-bash)
     (liii pi code modes interactive app-events)
+    (liii pi code modes interactive app-history)
     (liii pi code modes interactive app-name)
     (liii pi code modes interactive app-session)
     (liii pi code modes interactive app-thinking)
@@ -208,13 +209,6 @@
         ) ;unless
         handled?
       ) ;let
-    ) ;define
-
-    (define (pi-app-submit-initial! app initial-msg rest-msgs)
-      (unless (string-null? initial-msg)
-        (pi-app-submit! app initial-msg)
-      ) ;unless
-      (for-each (lambda (msg) (pi-app-submit! app msg)) rest-msgs)
     ) ;define
 
     (define (%make-pi-record-sink record-sink jobs-chan)
@@ -380,6 +374,8 @@
         (container-add! doc header)
         (container-add! doc chat)
         (%pi-app-editor-set! app ed)
+        ;; 启动恢复：带 session-file 创建 app 时重建可见历史（只读）
+        (pi-app-rebuild-history! app session-file)
         ;; 无自定义 handler 时启动后台 agent worker
         (unless handler
           (go (pi-tui-agent-worker jobs-chan event-chan abort-chan session-file

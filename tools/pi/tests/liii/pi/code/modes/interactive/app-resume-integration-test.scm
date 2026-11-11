@@ -16,6 +16,8 @@
 
 (import (scheme base)
   (liii check)
+  (liii path)
+  (liii shutil)
   (liii string)
   (liii list)
   (liii tui)
@@ -27,6 +29,7 @@
   (liii pi code modes interactive thinking)
   (liii pi code modes interactive session-selector)
   (liii pi code core session-list)
+  (liii pi code core session-manager)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -41,6 +44,17 @@
 
 (define (footer-text app)
   (string-join (map strip-ansi (component-render (%pi-app-footer app) 100)) "\n")
+) ;define
+
+;; 聊天区卡片的纯文本（去掉 ANSI 颜色码）
+
+(define (chat-text app)
+  (string-join
+    (map (lambda (child) (string-join (map strip-ansi (component-render child 100)) "\n"))
+      (pi-app-chat app)
+    ) ;map
+    "\n"
+  ) ;string-join
 ) ;define
 
 ;; 构造一条会话摘要（供选择器枚举使用）
@@ -326,6 +340,61 @@
   (check (editor-text ed) => "")
   (check received => '())
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
+) ;let*
+
+;; 14. 会话切换后的可见历史：界面历史来自最后选择的会话，
+;;     worker 载荷与后续消息写入目标仍走既有契约
+(let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-resume-integration-1323")))
+       (file-a (path->string (path-join tmp-dir "a.jsonl")))
+       (file-b (path->string (path-join tmp-dir "b.jsonl")))
+       (info-a (make-info file-a "id-a" "Alpha" "2026-10-21T08:00:01.000Z"))
+       (info-b (make-info file-b "id-b" "Beta" "2026-10-21T09:00:01.000Z"))
+       (vterm (make-virtual-terminal :width 100 :height 40))
+       (app
+         (make-pi-app
+           :terminal vterm
+           :handler  (lambda (a msg) #t)
+           :resume-sessions
+           (lambda () (values (list info-a info-b) (lambda () (list info-a info-b))))
+         ) ;make-pi-app
+       ) ;app
+      ) ;
+  (when (file-exists? tmp-dir)
+    (rmtree tmp-dir)
+  ) ;when
+  (path-mkdir tmp-dir :parents #t :exist-ok #t)
+  (save-session-header! file-a "sess-a" "2026-10-21T08:00:00.000Z" tmp-dir)
+  (save-session-message! file-a
+    "{\"role\":\"user\",\"content\":\"会话A的提问\"}" "a1" #f
+    "2026-10-21T08:00:01.000Z"
+  ) ;save-session-message!
+  (save-session-header! file-b "sess-b" "2026-10-21T09:00:00.000Z" tmp-dir)
+  (save-session-message! file-b
+    "{\"role\":\"user\",\"content\":\"会话B的提问\"}" "b1" #f
+    "2026-10-21T09:00:01.000Z"
+  ) ;save-session-message!
+  ;; 先显示会话 B 的历史
+  (pi-app-handle-resume-event! app (list 'session_resumed file-b "Beta" #f))
+  (check-true (string-contains? (chat-text app) "会话B的提问"))
+  ;; 切换到会话 A：B 的卡片不再冒充当前历史
+  (pi-app-handle-resume-event! app (list 'session_resumed file-a "Alpha" #f))
+  (let ((text (chat-text app)))
+    (check-true (string-contains? text "会话A的提问"))
+    (check-false (string-contains? text "会话B的提问"))
+    ;; 末尾保留一次 Resumed session 提示
+    (check-true (string-contains? text "Resumed session"))
+  ) ;let
+  ;; 连续切换 A → B → A：每次只显示最后所选会话的记录，不累积
+  (pi-app-handle-resume-event! app (list 'session_resumed file-b "Beta" #f))
+  (check-true (string-contains? (chat-text app) "会话B的提问"))
+  (pi-app-handle-resume-event! app (list 'session_resumed file-a "Alpha" #f))
+  (let ((text (chat-text app)))
+    (check-true (string-contains? text "会话A的提问"))
+    (check-false (string-contains? text "会话B的提问"))
+  ) ;let
+  ;; /resume 自身不发送模型请求、不追加消息
+  (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
+  (rmtree tmp-dir)
 ) ;let*
 
 (check-report)

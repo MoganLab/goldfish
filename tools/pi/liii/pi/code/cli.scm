@@ -27,6 +27,7 @@
     (liii pi ai models)
     (liii pi ai config record)
     (liii pi code modes interactive)
+    (liii pi code modes interactive app-history)
     (liii pi code modes interactive resume)
     (liii pi code modes config app)
     (liii pi code core extensions types)
@@ -145,6 +146,14 @@
       ) ;or
     ) ;define
 
+    ;; 启动恢复用的会话文件：--continue 取目录内最新会话（与 worker 同源）
+    (define (%tui-history-file parsed)
+      (pi-resolve-history-file parsed
+        (%resolved-cfg parsed)
+        (path->string (path-cwd))
+      ) ;pi-resolve-history-file
+    ) ;define
+
     (define (%load-resume-sessions parsed cfg)
       (pi-load-resume-sessions parsed cfg (path->string (path-cwd)))
     ) ;define
@@ -201,6 +210,12 @@
                ) ;make-pi-app
              ) ;app
             ) ;
+        ;; --continue 复用目录内最新会话：app 未持有 session-file，
+        ;; 在此按同一解析入口补齐可见历史（只读，不改写会话文件）；
+        ;; 显式 session-file（--resume 的选择结果）已在 make-pi-app 内重建过，不重复重建
+        (when (and (pi-args-ref parsed 'continue) (not (pi-args-ref parsed 'session-file)))
+          (pi-app-rebuild-history! app (%tui-history-file parsed))
+        ) ;when
         (pi-app-run app initial-msg rest-msgs)
         0
       ) ;let*

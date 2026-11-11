@@ -25,6 +25,7 @@
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
+    (liii pi code modes interactive app-history)
     (liii pi code modes interactive footer)
     (liii pi code modes interactive thinking)
     (liii pi code modes interactive app-model)
@@ -205,6 +206,15 @@
                           ) ;if
                     ) ;base
                    ) ;
+               ;; 先按目标会话重建可见历史（只读，不重放事件、不执行工具）：
+               ;; 重建失败时保留当前界面并提示错误，绝不先清空旧历史
+               (when (and (string? path) (file-exists? path))
+                 (unless (pi-app-rebuild-history! app path)
+                   (container-add! (%pi-app-chat app)
+                     (make-tool-card "resume" '() 'error "Failed to rebuild session history")
+                   ) ;container-add!
+                 ) ;unless
+               ) ;when
                ;; 未命名会话也要清空旧名称，避免 footer 显示陈旧会话名
                (%pi-app-session-name-set! app name)
                (pi-footer-set-session-name! (%pi-app-footer app) name)
