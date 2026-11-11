@@ -19,7 +19,8 @@
     process-wait process-terminate process-kill process-kill-tree process-close
     process-close-stdin process-last-activity-time process-idle-seconds
     process-write process-write-stdin process-read process-read-line
-    %keyword-value %valid-env? %normalize-stream-spec %normalize-cwd
+    process-poll-io process-eof? %keyword-value %valid-env?
+    %normalize-stream-spec %normalize-cwd
   ) ;export
   (import (scheme base) (liii error) (liii list) (liii path))
   (begin
@@ -239,6 +240,36 @@
           (value-error "process-read-line: :stream must be 'stdout or 'stderr")
         ) ;unless
         (g_subprocess-read-line proc stream)
+      ) ;let
+    ) ;define
+
+    (define (process-poll-io proc . args)
+      (unless (process? proc)
+        (type-error "process-poll-io: argument must be a process")
+      ) ;unless
+      (let ((timeout-ms (if (pair? args) (car args) 50)))
+        (unless (integer? timeout-ms)
+          (type-error "process-poll-io: timeout must be an integer")
+        ) ;unless
+        (when (< timeout-ms 0)
+          (value-error "process-poll-io: timeout must be non-negative")
+        ) ;when
+        (g_subprocess-poll-io proc timeout-ms)
+      ) ;let
+    ) ;define
+
+    (define (process-eof? proc . opts)
+      (unless (process? proc)
+        (type-error "process-eof?: argument must be a process")
+      ) ;unless
+      (let ((stream (%keyword-value :stream opts 'stdout)))
+        (unless (symbol? stream)
+          (type-error "process-eof?: :stream must be a symbol")
+        ) ;unless
+        (unless (or (eq? stream 'stdout) (eq? stream 'stderr))
+          (value-error "process-eof?: :stream must be 'stdout or 'stderr")
+        ) ;unless
+        (g_subprocess-eof? proc stream)
       ) ;let
     ) ;define
 

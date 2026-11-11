@@ -33,6 +33,8 @@ gf doc liii/subprocess/process "process-spawn"
 - `process-close-stdin` - 关闭子进程标准输入管道
 - `process-read` - 读取子进程标准输出或标准错误数据
 - `process-read-line` - 从子进程输出中逐行读取文本数据
+- `process-poll-io` - 阻塞式轮询子进程的 I/O 事件
+- `process-eof?` - 判定子进程指定输出流是否已到达末尾
 - `process-last-activity-time` - 获取子进程最后一次 I/O 活动的时间戳
 - `process-idle-seconds` - 获取子进程距离最后一次活动的空闲秒数
 

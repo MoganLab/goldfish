@@ -556,30 +556,44 @@ struct Subprocess {
     if (!stderr_buffer.empty ()) return 2;
 
 #ifdef TB_CONFIG_OS_WINDOWS
-    bool out_avail= false, err_avail= false;
-    if (!stdout_eof && h_out_read) {
-      DWORD avail= 0;
-      if (PeekNamedPipe (h_out_read, NULL, 0, NULL, &avail, NULL)) {
-        if (avail > 0) out_avail= true;
+    ULONGLONG deadline= GetTickCount64 () + (timeout_ms < 0 ? 50 : timeout_ms);
+    for (;;) {
+      bool out_avail= false, err_avail= false;
+      if (!stdout_eof && h_out_read) {
+        DWORD avail= 0;
+        if (PeekNamedPipe (h_out_read, NULL, 0, NULL, &avail, NULL)) {
+          if (avail > 0) out_avail= true;
+        }
+        else {
+          stdout_eof= true;
+        }
       }
-      else {
-        stdout_eof= true;
+      if (!stderr_eof && h_err_read) {
+        DWORD avail= 0;
+        if (PeekNamedPipe (h_err_read, NULL, 0, NULL, &avail, NULL)) {
+          if (avail > 0) err_avail= true;
+        }
+        else {
+          stderr_eof= true;
+        }
       }
+      if (out_avail || err_avail) update_activity ();
+      if (out_avail && err_avail) return 3;
+      if (out_avail) return 1;
+      if (err_avail) return 2;
+      if (stdout_eof && stderr_eof) return -1;
+      // 与 POSIX 路径的 poll(timeout) 对齐：在超时窗口内持续轮询，
+      // 避免 Windows 下首次探测无数据时立刻返回 0 造成竞态。
+      if (timeout_ms == 0) break;
+      if (GetTickCount64 () >= deadline) break;
+      if (update_status () && !stdout_eof && !stderr_eof) {
+        // 进程已退出但管道尚未关闭时，继续探测至超时，等待收尾数据。
+      }
+      Sleep (5);
     }
-    if (!stderr_eof && h_err_read) {
-      DWORD avail= 0;
-      if (PeekNamedPipe (h_err_read, NULL, 0, NULL, &avail, NULL)) {
-        if (avail > 0) err_avail= true;
-      }
-      else {
-        stderr_eof= true;
-      }
+    if (update_status ()) {
+      if (stdout_eof && stderr_eof) return -1;
     }
-    if (out_avail || err_avail) update_activity ();
-    if (out_avail && err_avail) return 3;
-    if (out_avail) return 1;
-    if (err_avail) return 2;
-    if (stdout_eof && stderr_eof) return -1;
     return 0;
 #else
     struct pollfd pfds[2];
