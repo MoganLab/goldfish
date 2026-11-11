@@ -191,10 +191,6 @@
         "reason": "高效字符串游标实现"
       },
       {
-        "path": "library/liii/logging.scm",
-        "reason": "日志框架格式化与分发逻辑"
-      },
-      {
         "path": "library/liii/uri/record.scm",
         "reason": "URI 规范解析与记录模型"
       },

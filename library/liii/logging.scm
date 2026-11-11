@@ -98,6 +98,20 @@
     ) ;define
 
     ;; ============== plist / alist 转换 ==============
+    ;; 字段值规范化：字符串 / 精确整数 / 字节向量原样保留，其余转为 write 输出
+    (define (field-value->display v)
+      (cond ((string? v) v)
+            ((and (integer? v) (exact? v)) v)
+            ((bytevector? v) v)
+            (else
+              (let ((p (open-output-string)))
+                (write v p)
+                (get-output-string p)
+              ) ;let
+            ) ;else
+      ) ;cond
+    ) ;define
+
     (define (field-list->alist plist)
       (let f
         ((fields plist))
@@ -110,18 +124,7 @@
                   (if (not v)
                     (f (cddr fields))
                     (let ((k^ (cond ((symbol? k) k) (else (error "invalid key" k plist))))
-                          (v^
-                            (cond ((string? v) v)
-                                  ((and (integer? v) (exact? v)) v)
-                                  ((bytevector? v) v)
-                                  (else
-                                    (let ((p (open-output-string)))
-                                      (write v p)
-                                      (get-output-string p)
-                                    ) ;let
-                                  ) ;else
-                            ) ;cond
-                          ) ;v^
+                          (v^ (field-value->display v))
                          ) ;
                       (cons (cons k^ v^) (f (cddr fields)))
                     ) ;let
