@@ -35,4 +35,15 @@
   (check (char-ready? p) => #t)
 ) ;let
 
+;; 错误处理：二进制端口不是文本端口
+(let ((p (open-input-bytevector (bytevector 1))))
+  (check-catch 'type-error (char-ready? p))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((p (open-input-string "a")))
+  (close-input-port p)
+  (check-catch 'type-error (char-ready? p))
+) ;let
+
 (check-report)

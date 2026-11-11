@@ -127,4 +127,15 @@
   ) ;check
 ) ;let*
 
+;; 错误处理：二进制端口不是文本端口
+(let ((p (open-input-bytevector (bytevector 65 66 10))))
+  (check-catch 'type-error (read-line p))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((p (open-input-string "line")))
+  (close-input-port p)
+  (check-catch 'type-error (read-line p))
+) ;let
+
 (check-report)

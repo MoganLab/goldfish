@@ -33,4 +33,15 @@
   (close-port p)
 ) ;let
 
+;; 错误处理：文本端口不是二进制端口
+(let ((p (open-input-string "abc")))
+  (check-catch 'type-error (u8-ready? p))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((p (open-input-bytevector (bytevector 10))))
+  (close-port p)
+  (check-catch 'type-error (u8-ready? p))
+) ;let
+
 (check-report)

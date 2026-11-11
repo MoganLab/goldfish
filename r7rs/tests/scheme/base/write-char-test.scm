@@ -46,6 +46,18 @@
     (write-char 1 port)
   ) ;let
 ) ;check-catch
+
+;; 错误处理：二进制端口不是文本端口
+(let ((p (open-output-bytevector)))
+  (check-catch 'type-error (write-char #\A p))
+) ;let
+
+;; 错误处理：已关闭的端口
+(let ((p (open-output-string)))
+  (close-output-port p)
+  (check-catch 'type-error (write-char #\A p))
+) ;let
+
 (check (capture-output (lambda (port) (write-char #\中 port))) => "中")
 (check (capture-output (lambda (port) (display #\中 port))) => "中")
 

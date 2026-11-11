@@ -400,7 +400,9 @@
     (define hint-get-output-bytevector '((output-port? -> bytevector?)))
     (define hint-read-char '((-> any?) (input-port? -> any?)))
     (define hint-peek-char '((-> any?) (input-port? -> any?)))
-    (define hint-read-line '((-> any?) (input-port? -> any?)))
+    (define hint-read-line
+      '((-> any?) (input-port? -> any?) (input-port? boolean? -> any?))
+    ) ;define
     (define hint-read-string '((integer? -> any?)
                                (integer? input-port? -> any?)))
     (define hint-read-u8 '((-> any?) (input-port? -> any?)))
