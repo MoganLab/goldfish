@@ -42,6 +42,7 @@
   (liii goldcheck type-hint)
   (hint scheme base)
   (hint scheme file)
+  (hint scheme read)
   (hint srfi srfi-1)
   (hint srfi srfi-13)
   (hint liii error)
@@ -156,12 +157,13 @@
 ;; no-glue 全量部分检查涉及的外部过程均已登记 hint。
 (for-each
   (lambda (name) (check-true (pair? (hint-scheme/base name))))
-  '(car read open-input-string catch eof-object null? pair? pair-line-number
+  '(car open-input-string catch eof-object null? pair? pair-line-number
      symbol? symbol->string eq? eqv? equal? assq cons list cdr reverse cadr
      assoc caar append map cddr cadddr list-ref + dynamic-wind eof-object? caddr
      close-input-port string=? = not apply cadar values error)
 ) ;for-each
 (check-true (pair? (hint-scheme/file 'open-input-file)))
+(check-true (pair? (hint-scheme/read 'read)))
 (check-true (pair? (hint-srfi/srfi-1 'filter)))
 (check-true (pair? (hint-liii/goldcheck/path 'relativize-path)))
 (check-true (pair? (hint-liii/string 'string-ends?)))

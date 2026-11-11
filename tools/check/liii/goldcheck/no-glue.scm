@@ -17,6 +17,7 @@
 (define-library (liii goldcheck no-glue)
   (import (scheme base)
     (scheme file)
+    (scheme read)
     (liii base)
     (liii list)
     (liii string)
