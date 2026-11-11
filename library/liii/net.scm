@@ -130,35 +130,51 @@
       ) ;let*
     ) ;define
 
-    (define* (http-serve-once (callback-path "/callback"))
-      (call-with-net-listener 'tcp "127.0.0.1:0"
-        (lambda (listener)
-          (let* ((port (net-listener-port listener))
-                 (redirect-uri (string-append "http://127.0.0.1:" (number->string port) callback-path))
-                ) ;
-            (display (string-append "Listening on " redirect-uri "\n"))
-            (flush-output-port (current-output-port))
-            (call-with-net-conn (net-accept listener)
-              (lambda (conn)
-                (let* ((req-bytes (net-conn-read conn 4096))
-                       (req-str (if (bytevector? req-bytes) (utf8->string req-bytes) ""))
-                       (body "<html><body><h1>Authorization Successful</h1><p>You may close this tab.</p></body></html>")
-                       (resp (string-append "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/html; charset=utf-8\r\n"
-                               "Content-Length: " (number->string (string-length body)) "\r\n"
-                               "Connection: close\r\n\r\n"
-                               body
-                             ) ;string-append
-                       ) ;resp
-                      ) ;
-                  (net-conn-write conn resp)
-                  (%extract-query-param req-str "code")
-                ) ;let*
-              ) ;lambda
-            ) ;call-with-net-conn
-          ) ;let*
-        ) ;lambda
-      ) ;call-with-net-listener
+    (define* (http-serve-once (callback-path "/callback") (handler #f))
+      (unless (string? callback-path)
+        (type-error "http-serve-once: callback-path must be a string" callback-path)
+      ) ;unless
+      (when handler
+        (unless (procedure? handler)
+          (type-error "http-serve-once: handler must be a procedure" handler)
+        ) ;unless
+      ) ;when
+      (let ((extract
+              (if handler
+                handler
+                (lambda (req-str) (%extract-query-param req-str "code"))
+              ) ;if
+            ) ;extract
+        ) ;let bindings
+        (call-with-net-listener 'tcp "127.0.0.1:0"
+          (lambda (listener)
+            (let* ((port (net-listener-port listener))
+                   (redirect-uri (string-append "http://127.0.0.1:" (number->string port) callback-path))
+                  ) ;
+              (display (string-append "Listening on " redirect-uri "\n"))
+              (flush-output-port (current-output-port))
+              (call-with-net-conn (net-accept listener)
+                (lambda (conn)
+                  (let* ((req-bytes (net-conn-read conn 4096))
+                         (req-str (if (bytevector? req-bytes) (utf8->string req-bytes) ""))
+                         (body "<html><body><h1>Authorization Successful</h1><p>You may close this tab.</p></body></html>")
+                         (resp (string-append "HTTP/1.1 200 OK\r\n"
+                                 "Content-Type: text/html; charset=utf-8\r\n"
+                                 "Content-Length: " (number->string (string-length body)) "\r\n"
+                                 "Connection: close\r\n\r\n"
+                                 body
+                               ) ;string-append
+                         ) ;resp
+                        ) ;
+                    (net-conn-write conn resp)
+                    (extract req-str)
+                  ) ;let*
+                ) ;lambda
+              ) ;call-with-net-conn
+            ) ;let*
+          ) ;lambda
+        ) ;call-with-net-listener
+      ) ;let
     ) ;define*
 
   ) ;begin

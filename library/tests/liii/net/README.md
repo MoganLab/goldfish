@@ -37,4 +37,4 @@ gf doc liii/net "net-listen"
 - `call-with-net-conn` - Guile 风格连接作用域（dynamic-wind 保证关闭）
 
 ### 四、应用层
-- `http-serve-once` - 单次 HTTP 回调服务（本地随机端口，捕获授权码）
+- `http-serve-once` - 单次 HTTP 回调服务（本地随机端口，可选自定义 handler）
