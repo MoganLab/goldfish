@@ -291,8 +291,7 @@
       ) ;let*
     ) ;define
 
-    ;; 从 cfg 的 models-store 目录中查当前模型的原始条目（含 "input" 字段），
-    ;; 未命中返回 #f
+    ;; 从 cfg 的 models-store 目录查当前模型原始条目（含 "input" 字段）；未命中返回 #f
     (define (%catalog-model-entry opt-cfg)
       (catch #t
         (lambda ()
