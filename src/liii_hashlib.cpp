@@ -15,6 +15,7 @@
 //
 
 #include "s7.h"
+#include <cstring>
 #include <tbox/tbox.h>
 
 namespace goldfish {
@@ -240,6 +241,46 @@ glue_sha256 (s7_scheme* sc) {
 }
 
 static s7_pointer
+f_sha256_bytes (s7_scheme* sc, s7_pointer args) {
+  s7_pointer arg= s7_car (args);
+
+  const char* data= NULL;
+  tb_size_t   len = 0;
+  if (s7_is_string (arg)) {
+    data= s7_string (arg);
+    len = s7_string_length (arg);
+  }
+  else if (s7_is_byte_vector (arg)) {
+    data= (const char*) s7_byte_vector_elements (arg);
+    len = (tb_size_t) s7_vector_length (arg);
+  }
+  else {
+    return string_type_error (sc, "sha256-bytes: parameter must be a string or bytevector", arg);
+  }
+
+  tb_byte_t digest[32];
+  tb_sha_t  sha;
+
+  tb_sha_init (&sha, 256);
+  if (len > 0) {
+    tb_sha_spak (&sha, (tb_byte_t const*) data, len);
+  }
+  tb_sha_exit (&sha, digest, sizeof (digest));
+
+  s7_pointer bv      = s7_make_byte_vector (sc, (s7_int) sizeof (digest), 1, NULL);
+  uint8_t*   elements= s7_byte_vector_elements (bv);
+  memcpy (elements, digest, sizeof (digest));
+  return bv;
+}
+
+static void
+glue_sha256_bytes (s7_scheme* sc) {
+  const char* name= "g_sha256-bytes";
+  const char* desc= "(g_sha256-bytes str-or-bv) => bytevector";
+  glue_define (sc, name, desc, f_sha256_bytes, 1, 0);
+}
+
+static s7_pointer
 f_sha256_file (s7_scheme* sc, s7_pointer args) {
   s7_pointer path_arg= s7_car (args);
   if (!s7_is_string (path_arg)) {
@@ -267,6 +308,7 @@ glue_liii_hashlib (s7_scheme* sc) {
   glue_sha1 (sc);
   glue_sha1_file (sc);
   glue_sha256 (sc);
+  glue_sha256_bytes (sc);
   glue_sha256_file (sc);
 }
 

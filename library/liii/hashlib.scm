@@ -1,5 +1,5 @@
 (define-library (liii hashlib)
-  (export md5 sha1 sha256 md5-by-file sha1-by-file sha256-by-file)
+  (export md5 sha1 sha256 sha256-bytes md5-by-file sha1-by-file sha256-by-file)
   (begin
 
     (define (md5 str)
@@ -10,6 +10,9 @@
     ) ;define
     (define (sha256 str)
       (g_sha256 str)
+    ) ;define
+    (define (sha256-bytes str-or-bv)
+      (g_sha256-bytes str-or-bv)
     ) ;define
 
     (define (md5-by-file path)
