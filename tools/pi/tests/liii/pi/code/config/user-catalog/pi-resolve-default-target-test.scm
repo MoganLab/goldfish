@@ -34,6 +34,21 @@
   (check m => "k3")
 ) ;let-values
 
+;; all-in-one 元供应商支持
+(let-values (((p m) (pi-resolve-default-target (pi-settings "all-in-one" "coding-deep"))))
+  (check p => "all-in-one")
+  (check m => "coding-deep")
+) ;let-values
+
+;; all-in-one/coding-deep 斜杠语法
+(let-values (((p m)
+              (pi-resolve-default-target (pi-settings "google" "all-in-one/coding-deep"))
+             ) ;
+            ) ;
+  (check p => "all-in-one")
+  (check m => "coding-deep")
+) ;let-values
+
 ;; 缺省值回退
 (let-values (((p m) (pi-resolve-default-target (pi-settings))))
   (check p => "google")

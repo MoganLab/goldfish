@@ -17,7 +17,12 @@
 ;; list
 ;; 可用模型的 alist 列表。
 
-(import (liii check) (liii pi code config user-models))
+(import (scheme base)
+  (liii check)
+  (liii path)
+  (liii shutil)
+  (liii pi code config user-models)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -48,6 +53,24 @@
 (let ((models (pi-user-provider-models (string-append FIXTURE "/full") "ollama")))
   (check-true (pair? models))
   (check (cdr (assoc "id" (car models))) => "qwen2.5-coder:latest")
+) ;let
+
+;; all-in-one 动态链式模型映射
+(let ((tmp-dir (path->string (path-join (path-temp-dir) "pi-aio-prov-models-test"))))
+  (when (file-exists? tmp-dir)
+    (rmtree tmp-dir #t)
+  ) ;when
+  (path-mkdir tmp-dir :parents #t :exist-ok #t)
+  (path-write-text (path->string (path-join tmp-dir "all-in-one.json"))
+    "{\"provider\":\"all-in-one\",\"chains\":[{\"id\":\"coding-deep\",\"name\":\"深度链\",\"nodes\":[{\"provider\":\"p\",\"model\":\"m\"}]}]}"
+  ) ;path-write-text
+  (let ((models (pi-user-provider-models tmp-dir "all-in-one")))
+    (check (length models) => 1)
+    (check (cdr (assoc "id" (car models))) => "coding-deep")
+    (check (cdr (assoc "provider" (car models))) => "all-in-one")
+    (check (cdr (assoc "api" (car models))) => "all-in-one")
+  ) ;let
+  (rmtree tmp-dir #t)
 ) ;let
 
 (check-report)

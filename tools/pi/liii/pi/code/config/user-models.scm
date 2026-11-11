@@ -14,6 +14,7 @@
     (liii string)
     (liii os)
     (liii pi ai models builtin)
+    (liii pi all_in_one provider)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
   ) ;import
@@ -89,6 +90,14 @@
       (and (string? p-id)
         (string? m-id)
         (or (equal? p-id "ollama")
+          (and (equal? p-id "all-in-one")
+            (let ((models (all-in-one-models config-dir)))
+              (and
+                (find (lambda (m) (equal? (pi-user-dict-ref m "id" #f) m-id)) models)
+                #t
+              ) ;and
+            ) ;let
+          ) ;and
           (and (%find-builtin (%builtin-table p-id) m-id) #t)
           (let* ((path-str (pi-user-config-path config-dir "models" p-id (string-append m-id ".json"))
                  ) ;path-str
@@ -315,38 +324,44 @@
     ;; 配置视图用的完整模型列表：
     ;;   可用（白名单内）在前，不可用（被白名单过滤）在后，各带 "enabled" 标记
     (define (pi-user-provider-model-list config-dir p-id)
-      (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
-             (p-fields (pi-user-provider-fields p-file))
-             (wl-raw (pi-user-dict-ref p-file "models" #f))
-             (wl (and (vector? wl-raw) (vector->list wl-raw)))
-             (builtin (%builtin-table p-id))
-            ) ;
-        (if wl
-          (append (map (lambda (m) (%mark #t m))
-                    (%whitelist-models config-dir p-id p-fields builtin wl)
-                  ) ;map
-            (map (lambda (m) (%mark #f m))
-              (%non-whitelist-models config-dir p-id p-fields builtin wl)
-            ) ;map
-          ) ;append
-          (map (lambda (m) (%mark #t m)) (%full-models config-dir p-id p-fields builtin))
-        ) ;if
-      ) ;let*
+      (if (equal? p-id "all-in-one")
+        (map (lambda (m) (%mark #t m)) (all-in-one-models config-dir))
+        (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
+               (p-fields (pi-user-provider-fields p-file))
+               (wl-raw (pi-user-dict-ref p-file "models" #f))
+               (wl (and (vector? wl-raw) (vector->list wl-raw)))
+               (builtin (%builtin-table p-id))
+              ) ;
+          (if wl
+            (append (map (lambda (m) (%mark #t m))
+                      (%whitelist-models config-dir p-id p-fields builtin wl)
+                    ) ;map
+              (map (lambda (m) (%mark #f m))
+                (%non-whitelist-models config-dir p-id p-fields builtin wl)
+              ) ;map
+            ) ;append
+            (map (lambda (m) (%mark #t m)) (%full-models config-dir p-id p-fields builtin))
+          ) ;if
+        ) ;let*
+      ) ;if
     ) ;define
 
     ;; provider 的模型列表（对外入口）
     (define (pi-user-provider-models config-dir p-id)
-      (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
-             (p-fields (pi-user-provider-fields p-file))
-             (wl-raw (pi-user-dict-ref p-file "models" #f))
-             (wl (and (vector? wl-raw) (vector->list wl-raw)))
-             (builtin (%builtin-table p-id))
-            ) ;
-        (if wl
-          (%whitelist-models config-dir p-id p-fields builtin wl)
-          (%full-models config-dir p-id p-fields builtin)
-        ) ;if
-      ) ;let*
+      (if (equal? p-id "all-in-one")
+        (all-in-one-models config-dir)
+        (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
+               (p-fields (pi-user-provider-fields p-file))
+               (wl-raw (pi-user-dict-ref p-file "models" #f))
+               (wl (and (vector? wl-raw) (vector->list wl-raw)))
+               (builtin (%builtin-table p-id))
+              ) ;
+          (if wl
+            (%whitelist-models config-dir p-id p-fields builtin wl)
+            (%full-models config-dir p-id p-fields builtin)
+          ) ;if
+        ) ;let*
+      ) ;if
     ) ;define
 
   ) ;begin

@@ -21,6 +21,7 @@
     (liii pi ai models builtin)
     (liii pi ai providers registry)
     (liii pi ai config record)
+    (liii pi all_in_one provider)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
     (liii pi code config user-models)
@@ -54,11 +55,14 @@
     ) ;define
 
     (define (%provider-api p-file p-id)
-      (let* ((configured (pi-user-dict-ref p-file "api" #f))
-             (raw (if (string? configured) configured (%builtin-field p-id 'api)))
-            ) ;
-        (and raw (pi-user-normalize-api raw))
-      ) ;let*
+      (if (equal? p-id "all-in-one")
+        "all-in-one"
+        (let* ((configured (pi-user-dict-ref p-file "api" #f))
+               (raw (if (string? configured) configured (%builtin-field p-id 'api)))
+              ) ;
+          (and raw (pi-user-normalize-api raw))
+        ) ;let*
+      ) ;if
     ) ;define
 
     (define (%provider-http-proxy p-file)
@@ -89,10 +93,15 @@
       ) ;let*
     ) ;define
 
-    ;; provider id 列表：白名单优先，缺失时全部内置 provider（字典序）
+    ;; provider id 列表：白名单优先，缺失时全部内置 provider（字典序）+ 有效的 all-in-one
     (define (%provider-ids config-dir)
       (or (pi-load-providers-whitelist config-dir)
-        (list-sort string<? (map car PI_PROVIDER_BUILTIN_MODELS))
+        (let ((builtins (list-sort string<? (map car PI_PROVIDER_BUILTIN_MODELS))))
+          (if (all-in-one-provider-available? config-dir)
+            (append builtins (list "all-in-one"))
+            builtins
+          ) ;if
+        ) ;let
       ) ;or
     ) ;define
 
@@ -116,23 +125,30 @@
     ) ;define
 
     ;; 白名单外的内置 provider（按 id 排序），用于配置视图灰显
-    (define (%disabled-provider-ids whitelist)
-      (list-sort string<?
-        (filter (lambda (p) (not (member p whitelist)))
-          (map car PI_PROVIDER_BUILTIN_MODELS)
-        ) ;filter
-      ) ;list-sort
+    (define (%disabled-provider-ids config-dir whitelist)
+      (let* ((aio? (and (all-in-one-provider-available? config-dir)
+                     (not (member "all-in-one" whitelist))
+                   ) ;and
+             ) ;aio?
+             (base-builtins
+               (filter (lambda (p) (not (member p whitelist)))
+                 (map car PI_PROVIDER_BUILTIN_MODELS)
+               ) ;filter
+             ) ;base-builtins
+             (all-candidates (if aio? (cons "all-in-one" base-builtins) base-builtins))
+            ) ;
+        (list-sort string<? all-candidates)
+      ) ;let*
     ) ;define
 
     (define (pi-build-config-catalog config-dir)
       (let* ((raw-whitelist (pi-load-providers-whitelist config-dir))
-             (whitelist (or raw-whitelist (list-sort string<? (map car PI_PROVIDER_BUILTIN_MODELS)))
-             ) ;whitelist
+             (whitelist (or raw-whitelist (%provider-ids config-dir)))
              (enabled (map (lambda (p-id) (%config-entry config-dir p-id #t)) whitelist))
              (disabled
                (if raw-whitelist
                  (map (lambda (p-id) (%config-entry config-dir p-id #f))
-                   (%disabled-provider-ids whitelist)
+                   (%disabled-provider-ids config-dir whitelist)
                  ) ;map
                  '()
                ) ;if
@@ -164,7 +180,10 @@
              (parts (if slash? (string-split m "/") '()))
              (first-part (and slash? (pair? parts) (car parts)))
              (first-is-provider? (and first-part
-                                   (or (assoc first-part PI_PROVIDERS) (member first-part PI_SUPPORTED_PROVIDERS))
+                                   (or (assoc first-part PI_PROVIDERS)
+                                     (member first-part PI_SUPPORTED_PROVIDERS)
+                                     (equal? first-part "all-in-one")
+                                   ) ;or
                                  ) ;and
              ) ;first-is-provider?
              (eff-p (cond (first-is-provider? first-part) (p p) (else "google")))
@@ -194,7 +213,8 @@
     (define (%build-activation-writes config-dir p-id m-id)
       (let* ((wl-p (pi-load-providers-whitelist config-dir))
              (need-p? (and wl-p (not (member p-id wl-p))))
-             (wl-m (%provider-models-whitelist config-dir p-id))
+             (wl-m (if (equal? p-id "all-in-one") #f (%provider-models-whitelist config-dir p-id))
+             ) ;wl-m
              (need-m? (and wl-m (not (member m-id wl-m))))
              (p-writes
                (if need-p? (pi-providers-write-writes (append wl-p (list p-id))) '())

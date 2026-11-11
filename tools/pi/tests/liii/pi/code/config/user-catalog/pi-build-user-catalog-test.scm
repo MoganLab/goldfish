@@ -18,9 +18,11 @@
 ;; list | alist
 ;; 白名单为字符串列表（未配置时 #f）；目录为 provider 到模型列表的 alist。
 
-(import (liii check)
+(import (scheme base)
+  (liii check)
   (liii string)
   (liii path)
+  (liii shutil)
   (liii pi ai providers registry)
   (liii pi code config user-providers)
   (liii pi code config user-catalog)
@@ -203,5 +205,28 @@
   ;; 自定义 provider 没有内置协议时省略 api 字段
   (check (assoc "api" custom-fields) => #f)
 ) ;let*
+
+;; 12. all-in-one 元供应商：无白名单时动态挂入 catalog，包含有效伪模型
+(let ((tmp-dir (path->string (path-join (path-temp-dir) "pi-aio-catalog-test"))))
+  (when (file-exists? tmp-dir)
+    (rmtree tmp-dir #t)
+  ) ;when
+  (path-mkdir tmp-dir :parents #t :exist-ok #t)
+  (path-write-text (path->string (path-join tmp-dir "all-in-one.json"))
+    "{\"provider\":\"all-in-one\",\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"p\",\"model\":\"m\"}]}]}"
+  ) ;path-write-text
+  (let* ((cat (pi-build-user-catalog tmp-dir))
+         (p-ids (map car cat))
+         (aio-entry (assoc "all-in-one" cat))
+        ) ;
+    (check-true (and (member "all-in-one" p-ids) #t))
+    (check-true (pair? aio-entry))
+    (let ((models (cdr (assoc "models" (cdr aio-entry)))))
+      (check (length models) => 1)
+      (check (cdr (assoc "id" (car models))) => "coding-deep")
+    ) ;let
+  ) ;let*
+  (rmtree tmp-dir #t)
+) ;let
 
 (check-report)
