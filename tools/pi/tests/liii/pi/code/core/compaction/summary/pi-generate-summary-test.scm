@@ -23,11 +23,17 @@
 ;; 抛出 summarization-error。
 ;;
 
-(import (liii check)
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii os)
+  (liii path)
+  (liii shutil)
   (liii string)
   (liii subprocess)
   (liii pi ai message)
   (liii pi ai dispatch)
+  (liii pi code all-in-one chain)
   (liii pi code core compaction summary)
 ) ;import
 
@@ -80,6 +86,59 @@
       10
     ) ;pi-generate-summary
   ) ;check-catch
+  (process-kill proc)
+) ;let*
+
+;; all-in-one 摘要必须经过链式探活和真实节点配置；
+;; 不得把伪模型名直接交给 Google 协议请求（曾因此触发 HTTP 403）。
+(let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
+       (port (parse-port-line (process-read-line proc)))
+       (base-url (string-append "http://127.0.0.1:" (number->string port)))
+       (dir (path->string (path-join (path-temp-dir)
+                            (string-append "aio-summary-test-" (number->string (getpid)))
+                          ) ;path-join
+            ) ;path->string
+       ) ;dir
+      ) ;
+  (check-true (number? port))
+  (when (file-exists? dir)
+    (rmtree dir #t)
+  ) ;when
+  (path-mkdir (path (path-join dir "models" "google")) :parents #t :exist-ok #t)
+  (path-write-text (path->string (path-join dir "models" "providers.json"))
+    "[\"google\"]"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "auth.json"))
+    "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-key\"}}"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "models" "google.json"))
+    (string-append "{\"api\":\"google-generative-ai\",\"baseUrl\":\""
+      base-url
+      "\",\"models\":[\"real-summary-model\"]}"
+    ) ;string-append
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "models" "google" "real-summary-model.json"))
+    "{\"id\":\"real-summary-model\",\"name\":\"real-summary-model\"}"
+  ) ;path-write-text
+  (path-write-text (path->string (path-join dir "all-in-one.json"))
+    "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":5000,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"google\",\"model\":\"real-summary-model\"}]}]}"
+  ) ;path-write-text
+  (pi-chain-reset-sticky-state!)
+  (let ((result (pi-generate-summary (list (cons 'provider "all-in-one")
+                                      (cons 'provider-api "all-in-one")
+                                      (cons 'model-id "coding-deep")
+                                      (cons 'config-dir dir)
+                                    ) ;list
+                  (list (pi-user-message "Summarize this conversation"))
+                  #f
+                  10
+                ) ;pi-generate-summary
+        ) ;result
+       ) ;
+    (check (cdr (assoc 'summary result)) => "Hello stream!")
+    (check-true (pair? (assoc 'usage result)))
+  ) ;let
+  (rmtree dir #t)
   (process-kill proc)
 ) ;let*
 

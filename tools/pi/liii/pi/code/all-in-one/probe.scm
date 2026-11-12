@@ -206,8 +206,14 @@
 
     ;; request-fn 接收 provider、config、messages、sys-prompt、tools、timeout、retry，
     ;; 缺省为 (liii pi ai dispatch) 的 pi-request-provider。
+    ;; opt-retry 缺省为 #f，遵循 gf pi 已有的重试机制（默认重试 3 次，429 等可重试错误退避重试，耗尽才判定不可用）。
     ;; 正常返回非空文本时返回 #t；任何错误统一写 FAIL 日志并返回 #f。
-    (define* (pi-probe-node node (timeout-ms 8000) (config-dir #f) (request-fn #f))
+    (define* (pi-probe-node node
+               (timeout-ms 8000)
+               (config-dir #f)
+               (request-fn #f)
+               (opt-retry #f)
+             ) ;pi-probe-node
       (let* ((provider (chain-node-provider node))
              (model (chain-node-model node))
              (dir
@@ -223,9 +229,8 @@
                    (let* ((node-cfg (%probe-node-config node dir))
                           (msgs (list (pi-user-message pi-probe-prompt)))
                           (timeout-sec (/ timeout-ms 1000))
-                          ;; 探活必须单次、快速失败，不在同一节点内自动重试。
-                          (resp (req provider node-cfg msgs #f '() timeout-sec '((enabled
-                                                                                   . #f))))
+                          ;; 按照 gf pi 已有的重试机制重试（opt-retry 缺省为 #f，默认重试 3 次，429 耗尽才判不可用）
+                          (resp (req provider node-cfg msgs #f '() timeout-sec opt-retry))
                          ) ;
                      (%probe-response-failure resp)
                    ) ;let*

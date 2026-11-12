@@ -11,6 +11,7 @@
     (liii pi ai message)
     (liii pi ai dispatch)
     (liii pi agent tools)
+    (liii pi code all-in-one request)
     (liii pi code core compaction serialize)
     (liii pi code core compaction prompt)
   ) ;import
@@ -60,19 +61,24 @@
       ) ;any
     ) ;define
 
-    (define* (pi-generate-summary config msgs previous-summary (timeout 600))
+    (define* (pi-generate-summary config msgs previous-summary (timeout 600) (request-fn #f))
       (let* ((provider (or (%ref config 'provider) "google"))
              (conversation (pi-serialize-conversation msgs))
              (prompt (pi-build-summarization-prompt conversation previous-summary))
              (user-msg (pi-user-message prompt))
-             (resp (pi-request-provider-stream provider
+             (eff-req (cond (request-fn request-fn)
+                            ((equal? provider "all-in-one") pi-all-in-one-request-stream)
+                            (else pi-request-provider-stream)
+                      ) ;cond
+             ) ;eff-req
+             (resp (eff-req provider
                      config
                      (list user-msg)
                      PI_SUMMARIZATION_SYSTEM_PROMPT
                      '()
                      #f
                      timeout
-                   ) ;pi-request-provider-stream
+                   ) ;eff-req
              ) ;resp
              (failure (pi-summarization-failure resp "Summarization"))
             ) ;

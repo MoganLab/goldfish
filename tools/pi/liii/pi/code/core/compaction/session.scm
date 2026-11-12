@@ -110,7 +110,13 @@
       ) ;count
     ) ;define
 
-    (define* (pi-compact-session! config file-path settings (timeout 600) (reason "manual"))
+    (define* (pi-compact-session! config
+               file-path
+               settings
+               (timeout 600)
+               (reason "manual")
+               (request-fn #f)
+             ) ;pi-compact-session!
       (let* ((entries (pi-read-session-entries file-path))
              (all-msgs (%messages-from entries 0))
              (tokens-before (pi-context-token-estimate-tokens (pi-context-token-estimate all-msgs))
@@ -128,7 +134,8 @@
         (let* ((entry (list-ref entries cut-index))
                (first-kept-id (%ref entry "id"))
                (previous-summary (pi-last-compaction-summary entries))
-               (gen (pi-generate-summary config summarize-msgs previous-summary timeout))
+               (gen (pi-generate-summary config summarize-msgs previous-summary timeout request-fn)
+               ) ;gen
                (summary (cdr (assoc 'summary gen)))
                (ops (pi-extract-file-ops summarize-msgs))
                (lists (pi-compute-file-lists ops))
