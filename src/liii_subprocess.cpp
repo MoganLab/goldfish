@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -148,6 +149,17 @@ struct Subprocess {
   bool   stderr_eof= false;
 
   tb_hong_t last_activity_time= 0;
+
+#ifndef TB_CONFIG_OS_WINDOWS
+  // 查询管道中已缓冲的字节数，用于区分“可读”与“已到达末尾”。
+  // 管道写端关闭后，Linux 的 poll 仅返回 POLLHUP，而 BSD/macOS 会同时返回
+  // POLLIN|POLLHUP，因此不能只看 revents 判断是否还有数据可读。
+  static bool pipe_has_buffered_data (int fd) {
+    int avail= 0;
+    if (ioctl (fd, FIONREAD, &avail) != 0) return true; // 无法探测时保守视为可读
+    return avail > 0;
+  }
+#endif
 
   void update_activity () { last_activity_time= tb_mclock (); }
 
@@ -615,16 +627,32 @@ struct Subprocess {
 
     int pret= ::poll (pfds, nfds, timeout_ms);
     if (pret > 0) {
-      bool out_ready= (out_idx >= 0 && (pfds[out_idx].revents & (POLLIN | POLLHUP | POLLERR)));
-      bool err_ready= (err_idx >= 0 && (pfds[err_idx].revents & (POLLIN | POLLHUP | POLLERR)));
-      bool out_in   = (out_idx >= 0 && (pfds[out_idx].revents & POLLIN));
-      bool err_in   = (err_idx >= 0 && (pfds[err_idx].revents & POLLIN));
+      bool out_in= false, err_in= false;
+      // 管道挂断（写端关闭）不等于还有数据可读：此时若管道缓冲为空，
+      // 说明该流已到达末尾，应置 EOF 标记而不是上报可读事件。
+      if (out_idx >= 0 && (pfds[out_idx].revents & (POLLIN | POLLHUP | POLLERR))) {
+        if (pipe_has_buffered_data (pfds[out_idx].fd)) {
+          out_in= true;
+        }
+        else {
+          stdout_eof= true;
+        }
+      }
+      if (err_idx >= 0 && (pfds[err_idx].revents & (POLLIN | POLLHUP | POLLERR))) {
+        if (pipe_has_buffered_data (pfds[err_idx].fd)) {
+          err_in= true;
+        }
+        else {
+          stderr_eof= true;
+        }
+      }
       if (out_in || err_in) {
         update_activity ();
       }
-      if (out_ready && err_ready) return 3;
-      if (out_ready) return 1;
-      if (err_ready) return 2;
+      if (out_in && err_in) return 3;
+      if (out_in) return 1;
+      if (err_in) return 2;
+      if (is_eof (false) && is_eof (true)) return -1;
     }
     if (pret == 0 && update_status ()) {
       if (stdout_eof && stderr_eof) return -1;
