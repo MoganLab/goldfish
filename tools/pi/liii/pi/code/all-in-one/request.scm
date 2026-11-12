@@ -151,15 +151,26 @@
                             ) ;pi-chain-execute
                     ) ;result
                    ) ;
-                ;; 探活成功后真实请求仍可能失败：清掉粘性并从链头重选下一节点。
+                ;; 探活成功后真实请求仍可能失败：记录故障时间戳、清掉粘性并从链头重选下一节点。
                 (if
                   (and (%request-failed? result)
                     (< attempts (- (length (chain-def-nodes chain)) 1))
                   ) ;and
-                  (let ((failed-index (pi-chain-current-sticky-index chain-id)))
+                  (let* ((failed-index (pi-chain-current-sticky-index chain-id))
+                         (nodes (chain-def-nodes chain))
+                         (failed-node (and (integer? failed-index)
+                                        (>= failed-index 0)
+                                        (< failed-index (length nodes))
+                                        (list-ref nodes failed-index)
+                                      ) ;and
+                         ) ;failed-node
+                        ) ;
+                    (when failed-node
+                      (pi-chain-record-node-failure! failed-node)
+                    ) ;when
                     (pi-chain-clear-sticky-node! chain-id)
                     (loop (+ attempts 1) failed-index)
-                  ) ;let
+                  ) ;let*
                   (if (eq? result 'all-nodes-exhausted) (pi-all-in-one-exhausted-message) result)
                 ) ;if
               ) ;let

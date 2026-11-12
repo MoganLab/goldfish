@@ -38,7 +38,7 @@
 (define N1 (make-chain-node "p1" "m1"))
 (define N2 (make-chain-node "p2" "m2"))
 (define CHAIN (make-chain-def "sticky-clear-test" "粘性清除" (list N1 N2)))
-(define CFG (make-all-in-one-cfg #f 1000 10 1000 (list CHAIN)))
+(define CFG (make-all-in-one-cfg #f 1000 0 1000 (list CHAIN)))
 
 (when (file-exists? TMP-DIR)
   (rmtree TMP-DIR #t)
