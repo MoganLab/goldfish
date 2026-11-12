@@ -310,17 +310,16 @@
 
 ;; 非bash工具卡片：折叠/展开渲染对齐上游 per-tool 预览行数与 expanded 语义
 (let* ((card (make-tool-card "read" "a.scm" 'success "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8"))
+       (text (string-join (map strip-ansi (component-render card 80)) "\n"))
       ) ;
   ;; read 折叠态：不显示任何输出（上游 formatReadResult 折叠且非错误返回空）
-  (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
-    (check-false (string-contains? text "l1"))
-    (check-false (string-contains? text "more lines"))
-  ) ;let
+  (check-false (string-contains? text "l1"))
+  (check-false (string-contains? text "more lines"))
   ;; 展开态：全文输出
   (tool-card-set-expanded! card #t)
-  (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
-    (check-true (string-contains? text "l1"))
-    (check-true (string-contains? text "l8"))
+  (let ((exp-text (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? exp-text "l1"))
+    (check-true (string-contains? exp-text "l8"))
   ) ;let
 ) ;let*
 
@@ -374,26 +373,28 @@
   (check-false (string-contains? plain2 "1000l"))
 ) ;let*
 
-;; 错误卡片支持鼠标左键点击展开与折叠，pending 与非左键不响应
+;; 卡片支持鼠标左键点击展开与折叠（已完成或运行中带 Elapse 提示），其余 pending 不响应
 (let ((card (make-tool-card "read" "missing.scm" 'error "File not found"))
       (pending-card (make-tool-card "read" "missing.scm" 'pending))
+      (bash-card (make-tool-card "bash" "echo 1" 'pending))
       (ev (make-mouse-event 'click 'left 0 0))
       (right-ev (make-mouse-event 'click 'right 0 0))
      ) ;
   (check-false (tool-card-expanded? card))
-  ;; 左键点击展开
   (check-true (component-handle-mouse! card ev))
   (check-true (tool-card-expanded? card))
-  ;; 再次左键点击折叠
   (check-true (component-handle-mouse! card ev))
   (check-false (tool-card-expanded? card))
-  ;; 右键点击不响应且 expanded? 保持不变
   (check-false (component-handle-mouse! card right-ev))
-  (check-false (tool-card-expanded? card))
-  ;; pending 状态卡片不响应左键点击
-  (check-false (tool-card-expanded? pending-card))
+  ;; pending 状态卡片：非 bash 不响应，bash 响应展开与折叠
   (check-false (component-handle-mouse! pending-card ev))
   (check-false (tool-card-expanded? pending-card))
+  (check-false (tool-card-expanded? bash-card))
+  (check-true (component-handle-mouse! bash-card ev))
+  (check-true (tool-card-expanded? bash-card))
+  (check-true (component-handle-mouse! bash-card ev))
+  (check-false (tool-card-expanded? bash-card))
+  (check-false (component-handle-mouse! bash-card right-ev))
 ) ;let
 
 (check-report)

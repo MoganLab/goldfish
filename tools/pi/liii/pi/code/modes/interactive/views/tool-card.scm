@@ -289,6 +289,15 @@
       ) ;let
     ) ;define
 
+    ;; 点击展开响应判断：已完成工具（success/error）或运行中带 Elapse 提示的 bash 工具
+    (define (%tool-card-expandable? st)
+      (or (not (eq? (%tool-card-status st) 'pending))
+        (and (string=? (%tool-card-name st) "bash")
+          (number? (%tool-card-started-at st))
+        ) ;and
+      ) ;or
+    ) ;define
+
     ;; 工具调用状态卡片组件 (make-tool-card tool-name args status [result])
     ;; status: 'pending / 'success / 'error
     (define (make-tool-card tool-name args status . maybe-result)
@@ -311,14 +320,13 @@
                  :render
                  (lambda (self width) (%render-tool-card st width (%tool-timer-text st)))
                  ;; 点击切换展开（对齐上游 createResultRegion）：
-                 ;; click + 左键 + 工具已完成时翻转；pending 不响应
+                 ;; click + 左键 + 工具已完成或运行中带 Elapse 提示时翻转；其余 pending 不响应
                  :handle-mouse
                  (lambda (self ev)
-                   (if
-                     (and (mouse-event-click? ev)
-                       (eq? (mouse-event-button ev) 'left)
-                       (not (eq? (%tool-card-status st) 'pending))
-                     ) ;and
+                   (if (and (mouse-event-click? ev)
+                         (eq? (mouse-event-button ev) 'left)
+                         (%tool-card-expandable? st)
+                       ) ;and
                      (begin
                        (%tool-card-expanded?-set! st (not (%tool-card-expanded? st)))
                        #t
