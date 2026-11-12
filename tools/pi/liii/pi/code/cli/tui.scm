@@ -66,6 +66,7 @@
           context-window
           ;; Agent Skills：/skill: 命令开关（默认开启）
           (if settings (pi-settings-enable-skill-commands settings) #t)
+          (and (cdr (or (assoc 'thinking-level-explicit? cfg) '(#f . #f))) #t)
         ) ;list
       ) ;let*
     ) ;define
@@ -99,6 +100,9 @@
             '()
             #f
             #t
+            (and (string? (pi-args-ref parsed 'thinking-level))
+              (not (string-null? (string-trim-both (pi-args-ref parsed 'thinking-level))))
+            ) ;and
           ) ;list
         ) ;lambda
       ) ;catch

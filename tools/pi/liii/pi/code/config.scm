@@ -318,6 +318,11 @@
                  ) ;raw-meta
                  (meta (pi-ensure-catalog-meta raw-meta provider model-id models-store))
                  (cli-thinking (pi-args-ref parsed-args 'thinking-level))
+                 (cli-thinking-explicit?
+                   (and (string? cli-thinking)
+                     (not (string-null? (string-trim-both cli-thinking)))
+                   ) ;and
+                 ) ;cli-thinking-explicit?
                  ;; per-model 覆盖：settings.modelThinkingLevels["provider/modelId"]
                  (per-model-thinking (and settings (pi-settings-model-thinking-level settings provider model-id))
                  ) ;per-model-thinking
@@ -346,6 +351,8 @@
               (cons 'model-meta meta)
               (cons 'models-store models-store)
               (cons 'thinking-level thinking-level)
+              (cons 'thinking-level-explicit? cli-thinking-explicit?)
+              (cons 'thinking-level-source (if cli-thinking-explicit? 'cli 'default))
               (cons 'supports-thinking supports-thinking)
               (cons 'cli-proxy cli-proxy)
               (cons 'proxy-url proxy-url)

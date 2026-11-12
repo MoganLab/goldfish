@@ -208,6 +208,8 @@
                  ) ;lambda
                  :skills                skills
                  :enable-skill-commands enable-skill-commands?
+                 :thinking-level-explicit
+                 (if (> (length info) 12) (list-ref info 12) #f)
                ) ;make-pi-app
              ) ;app
             ) ;

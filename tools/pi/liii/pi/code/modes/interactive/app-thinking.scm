@@ -67,6 +67,7 @@
     ;; 均经此生效；仅在与旧值不同且当前模型支持思考时记录一次（off 照常记录）
     (define (%apply-thinking-level! app level)
       (let ((old (pi-app-thinking-level app)))
+        (%pi-app-thinking-level-explicit?-set! app #t)
         (pi-app-apply-thinking-level-ui! app level)
         (when (and (pi-app-supports-thinking? app) (not (equal? old level)))
           (%record-thinking-change! app level)

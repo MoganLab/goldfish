@@ -189,6 +189,16 @@
                (pi-tui-send-event! event-chan (list 'retry (car args)))
              ) ;when
             ) ;
+            ((memq event-type '(recovery_wait recovery_tick recovery_retry
+                                 recovery_end))
+             (pi-tui-send-event! event-chan (cons event-type args))
+            ) ;
+            ;; 显式思考等级被节点能力收敛：一次状态卡片，不进会话消息
+            ((eq? event-type 'thinking_clamp)
+             (when (pair? args)
+               (pi-tui-send-event! event-chan (list 'thinking_clamp (car args)))
+             ) ;when
+            ) ;
             ;; 任务全部结算完成：携带 aborted 标志（主线程据此上屏 Aborted 提示）
             ((eq? event-type 'agent_settled)
              (pi-tui-send-event! event-chan

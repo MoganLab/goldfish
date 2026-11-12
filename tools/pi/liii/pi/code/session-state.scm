@@ -128,12 +128,13 @@
     ) ;define
 
     ;; 应用状态里的思考等级：非法值收敛为 off；合法但模型不支持时
-    ;; 按模型可用级别收敛（对齐上游 clampThinkingLevel：先向高、再向低）
+    ;; 按模型可用级别收敛（对齐上游 clampThinkingLevel：先向高、再向低）。
+    ;; 用户主动设置过的等级保留显式覆盖语义，自动收敛产生的值不算新的用户意图。
     (define (%apply-state-thinking cfg state)
       (let ((level (%state-ref state 'thinkingLevel)))
         (cond ((not (%non-empty-string? level)) (values cfg '()))
               ((not (member level %projection-thinking-levels))
-               (values (%cfg-with-thinking-level cfg "off")
+               (values (%cfg-explicit-thinking cfg "off")
                  (list (string-append "Session state thinking level \""
                          level
                          "\" is not recognized; using \"off\""
@@ -149,8 +150,8 @@
                        (clamped (pi-clamp-thinking-level level available))
                       ) ;
                   (if (equal? clamped level)
-                    (values (%cfg-with-thinking-level cfg level) '())
-                    (values (%cfg-with-thinking-level cfg clamped)
+                    (values (%cfg-explicit-thinking cfg level) '())
+                    (values (%cfg-explicit-thinking cfg clamped)
                       (list (string-append "Session state thinking level \""
                               level "\" is not supported by \"" provider "/"
                               model-id "\"; using \"" clamped "\""
@@ -162,6 +163,13 @@
               ) ;else
         ) ;cond
       ) ;let
+    ) ;define
+
+    ;; 写入等级并标记为显式覆盖（来自用户主动设置的会话状态）
+    (define (%cfg-explicit-thinking cfg level)
+      (%cfg-override (%cfg-with-thinking-level cfg level)
+        (list (cons 'thinking-level-explicit? #t))
+      ) ;%cfg-override
     ) ;define
 
     ;; 合并投影状态：CLI 显式 --provider / --model 时完全不应用状态模型（避免混搭），

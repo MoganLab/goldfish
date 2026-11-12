@@ -9,14 +9,19 @@
   (import (scheme base)
     (liii list)
     (liii path)
+    (liii string)
     (liii pi ai dispatch)
     (liii pi ai message)
     (liii pi ai config record)
+    (liii pi ai thinking)
     (liii pi code config)
+    (liii pi code modes output)
     (liii pi code all-in-one chain)
     (liii pi code all-in-one loader)
     (liii pi code all-in-one probe)
     (liii pi code all-in-one provider)
+    (liii pi code all-in-one recovery)
+    (liii pi code all-in-one thinking)
     (liii pi code all-in-one types)
   ) ;import
   (export pi-all-in-one-request-stream pi-all-in-one-exhausted-message)
@@ -29,6 +34,16 @@
       ) ;pi-assistant-message
     ) ;define
 
+    ;; 从已解析的节点配置中挑出请求层需要的键，节点等级一律以节点默认值为准；
+    ;; 主 cfg 的额外键（emit、get-steering-messages、now-fn 等）追加在末尾
+    ;; supports-thinking 必须取节点真实模型的能力，否则会被主 cfg 中伪模型的值
+    ;; 覆盖，导致页脚按伪模型判断是否渲染等级后缀
+    (define (%node-request-keys)
+      '(provider provider-api model-id api-key model-meta models-store
+         thinking-level supports-thinking proxy-url config-dir
+         thinking-level-explicit?)
+    ) ;define
+
     (define (%node-config config provider model-id thinking-level)
       (let* ((parsed (list (cons 'provider provider)
                        (cons 'model model-id)
@@ -39,35 +54,44 @@
              (dir-str (path->string (pi-cfg-config-dir config)))
              (node-cfg (resolve-pi-config parsed (list (cons "PI_CODING_AGENT_DIR" dir-str)))
              ) ;node-cfg
-             (keys '(provider provider-api model-id api-key model-meta
-                      models-store thinking-level proxy-url config-dir)
-             ) ;keys
-             (pairs
-               (map
-                 (lambda (key) (cons key (cdr (assoc key node-cfg))))
-                 keys
-               ) ;map
+             (keys (%node-request-keys))
+             (pairs (map (lambda (key) (%node-config-pair key node-cfg thinking-level)) keys)
              ) ;pairs
             ) ;
         (append pairs (filter (lambda (p) (not (memq (car p) keys))) config))
       ) ;let*
     ) ;define
 
+    ;; 节点级请求的等级与显式标记不被节点解析结果覆盖
+    (define (%node-config-pair key node-cfg thinking-level)
+      (cond ((eq? key 'thinking-level) (cons 'thinking-level thinking-level))
+            ((eq? key 'thinking-level-explicit?) (cons key #f))
+            (else (cons key (cdr (assoc key node-cfg))))
+      ) ;cond
+    ) ;define
+
     ;; 当前实际节点上报给 TUI：emit 为 agent 事件回调（来自 cfg），
     ;; 与请求层只接单参数的流式 on-event 区分开。
+    (define (%node-context-window node-config)
+      (let ((meta (cdr (or (assoc 'model-meta node-config) '(#f . #f)))))
+        (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
+              ((pair? meta) (cdr (or (assoc 'context-window meta) '(#f . #f))))
+              (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (%emit-active-node cfg provider model-id thinking-level node-config)
       (let* ((emit (and (pair? cfg) (assoc 'emit cfg)))
-             (meta (cdr (or (assoc 'model-meta node-config) '(#f . #f))))
-             (window
-               (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
-                     ((pair? meta) (cdr (or (assoc 'context-window meta) '(#f
-                                                                           . #f))))
-                     (else #f)
-               ) ;cond
-             ) ;window
+             (window (%node-context-window node-config))
+             (supports? (cdr (or (assoc 'supports-thinking node-config) '(#f
+                                                                          . #t))))
             ) ;
         (when (and emit (procedure? (cdr emit)))
-          ((cdr emit) 'active_node (list provider model-id thinking-level window))
+          ((cdr emit)
+           'active_node
+           (list provider model-id thinking-level window supports?)
+          ) ;
         ) ;when
       ) ;let*
     ) ;define
@@ -78,38 +102,172 @@
       ) ;and
     ) ;define
 
-    (define (%execute-node config system-prompt tools on-event timeout request-fn)
-      (lambda (provider model-id thinking-level messages)
-        (let ((node-config (%node-config config provider model-id thinking-level))
-              (request (or request-fn pi-request-provider-stream))
-             ) ;
-          ;; 交接前把实际节点告知前台，供页脚展示
-          (%emit-active-node config provider model-id thinking-level node-config)
-          (request provider node-config messages system-prompt tools on-event timeout)
+    ;; 用户是否本次显式指定了思考等级（CLI /thinking / Shift+Tab）
+    (define (%cfg-ref cfg key default-val)
+      (if (not (pair? cfg))
+        default-val
+        (let ((p (assoc key cfg)))
+          (if p (cdr p) default-val)
         ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%node-effective-thinking-level config node-default-level provider model-id)
+      (let* ((explicit? (%cfg-ref config 'thinking-level-explicit? #f))
+             (explicit-tl (if explicit? (%cfg-ref config 'thinking-level #f) #f))
+             (models-store (%cfg-ref config 'models-store #f))
+            ) ;
+        (resolve-node-thinking-level explicit-tl node-default-level models-store
+          provider model-id
+        ) ;resolve-node-thinking-level
+      ) ;let*
+    ) ;define
+
+    (define (%execute-node config system-prompt tools on-event timeout request-fn chain-id)
+      (lambda (provider model-id thinking-level messages)
+        (let* ((eff-tl (%node-effective-thinking-level config thinking-level provider model-id)
+               ) ;eff-tl
+               (explicit? (%cfg-ref config 'thinking-level-explicit? #f))
+               (_ (when explicit?
+                    (pi-log-thinking-clamp! config
+                      chain-id
+                      provider
+                      model-id
+                      (%cfg-ref config 'thinking-level #f)
+                      eff-tl
+                    ) ;pi-log-thinking-clamp!
+                  ) ;when
+               ) ;_
+               (node-config (%node-config config provider model-id eff-tl))
+               (request (or request-fn pi-request-provider-stream))
+              ) ;
+          ;; 交接前把实际节点告知前台，供页脚展示
+          (%emit-active-node config provider model-id eff-tl node-config)
+          (request provider node-config messages system-prompt tools on-event timeout)
+        ) ;let*
       ) ;lambda
     ) ;define
 
-    (define (%probe-node config-dir)
+    ;; 探活与业务请求共用同一套节点等级收敛，避免探活通过而正式请求 HTTP 400
+    (define (%probe-node cfg)
       (lambda (node timeout-ms dir request-fn)
-        (let ((dir-str (if (string? dir) dir (path->string dir))))
+        (let* ((dir-str (if (string? dir) dir (path->string dir)))
+               (provider (chain-node-provider node))
+               (model-id (chain-node-model node))
+               (eff-tl (%node-effective-thinking-level cfg
+                         (chain-node-thinking-level node)
+                         provider
+                         model-id
+                       ) ;%node-effective-thinking-level
+               ) ;eff-tl
+              ) ;
           (pi-probe-node node
             timeout-ms
             dir-str
-            (lambda (provider node-cfg msgs sys-prompt tools probe-timeout retry)
-              (let ((config (%node-config config-dir
-                              provider
-                              (chain-node-model node)
-                              (chain-node-thinking-level node)
-                            ) ;%node-config
-                    ) ;config
-                   ) ;
-                (pi-request-provider provider config msgs sys-prompt tools probe-timeout retry)
-              ) ;let
+            (lambda (p node-cfg msgs sys-prompt tools probe-timeout retry)
+              (pi-request-provider p
+                (%node-config cfg p model-id eff-tl)
+                msgs
+                sys-prompt
+                tools
+                probe-timeout
+                retry
+              ) ;pi-request-provider
             ) ;lambda
           ) ;pi-probe-node
-        ) ;let
+        ) ;let*
       ) ;lambda
+    ) ;define
+
+    ;; 粘性节点下的一次完整链式尝试；真实请求失败时记录故障并顺延到下一节点
+    (define (%run-chain-turn chain chain-id messages skip-idx execute aio-cfg
+              dir probe-adapter config
+            ) ;%run-chain-turn
+      (let loop
+        ((attempts 0) (skip skip-idx))
+        (let ((result (pi-chain-execute chain
+                        messages
+                        execute
+                        aio-cfg
+                        dir
+                        #f
+                        probe-adapter
+                        skip
+                        (%cfg-ref config 'now-fn #f)
+                      ) ;pi-chain-execute
+              ) ;result
+             ) ;
+          (if
+            (and (%request-failed? result)
+              (< attempts (- (length (chain-def-nodes chain)) 1))
+            ) ;and
+            (let ((failed-index (pi-chain-current-sticky-index chain-id)))
+              (%record-and-skip chain chain-id failed-index)
+              (loop (+ attempts 1) failed-index)
+            ) ;let
+            result
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 记录失败节点的时间戳并清掉粘性，使下一轮能从链头重新选择
+    (define (%record-and-skip chain chain-id failed-index)
+      (let* ((nodes (chain-def-nodes chain))
+             (failed-node (and (integer? failed-index)
+                            (>= failed-index 0)
+                            (< failed-index (length nodes))
+                            (list-ref nodes failed-index)
+                          ) ;and
+             ) ;failed-node
+            ) ;
+        (when failed-node
+          (pi-chain-record-node-failure! failed-node)
+        ) ;when
+        (pi-chain-clear-sticky-node! chain-id)
+      ) ;let*
+    ) ;define
+
+    ;; 全链枯竭时构造 recovery 选项：只传递时钟、取消、轮询与事件回调
+    (define (%recovery-options config chain-id dir)
+      (let* ((poll-steering (%cfg-ref config 'get-steering-messages (lambda () '())))
+             (emit (%cfg-ref config 'emit (lambda args #f)))
+             (base (list (cons 'chain-id chain-id)
+                     (cons 'config-dir dir)
+                     (cons 'poll-steering poll-steering)
+                     (cons 'emit emit)
+                   ) ;list
+             ) ;base
+            ) ;
+        (fold
+          (lambda (k acc)
+            (let ((entry (assoc k config)))
+              (if entry (cons entry acc) acc)
+            ) ;let
+          ) ;lambda
+          base
+          '(now-fn sleep-fn aborted? step-ms)
+        ) ;fold
+      ) ;let*
+    ) ;define
+
+    (define (%resolve-chain aio-cfg chain-id)
+      (let ((chains (all-in-one-cfg-chains aio-cfg)))
+        (and chain-id
+          (or
+            (find (lambda (c) (equal? (chain-def-id c) chain-id)) chains)
+            (and (member chain-id '("coding-deep" "coding-high-level"))
+              (find (lambda (c) (equal? (chain-def-id c) "coding-high-quality")) chains)
+            ) ;and
+            (and (equal? chain-id "coding-fast-cheap")
+              (find (lambda (c) (equal? (chain-def-id c) "coding-fast")) chains)
+            ) ;and
+            (find (lambda (c) (equal? (chain-def-id c) chain-id))
+              (all-in-one-default-chains)
+            ) ;find
+          ) ;or
+        ) ;and
+      ) ;let
     ) ;define
 
     ;; 预检后解析实际节点的凭据、协议与模型元数据；普通供应商不经过此入口。
@@ -124,69 +282,35 @@
                (request-fn #f)
              ) ;pi-all-in-one-request-stream
       (let* ((dir (pi-cfg-config-dir config))
-             (raw-aio-cfg (all-in-one-load-config dir))
-             (default-chains (all-in-one-default-chains))
-             (aio-cfg (or raw-aio-cfg (make-all-in-one-cfg #t 3600000 1800000 50000 default-chains))
+             (aio-cfg (or (all-in-one-load-config dir)
+                        (make-all-in-one-cfg #t 3600000 1800000 50000 (all-in-one-default-chains))
+                      ) ;or
              ) ;aio-cfg
-             (chains (all-in-one-cfg-chains aio-cfg))
              (chain-id (cdr (assoc 'model-id config)))
-             (chain
-               (and chain-id
-                 (or
-                   (find (lambda (c) (equal? (chain-def-id c) chain-id)) chains)
-                   (and (or (equal? chain-id "coding-deep") (equal? chain-id "coding-high-level"))
-                     (find (lambda (c) (equal? (chain-def-id c) "coding-high-quality")) chains)
-                   ) ;and
-                   (and (equal? chain-id "coding-fast-cheap")
-                     (find (lambda (c) (equal? (chain-def-id c) "coding-fast")) chains)
-                   ) ;and
-                   (find (lambda (c) (equal? (chain-def-id c) chain-id)) default-chains)
-                 ) ;or
-               ) ;and
-             ) ;chain
+             (chain (%resolve-chain aio-cfg chain-id))
             ) ;
         (if (not chain)
           (pi-all-in-one-exhausted-message)
-          (let ((execute (%execute-node config system-prompt tools on-event timeout request-fn))
-               ) ;
-            (let loop
-              ((attempts 0) (skip-index #f))
-              (let ((result (pi-chain-execute chain
-                              messages
-                              execute
-                              aio-cfg
-                              dir
-                              #f
-                              (or probe-fn (%probe-node config))
-                              skip-index
-                            ) ;pi-chain-execute
-                    ) ;result
-                   ) ;
-                ;; 探活成功后真实请求仍可能失败：记录故障时间戳、清掉粘性并从链头重选下一节点。
-                (if
-                  (and (%request-failed? result)
-                    (< attempts (- (length (chain-def-nodes chain)) 1))
-                  ) ;and
-                  (let* ((failed-index (pi-chain-current-sticky-index chain-id))
-                         (nodes (chain-def-nodes chain))
-                         (failed-node (and (integer? failed-index)
-                                        (>= failed-index 0)
-                                        (< failed-index (length nodes))
-                                        (list-ref nodes failed-index)
-                                      ) ;and
-                         ) ;failed-node
-                        ) ;
-                    (when failed-node
-                      (pi-chain-record-node-failure! failed-node)
-                    ) ;when
-                    (pi-chain-clear-sticky-node! chain-id)
-                    (loop (+ attempts 1) failed-index)
-                  ) ;let*
-                  (if (eq? result 'all-nodes-exhausted) (pi-all-in-one-exhausted-message) result)
-                ) ;if
-              ) ;let
-            ) ;let
-          ) ;let
+          (let* ((execute (%execute-node config system-prompt tools on-event timeout request-fn chain-id)
+                 ) ;execute
+                 (probe-adapter (or probe-fn (%probe-node config)))
+                 (run-turn (lambda (msgs skip)
+                             (%run-chain-turn chain chain-id msgs skip execute
+                               aio-cfg dir probe-adapter config
+                             ) ;%run-chain-turn
+                           ) ;lambda
+                 ) ;run-turn
+                 (initial (run-turn messages #f))
+                ) ;
+            (if (not (eq? initial 'all-nodes-exhausted))
+              initial
+              ;; 全链枯竭：接入 recovery 守护与到期重试（原上下文续跑）
+              (pi-recovery-run (lambda () (run-turn messages #f))
+                aio-cfg
+                (%recovery-options config chain-id dir)
+              ) ;pi-recovery-run
+            ) ;if
+          ) ;let*
         ) ;if
       ) ;let*
     ) ;define*

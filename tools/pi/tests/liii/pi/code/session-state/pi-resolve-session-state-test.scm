@@ -55,4 +55,28 @@
   ) ;let-values
 ) ;let
 
+;; 3. 恢复用户主动设置的 thinking_level_change：保留显式覆盖标记，
+;;    自动 clamp 不凭空生成用户意图（CLI 显式 --thinking 优先，不应用状态值）
+(let* ((state (list (cons 'thinkingLevel "high")))
+       (base (list (cons 'provider "stub")
+               (cons 'model-id "one")
+               (cons 'models-store '())
+               (cons 'thinking-level "medium")
+               (cons 'thinking-level-explicit? #f)
+             ) ;list
+       ) ;base
+      ) ;
+  (let-values (((cfg warnings) (pi-resolve-session-state base state '())))
+    (check (cdr (assoc 'thinking-level cfg)) => "high")
+    (check (cdr (assoc 'thinking-level-explicit? cfg)) => #t)
+  ) ;let-values
+  ;; CLI 显式 --thinking 优先于会话状态，状态值不参与
+  (let-values (((cfg warnings)
+                (pi-resolve-session-state base state (list (cons 'thinking-level "low")))
+               ) ;
+              ) ;
+    (check (cdr (assoc 'thinking-level cfg)) => "medium")
+  ) ;let-values
+) ;let*
+
 (check-report)

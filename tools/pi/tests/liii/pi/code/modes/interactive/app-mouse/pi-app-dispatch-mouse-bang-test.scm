@@ -169,8 +169,18 @@
 
 ;; 6. error 卡片支持点击展开与折叠，且与同屏的 success 卡片互不干扰
 (let* ((app (%make-test-app)))
-  (pi-app-add-tool-result! app "read" '(("path" . "missing.scm")) 'error "File not found")
-  (pi-app-add-tool-result! app "grep" '(("pattern" . "target")) 'success "target found")
+  (pi-app-add-tool-result! app
+    "read"
+    '(("path" . "missing.scm"))
+    'error
+    "File not found"
+  ) ;pi-app-add-tool-result!
+  (pi-app-add-tool-result! app
+    "grep"
+    '(("pattern" . "target"))
+    'success
+    "target found"
+  ) ;pi-app-add-tool-result!
   (pi-app-render! app)
   (let ((chat (pi-app-chat app)))
     (check (length (filter tool-card-component? chat)) => 2)
@@ -191,6 +201,46 @@
     ) ;for-each
     (check-true (and hit-y (< hit-y 16)))
     ;; 再次点击同一位置：error 卡片折叠回去，且 success 卡片仍保持不变
+    (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 hit-y))
+    (check (%card-expanded? chat 0) => #f)
+    (check (%card-expanded? chat 1) => #f)
+  ) ;let
+) ;let*
+
+;; 7. 运行中带 Elapse 提示的 bash 工具卡片支持点击展开与折叠，且与同屏其他卡片互不干扰
+(let* ((app (%make-test-app)))
+  (pi-app-add-tool-result! app
+    "bash"
+    '(("command" . "make -j8"))
+    'pending
+    "compiling...\nfinished 10%"
+  ) ;pi-app-add-tool-result!
+  (pi-app-add-tool-result! app
+    "grep"
+    '(("pattern" . "target"))
+    'success
+    "target found"
+  ) ;pi-app-add-tool-result!
+  (pi-app-render! app)
+  (let ((chat (pi-app-chat app)))
+    (check (length (filter tool-card-component? chat)) => 2)
+    (check (%card-expanded? chat 0) => #f)
+    (check (%card-expanded? chat 1) => #f)
+    ;; 扫描找到只翻转第一张运行中 bash 工具卡片、不影响第二张 success 卡片的点击位置
+    (define hit-y #f)
+    (for-each
+      (lambda (y)
+        (when (not hit-y)
+          (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 y))
+          (when (and (%card-expanded? chat 0) (not (%card-expanded? chat 1)))
+            (set! hit-y y)
+          ) ;when
+        ) ;when
+      ) ;lambda
+      (iota 16)
+    ) ;for-each
+    (check-true (and hit-y (< hit-y 16)))
+    ;; 再次点击同一位置：运行中 bash 卡片折叠回去，且 success 卡片仍保持不变
     (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 hit-y))
     (check (%card-expanded? chat 0) => #f)
     (check (%card-expanded? chat 1) => #f)

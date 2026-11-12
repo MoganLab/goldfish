@@ -233,15 +233,23 @@
               (on-chunk chunk)
             ) ;when
           ) ;define
+          ;; 排空残余输出：进程被终止后子进程可能已不再写入但管道仍未 EOF
+          ;; （容器内 zombie/孙进程持有写端时常见），因此必须有界，
+          ;; 否则 abort!/kill! 会在此无限阻塞，调用方永远收不到结算事件
+          (define %drain-max-rounds 256)
+
           (define (drain!)
             (let loop
-              ()
-              (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
-                (unless (eof-object? chunk)
-                  (emit! chunk)
-                  (loop)
-                ) ;unless
-              ) ;let
+              ((remaining %drain-max-rounds))
+              (if (<= remaining 0)
+                #t
+                (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
+                  (if (eof-object? chunk)
+                    #t
+                    (begin (emit! chunk) (loop (- remaining 1)))
+                  ) ;if
+                ) ;let
+              ) ;if
             ) ;let
           ) ;define
           (define (finish!)

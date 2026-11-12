@@ -38,8 +38,27 @@
       ) ;
   (pi-footer-set-active-node! ft '("google" "gemini-3.8-flash" "medium"))
   (let ((line (strip-ansi (list-ref (component-render ft 200) 1))))
-    (check-true (string-contains? line "coding-fast-cheap"))
+    (check-true (string-contains? line "all-in-one/coding-fast-cheap"))
+    (check-false (string-contains? line "(all-in-one)"))
+    (check-false (string-contains? line "coding-fast-cheap • low"))
     (check-true (string-contains? line "-> (google) gemini-3.8-flash • medium"))
+  ) ;let
+) ;let*
+
+;; 1.1 实际节点不支持思考时（第 5 项为 #f），右侧只显示 (provider) model，不显示思考后缀
+(let* ((ft (make-pi-footer
+             :cwd            "/tmp/test"
+             :provider       "all-in-one"
+             :model          "coding-fast"
+             :thinking-level "high"
+           ) ;make-pi-footer
+       ) ;ft
+      ) ;
+  (pi-footer-set-active-node! ft '("ollama" "plain-model" "off" 128000 #f))
+  (let ((line (strip-ansi (list-ref (component-render ft 200) 1))))
+    (check-true (string-contains? line "all-in-one/coding-fast"))
+    (check-true (string-contains? line "-> (ollama) plain-model"))
+    (check-false (string-contains? line "plain-model •"))
   ) ;let
 ) ;let*
 

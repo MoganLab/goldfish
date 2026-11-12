@@ -42,8 +42,11 @@
             ) ;make-pi-app
        ) ;app
       ) ;
+  ;; Shift+Tab 切换属于用户显式意图
+  (check-false (pi-app-thinking-level-explicit? app))
   (check (pi-app-cycle-thinking! app) => "low")
   (check (pi-app-thinking-level app) => "low")
+  (check-true (pi-app-thinking-level-explicit? app))
 ) ;let*
 
 (check-report)

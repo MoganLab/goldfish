@@ -39,7 +39,9 @@
     %pi-app-rendered-frame-set! pi-app-dock-length %pi-app-dock-length-set!
     pi-app-working-border-row %pi-app-working-border-row-set! pi-app-skills
     pi-app-enable-skill-commands? pi-app-scroll-hint-rect
-    %pi-app-scroll-hint-rect-set!
+    %pi-app-scroll-hint-rect-set! pi-app-thinking-level-explicit?
+    %pi-app-thinking-level-explicit?-set! pi-app-recovery-card
+    %pi-app-recovery-card-set!
   ) ;export
   (import (scheme base)
     (liii date-time)
@@ -62,6 +64,7 @@
         steering-pending follow-up-pending thinking-card hide-thinking?
         on-save-hide-thinking selection flash tokens rendered-frame dock-length
         working-border-row skills enable-skill-commands scroll-hint-rect
+        thinking-level-explicit recovery-card
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -162,6 +165,12 @@
       (enable-skill-commands pi-app-enable-skill-commands?)
       ;; 当前渲染帧“跳到最新消息”提示行的屏幕点击热区：(row col width) 或 #f
       (scroll-hint-rect pi-app-scroll-hint-rect %pi-app-scroll-hint-rect-set!)
+      ;; 思考等级是否来自用户运行时显式指定（CLI /thinking / Shift+Tab）
+      (thinking-level-explicit pi-app-thinking-level-explicit?
+        %pi-app-thinking-level-explicit?-set!
+      ) ;thinking-level-explicit
+      ;; all-in-one 全链故障重试的原地等待状态卡片（#f 表示未在等待）
+      (recovery-card pi-app-recovery-card %pi-app-recovery-card-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
