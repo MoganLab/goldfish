@@ -459,6 +459,39 @@ glue_http_get (s7_scheme* sc) {
 }
 
 static s7_pointer
+f_http_delete (s7_scheme* sc, s7_pointer args) {
+  s7_pointer url_arg= s7_car (args);
+  if (!s7_is_string (url_arg)) {
+    return string_type_error (sc, "http-delete: url must be a string", url_arg);
+  }
+  long       timeout_ms= 0;
+  s7_pointer err       = parse_timeout_ms (sc, "http-delete", optional_arg (sc, args, 1), &timeout_ms);
+  if (err) {
+    return err;
+  }
+
+  const char*  url= s7_string (url_arg);
+  cpr::Session session;
+  session.SetUrl (cpr::Url (url));
+  apply_session_timeout (session, timeout_ms);
+  try {
+    cpr::Response r= session.Delete ();
+    return response2hashtable (sc, r);
+  } catch (const std::exception& e) {
+    return error2hashtable (sc, 0, url, e.what ());
+  }
+}
+
+inline void
+glue_http_delete (s7_scheme* sc) {
+  s7_pointer  cur_env      = s7_curlet (sc);
+  const char* s_http_delete= "g_http-delete";
+  const char* d_http_delete= "(g_http-delete url [timeout]) => hash-table?";
+  auto func_http_delete= s7_make_typed_function (sc, s_http_delete, f_http_delete, 1, 1, false, d_http_delete, NULL);
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_http_delete), func_http_delete);
+}
+
+static s7_pointer
 f_http_post (s7_scheme* sc, s7_pointer args) {
   s7_pointer url_arg= s7_car (args);
   if (!s7_is_string (url_arg)) {
@@ -579,6 +612,7 @@ glue_http (s7_scheme* sc) {
   glue_http_head (sc);
   glue_http_get (sc);
   glue_http_post (sc);
+  glue_http_delete (sc);
 }
 
 // -------------------------------- Async HTTP --------------------------------

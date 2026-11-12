@@ -16,7 +16,7 @@
 
 (define-library (liii http)
   (import (liii error) (liii http common) (scheme file))
-  (export http-head http-get http-post http-ok?)
+  (export http-head http-get http-post http-delete http-ok?)
   (begin
 
     (define (http-stream-call runner output-file callback)
@@ -145,6 +145,14 @@
                     ) ;http-stream-call
               ) ;else
         ) ;cond
+      ) ;let*
+    ) ;define*
+
+    (define* (http-delete url (timeout #f))
+      (let* ((url (http-require-string "http-delete" "url" url))
+             (timeout (http-optional-timeout "http-delete" "timeout" timeout))
+            ) ;
+        (g_http-delete url timeout)
       ) ;let*
     ) ;define*
 
