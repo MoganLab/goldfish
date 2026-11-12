@@ -147,9 +147,19 @@
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
-          (let ((err-msg (if (pair? args) (car args) "Network error")))
-            (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
-          ) ;let
+          (if (eq? tag 'http-client-timeout-error)
+            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+              (list (cons 'status-code 0)
+                (cons 'reason msg)
+                (cons 'text "")
+                (cons 'timeout #t)
+                (cons 'timeout-sec timeout)
+              ) ;list
+            ) ;let
+            (let ((err-msg (if (pair? args) (car args) "Network error")))
+              (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
+            ) ;let
+          ) ;if
         ) ;lambda
       ) ;catch
     ) ;define
@@ -274,6 +284,9 @@
                        (loop 1 next)
                      ) ;if
                    ) ;let
+                  ) ;
+                  ((%resp-field resp 'timeout)
+                   (%retry-exhausted-result stream-state status resp provider err-body model-id)
                   ) ;
                   ((and (not idle-timed-out?)
                      (gemini-is-retriable-error? status err-body provider)

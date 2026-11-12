@@ -56,4 +56,23 @@
   (check (string? (pi-assistant-message-error-message resp)) => #t)
 ) ;let*
 
+;; openai-request-stream 客户端超时明确感知秒数
+(let* ((cfg
+         (list (cons 'model-id "kimi-for-coding")
+           (cons 'model-meta '(("base-url" . "http://192.0.2.1")
+                               ("max-tokens" . 1024)))
+           (cons 'api-key "dummy-key")
+           (cons 'proxy-url #f)
+           (cons 'tools '())
+           (cons 'settings '((retry (enabled . #f))))
+         ) ;list
+       ) ;cfg
+       (msgs (list (pi-user-message "ping")))
+       (resp (openai-request-stream cfg msgs #f '() #f 0.2))
+      ) ;
+  (check (pi-assistant-message? resp) => #t)
+  (check (pi-assistant-message-stop-reason resp) => "error")
+  (check (pi-assistant-message-error-message resp) => "Request timed out after 0.2s")
+) ;let*
+
 (check-report)

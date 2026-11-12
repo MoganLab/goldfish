@@ -35,7 +35,8 @@
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
             ) ;
-        (cond ((not (string-null? err-text)) (string-append "Request failed: " err-text))
+        (cond ((string-starts? err-text "Request timed out") err-text)
+              ((not (string-null? err-text)) (string-append "Request failed: " err-text))
               ((zero? status) "Request failed: network error")
               (else (string-append "HTTP " (number->string status) " stream error"))
         ) ;cond

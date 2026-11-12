@@ -186,7 +186,10 @@
                  (pi-usage-limit-error-message limit provider)
                 ) ;
                 ((and (zero? status) (not (string-null? err-text)))
-                 (string-append "Request failed: " err-text)
+                 (if (string-starts? err-text "Request timed out")
+                   err-text
+                   (string-append "Request failed: " err-text)
+                 ) ;if
                 ) ;
                 ((not (string-null? acc-body)) (%extract-anthropic-err-msg acc-body status))
                 (else (string-append "HTTP " (number->string status) " stream error"))
@@ -219,9 +222,19 @@
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
-          (let ((err-msg (if (pair? args) (car args) "Network error")))
-            (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
-          ) ;let
+          (if (eq? tag 'http-client-timeout-error)
+            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+              (list (cons 'status-code 0)
+                (cons 'reason msg)
+                (cons 'text "")
+                (cons 'timeout #t)
+                (cons 'timeout-sec timeout)
+              ) ;list
+            ) ;let
+            (let ((err-msg (if (pair? args) (car args) "Network error")))
+              (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
+            ) ;let
+          ) ;if
         ) ;lambda
       ) ;catch
     ) ;define
@@ -293,6 +306,9 @@
                    (%finalize-aborted-stream stream-state provider model-id)
                   ) ;
                   (idle-timed-out? (%make-idle-timeout-error eff-idle provider model-id))
+                  ((%resp-field resp 'timeout)
+                   (%make-stream-error status resp err-acc provider model-id)
+                  ) ;
                   ((anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
                    (if (<= attempt provider-r)
                      (let* ((ra-raw (pi-extract-retry-after resp))

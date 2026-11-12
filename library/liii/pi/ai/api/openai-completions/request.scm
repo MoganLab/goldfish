@@ -109,10 +109,10 @@
     (define (%request-error-text status attempt body-str reason)
       (if (zero? status)
         (let ((detail (if (string? reason) (string-trim-both reason) "")))
-          (if (string-null? detail)
-            "Request failed: network error"
-            (string-append "Request failed: " detail)
-          ) ;if
+          (cond ((string-null? detail) "Request failed: network error")
+                ((string-starts? detail "Request timed out") detail)
+                (else (string-append "Request failed: " detail))
+          ) ;cond
         ) ;let
         (string-append "HTTP "
           (number->string status)
@@ -152,9 +152,19 @@
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
-          (let ((err-msg (if (pair? args) (car args) "Network error")))
-            (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
-          ) ;let
+          (if (eq? tag 'http-client-timeout-error)
+            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+              (list (cons 'status-code 0)
+                (cons 'reason msg)
+                (cons 'text "")
+                (cons 'timeout #t)
+                (cons 'timeout-sec timeout)
+              ) ;list
+            ) ;let
+            (let ((err-msg (if (pair? args) (car args) "Network error")))
+              (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
+            ) ;let
+          ) ;if
         ) ;lambda
       ) ;catch
     ) ;define
@@ -250,6 +260,15 @@
                     (loop 1 next)
                   ) ;if
                 ) ;let
+               ) ;
+               ((%resp-field resp 'timeout)
+                (%make-retry-error status
+                  attempt
+                  body-str
+                  provider
+                  model-id
+                  (%resp-field resp 'reason)
+                ) ;%make-retry-error
                ) ;
                ((openai-is-retriable-error? status body-str provider)
                 (if (<= attempt provider-max-retries)
