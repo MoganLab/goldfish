@@ -25,11 +25,13 @@ gf doc make-pi-message-queue
 - `pi-queue-length` - 获取调度队列中的排队消息数量
 - `pi-queue-idle?` - 判断调度队列是否处于空闲（idle）状态
 - `pi-queue-busy?` - 判断调度队列是否处于繁忙（busy）状态
+- `pi-queue-cancelling?` - 判断调度队列是否处于正在中止（cancelling）状态
 - `pi-queue-items` - 获取调度队列中所有等待消费的消息列表
 - `pi-queue-enqueue!` - 追加消息到调度队列尾部
 - `pi-queue-dequeue-next!` - 在空闲状态下消费队首消息并转入繁忙态
 - `pi-queue-finish-task!` - 通知当前任务完成并重置状态为空闲
 - `pi-queue-set-busy!` - 标记调度队列为繁忙状态
+- `pi-queue-set-cancelling!` - 标记调度队列为正在中止（cancelling）状态
 - `pi-queue-restore-all!` - 撤回并排空调度队列中所有未消费消息
 
 ### 待注入消息队列 (<pi-pending-queue>)

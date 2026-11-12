@@ -103,7 +103,7 @@
             (jobs (pi-app-jobs-chan app))
             (handler (%pi-app-handler app))
            ) ;
-        (if (pi-queue-busy? q)
+        (if (not (pi-queue-idle? q))
           #f
           (let loop
             ((rendered #f))

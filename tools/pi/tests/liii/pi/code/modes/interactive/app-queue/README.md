@@ -28,3 +28,4 @@ gf doc <函数名>
 ### 消费同步与撤回
 - `pi-app-remove-pending-message!` - worker 消费注入消息后同步显示列表
 - `pi-app-restore-queues!` - ESC 撤回全部排队消息并清空显示列表
+- `pi-app-handle-escape!` - 处理 ESC 键：清除选区或发出中止信号、标记 cancelling 并撤回排队消息

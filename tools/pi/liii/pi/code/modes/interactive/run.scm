@@ -21,6 +21,7 @@
     (liii pi code modes interactive selection)
     (liii pi code modes interactive app)
     (liii pi code modes interactive app-bash)
+    (liii pi code modes interactive app-queue)
     (liii pi code modes interactive render)
     (liii pi code modes interactive app-mouse)
     (liii pi code modes interactive app-events)
@@ -72,23 +73,6 @@
     ;; 短暂窗口把会话落盘并上屏 Aborted 提示，超时则强制退出。
     (define %pi-app-exit-grace-ms 300)
 
-    ;; ESC 与退出共用的中止信号发射：agent 任务（busy 时）与运行中的 ! 命令；
-    ;; bash 通道仅在命令运行时发送，避免陈旧信号误伤下一个命令
-    (define (%pi-app-send-abort-signals! app q)
-      (when (pi-queue-busy? q)
-        (catch #t
-          (lambda () (chan-send! (pi-app-abort-chan app) 'abort 0))
-          (lambda args #f)
-        ) ;catch
-      ) ;when
-      (when (pi-app-bash-running? app)
-        (catch #t
-          (lambda () (chan-send! (pi-app-bash-abort-chan app) 'abort 0))
-          (lambda args #f)
-        ) ;catch
-      ) ;when
-    ) ;define
-
     ;; 退出前中止在途 agent 任务（对齐上游 pi 的 session.dispose() → agent.abort()）：
     ;; worker 线程此刻正阻塞在 LLM 流式 HTTP 请求上，而进程退出会 join go 线程池
     ;; （GoThreadPool 析构 → shutdown → join 全部 worker 线程），
@@ -104,7 +88,7 @@
         ;; pi-app-drain-queue! 把这些消息再次派发给 worker，
         ;; 等用户已要求退出后又发起新的 LLM 请求
         (pi-queue-restore-all! q)
-        (if (not (pi-queue-busy? q))
+        (if (pi-queue-idle? q)
           #t
           (begin
             ;; 与 ESC 相同的中止信号（agent 流式 + 运行中的 ! 命令）
@@ -113,7 +97,7 @@
             (let ((deadline (+ (current-monotonic-millis) grace-ms)))
               (let loop
                 ()
-                (cond ((not (pi-queue-busy? q)) #t)
+                (cond ((pi-queue-idle? q) #t)
                       ((>= (current-monotonic-millis) deadline) #f)
                       (else (pi-app-poll-events! app) (sleep 0.02) (loop))
                 ) ;cond
@@ -130,26 +114,6 @@
     ;; 测试可注入空实现以在进程内观察退出路径。
     (define (pi-app-force-exit)
       (emergency-exit 0)
-    ) ;define
-
-    ;; 撤回排队消息到编辑器：排队内容在前、编辑器当前内容在后，\n\n 连接
-    (define (%pi-app-restore-to-editor! app)
-      (let* ((ed (pi-app-editor app))
-             (restored (pi-app-restore-queues! app))
-             (combined
-               (string-join
-                 (filter
-                   (lambda (s) (and (string? s) (not (string-null? s))))
-                   (list (string-join restored "\n\n") (editor-text ed))
-                 ) ;filter
-                 "\n\n"
-               ) ;string-join
-             ) ;combined
-            ) ;
-        (unless (string-null? combined)
-          (editor-set-text! ed combined)
-        ) ;unless
-      ) ;let*
     ) ;define
 
     (define (%pi-app-handle-paste! app clipboard-reader clipboard-image-reader)
@@ -241,23 +205,8 @@
                      (not (pi-app-slash-command-menu app))
                      (eq? k 'escape)
                    ) ;and
-                   (if (pi-app-selection-active? app)
-                     (begin
-                       (pi-app-selection-clear! app)
-                       (pi-app-render! app)
-                       (loop)
-                     ) ;begin
-                     (begin
-                       ;; agent 任务与运行中 ! 命令的中止信号
-                       ;; （对齐上游 onEscape：streaming → abort；bash 运行中 → abortBash）
-                       (%pi-app-send-abort-signals! app q)
-                       ;; 撤回全部排队消息：steering → follow-up → 等待队列，
-                       ;; 与编辑器当前内容合并回编辑（对齐上游 restoreQueuedMessagesToEditor）
-                       (%pi-app-restore-to-editor! app)
-                       (pi-app-render! app)
-                       (loop)
-                     ) ;begin
-                   ) ;if
+                   (pi-app-handle-escape! app)
+                   (loop)
                   ) ;
                   ;; alt+up：仅撤回排队消息到编辑器，不中止运行中任务
                   ;; （对齐上游 app.message.dequeue 键位）

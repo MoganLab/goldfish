@@ -35,4 +35,13 @@
   (check (pi-queue-dequeue-next! q) => #f)
 ) ;let
 
+;; 3. 处于 cancelling 状态时无法消费
+(let ((q (make-pi-message-queue)))
+  (pi-queue-enqueue! q "msg")
+  (pi-queue-set-cancelling! q)
+  (check (pi-queue-dequeue-next! q) => #f)
+  (pi-queue-finish-task! q)
+  (check (pi-queue-dequeue-next! q) => "msg")
+) ;let
+
 (check-report)
