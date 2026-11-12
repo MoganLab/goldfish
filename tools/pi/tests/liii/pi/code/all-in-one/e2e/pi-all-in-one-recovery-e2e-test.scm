@@ -243,31 +243,31 @@
 ) ;let*
 
 ;; ---------------------------------------------------------------------------
-;; 4. 等待期间 Enter steering：立即唤醒，只注入一次并携带在请求上下文中
+;; 4. 等待期间用户直接输入新消息：立即结束等待（不再盲目重试），
+;;    消息留给前台作为新任务，不注入本轮请求上下文
 ;; ---------------------------------------------------------------------------
 (pi-chain-reset-sticky-state!)
 (let* ((clock (make-clock))
-       (steering-queue (list "steer once"))
+       (steering-queue (list "typed while waiting"))
        (consumed '())
-       (probe-round 0)
-       (captured-msgs '())
-       (config
-         (make-config (cons 'now-fn (car clock))
-           (cons 'sleep-fn (cdr clock))
-           (cons 'aborted? (lambda () #f))
-           (cons 'get-steering-messages
-             (lambda ()
-               (if (pair? steering-queue)
-                 (let ((m (car steering-queue)))
-                   (set! steering-queue (cdr steering-queue))
-                   (set! consumed (cons m consumed))
-                   (list m)
-                 ) ;let
-                 '()
-               ) ;if
-             ) ;lambda
-           ) ;cons
-         ) ;make-config
+       (request-called #f)
+       (config (make-config
+                 (cons 'now-fn (car clock))
+                 (cons 'sleep-fn (cdr clock))
+                 (cons 'aborted? (lambda () #f))
+                 (cons 'get-steering-messages
+                   (lambda ()
+                     (if (pair? steering-queue)
+                       (let ((m (car steering-queue)))
+                         (set! steering-queue (cdr steering-queue))
+                         (set! consumed (cons m consumed))
+                         (list m)
+                       ) ;let
+                       '()
+                     ) ;if
+                   ) ;lambda
+                 ) ;cons
+               ) ;make-config
        ) ;config
       ) ;
   (let ((response
@@ -278,23 +278,15 @@
             '()
             #f
             60
-            (lambda (node timeout-ms dir request-fn)
-              (set! probe-round (+ probe-round 1))
-              (> probe-round 2)
-            ) ;lambda
-            (lambda (provider node-cfg messages system-prompt tools on-event timeout)
-              (set! captured-msgs messages)
-              (pi-assistant-message (list (pi-text-block "steered ok")) "stop")
-            ) ;lambda
+            (lambda (node timeout-ms dir request-fn) #f)
+            (lambda args (set! request-called #t) (pi-assistant-message '() "stop"))
           ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
-    (check (pi-assistant-message-stop-reason response) => "stop")
-    (check consumed => '("steer once"))
-    ;; 原上下文 + 一条 steering 用户消息，且 steering 只出现一次
-    (check (length captured-msgs) => 2)
-    (check (pi-message-field (car captured-msgs) 'content "?") => "first")
-    (check (pi-message-field (cadr captured-msgs) 'content "?") => "steer once")
+    ;; 等待被用户消息中止：返回 aborted，业务请求未被调用
+    (check (pi-assistant-message-stop-reason response) => "aborted")
+    (check consumed => '("typed while waiting"))
+    (check-false request-called)
   ) ;let
 ) ;let*
 

@@ -73,7 +73,7 @@
     (define-record-type <pi-footer-state>
       (%make-pi-footer-state cwd branch provider model stats thinking-level
         supports-thinking? session-name message context-info context-percent
-        context-window active-node pending-thinking-level
+        context-window active-node
       ) ;%make-pi-footer-state
       pi-footer-state?
       (cwd pi-footer-state-cwd)
@@ -99,10 +99,6 @@
       ) ;context-window
       ;; all-in-one 伪模型当前实际执行节点（provider . model . thinking-level）
       (active-node pi-footer-state-active-node pi-footer-state-active-node-set!)
-      ;; 用户刚切换、尚未被下一次请求确认的思考等级（#f 表示无待确认值）
-      (pending-thinking-level pi-footer-state-pending-thinking-level
-        pi-footer-state-pending-thinking-level-set!
-      ) ;pending-thinking-level
     ) ;define-record-type
 
     (define (pi-footer? obj)
@@ -136,7 +132,6 @@
                            (pi-footer-state-thinking-level st)
                            (pi-footer-state-supports-thinking? st)
                            (pi-footer-state-active-node st)
-                           (pi-footer-state-pending-thinking-level st)
                          ) ;pi-footer-model-part
              ) ;right-part
              (left-part
@@ -206,7 +201,7 @@
             ) ;
         (component-data-set! comp
           (%make-pi-footer-state cwd branch provider model stats tl supports?
-            session-name #f context-info 0.0 context-window active-node #f
+            session-name #f context-info 0.0 context-window active-node
           ) ;%make-pi-footer-state
         ) ;component-data-set!
         comp
@@ -243,25 +238,29 @@
         (pi-footer-state-model-set! st model)
         (pi-footer-state-supports-thinking?-set! st supports?)
         (pi-footer-state-active-node-set! st #f)
-        (pi-footer-state-pending-thinking-level-set! st #f)
         (when (pair? opt-cw)
           (%update-footer-cw! st (car opt-cw))
         ) ;when
       ) ;let
     ) ;define
 
-    ;; 会话内切换 thinking level 后同步 footer 右下角标签；
-    ;; active-node 已被上一次请求缓存时，标记为待确认（右侧显示 • level*），
-    ;; 下一次真实请求回报 active_node 后自动去掉星标
-    (define (pi-footer-set-thinking-level! comp tl . opt-pending?)
-      (let* ((st (%footer-state comp))
-             (keep-pending? (if (pair? opt-pending?) (car opt-pending?) #t))
-             (node (pi-footer-state-active-node st))
-            ) ;
+    ;; 会话内切换 thinking level 后同步 footer 右下角标签。
+    ;; 已缓存的 active-node 等级是上一次请求的生效值，切换后立即失效：
+    ;; 这里用用户刚选的等级占位，下一次请求回报 active_node 时替换为
+    ;; 该节点按真实能力收敛后的实际值（可能是更低的兼容档位）。
+    (define (pi-footer-set-thinking-level! comp tl)
+      (let* ((st (%footer-state comp)) (node (pi-footer-state-active-node st)))
         (pi-footer-state-thinking-level-set! st tl)
-        (pi-footer-state-pending-thinking-level-set! st
-          (and keep-pending? (pair? node) (string? tl) tl)
-        ) ;pi-footer-state-pending-thinking-level-set!
+        (when (and (pair? node) (string? tl) (not (string-null? tl)))
+          (pi-footer-state-active-node-set! st
+            (list (car node)
+              (cadr node)
+              tl
+              (if (>= (length node) 4) (list-ref node 3) #f)
+              #t
+            ) ;list
+          ) ;pi-footer-state-active-node-set!
+        ) ;when
       ) ;let*
     ) ;define
 
@@ -269,8 +268,6 @@
     (define (pi-footer-set-active-node! comp node)
       (let ((st (%footer-state comp)))
         (pi-footer-state-active-node-set! st node)
-        ;; 实际节点回报即为最终生效结果，待确认标记失效
-        (pi-footer-state-pending-thinking-level-set! st #f)
         (when (and (pair? node) (>= (length node) 4))
           (%update-footer-cw! st (list-ref node 3))
         ) ;when

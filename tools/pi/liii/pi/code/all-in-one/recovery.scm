@@ -7,8 +7,9 @@
 ;; all-in-one 全链故障长程守护与原请求重试引擎：
 ;; 1. 全链节点耗尽时，若 continuous 开启则进入可中断的步进式等待；
 ;; 2. maxWaitMs 作为单次连续故障 episode 的累计时间预算，超时记录 [EXHAUSTED] 日志；
-;; 3. 短步进休眠期间持续检测 Esc 中断与 Enter steering 消息注入；
-;; 4. 收到 steering 消息立即唤醒重试，成功后携带原上下文继续主循环；
+;; 3. 短步进休眠期间持续检测 Esc 中止与用户直接输入的新消息；
+;; 4. 收到新消息立即结束等待，交回前台作为新任务（不再盲目重试）；
+;; 5. 到期重试成功后用原上下文继续当前 Agent 任务；
 ;; 5. 纯 Scheme 调度循环，支持注入单调时钟、休眠与取消探测钩子。
 (define-library (liii pi code all-in-one recovery)
   (import (scheme base)
@@ -52,13 +53,22 @@
       (pi-assistant-message '() "aborted" "Request aborted by user")
     ) ;define
 
-    ;; 一次唤醒重试：返回实际响应，或仍全链枯竭时返回 'all-nodes-exhausted
-    (define (%attempt! attempt-fn emit chain-id steering)
-      (emit 'recovery_retry chain-id)
-      (attempt-fn steering)
+    ;; 用户直接输入新消息而中止等待：本轮任务就地结束，新消息由前台接手
+    (define (%interrupted-message)
+      (pi-assistant-message '() "aborted" "Wait aborted by a new user message")
     ) ;define
 
-    ;; 单次等待预算内的步进循环：abort > steering 唤醒 > 到期重试
+    ;; 一次到期重试：返回实际响应，或仍全链枯竭时返回 'all-nodes-exhausted
+    (define (%attempt! attempt-fn emit chain-id)
+      (emit 'recovery_retry chain-id)
+      (attempt-fn)
+    ) ;define
+
+    ;; 单次等待预算内的步进循环：
+    ;; 优先级为 Esc 中止 > 用户新消息唤醒 > 到期重试。
+    ;; 用户新消息到达时不再盲目重试（重试仍可能枯竭并重新进入等待），
+    ;; 而是返回 'interrupted，由调用方结束本轮 Agent 任务，前台把该消息
+    ;; 作为新任务处理，从而实现「输入即可中止等待并继续对话」。
     (define (%step-until-retry! ctx)
       (let* ((now-fn (%opt-ref ctx 'now-fn #f))
              (sleep-fn (%opt-ref ctx 'sleep-fn #f))
@@ -72,23 +82,25 @@
              (step-ms (%opt-ref ctx 'step-ms 100))
             ) ;
         (let loop
-          ((steering (%opt-ref ctx 'steering '())) (last-tick-sec -1))
+          ((last-tick-sec -1))
           (cond ((aborted?-fn)
                  (emit 'recovery_end chain-id 'aborted)
-                 (cons (%aborted-message) steering)
+                 (cons (%aborted-message) #f)
                 ) ;
                 (else
                   (let* ((injected (poll-steering))
-                         (steering-list (if (pair? injected) injected '()))
-                         (new-steering (append steering steering-list))
+                         (user-msgs (if (pair? injected) injected '()))
                          (step-elapsed (- (now-fn) wait-start))
                          (rem-in-wait (- wait-target-ms step-elapsed))
                         ) ;
                     (cond
-                      ;; steering 消息到达或到期：立即触发一次重试
-                      ((or (pair? steering-list) (<= rem-in-wait 0))
-                       (cons (%attempt! attempt-fn emit chain-id new-steering) new-steering)
+                      ;; 用户直接输入新消息：立即结束等待，交回前台作为新任务
+                      ((pair? user-msgs)
+                       (emit 'recovery_end chain-id 'interrupted)
+                       (cons (%interrupted-message) user-msgs)
                       ) ;
+                      ;; 到期：触发一次重试
+                      ((<= rem-in-wait 0) (cons (%attempt! attempt-fn emit chain-id) #f))
                       (else
                         (let* ((curr-sec (quotient (+ rem-in-wait 999) 1000))
                                (to-sleep (min step-ms rem-in-wait))
@@ -97,7 +109,7 @@
                             (emit 'recovery_tick chain-id rem-in-wait)
                           ) ;when
                           (sleep-fn to-sleep)
-                          (loop new-steering curr-sec)
+                          (loop curr-sec)
                         ) ;let*
                       ) ;else
                     ) ;cond
@@ -127,8 +139,11 @@
       ) ;let
     ) ;define
 
-    ;; 一次唤醒结果的分派：aborted / 恢复成功 / 仍枯竭时进入下一轮等待
-    (define (%after-step! ctx resp steering loop)
+    ;; 一次等待结果的分派：
+    ;; - aborted / interrupted：就地结束，交回上层结算
+    ;; - 恢复成功：返回真实响应
+    ;; - 仍枯竭：进入下一轮等待
+    (define (%after-step! ctx resp loop)
       (let ((chain-id (%opt-ref ctx 'chain-id "all-in-one"))
             (emit (%opt-ref ctx 'emit #f))
            ) ;
@@ -143,7 +158,7 @@
           (emit 'recovery_end chain-id 'success)
           resp
          ) ;
-         (else (loop steering))
+         (else (loop))
         ) ;cond
       ) ;let
     ) ;define
@@ -190,16 +205,14 @@
           (emit 'recovery_wait chain-id max-wait-ms max-wait-ms)
           ;; 跨重试累计消耗全局 maxWaitMs 预算
           (let loop
-            ((steering '()))
+            ()
             (let* ((remaining-budget (- max-wait-ms (- (now-fn) start-ms)))
                    (wait-target-ms (min retry-interval-ms remaining-budget))
                   ) ;
               (if (<= wait-target-ms 0)
                 (%wait-timeout! ctx)
-                (let* ((ctx* (%ctx-with-wait ctx steering wait-target-ms))
-                       (result (%step-until-retry! ctx*))
-                      ) ;
-                  (%after-step! ctx (car result) (cdr result) loop)
+                (let* ((ctx* (%ctx-with-wait ctx wait-target-ms)) (result (%step-until-retry! ctx*)))
+                  (%after-step! ctx (car result) loop)
                 ) ;let*
               ) ;if
             ) ;let*
@@ -208,12 +221,10 @@
       ) ;if
     ) ;define
 
-    ;; 为单次等待补上起点、目标与当前累计的 steering
-    (define (%ctx-with-wait ctx steering wait-target-ms)
+    ;; 为单次等待补上起点与等待目标
+    (define (%ctx-with-wait ctx wait-target-ms)
       (cons (cons 'wait-start ((%opt-ref ctx 'now-fn current-monotonic-millis)))
-        (cons (cons 'wait-target-ms wait-target-ms)
-          (cons (cons 'steering steering) ctx)
-        ) ;cons
+        (cons (cons 'wait-target-ms wait-target-ms) ctx)
       ) ;cons
     ) ;define
 

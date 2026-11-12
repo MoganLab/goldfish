@@ -60,28 +60,44 @@
   (check (string-contains? (render) " • ") => #f)
 ) ;let*
 
-;; 切换 thinking 等级后，页脚立刻给出待确认反馈（带 * 星标）；
-;; 下一次请求回报实际节点后星标消失，显示最终生效值
+;; 切换 thinking 等级后，页脚立即用用户所选等级占位，
+;; 下一次请求回报 active_node 时替换为节点收敛后的实际值
 (let* ((f (make-pi-footer
             :model             "coding-fast"
             :provider          "all-in-one"
-            :thinking-level    "off"
+            :thinking-level    "low"
             :supports-thinking #t
-            :active-node       '("google" "gemini-3.8-flash" "medium" 1048576 #t)
+            :active-node       '("google" "gemini-3.8-flash" "low" 1048576 #t)
           ) ;make-pi-footer
        ) ;f
        (render (lambda () (apply string-append (map strip-ansi (component-render f 200)))))
       ) ;
-  (check (string-contains? (render) "all-in-one/coding-fast -> (google) gemini-3.8-flash • medium")
-    =>
-    #t
-  ) ;check
+  (check (string-contains? (render) "-> (google) gemini-3.8-flash • low") => #t)
   (pi-footer-set-thinking-level! f "high")
-  (check (string-contains? (render) "• medium*") => #t)
-  ;; 请求回报收敛后的实际等级，星标消失
-  (pi-footer-set-active-node! f '("google" "gemini-3.8-flash" "medium" 1048576 #t))
-  (check (string-contains? (render) "• medium*") => #f)
-  (check (string-contains? (render) "• medium") => #t)
+  ;; 切换后立即显示用户所选等级，不再停留在旧值
+  (check (string-contains? (render) "-> (google) gemini-3.8-flash • high") => #t)
+  (check-false (string-contains? (render) "• low"))
+  ;; 新请求回报收敛后的实际等级（该节点最高只支持 high）
+  (pi-footer-set-active-node! f '("google" "gemini-3.8-flash" "high" 1048576 #t))
+  (check (string-contains? (render) "-> (google) gemini-3.8-flash • high") => #t)
+) ;let*
+
+;; 尚无实际节点时切换等级：页脚保持 all-in-one/<chain-id>，
+;; 不凭空编造节点后缀，等首次请求回报后再显示
+(let* ((f (make-pi-footer
+            :model             "coding-fast"
+            :provider          "all-in-one"
+            :thinking-level    "low"
+            :supports-thinking #t
+          ) ;make-pi-footer
+       ) ;f
+       (render (lambda () (apply string-append (map strip-ansi (component-render f 200)))))
+      ) ;
+  (pi-footer-set-thinking-level! f "high")
+  (check (string-contains? (render) "all-in-one/coding-fast") => #t)
+  (check-false (string-contains? (render) "->"))
+  (pi-footer-set-active-node! f '("google" "gemini-3.8-flash" "high" 1048576 #t))
+  (check (string-contains? (render) "-> (google) gemini-3.8-flash • high") => #t)
 ) ;let*
 
 (check-report)

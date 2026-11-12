@@ -52,7 +52,7 @@
        (attempt-called #f)
        (sleep-called #f)
        (resp
-         (pi-recovery-run (lambda (st) (set! attempt-called #t) 'all-nodes-exhausted)
+         (pi-recovery-run (lambda () (set! attempt-called #t) 'all-nodes-exhausted)
            cfg
            (list (cons 'sleep-fn (lambda (ms) (set! sleep-called #t))))
          ) ;pi-recovery-run
@@ -69,7 +69,7 @@
        (events '())
        (now-ms 1000)
        (resp
-         (pi-recovery-run (lambda (st) 'all-nodes-exhausted)
+         (pi-recovery-run (lambda () 'all-nodes-exhausted)
            cfg
            (list (cons 'now-fn (lambda () now-ms))
              (cons 'sleep-fn (lambda (ms) (set! now-ms (+ now-ms ms))))
@@ -91,7 +91,7 @@
        (attempts 0)
        (events '())
        (resp
-         (pi-recovery-run (lambda (steering)
+         (pi-recovery-run (lambda ()
                             (set! attempts (+ attempts 1))
                             (if (= attempts 1)
                               'all-nodes-exhausted
@@ -117,37 +117,43 @@
   (check (list-ref (assoc 'recovery_end events) 2) => 'success)
 ) ;let*
 
-;; 4. 等待期间收到 steering 消息：立即唤醒重试并合并新消息
-(let* ((cfg (make-all-in-one-cfg #t 10000 2000 8000 '()))
+;; 4. 等待期间用户直接输入新消息：立即结束等待并返回 aborted，
+;;    不再盲目重试（重试仍可能枯竭，会让用户消息被吞掉并重新进入等待）
+(let* ((cfg (make-all-in-one-cfg #t 60000 2000 8000 '()))
        (now-ms 1000)
-       (received-steering '())
-       (steering-queue (list "steer-msg-1"))
-       (resp
-         (pi-recovery-run (lambda (steering)
-                            (set! received-steering steering)
-                            (pi-assistant-message '() "stop")
-                          ) ;lambda
-           cfg
-           (list (cons 'now-fn (lambda () now-ms))
-             (cons 'sleep-fn (lambda (ms) (set! now-ms (+ now-ms ms))))
-             (cons 'poll-steering
-               (lambda ()
-                 (if (pair? steering-queue)
-                   (let ((m (car steering-queue)))
-                     (set! steering-queue (cdr steering-queue))
-                     (list m)
-                   ) ;let
-                   '()
-                 ) ;if
-               ) ;lambda
-             ) ;cons
-             (cons 'chain-id "coding-fast")
-           ) ;list
-         ) ;pi-recovery-run
+       (attempts 0)
+       (steering-queue (list "user typed while waiting"))
+       (events '())
+       (resp (pi-recovery-run
+               (lambda () (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
+               cfg
+               (list (cons 'now-fn (lambda () now-ms))
+                 (cons 'sleep-fn (lambda (ms) (set! now-ms (+ now-ms ms))))
+                 (cons 'aborted? (lambda () #f))
+                 (cons 'poll-steering
+                   (lambda ()
+                     (if (pair? steering-queue)
+                       (let ((m (car steering-queue)))
+                         (set! steering-queue (cdr steering-queue))
+                         (list m)
+                       ) ;let
+                       '()
+                     ) ;if
+                   ) ;lambda
+                 ) ;cons
+                 (cons 'emit (lambda (ev . args) (set! events (cons (cons ev args) events))))
+                 (cons 'chain-id "coding-fast")
+               ) ;list
+             ) ;pi-recovery-run
        ) ;resp
       ) ;
-  (check (pi-assistant-message-stop-reason resp) => "stop")
-  (check received-steering => '("steer-msg-1"))
+  ;; 用户消息到达即结束等待，不触发任何重试
+  (check attempts => 0)
+  (check (pi-assistant-message-stop-reason resp) => "aborted")
+  (check-true (string-contains? (pi-assistant-message-error-message resp) "new user message"))
+  (check (list-ref (assoc 'recovery_end events) 2) => 'interrupted)
+  ;; 等待远未耗尽预算就结束
+  (check (< (- now-ms 1000) 60000) => #t)
 ) ;let*
 
 ;; 5. 多次尝试累计超过 maxWaitMs：返回超时错误并写入带有 wait-timeout 的 EXHAUSTED 日志
@@ -156,7 +162,7 @@
        (attempts 0)
        (events '())
        (resp
-         (pi-recovery-run (lambda (steering) (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
+         (pi-recovery-run (lambda () (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
            cfg
            (list (cons 'now-fn (lambda () now-ms))
              (cons 'sleep-fn (lambda (ms) (set! now-ms (+ now-ms ms))))
@@ -187,7 +193,7 @@
        (now-ms 1000)
        (attempts 0)
        (resp
-         (pi-recovery-run (lambda (steering) (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
+         (pi-recovery-run (lambda () (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
            cfg
            (list (cons 'now-fn (lambda () now-ms))
              (cons 'sleep-fn (lambda (ms) (set! now-ms (+ now-ms ms))))
@@ -209,7 +215,7 @@
        (now-ms 5000)
        (attempts 0)
        (resp
-         (pi-recovery-run (lambda (steering) (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
+         (pi-recovery-run (lambda () (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
            cfg
            (list (cons 'now-fn (lambda () now-ms))
              ;; 模拟系统时间回拨：时钟倒退，单调时钟注入值仍只前进

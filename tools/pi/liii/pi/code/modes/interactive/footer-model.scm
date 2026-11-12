@@ -44,7 +44,7 @@
                      ) ;string-append
                    ) ;if
              ) ;base
-             (node (%active-node-label active-node pending))
+             (node (%active-node-label active-node))
             ) ;
         (if node (string-append base " -> " node) base)
       ) ;let*
@@ -58,9 +58,8 @@
     ) ;define
 
     ;; 当前节点串：(provider) model • level；第五项为实际上报的
-    ;; supports-thinking?，缺省按支持处理以兼容旧三元组/四元组载荷。
-    ;; 存在待确认等级时在等级后追加 "*"，表示右侧仍为上次生效值
-    (define (%active-node-label node pending)
+    ;; supports-thinking?，缺省按支持处理以兼容旧三元组/四元组载荷
+    (define (%active-node-label node)
       (if
         (not
           (and (pair? node) (string? (cadr node)) (not (string-null? (cadr node))))
@@ -70,10 +69,9 @@
                (m (cadr node))
                (tl (if (>= (length node) 3) (caddr node) "off"))
                (supports? (if (>= (length node) 5) (list-ref node 4) #t))
-               (label (pi-footer-model-label m tl supports?))
               ) ;
           (string-append (%provider-prefix (and (string? p) p))
-            (if (and pending supports?) (string-append label "*") label)
+            (pi-footer-model-label m tl supports?)
           ) ;string-append
         ) ;let*
       ) ;if

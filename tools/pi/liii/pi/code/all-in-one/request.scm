@@ -16,7 +16,6 @@
     (liii pi ai thinking)
     (liii pi code config)
     (liii pi code modes output)
-    (liii pi code all-in-one boundary)
     (liii pi code all-in-one chain)
     (liii pi code all-in-one loader)
     (liii pi code all-in-one probe)
@@ -37,9 +36,12 @@
 
     ;; 从已解析的节点配置中挑出请求层需要的键，节点等级一律以节点默认值为准；
     ;; 主 cfg 的额外键（emit、get-steering-messages、now-fn 等）追加在末尾
+    ;; supports-thinking 必须取节点真实模型的能力，否则会被主 cfg 中伪模型的值
+    ;; 覆盖，导致页脚按伪模型判断是否渲染等级后缀
     (define (%node-request-keys)
       '(provider provider-api model-id api-key model-meta models-store
-         thinking-level proxy-url config-dir thinking-level-explicit?)
+         thinking-level supports-thinking proxy-url config-dir
+         thinking-level-explicit?)
     ) ;define
 
     (define (%node-config config provider model-id thinking-level)
@@ -249,13 +251,6 @@
       ) ;let*
     ) ;define
 
-    (define (%recovery-turn-messages messages steering-texts)
-      ;; 原上下文先经边界清洗，再把等待期间收到的 steering 逐条转为 user message
-      (append (pi-boundary-recover-messages messages)
-        (map pi-user-message steering-texts)
-      ) ;append
-    ) ;define
-
     (define (%resolve-chain aio-cfg chain-id)
       (let ((chains (all-in-one-cfg-chains aio-cfg)))
         (and chain-id
@@ -309,19 +304,8 @@
                 ) ;
             (if (not (eq? initial 'all-nodes-exhausted))
               initial
-              ;; 全链枯竭：接入 recovery 守护与自动续跑
-              (pi-recovery-run (lambda (steering-texts)
-                                 (%run-chain-turn chain
-                                   chain-id
-                                   (%recovery-turn-messages messages steering-texts)
-                                   #f
-                                   execute
-                                   aio-cfg
-                                   dir
-                                   probe-adapter
-                                   config
-                                 ) ;%run-chain-turn
-                               ) ;lambda
+              ;; 全链枯竭：接入 recovery 守护与到期重试（原上下文续跑）
+              (pi-recovery-run (lambda () (run-turn messages #f))
                 aio-cfg
                 (%recovery-options config chain-id dir)
               ) ;pi-recovery-run

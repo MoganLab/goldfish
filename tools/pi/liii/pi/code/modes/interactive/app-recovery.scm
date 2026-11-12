@@ -50,7 +50,7 @@
                    chain-id
                    " failed. Retrying in "
                    (number->string (quotient (+ reason 999) 1000))
-                   "s... (Esc to abort, Enter to retry now, Alt+Enter to queue)"
+                   "s... (Esc or type a message to stop waiting)"
                  ) ;string-append
                ) ;pi-app-update-recovery-card!
               ) ;
