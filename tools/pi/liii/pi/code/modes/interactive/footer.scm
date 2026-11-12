@@ -23,6 +23,7 @@
     (liii pi code core session-stats)
     (liii pi code core context-usage)
     (liii pi code modes interactive common)
+    (liii pi code modes interactive footer-model)
   ) ;import
   (begin
 
@@ -110,8 +111,6 @@
       (let* ((formatted-cwd (format-cwd-for-footer (pi-footer-state-cwd st) home))
              (branch (pi-footer-state-branch st))
              (session-name (pi-footer-state-session-name st))
-             (provider (pi-footer-state-provider st))
-             (model (pi-footer-state-model st))
              (stats (pi-footer-state-stats st))
              (context-info (pi-footer-state-context-info st))
              (context-percent (pi-footer-state-context-percent st))
@@ -128,22 +127,12 @@
                  base-line1
                ) ;if
              ) ;line1
-             (right-part
-               (let* ((tl (pi-footer-state-thinking-level st))
-                      (supports? (pi-footer-state-supports-thinking? st))
-                      (base
-                        (string-append
-                          (if (and provider (not (string-null? provider)))
-                            (string-append "(" provider ") ")
-                            ""
-                          ) ;if
-                          (pi-footer-model-label model tl supports?)
-                        ) ;string-append
-                      ) ;base
-                      (node (%active-node-label (pi-footer-state-active-node st)))
-                     ) ;
-                 (if node (string-append base " -> " node) base)
-               ) ;let*
+             (right-part (pi-footer-model-part (pi-footer-state-provider st)
+                           (pi-footer-state-model st)
+                           (pi-footer-state-thinking-level st)
+                           (pi-footer-state-supports-thinking? st)
+                           (pi-footer-state-active-node st)
+                         ) ;pi-footer-model-part
              ) ;right-part
              (left-part
                (cond
@@ -176,36 +165,6 @@
             ) ;
         (list res1 res2)
       ) ;let*
-    ) ;define
-
-    ;; 组装 footer 右下角的模型显示串（对齐上游 pi）：
-    ;; 模型支持 reasoning 时，off 也显式显示 " • thinking off"；
-    ;; 不支持 reasoning 的模型只显示 model-id
-    (define (pi-footer-model-label model-id thinking-level supports-thinking?)
-      (if supports-thinking?
-        (let ((tl (if (string? thinking-level) (string-trim-both thinking-level) "")))
-          (if (or (string-null? tl) (string=? tl "off"))
-            (string-append model-id " • thinking off")
-            (string-append model-id " • " tl)
-          ) ;if
-        ) ;let
-        model-id
-      ) ;if
-    ) ;define
-
-    ;; 当前节点串：(provider) model • level；模型缺失时返回 #f
-    (define (%active-node-label node)
-      (and (pair? node)
-        (let ((p (car node)) (m (cadr node)))
-          (and (string? m)
-            (not (string-null? m))
-            (string-append
-              (if (and (string? p) (not (string-null? p))) (string-append "(" p ") ") "")
-              (pi-footer-model-label m (caddr node) #t)
-            ) ;string-append
-          ) ;and
-        ) ;let
-      ) ;and
     ) ;define
 
     (define (%footer-state comp)

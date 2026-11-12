@@ -134,19 +134,24 @@
 
     ;; 应用目标会话记录的思考等级：仅模型支持且值合法时生效；
     ;; 不支持或值非法时收敛为 off 并返回提示文案（#f 表示无需提示），
-    ;; 状态未记录思考等级时保留模型默认等级
+    ;; 状态未记录思考等级时保留模型默认等级。
+    ;; 恢复到用户主动设置的等级时保留显式覆盖语义；自动 clamp 产生的
+    ;; off 不得凭空生成新的用户意图。
     (define (%apply-resume-thinking! app state)
       (let ((level (%resume-ref state 'thinkingLevel)))
         (cond ((not (string? level)) #f)
               ((not (pi-app-supports-thinking? app))
                (pi-app-apply-thinking-level-ui! app "off")
+               (%pi-app-thinking-level-explicit?-set! app #f)
                (string-append "thinking level \"" level "\" unsupported; using \"off\"")
               ) ;
               ((member level pi-thinking-levels)
+               (%pi-app-thinking-level-explicit?-set! app #t)
                (pi-app-apply-thinking-level-ui! app level)
                #f
               ) ;
               (else (pi-app-apply-thinking-level-ui! app "off")
+                (%pi-app-thinking-level-explicit?-set! app #f)
                 (string-append "unknown thinking level \"" level "\"; using \"off\"")
               ) ;else
         ) ;cond

@@ -54,7 +54,7 @@
 ) ;when
 (path-mkdir (path (path-join TMP-DIR "models" "stub")) :parents #t :exist-ok #t)
 (path-write-text (path->string (path-join TMP-DIR "all-in-one.json"))
-  "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1234,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"},{\"provider\":\"stub\",\"model\":\"two\",\"thinkingLevel\":\"high\"}]}]}"
+  "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1234,\"continuous\":false,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"},{\"provider\":\"stub\",\"model\":\"two\",\"thinkingLevel\":\"high\"}]}]}"
 ) ;path-write-text
 (path-write-text (path->string (path-join TMP-DIR "models" "providers.json"))
   "[\"stub\"]"
@@ -127,11 +127,11 @@
     (check (list-ref captured 3) => "system")
     (check (list-ref captured 4) => '(read))
     (check (list-ref captured 5) => 60)
-    ;; 交接前已把实际节点回传给前台
+    ;; 交接前已把实际节点回传给前台（含 supports-thinking?）
     (check
       (filter (lambda (p) (eq? (car p) 'active_node)) node-events)
       =>
-      (list (cons 'active_node '("stub" "two" "high" 234567)))
+      (list (cons 'active_node '("stub" "two" "high" 234567 #t)))
     ) ;check
   ) ;let
 ) ;let

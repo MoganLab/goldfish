@@ -31,6 +31,7 @@
     (liii pi code core context-usage)
     (liii pi code modes interactive common)
     (liii pi code modes interactive footer)
+    (liii pi code modes interactive status-card)
   ) ;import
   (begin
 
@@ -85,10 +86,15 @@
       ) ;let
     ) ;define
 
-    ;; job 载荷：(消息 thinking-level provider model-id)，
+    ;; job 载荷：(消息 thinking-level provider model-id thinking-level-explicit?)，
     ;; 会话内 /model 与 /thinking 切换均对下一条消息生效（对齐上游 per-request 覆盖）
     (define (%pi-app-job-payload app msg)
-      (list msg (pi-app-thinking-level app) (pi-app-provider app) (pi-app-model app))
+      (list msg
+        (pi-app-thinking-level app)
+        (pi-app-provider app)
+        (pi-app-model app)
+        (pi-app-thinking-level-explicit? app)
+      ) ;list
     ) ;define
 
     ;; 队列调度：消费前先上屏深蓝卡片并即时渲染；返回 #t 表示本次消费并渲染
@@ -231,6 +237,60 @@
       ) ;if
     ) ;define
 
+    (define (%format-recovery-wait-text chain-id rem-ms)
+      (let ((sec (quotient (+ rem-ms 999) 1000)))
+        (string-append "All nodes in "
+          chain-id
+          " failed. Retrying in "
+          (number->string sec)
+          "s... (Esc to abort, Enter to retry now, Alt+Enter to queue)"
+        ) ;string-append
+      ) ;let
+    ) ;define
+
+    (define (%pi-app-update-recovery-card! app text)
+      (%pi-app-invalidate-scroll! app)
+      (let ((card (pi-app-recovery-card app)))
+        (if card
+          (status-card-set-message! card text)
+          (let ((new-card (make-status-card text)))
+            (%pi-app-recovery-card-set! app new-card)
+            (container-add! (%pi-app-chat app) new-card)
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%pi-app-handle-recovery-event! app ev)
+      (case (car ev)
+            ((recovery_wait recovery_tick)
+             (let ((chain-id (cadr ev)) (rem-ms (caddr ev)))
+               (%pi-app-update-recovery-card! app (%format-recovery-wait-text chain-id rem-ms))
+             ) ;let
+            ) ;
+            ((recovery_retry)
+             (let ((chain-id (cadr ev)))
+               (%pi-app-update-recovery-card! app
+                 (string-append "Retrying all-in-one chain " chain-id "...")
+               ) ;%pi-app-update-recovery-card!
+             ) ;let
+            ) ;
+            ((recovery_end)
+             (let ((chain-id (cadr ev)) (reason (caddr ev)))
+               (when (pi-app-recovery-card app)
+                 (status-card-set-message! (pi-app-recovery-card app)
+                   (if (eq? reason 'success)
+                     (string-append "Chain " chain-id " recovered.")
+                     (string-append "Chain " chain-id " recovery ended: " (object->string reason))
+                   ) ;if
+                 ) ;status-card-set-message!
+                 (%pi-app-recovery-card-set! app #f)
+               ) ;when
+             ) ;let
+            ) ;
+      ) ;case
+    ) ;define
+
     (define (%pi-app-handle-event! app ev)
       (case (car ev)
             ((bash_complete) (%pi-app-handle-bash-complete! app ev))
@@ -266,6 +326,9 @@
             ((compaction) (pi-footer-set-context-unknown! (%pi-app-footer app)))
             ;; all-in-one 交接后刷新页脚当前节点；普通供应商清空为 #f
             ((active_node) (pi-footer-set-active-node! (%pi-app-footer app) (cadr ev)))
+            ((recovery_wait recovery_tick recovery_retry recovery_end)
+             (%pi-app-handle-recovery-event! app ev)
+            ) ;
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
             ;; 移除待处理显示并上屏正式用户卡片（对齐上游 message_start 双动作）
@@ -296,6 +359,7 @@
                     ;; pi 的 Aborted 状态显示），再解除 busy 锁定
                     ((agent_settled)
                      (%pi-app-close-thinking-card! app)
+                     (%pi-app-recovery-card-set! app #f)
                      (when (and (> (length ev) 1) (cadr ev))
                        (pi-app-add-assistant-text! app "Aborted")
                      ) ;when

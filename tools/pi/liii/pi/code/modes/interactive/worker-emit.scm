@@ -189,6 +189,10 @@
                (pi-tui-send-event! event-chan (list 'retry (car args)))
              ) ;when
             ) ;
+            ((memq event-type '(recovery_wait recovery_tick recovery_retry
+                                 recovery_end))
+             (pi-tui-send-event! event-chan (cons event-type args))
+            ) ;
             ;; 任务全部结算完成：携带 aborted 标志（主线程据此上屏 Aborted 提示）
             ((eq? event-type 'agent_settled)
              (pi-tui-send-event! event-chan

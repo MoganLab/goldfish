@@ -37,6 +37,13 @@
   ) ;import
   (begin
 
+    ;; alist 覆盖：pairs 中的键优先，其余沿用原 cfg
+    (define (%cfg-override cfg pairs)
+      (let ((keys (map car pairs)))
+        (append pairs (filter (lambda (p) (not (memq (car p) keys))) cfg))
+      ) ;let
+    ) ;define
+
     ;; 轮询一条注入消息（steering / follow-up 通道共用）：非阻塞拉取并同步回发事件
     (define (%poll-one-injected chan event-chan)
       (let ((msg
@@ -54,10 +61,8 @@
     ) ;define
 
     ;; worker 运行期 cfg：注入 steering / follow-up 轮询回调，同名键一律替换
-    (define %pi-worker-poll-keys '(get-steering-messages get-follow-up-messages))
-
     (define (%pi-worker-poll-cfg cfg steering-chan follow-up-chan event-chan)
-      (append
+      (%cfg-override cfg
         (list (cons 'get-steering-messages
                 (lambda () (%poll-one-injected steering-chan event-chan))
               ) ;cons
@@ -65,28 +70,23 @@
             (lambda () (%poll-one-injected follow-up-chan event-chan))
           ) ;cons
         ) ;list
-        (filter
-          (lambda (p) (not (memq (car p) %pi-worker-poll-keys)))
-          cfg
-        ) ;filter
-      ) ;append
+      ) ;%cfg-override
     ) ;define
 
-    ;; 覆盖 cfg alist 的 thinking-level 项（会话内 shift+tab 切换后生效）
-    (define (pi-cfg-with-thinking cfg tl)
-      (cons (cons 'thinking-level tl)
-        (filter
-          (lambda (p) (not (eq? (car p) 'thinking-level)))
-          cfg
-        ) ;filter
-      ) ;cons
-    ) ;define
-
-    ;; alist 覆盖：pairs 中的键优先，其余沿用原 cfg
-    (define (%cfg-override cfg pairs)
-      (let ((keys (map car pairs)))
-        (append pairs (filter (lambda (p) (not (memq (car p) keys))) cfg))
-      ) ;let
+    ;; 覆盖 cfg 的 thinking-level（会话内 shift+tab 切换后生效）。
+    ;; opt-explicit 给出时一并写入显式意图标记；未给出时保留原标记。
+    (define (pi-cfg-with-thinking cfg tl . opt-explicit)
+      (%cfg-override cfg
+        (cons (cons 'thinking-level tl)
+          (if (pair? opt-explicit)
+            (list (cons 'thinking-level-explicit? (car opt-explicit)))
+            (if (assoc 'thinking-level-explicit? cfg)
+              (list (assoc 'thinking-level-explicit? cfg))
+              '()
+            ) ;if
+          ) ;if
+        ) ;cons
+      ) ;%cfg-override
     ) ;define
 
     ;; 覆盖 cfg 的模型相关项（会话内 /model 切换后下一条消息生效，对齐上游 setModel）
@@ -112,9 +112,17 @@
       ) ;let*
     ) ;define
 
+    ;; job 载荷第五项为用户显式意图标记；旧四元组载荷沿用 cfg 现有标记
+    (define (%job-explicit job cfg)
+      (if (>= (length job) 5)
+        (list-ref job 4)
+        (cdr (or (assoc 'thinking-level-explicit? cfg) '(#f . #f)))
+      ) ;if
+    ) ;define
+
     ;; job 载荷 → 任务 cfg：跨 provider 切换时重新执行 config augmenter
     (define (%worker-job-cfg cfg job . opt-parsed)
-      (let* ((base (pi-cfg-with-thinking cfg (cadr job)))
+      (let* ((base (pi-cfg-with-thinking cfg (cadr job) (%job-explicit job cfg)))
              (model-job? (and (> (length job) 3) (string? (list-ref job 2)) (string? (list-ref job 3)))
              ) ;model-job?
              (provider (and model-job? (list-ref job 2)))
@@ -136,13 +144,7 @@
     ;; 同一会话的请求路由到同一缓存分片，提升前缀缓存命中率
     (define (%worker-cfg-with-session-id cfg session-file)
       (if (string? session-file)
-        (append
-          (filter
-            (lambda (kv) (not (eq? (car kv) 'session-id)))
-            cfg
-          ) ;filter
-          (list (cons 'session-id session-file))
-        ) ;append
+        (%cfg-override cfg (list (cons 'session-id session-file)))
         cfg
       ) ;if
     ) ;define
