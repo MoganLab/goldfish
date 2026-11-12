@@ -225,7 +225,8 @@
     ;; 后台流式执行：累计文本保留原始字节，回调与返回值都是清理后的文本。
     ;; 清理只在通过 100ms 节流后才执行（高频字节块不触发挥霍性的全量清理，
     ;; 否则大输出流式时 CPU 会飕升）；每次对累计全文重新清理，
-    ;; 跨块不完整转义序列在下一帧自愈（等效上游 splitIncompleteAnsiSuffix）
+    ;; 跨块不完整转义序列在下一帧自愈（等效上游 splitIncompleteAnsiSuffix）；
+    ;; 结算路径只做一次全量清理（clean 同时用于最终帧与返回值）
     (define (%run-bash-streaming command cwd timeout on-update check-abort)
       (let* ((text "") (last-update 0) (last-raw ""))
         (define (send-update! force?)
@@ -246,28 +247,35 @@
             (send-update! #f)
           ) ;when
         ) ;define
-        (let ((ret (run-streaming-chunks (list (pi-find-bash-path) "-c" command)
-                     :cwd           cwd
-                     :on-chunk      append-chunk!
-                     :timeout       timeout
-                     :should-abort? check-abort
-                   ) ;run-streaming-chunks
-              ) ;ret
-             ) ;
-          (send-update! #t)
-          (let ((clean (pi-bash-clean-output text)))
-            (cond ((eq? ret 'aborted) (values clean -2))
-                  ((eq? ret #f) (values clean -1))
-                  (else (values clean ret))
-            ) ;cond
-          ) ;let
-        ) ;let
+        (let* ((ret (run-streaming-chunks (list (pi-find-bash-path) "-c" command)
+                      :cwd           cwd
+                      :on-chunk      append-chunk!
+                      :timeout       timeout
+                      :should-abort? check-abort
+                    ) ;run-streaming-chunks
+               ) ;ret
+               ;; 结算只做一次全量清理：clean 同时用于最终帧与返回值，
+               ;; 不再经 send-update! 先清理一遍（中止/完成路径曾双次全量
+               ;; 清理，MB 级输出时数百毫秒到秒级）；最终帧仅在文本自
+               ;; 上帧变化时发射（与 send-update! 的变化门控一致）
+               (clean (pi-bash-clean-output text))
+              ) ;
+          (when (not (string=? text last-raw))
+            (on-update clean)
+          ) ;when
+          (cond ((eq? ret 'aborted) (values clean -2))
+                ((eq? ret #f) (values clean -1))
+                (else (values clean ret))
+          ) ;cond
+        ) ;let*
       ) ;let*
     ) ;define
 
-    (define (%format-bash-result raw-text exit-code timeout)
-      (let* ((clean-text (pi-bash-clean-output raw-text))
-             (text (pi-truncate-bash-output clean-text))
+    ;; 结算格式化：输入为已清理文本（各执行路径自行完成唯一一次全量清理，
+    ;; 流式路径在 %run-bash-streaming、捕获路径在调用点），此处只做
+    ;; 截断与错误状态拼装，不再重复清理
+    (define (%format-bash-result clean-text exit-code timeout)
+      (let* ((text (pi-truncate-bash-output clean-text))
              (trimmed-text (string-trim-both text))
             ) ;
         (cond ((= exit-code 0) (values text #f))
@@ -359,9 +367,9 @@
                     ) ;res
                    ) ;
                 (if (either-right? res)
-                  (%format-bash-result (to-right res) 0 timeout)
+                  (%format-bash-result (pi-bash-clean-output (to-right res)) 0 timeout)
                   (let ((err (to-left res)))
-                    (%format-bash-result (process-error-stdout err)
+                    (%format-bash-result (pi-bash-clean-output (process-error-stdout err))
                       (process-error-code err)
                       timeout
                     ) ;%format-bash-result
