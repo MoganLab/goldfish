@@ -123,7 +123,7 @@
                         (min 50 (if (>= rem-ms 0) rem-ms 50) (if (>= idle-rem-ms 0) idle-rem-ms 50))
                       ) ;max
                     ) ;poll-timeout
-                    (ev (g_subprocess-poll-io proc poll-timeout))
+                    (ev (process-poll-io proc poll-timeout))
                    ) ;
                (cond ((eq? ev 'stdout) (%read-and-dispatch! proc 'stdout on-stdout) (loop))
                      ((eq? ev 'stderr) (%read-and-dispatch! proc 'stderr on-stderr) (loop))
@@ -135,8 +135,8 @@
                      ((eq? ev 'eof) (%finish-stream-process! proc on-stdout on-stderr rem-ms))
                      (else
                        (if (and (not (process-alive? proc))
-                             (g_subprocess-eof? proc 'stdout)
-                             (g_subprocess-eof? proc 'stderr)
+                             (process-eof? proc 'stdout)
+                             (process-eof? proc 'stderr)
                            ) ;and
                          (%finish-stream-process! proc on-stdout on-stderr rem-ms)
                          (begin
@@ -266,7 +266,7 @@
               (abort!)
               (if (and deadline-ms (<= (%calc-rem-ms deadline-ms) 0))
                 (kill!)
-                (let ((ev (g_subprocess-poll-io proc 50)))
+                (let ((ev (process-poll-io proc 50)))
                   (cond
                    ((eq? ev 'stdout)
                     (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
@@ -274,7 +274,7 @@
                     ) ;let
                    ) ;
                    ((eq? ev 'eof) (finish!))
-                   ((and (not (process-alive? proc)) (g_subprocess-eof? proc 'stdout)) (finish!))
+                   ((and (not (process-alive? proc)) (process-eof? proc 'stdout)) (finish!))
                    (else (loop))
                   ) ;cond
                 ) ;let

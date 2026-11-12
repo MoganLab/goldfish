@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -148,6 +149,17 @@ struct Subprocess {
   bool   stderr_eof= false;
 
   tb_hong_t last_activity_time= 0;
+
+#ifndef TB_CONFIG_OS_WINDOWS
+  // 查询管道中已缓冲的字节数，用于区分“可读”与“已到达末尾”。
+  // 管道写端关闭后，Linux 的 poll 仅返回 POLLHUP，而 BSD/macOS 会同时返回
+  // POLLIN|POLLHUP，因此不能只看 revents 判断是否还有数据可读。
+  static bool pipe_has_buffered_data (int fd) {
+    int avail= 0;
+    if (ioctl (fd, FIONREAD, &avail) != 0) return true; // 无法探测时保守视为可读
+    return avail > 0;
+  }
+#endif
 
   void update_activity () { last_activity_time= tb_mclock (); }
 
@@ -556,30 +568,44 @@ struct Subprocess {
     if (!stderr_buffer.empty ()) return 2;
 
 #ifdef TB_CONFIG_OS_WINDOWS
-    bool out_avail= false, err_avail= false;
-    if (!stdout_eof && h_out_read) {
-      DWORD avail= 0;
-      if (PeekNamedPipe (h_out_read, NULL, 0, NULL, &avail, NULL)) {
-        if (avail > 0) out_avail= true;
+    ULONGLONG deadline= GetTickCount64 () + (timeout_ms < 0 ? 50 : timeout_ms);
+    for (;;) {
+      bool out_avail= false, err_avail= false;
+      if (!stdout_eof && h_out_read) {
+        DWORD avail= 0;
+        if (PeekNamedPipe (h_out_read, NULL, 0, NULL, &avail, NULL)) {
+          if (avail > 0) out_avail= true;
+        }
+        else {
+          stdout_eof= true;
+        }
       }
-      else {
-        stdout_eof= true;
+      if (!stderr_eof && h_err_read) {
+        DWORD avail= 0;
+        if (PeekNamedPipe (h_err_read, NULL, 0, NULL, &avail, NULL)) {
+          if (avail > 0) err_avail= true;
+        }
+        else {
+          stderr_eof= true;
+        }
       }
+      if (out_avail || err_avail) update_activity ();
+      if (out_avail && err_avail) return 3;
+      if (out_avail) return 1;
+      if (err_avail) return 2;
+      if (stdout_eof && stderr_eof) return -1;
+      // 与 POSIX 路径的 poll(timeout) 对齐：在超时窗口内持续轮询，
+      // 避免 Windows 下首次探测无数据时立刻返回 0 造成竞态。
+      if (timeout_ms == 0) break;
+      if (GetTickCount64 () >= deadline) break;
+      if (update_status () && !stdout_eof && !stderr_eof) {
+        // 进程已退出但管道尚未关闭时，继续探测至超时，等待收尾数据。
+      }
+      Sleep (5);
     }
-    if (!stderr_eof && h_err_read) {
-      DWORD avail= 0;
-      if (PeekNamedPipe (h_err_read, NULL, 0, NULL, &avail, NULL)) {
-        if (avail > 0) err_avail= true;
-      }
-      else {
-        stderr_eof= true;
-      }
+    if (update_status ()) {
+      if (stdout_eof && stderr_eof) return -1;
     }
-    if (out_avail || err_avail) update_activity ();
-    if (out_avail && err_avail) return 3;
-    if (out_avail) return 1;
-    if (err_avail) return 2;
-    if (stdout_eof && stderr_eof) return -1;
     return 0;
 #else
     struct pollfd pfds[2];
@@ -601,16 +627,32 @@ struct Subprocess {
 
     int pret= ::poll (pfds, nfds, timeout_ms);
     if (pret > 0) {
-      bool out_ready= (out_idx >= 0 && (pfds[out_idx].revents & (POLLIN | POLLHUP | POLLERR)));
-      bool err_ready= (err_idx >= 0 && (pfds[err_idx].revents & (POLLIN | POLLHUP | POLLERR)));
-      bool out_in   = (out_idx >= 0 && (pfds[out_idx].revents & POLLIN));
-      bool err_in   = (err_idx >= 0 && (pfds[err_idx].revents & POLLIN));
+      bool out_in= false, err_in= false;
+      // 管道挂断（写端关闭）不等于还有数据可读：此时若管道缓冲为空，
+      // 说明该流已到达末尾，应置 EOF 标记而不是上报可读事件。
+      if (out_idx >= 0 && (pfds[out_idx].revents & (POLLIN | POLLHUP | POLLERR))) {
+        if (pipe_has_buffered_data (pfds[out_idx].fd)) {
+          out_in= true;
+        }
+        else {
+          stdout_eof= true;
+        }
+      }
+      if (err_idx >= 0 && (pfds[err_idx].revents & (POLLIN | POLLHUP | POLLERR))) {
+        if (pipe_has_buffered_data (pfds[err_idx].fd)) {
+          err_in= true;
+        }
+        else {
+          stderr_eof= true;
+        }
+      }
       if (out_in || err_in) {
         update_activity ();
       }
-      if (out_ready && err_ready) return 3;
-      if (out_ready) return 1;
-      if (err_ready) return 2;
+      if (out_in && err_in) return 3;
+      if (out_in) return 1;
+      if (err_in) return 2;
+      if (is_eof (false) && is_eof (true)) return -1;
     }
     if (pret == 0 && update_status ()) {
       if (stdout_eof && stderr_eof) return -1;
