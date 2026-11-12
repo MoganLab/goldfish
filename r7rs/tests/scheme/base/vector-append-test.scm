@@ -34,6 +34,11 @@
 (check (vector-append #() #(a)) => #(a))
 (check (vector-append #(a) #()) => #(a))
 (check (vector-append #() #()) => #())
+(check (vector-append #(1 2.5) #("hello" 'symbol) #(#\c #t #f))
+  =>
+  #(1 2.5 "hello" 'symbol #\c #t #f)
+) ;check
+(check (vector-append #((1 2)) #((3 4))) => #((1 2) (3 4)))
 (let ((v #(a b)))
   (let ((result (vector-append v #(c))))
     (vector-set! result 0 'x)
