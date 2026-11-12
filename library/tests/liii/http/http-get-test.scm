@@ -90,17 +90,17 @@
   ) ;when
 ) ;let
 
-;; 不可达网络地址短超时熔断
+;; 超时应抛出 http-client-timeout-error 异常
 (let* ((t0 (current-second))
-       (r (http-get "http://10.255.255.1" :timeout 0.5 :idle-timeout 1))
-       (dt (- (current-second) t0))
+       (dt (begin
+             (check-catch 'http-client-timeout-error
+               (http-get "http://192.0.2.1" :timeout 0.2 :idle-timeout 1)
+             ) ;check-catch
+             (- (current-second) t0)
+           ) ;begin
+       ) ;dt
       ) ;
-  (check (r 'status-code) => 0)
   (check-true (< dt 2.5))
-  (check-true (integer? (r 'error-code)))
-  (check-true (> (r 'error-code) 0))
-  (check-true (string? (r 'reason)))
-  (check-true (> (string-length (r 'reason)) 0))
 ) ;let*
 
 (define (binary-file-size path)

@@ -84,7 +84,8 @@
 
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
        (port (read-stub-port proc))
-       (base-url (string-append "http://127.0.0.1:" (number->string port) "/chat-abort-hang"))
+       (base-url (string-append "http://127.0.0.1:" (number->string port) "/mk-kimi-plain"))
+       (abort-hang-url (string-append "http://127.0.0.1:" (number->string port) "/chat-abort-hang"))
       ) ;
   (check-true (number? port))
 
@@ -163,7 +164,7 @@
          (t0 (current-second))
          (cfg (list (cons 'model-id "chat-abort-hang")
                 (cons 'model-meta
-                  (list (cons 'base-url base-url) (cons 'max-tokens 1024))
+                  (list (cons 'base-url abort-hang-url) (cons 'max-tokens 1024))
                 ) ;list
                 (cons 'api-key "mk-kimi-key-1-x")
                 (cons 'proxy-url #f)

@@ -100,18 +100,21 @@
   ) ;let*
 
   ;; 2. :progress 返回 #t 不影响正常完成（慢流靠 progress 轮询推进，
-  ;;    stub 挂起 30s，此处以 5s timeout 熔断，验证 error 码为超时而非中止）
+  ;;    stub 挂起 30s，此处以 2s timeout 熔断，验证抛出 http-client-timeout-error 而非中止）
   (let* ((t0 (current-second))
-         (r (g_http-post base-url '() "" '() '() '()
-             (lambda (chunk) #t)
-             5 #f
-             (lambda (dlt dln ult uln) #t)
-           ) ;g_http-post
-         ) ;r
-         (dt (- (current-second) t0))
+         (dt (begin
+               (check-catch 'http-client-timeout-error
+                 (g_http-post base-url '() "" '() '() '()
+                   (lambda (chunk) #t)
+                   2 #f
+                   (lambda (dlt dln ult uln) #t)
+                 ) ;g_http-post
+               )
+               (- (current-second) t0)
+             ) ;begin
+         ) ;dt
         ) ;
-    (check-true (< dt 8))
-    (check-true (> (r 'error-code) 0))
+    (check-true (< dt 5))
   ) ;let*
 
   ;; 3. http-post 关键字参数 :progress 透传中止语义：

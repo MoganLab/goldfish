@@ -15,8 +15,8 @@
 ;;
 
 (define-library (liii http)
-  (import (liii error) (liii http common) (scheme file))
-  (export http-head http-get http-post http-delete http-ok?)
+  (import (liii error) (liii http common) (liii http error) (scheme file))
+  (export http-head http-get http-post http-delete http-ok? http-client-timeout-error)
   (begin
 
     (define (http-stream-call runner output-file callback)
