@@ -92,9 +92,14 @@
       ) ;let
     ) ;define
 
+    ;; retry 字段必须是十进制非负整数；string->number 失败时返回 #f，
+    ;; 存在性守卫先行，避免把 #f 送入数值比较
     (define (%parse-sse-retry val)
       (let ((n (string->number val 10)))
-        (and (exact-integer? n) (>= n 0) n)
+        (if (and n (exact-integer? n) (>= n 0))
+          n
+          #f
+        ) ;if
       ) ;let
     ) ;define
 

@@ -41,6 +41,7 @@
   (liii path)
   (liii goldcheck type-hint)
   (hint scheme base)
+  (hint scheme cxr)
   (hint scheme file)
   (hint scheme read)
   (hint srfi srfi-1)
@@ -121,6 +122,12 @@
     "goldfish/hint/srfi/srfi-1.scm"
     "tools/check/hint/liii/goldcheck/no-glue.scm"
     "r7rs/hint/scheme/file.scm" "tools/check/hint/liii/goldcheck/path.scm"
+    "r7rs/hint/scheme/case-lambda.scm" "r7rs/hint/scheme/char.scm"
+    "r7rs/hint/scheme/complex.scm" "r7rs/hint/scheme/cxr.scm"
+    "r7rs/hint/scheme/eval.scm" "r7rs/hint/scheme/inexact.scm"
+    "r7rs/hint/scheme/lazy.scm" "r7rs/hint/scheme/load.scm"
+    "r7rs/hint/scheme/process-context.scm" "r7rs/hint/scheme/repl.scm"
+    "r7rs/hint/scheme/time.scm" "r7rs/hint/scheme/write.scm"
     "goldfish/hint/liii/string.scm" "library/hint/liii/path.scm"
     "library/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
     "library/hint/liii/goldfmt/format.scm"
@@ -155,12 +162,17 @@
 ) ;check
 
 ;; no-glue 全量部分检查涉及的外部过程均已登记 hint。
+;; cadar/caddr/cadddr 由 (scheme cxr) 导出，签名登记在 (hint scheme cxr)。
 (for-each
   (lambda (name) (check-true (pair? (hint-scheme/base name))))
   '(car open-input-string catch eof-object null? pair? pair-line-number
      symbol? symbol->string eq? eqv? equal? assq cons list cdr reverse cadr
-     assoc caar append map cddr cadddr list-ref + dynamic-wind eof-object? caddr
-     close-input-port string=? = not apply cadar values error)
+     assoc caar append map cddr list-ref + dynamic-wind eof-object?
+     close-input-port string=? = not apply values error)
+) ;for-each
+(for-each
+  (lambda (name) (check-true (pair? (hint-scheme/cxr name))))
+  '(cadar caddr cadddr)
 ) ;for-each
 (check-true (pair? (hint-scheme/file 'open-input-file)))
 (check-true (pair? (hint-scheme/read 'read)))

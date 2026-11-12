@@ -1,4 +1,4 @@
-;; go
+;; go-error-isolation
 ;; worker 任务异常隔离的回归测试：任务内的运行时错误不会使线程池崩溃，
 ;; 失败任务不会向通道写入垃圾数据，后续任务照常执行。
 ;;
@@ -47,7 +47,7 @@
 
 (check (chan-recv! ch-healthy 2000) => "healthy-result")
 
-;; 1. 测试任务内部自定义 error 抛出时 Worker 正常容错
+;; 2. 测试任务内部自定义 error 抛出时 Worker 正常容错
 
 (define (crash-task)
   (error 'test-error "simulated task crash")

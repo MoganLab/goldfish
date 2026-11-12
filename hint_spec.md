@@ -50,11 +50,13 @@ Hint 库只由文档、检查和其他开发工具显式加载。
 
 ### 4.1 文件路径
 
-Hint 库集中存放在 `goldfish/hint/` 下：
+Hint 库按板块存放：R7RS 板块在 `r7rs/hint/` 下，语言层在 `goldfish/hint/`
+下，标准库在 `library/hint/` 下，工具在 `tools/<工具名>/hint/` 下。
+同一原库只在其所属板块的 hint 目录中登记一份签名。
 
 ```text
-(scheme base)    -> goldfish/hint/scheme/base.scm
-(scheme write)   -> goldfish/hint/scheme/write.scm
+(scheme base)    -> r7rs/hint/scheme/base.scm
+(scheme write)   -> r7rs/hint/scheme/write.scm
 (liii list)      -> goldfish/hint/liii/list.scm
 (liii xyz)       -> goldfish/hint/liii/xyz.scm
 ```
@@ -64,6 +66,9 @@ Hint 库集中存放在 `goldfish/hint/` 下：
 ```text
 goldfish/hint/liii/foo/bar.scm
 ```
+
+板块归属只决定文件位置，不改变库名约定：`(r7rs/hint/scheme/base.scm)`
+对应的库名仍是 `(hint scheme base)`，查询函数仍是 `hint-scheme/base`。
 
 ## 5. Hint 库接口
 
