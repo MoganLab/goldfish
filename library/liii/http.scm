@@ -19,6 +19,27 @@
   (export http-head http-get http-post http-ok?)
   (begin
 
+    (define (http-stream-call runner output-file callback)
+      (let ((stream-callback
+              (lambda (chunk)
+                (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
+              ) ;lambda
+            ) ;stream-callback
+           ) ;
+        (if output-file
+          (let ((port (open-binary-output-file output-file)))
+            (dynamic-wind (lambda () #f)
+              (lambda ()
+                (runner (lambda (chunk) (write-string chunk port) (stream-callback chunk)))
+              ) ;lambda
+              (lambda () (close-port port))
+            ) ;dynamic-wind
+          ) ;let
+          (runner stream-callback)
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define* (http-head url (timeout #f))
       (let* ((url (http-require-string "http-head" "url" url))
              (timeout (http-optional-timeout "http-head" "timeout" timeout))
@@ -55,35 +76,15 @@
               ((and (not output-file) (not callback))
                (value-error "http-get: stream mode requires output-file or callback")
               ) ;
-              (else
-                (let ((stream-callback
-                        (lambda (chunk)
-                          (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
-                        ) ;lambda
-                      ) ;stream-callback
-                     ) ;
-                  (if output-file
-                    (let ((port (open-binary-output-file output-file)))
-                      (dynamic-wind (lambda () #f)
-                        (lambda ()
-                          (g_http-get url
-                            params
-                            headers
-                            proxy
-                            (lambda (chunk) (write-string chunk port) (stream-callback chunk))
-                            timeout
-                            idle-timeout
-                            progress
-                          ) ;g_http-get
-                        ) ;lambda
-                        (lambda () (close-port port))
-                      ) ;dynamic-wind
-                    ) ;let
-                    (g_http-get url params headers proxy stream-callback timeout
-                      idle-timeout progress
-                    ) ;g_http-get
-                  ) ;if
-                ) ;let
+              (else (http-stream-call (lambda (stream-callback)
+                                        (g_http-get url params headers proxy
+                                          stream-callback timeout idle-timeout
+                                          progress
+                                        ) ;g_http-get
+                                      ) ;lambda
+                      output-file
+                      callback
+                    ) ;http-stream-call
               ) ;else
         ) ;cond
       ) ;let*
@@ -113,61 +114,37 @@
              (timeout (http-optional-timeout "http-post" "timeout" timeout))
              (idle-timeout (http-optional-timeout "http-post" "idle-timeout" idle-timeout))
              (progress (http-optional-procedure "http-post" "progress" progress))
+             (body-or-data (if (null? files)
+                             (http-require-string "http-post" "data" data)
+                             (http-normalize-post-form-data "http-post" data)
+                           ) ;if
+             ) ;body-or-data
+             (headers
+               (if (and (null? files) (> (string-length body-or-data) 0) (null? headers))
+                 '(("Content-Type" . "text/plain"))
+                 headers
+               ) ;if
+             ) ;headers
             ) ;
-        (let* ((body-or-data (if (null? files)
-                               (http-require-string "http-post" "data" data)
-                               (http-normalize-post-form-data "http-post" data)
-                             ) ;if
-               ) ;body-or-data
-               (headers
-                 (if (and (null? files) (> (string-length body-or-data) 0) (null? headers))
-                   '(("Content-Type" . "text/plain"))
-                   headers
-                 ) ;if
-               ) ;headers
+        (cond ((not stream)
+               (g_http-post url params body-or-data headers proxy files #f
+                 timeout idle-timeout progress
+               ) ;g_http-post
               ) ;
-          (cond ((not stream)
-                 (g_http-post url params body-or-data headers proxy files #f
-                   timeout idle-timeout progress
-                 ) ;g_http-post
-                ) ;
-                ((and (not output-file) (not callback))
-                 (value-error "http-post: stream mode requires output-file or callback")
-                ) ;
-                (else
-                  (let ((stream-callback
-                          (lambda (chunk)
-                            (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
-                          ) ;lambda
-                        ) ;stream-callback
-                       ) ;
-                    (if output-file
-                      (let ((port (open-binary-output-file output-file)))
-                        (dynamic-wind (lambda () #f)
-                          (lambda ()
-                            (g_http-post url
-                              params
-                              body-or-data
-                              headers
-                              proxy
-                              files
-                              (lambda (chunk) (write-string chunk port) (stream-callback chunk))
-                              timeout
-                              idle-timeout
-                              progress
-                            ) ;g_http-post
-                          ) ;lambda
-                          (lambda () (close-port port))
-                        ) ;dynamic-wind
-                      ) ;let
-                      (g_http-post url params body-or-data headers proxy files
-                        stream-callback timeout idle-timeout progress
-                      ) ;g_http-post
-                    ) ;if
-                  ) ;let
-                ) ;else
-          ) ;cond
-        ) ;let*
+              ((and (not output-file) (not callback))
+               (value-error "http-post: stream mode requires output-file or callback")
+              ) ;
+              (else (http-stream-call (lambda (stream-callback)
+                                        (g_http-post url params body-or-data
+                                          headers proxy files stream-callback
+                                          timeout idle-timeout progress
+                                        ) ;g_http-post
+                                      ) ;lambda
+                      output-file
+                      callback
+                    ) ;http-stream-call
+              ) ;else
+        ) ;cond
       ) ;let*
     ) ;define*
 

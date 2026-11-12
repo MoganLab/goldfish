@@ -195,10 +195,6 @@
         "reason": "URI 规范解析与记录模型"
       },
       {
-        "path": "library/liii/http.scm",
-        "reason": "HTTP 客户端核心协议实现"
-      },
-      {
         "path": "goldfish/liii/string.scm",
         "reason": "字符串处理核心扩展函数集合"
       },
