@@ -29,11 +29,14 @@
 
     ;; 右侧模型串：all-in-one 精简为 all-in-one/<chain-id>（不显示伪模型括号与
     ;; 自身等级），普通供应商保持 (provider) model • level；有实际节点时追加
-    ;; " -> (provider) model • level"，等级为收敛后的最终生效值
+    ;; " -> (provider) model • level"，等级为收敛后的最终生效值。
+    ;; opt-pending 为用户刚切换、尚未被请求确认的等级：此时在节点等级后加 "*"，
+    ;; 让用户立即看到切换已被记录、右侧仍是上一次请求的生效值。
     (define (pi-footer-model-part provider model thinking-level
-              supports-thinking? active-node
-            ) ;pi-footer-model-part
-      (let* ((aio? (equal? provider "all-in-one"))
+             supports-thinking? active-node . opt-pending
+            ) ;
+      (let* ((pending (if (pair? opt-pending) (car opt-pending) #f))
+             (aio? (equal? provider "all-in-one"))
              (base (if aio?
                      (string-append "all-in-one/" (or model ""))
                      (string-append (%provider-prefix provider)
@@ -41,7 +44,7 @@
                      ) ;string-append
                    ) ;if
              ) ;base
-             (node (%active-node-label active-node))
+             (node (%active-node-label active-node pending))
             ) ;
         (if node (string-append base " -> " node) base)
       ) ;let*
@@ -55,22 +58,25 @@
     ) ;define
 
     ;; 当前节点串：(provider) model • level；第五项为实际上报的
-    ;; supports-thinking?，缺省按支持处理以兼容旧三元组/四元组载荷
-    (define (%active-node-label node)
-      (and (pair? node)
+    ;; supports-thinking?，缺省按支持处理以兼容旧三元组/四元组载荷。
+    ;; 存在待确认等级时在等级后追加 "*"，表示右侧仍为上次生效值
+    (define (%active-node-label node pending)
+      (if
+        (not
+          (and (pair? node) (string? (cadr node)) (not (string-null? (cadr node))))
+        ) ;not
+        #f
         (let* ((p (car node))
                (m (cadr node))
                (tl (if (>= (length node) 3) (caddr node) "off"))
                (supports? (if (>= (length node) 5) (list-ref node 4) #t))
+               (label (pi-footer-model-label m tl supports?))
               ) ;
-          (and (string? m)
-            (not (string-null? m))
-            (string-append (%provider-prefix (and (string? p) p))
-              (pi-footer-model-label m tl supports?)
-            ) ;string-append
-          ) ;and
+          (string-append (%provider-prefix (and (string? p) p))
+            (if (and pending supports?) (string-append label "*") label)
+          ) ;string-append
         ) ;let*
-      ) ;and
+      ) ;if
     ) ;define
 
   ) ;begin

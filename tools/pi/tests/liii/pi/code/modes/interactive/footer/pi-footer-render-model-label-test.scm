@@ -25,6 +25,7 @@
 (import (scheme base)
   (liii check)
   (liii string)
+  (liii tui text-width)
   (liii tui component)
   (liii pi code modes interactive footer)
 ) ;import
@@ -57,6 +58,30 @@
        (render (lambda () (string-join (component-render f 80) "\n")))
       ) ;
   (check (string-contains? (render) " • ") => #f)
+) ;let*
+
+;; 切换 thinking 等级后，页脚立刻给出待确认反馈（带 * 星标）；
+;; 下一次请求回报实际节点后星标消失，显示最终生效值
+(let* ((f (make-pi-footer
+            :model             "coding-fast"
+            :provider          "all-in-one"
+            :thinking-level    "off"
+            :supports-thinking #t
+            :active-node       '("google" "gemini-3.8-flash" "medium" 1048576 #t)
+          ) ;make-pi-footer
+       ) ;f
+       (render (lambda () (apply string-append (map strip-ansi (component-render f 200)))))
+      ) ;
+  (check (string-contains? (render) "all-in-one/coding-fast -> (google) gemini-3.8-flash • medium")
+    =>
+    #t
+  ) ;check
+  (pi-footer-set-thinking-level! f "high")
+  (check (string-contains? (render) "• medium*") => #t)
+  ;; 请求回报收敛后的实际等级，星标消失
+  (pi-footer-set-active-node! f '("google" "gemini-3.8-flash" "medium" 1048576 #t))
+  (check (string-contains? (render) "• medium*") => #f)
+  (check (string-contains? (render) "• medium") => #t)
 ) ;let*
 
 (check-report)

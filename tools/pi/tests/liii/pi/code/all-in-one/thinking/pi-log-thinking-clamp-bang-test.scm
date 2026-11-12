@@ -77,4 +77,31 @@
   (rmtree TMP-DIR #t)
 ) ;when
 
+;; 3. 有 emit 时收敛提示走事件（TUI 卡片），不写 stderr 破坏画面
+(let* ((events (list 'init))
+       (config (list (cons 'config-dir TMP-DIR)
+                 (cons 'emit (lambda (type payload)
+                               (set! events (cons (cons type payload) events))
+                             ) ;lambda
+                 ) ;cons
+               ) ;list
+       ) ;
+      ) ;
+  (pi-log-thinking-clamp! config "coding-fast" "google" "gemini-3.8-flash" "max" "high")
+  (check (length events) => 2)
+  (check (caar events) => 'thinking_clamp)
+  (check (cdar events) => '("google" "gemini-3.8-flash" "max" "high"))
+) ;let*
+
+;; 4. 未发生收敛时既不发事件也不写日志
+(let* ((events '())
+       (config (list (cons 'config-dir TMP-DIR)
+                 (cons 'emit (lambda (type payload) (set! events (cons type events))))
+               ) ;list
+       ) ;
+      ) ;
+  (pi-log-thinking-clamp! config "coding-fast" "google" "gemini-3.8-flash" "high" "high")
+  (check events => '())
+) ;let*
+
 (check-report)

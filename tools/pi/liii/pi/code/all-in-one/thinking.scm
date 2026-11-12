@@ -53,7 +53,8 @@
     ) ;define
 
     ;; 显式值被真实节点能力改变时写一条 [THINKING_CLAMP] 按天日志，
-    ;; stderr 只提示一次，不随倒计时 tick 重复告警
+    ;; 并通过 cfg 的 emit 通知前台一次（TUI 显示为状态卡片、脚本模式转 stderr）；
+    ;; 每个实际节点只提示一次，不随倒计时 tick 重复告警。
     (define (pi-log-thinking-clamp! config chain-id provider model-id requested effective)
       (when (not (equal? requested effective))
         (pi-alarm-log! "THINKING_CLAMP"
@@ -65,12 +66,22 @@
           ) ;string-append
           (path->string (pi-cfg-config-dir config))
         ) ;pi-alarm-log!
-        (display-stderr (string-append "[all-in-one] thinking level clamped: "
-                          requested " -> " effective " (" provider "/" model-id
-                          ")\n"
-                        ) ;string-append
-        ) ;display-stderr
+        (%notify-clamp! config provider model-id requested effective)
       ) ;when
+    ) ;define
+
+    ;; 通知前台收敛结果：有 emit 时走事件（TUI 卡片），否则退回 stderr
+    (define (%notify-clamp! config provider model-id requested effective)
+      (let ((emit (and (pair? config) (assoc 'emit config))))
+        (if (and emit (procedure? (cdr emit)))
+         ((cdr emit) 'thinking_clamp (list provider model-id requested effective))
+         (display-stderr (string-append "[all-in-one] thinking level clamped: "
+                           requested " -> " effective " (" provider "/" model-id
+                           ")\n"
+                         ) ;string-append
+         ) ;display-stderr
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin

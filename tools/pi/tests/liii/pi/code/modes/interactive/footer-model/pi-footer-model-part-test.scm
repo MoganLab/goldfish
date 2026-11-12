@@ -113,4 +113,47 @@
   "(ollama) plain-model"
 ) ;check
 
+;; 10. 用户刚切换 thinking 等级、下一次请求尚未回报：
+;;     节点等级后加 "*"，表示右侧仍为上次生效值、切换已记录
+(check (pi-footer-model-part "all-in-one"
+         "coding-fast"
+         "high"
+         #t
+         '("google" "gemini-3.8-flash" "medium" 1048576 #t)
+         "high"
+       ) ;pi-footer-model-part
+  =>
+  "all-in-one/coding-fast -> (google) gemini-3.8-flash • medium*"
+) ;check
+
+;; 11. 请求回报后（pending 清空）星标消失，显示实际收敛值
+(check (pi-footer-model-part "all-in-one"
+         "coding-fast"
+         "high"
+         #t
+         '("google" "gemini-3.8-flash" "medium" 1048576 #t)
+         #f
+       ) ;pi-footer-model-part
+  =>
+  "all-in-one/coding-fast -> (google) gemini-3.8-flash • medium"
+) ;check
+
+;; 12. 普通供应商切换等级同样有待确认星标
+(check (pi-footer-model-part "google" "gemini-3.8-flash" "high" #t #f "high")
+  =>
+  "(google) gemini-3.8-flash • high"
+) ;check
+
+;; 13. 实际节点不支持思考时不给无意义的星标
+(check (pi-footer-model-part "all-in-one"
+         "coding-fast"
+         "high"
+         #t
+         '("ollama" "plain-model" "off" 128000 #f)
+         "high"
+       ) ;pi-footer-model-part
+  =>
+  "all-in-one/coding-fast -> (ollama) plain-model"
+) ;check
+
 (check-report)

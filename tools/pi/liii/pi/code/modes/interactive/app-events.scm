@@ -31,7 +31,7 @@
     (liii pi code core context-usage)
     (liii pi code modes interactive common)
     (liii pi code modes interactive footer)
-    (liii pi code modes interactive status-card)
+    (liii pi code modes interactive app-recovery)
   ) ;import
   (begin
 
@@ -237,60 +237,6 @@
       ) ;if
     ) ;define
 
-    (define (%format-recovery-wait-text chain-id rem-ms)
-      (let ((sec (quotient (+ rem-ms 999) 1000)))
-        (string-append "All nodes in "
-          chain-id
-          " failed. Retrying in "
-          (number->string sec)
-          "s... (Esc to abort, Enter to retry now, Alt+Enter to queue)"
-        ) ;string-append
-      ) ;let
-    ) ;define
-
-    (define (%pi-app-update-recovery-card! app text)
-      (%pi-app-invalidate-scroll! app)
-      (let ((card (pi-app-recovery-card app)))
-        (if card
-          (status-card-set-message! card text)
-          (let ((new-card (make-status-card text)))
-            (%pi-app-recovery-card-set! app new-card)
-            (container-add! (%pi-app-chat app) new-card)
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (%pi-app-handle-recovery-event! app ev)
-      (case (car ev)
-            ((recovery_wait recovery_tick)
-             (let ((chain-id (cadr ev)) (rem-ms (caddr ev)))
-               (%pi-app-update-recovery-card! app (%format-recovery-wait-text chain-id rem-ms))
-             ) ;let
-            ) ;
-            ((recovery_retry)
-             (let ((chain-id (cadr ev)))
-               (%pi-app-update-recovery-card! app
-                 (string-append "Retrying all-in-one chain " chain-id "...")
-               ) ;%pi-app-update-recovery-card!
-             ) ;let
-            ) ;
-            ((recovery_end)
-             (let ((chain-id (cadr ev)) (reason (caddr ev)))
-               (when (pi-app-recovery-card app)
-                 (status-card-set-message! (pi-app-recovery-card app)
-                   (if (eq? reason 'success)
-                     (string-append "Chain " chain-id " recovered.")
-                     (string-append "Chain " chain-id " recovery ended: " (object->string reason))
-                   ) ;if
-                 ) ;status-card-set-message!
-                 (%pi-app-recovery-card-set! app #f)
-               ) ;when
-             ) ;let
-            ) ;
-      ) ;case
-    ) ;define
-
     (define (%pi-app-handle-event! app ev)
       (case (car ev)
             ((bash_complete) (%pi-app-handle-bash-complete! app ev))
@@ -326,8 +272,8 @@
             ((compaction) (pi-footer-set-context-unknown! (%pi-app-footer app)))
             ;; all-in-one 交接后刷新页脚当前节点；普通供应商清空为 #f
             ((active_node) (pi-footer-set-active-node! (%pi-app-footer app) (cadr ev)))
-            ((recovery_wait recovery_tick recovery_retry recovery_end)
-             (%pi-app-handle-recovery-event! app ev)
+            ((recovery_wait recovery_tick recovery_retry recovery_end thinking_clamp)
+             (pi-app-handle-status-event! app ev)
             ) ;
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
@@ -359,7 +305,7 @@
                     ;; pi 的 Aborted 状态显示），再解除 busy 锁定
                     ((agent_settled)
                      (%pi-app-close-thinking-card! app)
-                     (%pi-app-recovery-card-set! app #f)
+                     (pi-app-reset-recovery-card! app)
                      (when (and (> (length ev) 1) (cadr ev))
                        (pi-app-add-assistant-text! app "Aborted")
                      ) ;when
