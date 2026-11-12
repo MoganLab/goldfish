@@ -271,9 +271,11 @@
       ) ;let*
     ) ;define
 
-    (define (%format-bash-result raw-text exit-code timeout)
-      (let* ((clean-text (pi-bash-clean-output raw-text))
-             (text (pi-truncate-bash-output clean-text))
+    ;; 结算格式化：输入为已清理文本（各执行路径自行完成唯一一次全量清理，
+    ;; 流式路径在 %run-bash-streaming、捕获路径在调用点），此处只做
+    ;; 截断与错误状态拼装，不再重复清理
+    (define (%format-bash-result clean-text exit-code timeout)
+      (let* ((text (pi-truncate-bash-output clean-text))
              (trimmed-text (string-trim-both text))
             ) ;
         (cond ((= exit-code 0) (values text #f))
@@ -365,9 +367,9 @@
                     ) ;res
                    ) ;
                 (if (either-right? res)
-                  (%format-bash-result (to-right res) 0 timeout)
+                  (%format-bash-result (pi-bash-clean-output (to-right res)) 0 timeout)
                   (let ((err (to-left res)))
-                    (%format-bash-result (process-error-stdout err)
+                    (%format-bash-result (pi-bash-clean-output (process-error-stdout err))
                       (process-error-code err)
                       timeout
                     ) ;%format-bash-result
