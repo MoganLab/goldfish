@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-probe-node node [timeout-ms config-dir request-fn])
+;; (pi-probe-node node [timeout-ms config-dir request-fn opt-retry])
 ;;
 ;; 参数
 ;; ----
@@ -16,6 +16,8 @@
 ;; request-fn : procedure (可选)
 ;; 测试用请求函数，接收 (provider config msgs sys-prompt tools timeout retry)，
 ;; 返回 <pi-assistant-message>。
+;; opt-retry : alist | #f (可选)
+;; 重试配置覆盖；缺省为 #f（遵循 gf pi 已有的重试机制，默认重试 3 次，429 耗尽才判不可用）。
 ;;
 ;; 返回值
 ;; ----
@@ -115,11 +117,52 @@
     (check sys-prompt => #f)
     (check tools => '())
     (check timeout => (/ 4321 1000))
-    (check retry => '((enabled . #f)))
+    (check retry => #f)
   ) ;let*
 ) ;let
 
-;; 2. 常见 HTTP 错误一视同仁，返回 #f 并追加对应错误码
+;; 2. 429 重试机制：底层按已有机制重试，若在 3 次内自愈成功，探活判定为可用（#t），不记录 FAIL
+(let ((simulated-attempts 0))
+  (reset-log!)
+  (check-true
+    (pi-probe-node NODE
+      2000
+      TMP-DIR
+      (lambda (provider config msgs sys-prompt tools timeout retry)
+        ;; 模拟真实底层协议的重试机制：只要没禁用重试，前 2 次 429，第 3 次成功
+        (let loop ((attempt 1))
+          (set! simulated-attempts attempt)
+          (if (< attempt 3)
+            (loop (+ attempt 1))
+            (pi-assistant-message (list (pi-text-block "pong\n")) "stop")
+          ) ;if
+        ) ;let
+      ) ;lambda
+    ) ;pi-probe-node
+  ) ;check-true
+  (check simulated-attempts => 3)
+  ;; 成功时不应写入 FAIL 日志
+  (check-false (file-exists? (path->string (resolve-alarm-log-path TMP-DIR))))
+) ;let
+
+;; 3. 429 达到 3 次重试上限仍未恢复时，判定为不可用（#f），并记录 429 FAIL 日志
+(check-failure "HTTP 429 after 3 attempts: rate limit exceeded" "429" "rate limit")
+
+;; 4. 显式传入 opt-retry 时，能正确透传覆盖（如显式禁用重试）
+(let ((captured-retry 'unset))
+  (pi-probe-node NODE
+    1000
+    TMP-DIR
+    (lambda (p c m s t to retry)
+      (set! captured-retry retry)
+      (pi-assistant-message (list (pi-text-block "pong")) "stop")
+    ) ;lambda
+    '((enabled . #f))
+  ) ;pi-probe-node
+  (check captured-retry => '((enabled . #f)))
+) ;let
+
+;; 5. 常见 HTTP 错误一视同仁，返回 #f 并追加对应错误码
 (check-failure "Error: HTTP 529 after 3 attempts: overloaded"
   "529"
   "overloaded"
