@@ -31,6 +31,7 @@
     (liii pi code core context-usage)
     (liii pi code modes interactive common)
     (liii pi code modes interactive footer)
+    (liii pi code modes interactive app-recovery)
   ) ;import
   (begin
 
@@ -85,10 +86,15 @@
       ) ;let
     ) ;define
 
-    ;; job 载荷：(消息 thinking-level provider model-id)，
+    ;; job 载荷：(消息 thinking-level provider model-id thinking-level-explicit?)，
     ;; 会话内 /model 与 /thinking 切换均对下一条消息生效（对齐上游 per-request 覆盖）
     (define (%pi-app-job-payload app msg)
-      (list msg (pi-app-thinking-level app) (pi-app-provider app) (pi-app-model app))
+      (list msg
+        (pi-app-thinking-level app)
+        (pi-app-provider app)
+        (pi-app-model app)
+        (pi-app-thinking-level-explicit? app)
+      ) ;list
     ) ;define
 
     ;; 队列调度：消费前先上屏深蓝卡片并即时渲染；返回 #t 表示本次消费并渲染
@@ -266,6 +272,9 @@
             ((compaction) (pi-footer-set-context-unknown! (%pi-app-footer app)))
             ;; all-in-one 交接后刷新页脚当前节点；普通供应商清空为 #f
             ((active_node) (pi-footer-set-active-node! (%pi-app-footer app) (cadr ev)))
+            ((recovery_wait recovery_tick recovery_retry recovery_end thinking_clamp)
+             (pi-app-handle-status-event! app ev)
+            ) ;
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
             ;; 移除待处理显示并上屏正式用户卡片（对齐上游 message_start 双动作）
@@ -296,6 +305,7 @@
                     ;; pi 的 Aborted 状态显示），再解除 busy 锁定
                     ((agent_settled)
                      (%pi-app-close-thinking-card! app)
+                     (pi-app-reset-recovery-card! app)
                      (when (and (> (length ev) 1) (cadr ev))
                        (pi-app-add-assistant-text! app "Aborted")
                      ) ;when

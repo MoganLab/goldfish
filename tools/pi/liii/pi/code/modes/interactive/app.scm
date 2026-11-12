@@ -24,6 +24,7 @@
     pi-app-handle-mouse! pi-app-handle-mouse-events! pi-app-toggle-thinking!
     pi-app-hide-thinking? pi-app-selection pi-app-selection-set!
     pi-app-selection-clear! pi-app-selection-active? pi-app-tokens
+    pi-app-thinking-level-explicit? pi-app-recovery-card
   ) ;export
   (import (scheme base)
     (scheme file)
@@ -152,19 +153,11 @@
     ) ;define*
 
     ;; 鼠标事件处理：滚轮上下滚动对话记录；点击派发给 doc 组件树
-    ;; （由卡片自身回调完成点击切换展开）
-    ;; 返回 #t 表示事件已被消费
+    ;; （由卡片自身回调完成点击切换展开）；批量入口把连续滚轮合并为一次滚动
     (define (pi-app-handle-mouse! app event)
       (pi-app-handle-mouse-events! app (list event))
     ) ;define
 
-    ;; 批量鼠标事件处理：把连续到达的滚轮事件合并为一次滚动（只滚动一次），
-    ;; 点击事件照旧逐个派发。
-    ;;
-    ;; 合并的意义：滚轮事件到达间隔（约 5~10ms）远小于单次滚动的渲染耗时，
-    ;; 逐个处理会让输入队列不断积压，表现为“滑几下就越滚越慢”；
-    ;; 合并后一次滚动处理完所有已到达事件，视图不再滞后。
-    ;; 返回 #t 表示需要重绘。
     (define (pi-app-handle-mouse-events! app events)
       (let ((acc (pi-app-wheel-accelerator app))
             (batch-now (current-monotonic-millis))
@@ -265,6 +258,7 @@
                (context-window #f)
                (skills '())
                (enable-skill-commands #t)
+               (thinking-level-explicit #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal)))
              ;; 全屏模式：备用屏整帧渲染，内容不随终端滚动
@@ -363,6 +357,8 @@
                     #f
                     skills
                     (and enable-skill-commands #t)
+                    #f
+                    (and thinking-level-explicit #t)
                     #f
                   ) ;%make-pi-app
              ) ;app

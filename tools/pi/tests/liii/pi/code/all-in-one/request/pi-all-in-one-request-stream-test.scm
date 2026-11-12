@@ -54,7 +54,7 @@
 ) ;when
 (path-mkdir (path (path-join TMP-DIR "models" "stub")) :parents #t :exist-ok #t)
 (path-write-text (path->string (path-join TMP-DIR "all-in-one.json"))
-  "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1234,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"},{\"provider\":\"stub\",\"model\":\"two\",\"thinkingLevel\":\"high\"}]}]}"
+  "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1234,\"continuous\":false,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"},{\"provider\":\"stub\",\"model\":\"two\",\"thinkingLevel\":\"high\"}]}]}"
 ) ;path-write-text
 (path-write-text (path->string (path-join TMP-DIR "models" "providers.json"))
   "[\"stub\"]"
@@ -127,11 +127,11 @@
     (check (list-ref captured 3) => "system")
     (check (list-ref captured 4) => '(read))
     (check (list-ref captured 5) => 60)
-    ;; 交接前已把实际节点回传给前台
+    ;; 交接前已把实际节点回传给前台（含 supports-thinking?）
     (check
       (filter (lambda (p) (eq? (car p) 'active_node)) node-events)
       =>
-      (list (cons 'active_node '("stub" "two" "high" 234567)))
+      (list (cons 'active_node '("stub" "two" "high" 234567 #t)))
     ) ;check
   ) ;let
 ) ;let
@@ -187,6 +187,36 @@
     (check (pi-assistant-message-stop-reason response) => "error")
     (check-false called?)
   ) ;let
+) ;let
+
+;; 主 cfg 中伪模型的 supports-thinking 不得覆盖节点真实能力：
+;; all-in-one 元供应商自身通常为 #f，但节点 stub/two 声明 reasoning: true，
+;; active_node 的第五项必须是节点的真实能力，否则页脚会按伪模型隐藏等级。
+(pi-chain-reset-sticky-state!)
+(let ((node-events '()))
+  (pi-all-in-one-request-stream "all-in-one"
+    (cons (cons 'emit (lambda (type . payload)
+                        (when (eq? type 'active_node)
+                          ;; emit 以 (type . args) 形式调用，payload 首项才是节点元组
+                          (set! node-events (cons (car payload) node-events))
+                        ) ;when
+                      ) ;lambda
+          ) ;cons
+      (cons (cons 'supports-thinking #f) CONFIG)
+    ) ;cons
+    (list (pi-user-message "work"))
+    "system"
+    '()
+    #f
+    60
+    (lambda (node timeout-ms config-dir request-fn) (equal? (chain-node-model node) "two"))
+    (lambda (provider node-cfg messages system-prompt tools on-event timeout)
+      (pi-assistant-message (list (pi-text-block "ok")) "stop")
+    ) ;lambda
+  ) ;pi-all-in-one-request-stream
+  (check (length node-events) => 1)
+  (check (length (car node-events)) => 5)
+  (check (list-ref (car node-events) 4) => #t)
 ) ;let
 
 (rmtree TMP-DIR #t)

@@ -112,7 +112,7 @@
     (check-true (string-contains? plain "Model: glm-5"))
     (check-true (string-contains? plain "(zai) glm-5"))
   ) ;let
-  (check (%pi-app-job-payload app "hi") => '("hi" "medium" "zai" "glm-5"))
+  (check (%pi-app-job-payload app "hi") => '("hi" "medium" "zai" "glm-5" #f))
 ) ;let
 
 ;; provider/id 复合引用与大小写不敏感精确匹配；前缀与模型不匹配时回退选择器。

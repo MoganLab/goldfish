@@ -24,7 +24,6 @@ gf doc <函数名>
 
 ### 状态读取与设置
 - `format-cwd-for-footer` - 格式化工作目录显示
-- `pi-footer-model-label` - 组装模型与思考等级标签
 - `pi-footer-branch` - 获取当前显示分支名
 - `pi-footer-set-branch!` - 设置分支名
 - `pi-footer-set-session-name!` - 设置会话名称

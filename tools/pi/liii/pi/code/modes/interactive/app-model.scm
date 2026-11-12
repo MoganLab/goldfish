@@ -167,6 +167,8 @@
         (let ((cw (%model-ref model 'contextWindow)))
           (pi-footer-set-model! (%pi-app-footer app) provider model-id supports cw)
         ) ;let
+        ;; 切模后的等级来自 per-model / 全局默认 / 会话值，不是本次显式覆盖
+        (%pi-app-thinking-level-explicit?-set! app #f)
         (pi-app-apply-thinking-level-ui! app new-tl)
       ) ;let*
     ) ;define
