@@ -37,11 +37,17 @@
     (liii format base)
     (liii format color)
     (liii gfproject config)
+    (liii goldtest-cache)
+    (liii goldtest-runner-report)
   ) ;import
   (export ESC color GREEN RED YELLOW RESET goldfish-cmd run-test-file
-    display-fail-log cleanup-log run-tests-parallel failed-test-files
-    display-summary %dump-captured-tail %report-test-failure %parallel-result
-    %process-exit-code %captured-stdout %captured-stderr %print-progress-marker
+    run-tests-parallel %parallel-result %process-exit-code %captured-stdout
+    %captured-stderr %print-progress-marker *test-cache-force*
+    set-test-cache-force! test-cache-force? %cache-check %cache-record
+    %parallel-cached-result %run-one-parallel-test %build-indexed-vec
+    display-fail-log cleanup-log failed-test-files display-summary
+    %dump-captured-tail %report-test-failure cached-count-bump!
+    cached-count-reset! %count-cached-results
   ) ;export
   (begin
 
@@ -55,6 +61,58 @@
     (define RED (color 31))
     (define YELLOW (color 33))
     (define RESET (color 0))
+
+    ;; 缓存控制：由入口在运行前通过 set-test-cache-force! 设置（#t 表示强制绕过缓存）
+    (define *test-cache-force* #f)
+
+    ;; 设置缓存强制绕过标志（库内部变量，须由库内 setter 修改）
+    (define (set-test-cache-force! flag)
+      (set! *test-cache-force* (and flag #t))
+    ) ;define
+
+    ;; 查询当前缓存强制绕过标志
+    (define (test-cache-force?)
+      *test-cache-force*
+    ) ;define
+
+    ;; 检查缓存是否命中（未启用或强制绕过时返回 #f）
+    ;; force-flag 为主会话传入的强制绕过标志：并行 worker 是独立 s7 会话，
+    ;; 库内 mutable 变量在 worker 内不可见，故须参数化传入；
+    ;; 测试文件本身不存在时一律不缓存：不存在文件的 key 退化为
+    ;; 空哈希与空依赖，所有不存在路径共享同一 key，写入会造成跨测试碰撞
+    (define (%cache-check test-file . maybe-force)
+      (let ((force-flag (if (pair? maybe-force) (car maybe-force) *test-cache-force*)))
+        (catch #t
+          (lambda ()
+            (and (not force-flag)
+              (file-exists? test-file)
+              (tools-test-path? test-file)
+              (let ((key (test-action-key test-file)))
+                (and (test-cache-hit? (test-cache-path key)) key)
+              ) ;let
+            ) ;and
+          ) ;lambda
+          (lambda args #f)
+        ) ;catch
+      ) ;let
+    ) ;define
+
+    ;; 测试成功后写回缓存（force 模式下成功后仍刷新缓存）；
+    ;; force-flag 同样须参数化传入（worker 会话原因同上）
+    (define (%cache-record test-file exit-code . maybe-force)
+      (let ((force-flag (if (pair? maybe-force) (car maybe-force) *test-cache-force*)))
+        (catch #t
+          (lambda ()
+            (when (and (file-exists? test-file) (tools-test-path? test-file) (zero? exit-code))
+              (let ((key (test-action-key test-file)))
+                (test-cache-record! (test-cache-path key) exit-code)
+              ) ;let
+            ) ;when
+          ) ;lambda
+          (lambda args #f)
+        ) ;catch
+      ) ;let
+    ) ;define
 
     (define (%tool-domain-inc d test-file)
       (let* ((tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
@@ -131,152 +189,109 @@
     ) ;define
 
     (define (run-test-file test-file)
-      (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
-        (display "----------->\n")
-        (display cmd)
-        (newline)
-        (flush-output-port (current-output-port))
-        (let* ((result (%run-test-process cmd 'inherit))
-               (code (car result))
-               (timeout? (cdr result))
-              ) ;
-          (if timeout?
-            (show #t
-              (as-red "FAIL")
-              " (timeout "
-              (number->string (%test-timeout-seconds))
-              "s, killed)\n"
-            ) ;show
-            (if (zero? code)
-              (show #t (as-green "PASS") "\n")
-              (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
-            ) ;if
-          ) ;if
-          (cons test-file code)
-        ) ;let*
+      (let ((cache-key (%cache-check test-file)))
+        (if cache-key
+          (begin
+            ;; 命中缓存：静默跳过，仅在 Summary 汇总命中数
+            (cached-count-bump!)
+            (cons test-file 0)
+          ) ;begin
+          (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
+            (display "----------->\n")
+            (display cmd)
+            (newline)
+            (flush-output-port (current-output-port))
+            (let* ((result (%run-test-process cmd 'inherit))
+                   (code (car result))
+                   (timeout? (cdr result))
+                  ) ;
+              (if timeout?
+                (show #t
+                  (as-red "FAIL")
+                  " (timeout "
+                  (number->string (%test-timeout-seconds))
+                  "s, killed)\n"
+                ) ;show
+                (if (zero? code)
+                  (show #t (as-green "PASS") "\n")
+                  (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
+                ) ;if
+              ) ;if
+              (%cache-record test-file code)
+              (cons test-file code)
+            ) ;let*
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
 
-    (define (display-fail-log tmp-log)
-      (when (file-exists? tmp-log)
-        (let ((port (open-input-file tmp-log)))
-          (let loop
-            ()
-            (let ((line (read-line port)))
-              (unless (eof-object? line)
-                (display (string-append "    " line "\n"))
-                (loop)
-              ) ;unless
+    ;; 构造 (idx file) 索引化任务向量
+    (define (%build-indexed-vec test-files)
+      (list->vector
+        (let loop
+          ((i 0) (rest test-files))
+          (if (null? rest) '() (cons (list i (car rest)) (loop (+ i 1) (cdr rest))))
+        ) ;let
+      ) ;list->vector
+    ) ;define
+
+    ;; 单个并行任务体（导出以便 worker 会话可见）：
+    ;; 先查缓存，命中静默返回（不打印，仅在 Summary 汇总），否则拉起子进程执行
+    (define (%run-one-parallel-test pair total tmo cache-force)
+      (let* ((idx (car pair))
+             (test-file (cadr pair))
+             (cached (%cache-check test-file cache-force))
+            ) ;
+        (if cached
+          (%parallel-cached-result idx total test-file)
+          (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
+            (let ((res (catch #t
+                         (lambda ()
+                           (run-either cmd :stdin 'null :stdout 'capture :stderr 'capture :timeout tmo)
+                         ) ;lambda
+                         (lambda args #f)
+                       ) ;catch
+                  ) ;res
+                 ) ;
+              (%parallel-result idx total res test-file tmo cache-force)
             ) ;let
           ) ;let
-          (close-input-port port)
-          (remove tmp-log)
-        ) ;let
-      ) ;when
-    ) ;define
-
-    (define (cleanup-log tmp-log)
-      (when (file-exists? tmp-log)
-        (remove tmp-log)
-      ) ;when
-    ) ;define
-
-    (define (failed-test-files test-results)
-      (map car
-        (filter
-          (lambda (test-result) (not (zero? (cdr test-result))))
-          test-results
-        ) ;filter
-      ) ;map
-    ) ;define
-
-    ;; 汇总（逐文件结果已在运行时即时打印，此处只输出统计与失败清单）
-    (define (display-summary test-results)
-      (let* ((total (length test-results))
-             (passed
-               (count (lambda (x) (zero? (cdr x))) test-results)
-             ) ;passed
-             (failed-files (failed-test-files test-results))
-             (failed (- total passed))
-            ) ;
-        (newline)
-        (display "=== Summary ===")
-        (newline)
-        (display (string-append "  Total:  " (number->string total)))
-        (newline)
-        (show #t "  " (as-green "Passed: " (number->string passed)) "\n")
-        (when (> failed 0)
-          (show #t "  " (as-red "Failed: " (number->string failed)) "\n")
-          (display "  Failed Test Files:")
-          (newline)
-          (for-each (lambda (test-file) (display (string-append "    " test-file)) (newline))
-            failed-files
-          ) ;for-each
-        ) ;when
-        failed
+        ) ;if
       ) ;let*
     ) ;define
 
     ;; 并行执行：逐文件即时打印进度与失败诊断。
     ;; 闭包在 (liii go) worker 会话内执行，只能引用主库导出绑定；
-    ;; tmo 等参数经 funclet 捕获环境以可序列化值传入
+    ;; tmo/cache-force 等参数经 funclet 捕获环境以可序列化值传入
     (define (run-tests-parallel test-files jobs)
       (let* ((total (length test-files))
              (exe (executable))
              (tmo (%test-timeout-seconds))
-             (vec
-               (list->vector
-                 (let loop
-                   ((i 0) (rest test-files))
-                   (if (null? rest) '() (cons (list i (car rest)) (loop (+ i 1) (cdr rest))))
-                 ) ;let
-               ) ;list->vector
-             ) ;vec
-             (run-one-test
-               (lambda (pair)
-                 (let ((idx (car pair)) (test-file (cadr pair)))
-                   (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
-                     (let ((res (catch #t
-                                  (lambda ()
-                                    (run-either cmd :stdin 'null :stdout 'capture :stderr 'capture :timeout tmo)
-                                  ) ;lambda
-                                  (lambda args #f)
-                                ) ;catch
-                           ) ;res
-                          ) ;
-                       (%parallel-result idx total res test-file tmo)
-                     ) ;let
-                   ) ;let
-                 ) ;let
-               ) ;lambda
+             (cache-force (test-cache-force?))
+             (vec (%build-indexed-vec test-files))
+             (run-one-test (lambda (pair) (%run-one-parallel-test pair total tmo cache-force))
              ) ;run-one-test
              (raw-results (vector-par-map run-one-test vec jobs))
             ) ;
+        ;; 主会话收集结果后统一累计缓存命中数（worker 侧库变量不可见）
+        (let ((n-cached (%count-cached-results (vector->list raw-results))))
+          (let loop
+            ((i 0))
+            (when (< i n-cached)
+              (cached-count-bump!)
+              (loop (+ i 1))
+            ) ;when
+          ) ;let
+        ) ;let
         (vector->list
           (vector-map (lambda (r) (cons (car r) (cadr r))) raw-results)
         ) ;vector->list
       ) ;let*
     ) ;define
 
-    ;; 打印单文件失败行与捕获输出尾部（导出以便 worker 会话可见）
-    (define (%report-test-failure . args)
-      (let* ((p5 (= (length args) 5))
-             (prefix (if p5 (car args) ""))
-             (tmo (if p5 (cadr args) (car args)))
-             (code (if p5 (caddr args) (cadr args)))
-             (out (if p5 (cadddr args) (caddr args)))
-             (err (if p5 (car (cddddr args)) (cadddr args)))
-             (reason (if (= code -1)
-                       (string-append " (timeout " (number->string tmo) "s, killed)\n")
-                       (string-append " exit-code=" (number->string code) "\n")
-                     ) ;if
-             ) ;reason
-            ) ;
-        (display (show #f prefix (as-red "FAIL") reason))
-        (%dump-captured-tail "stdout" out)
-        (%dump-captured-tail "stderr" err)
-        (flush-output-port (current-output-port))
-      ) ;let*
+    ;; 缓存命中结果标记（命中时不打印单行，仅在 Summary 汇总命中数）
+    (define (%parallel-cached-result idx total test-file)
+      (list test-file 0 "cached")
     ) ;define
 
     ;; 从 run-either 结果提取退出码（导出以便 worker 会话可见）
@@ -320,7 +335,7 @@
     ;; 不让单个异常炸掉整个 runner（之前 CI 上曾因处理超时结果时
     ;; 的访问错误导致 runner 崩溃，掩盖真实卡点）
     (define (%parallel-result . args)
-      (let* ((p5 (= (length args) 5))
+      (let* ((p5 (>= (length args) 5))
              (prefix (if p5
                        (%progress-prefix (car args) (cadr args) (cadddr args))
                        (string-append "  " (cadr args) " ... ")
@@ -329,9 +344,12 @@
              (res (if p5 (caddr args) (car args)))
              (test-file (if p5 (cadddr args) (cadr args)))
              (tmo (if p5 (car (cddddr args)) (caddr args)))
+             (force-flag
+               (if (and p5 (> (length args) 5)) (list-ref args 5) #f)
+             ) ;force-flag
             ) ;
         (catch #t
-          (lambda () (%parallel-result% prefix res test-file tmo))
+          (lambda () (%parallel-result% prefix res test-file tmo force-flag))
           (lambda err-args
             (display (show #f
                        prefix
@@ -348,48 +366,27 @@
       ) ;let*
     ) ;define
 
-    (define (%parallel-result% prefix res test-file tmo)
-      (if (either-right? res)
-        (begin
-          (display (show #f prefix (as-green "PASS") "\n"))
-          (flush-output-port (current-output-port))
-          (list test-file 0 "")
-        ) ;begin
-        (let ((code (%process-exit-code res)))
-          (%report-test-failure prefix
-            tmo
-            code
-            (%captured-stdout res)
-            (%captured-stderr res)
-          ) ;%report-test-failure
-          (list test-file code "")
-        ) ;let
-      ) ;if
-    ) ;define
-
-    ;; 打印捕获文本的末尾若干行（供失败诊断；导出以便 worker 会话可见）
-    (define (%dump-captured-tail label text)
-      (when (and (string? text) (> (string-length text) 0))
-        (let ((lines (string-split text "\n")))
-          (let loop
-            ((rest (reverse lines)) (acc '()) (n 0))
-            (if (or (not (pair? rest)) (>= n 20))
-              (begin
-                (display (string-append "    -- "
-                           label
-                           " (last "
-                           (number->string (length acc))
-                           " lines) --"
-                         ) ;string-append
-                ) ;display
-                (newline)
-                (for-each (lambda (l) (display "    ") (display l) (newline)) acc)
-              ) ;begin
-              (loop (cdr rest) (cons (car rest) acc) (+ n 1))
-            ) ;if
+    (define (%parallel-result% prefix res test-file tmo . maybe-force)
+      (let ((force-flag (if (pair? maybe-force) (car maybe-force) #f)))
+        (if (either-right? res)
+          (begin
+            (display (show #f prefix (as-green "PASS") "\n"))
+            (flush-output-port (current-output-port))
+            (%cache-record test-file 0 force-flag)
+            (list test-file 0 "")
+          ) ;begin
+          (let ((code (%process-exit-code res)))
+            (%report-test-failure prefix
+              tmo
+              code
+              (%captured-stdout res)
+              (%captured-stderr res)
+            ) ;%report-test-failure
+            (%cache-record test-file code force-flag)
+            (list test-file code "")
           ) ;let
-        ) ;let
-      ) ;when
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin

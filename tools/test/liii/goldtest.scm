@@ -28,6 +28,8 @@
     (liii goldtest-args)
     (liii goldtest-route)
     (liii goldtest-runner)
+    (liii goldtest-runner-report)
+    (liii goldtest-cache)
     (liii format base)
     (liii format color)
   ) ;import
@@ -186,32 +188,49 @@
              (all-mode (parse-test-all args))
              (changed-since (parse-test-changed-since args))
              (jobs (parse-test-jobs args))
-             (parsed (parse-test-args args))
-             (arg-type (car parsed))
-             (arg-value (cdr parsed))
-             (route-res (if (and (not arg-type) (not changed-since))
-                          (route-test-command args all-mode)
-                          #f
-                        ) ;if
-             ) ;route-res
-             (final-since (if route-res (car route-res) changed-since))
-             (need-run-all (if route-res (cdr route-res) #f))
-             (all-tests (find-all-domain-test-files))
-             (filtered (filter-test-files all-tests arg-type arg-value))
-             (test-files (resolve-test-files filtered final-since need-run-all))
+             (force? (parse-test-force args))
+             (clear-cache? (parse-test-clear-cache args))
             ) ;
-        (if (null? test-files)
-          (handle-no-test-files final-since arg-value)
-          (begin
-            (when arg-value
-              (display-filter-info arg-type arg-value)
-            ) ;when
-            (when final-since
-              (display (string-append "Running changed tests since: " final-since "\n"))
-            ) ;when
-            (execute-tests test-files jobs)
-          ) ;begin
-        ) ;if
+        (when clear-cache?
+          (test-cache-clear!)
+          (display "Test cache cleared.\n")
+        ) ;when
+        (cached-count-reset!)
+        (let* ((parsed (parse-test-args args))
+               (arg-type (car parsed))
+               (arg-value (cdr parsed))
+              ) ;
+          ;; 单个测试文件目标：跳过缓存读取，每次真实执行；
+          ;; 成功后仍写缓存（供后续批量运行命中）
+          (set-test-cache-force! (or force? (eq? arg-type 'file)))
+          (if (and clear-cache? (not arg-type) (not changed-since) (not all-mode))
+            (exit 0)
+            (let* ((route-res (if (and (not arg-type) (not changed-since))
+                                (route-test-command args all-mode)
+                                #f
+                              ) ;if
+                   ) ;route-res
+                   (final-since (if route-res (car route-res) changed-since))
+                   (need-run-all (if route-res (cdr route-res) #f))
+                   (all-tests (find-all-domain-test-files))
+                   (filtered (filter-test-files all-tests arg-type arg-value))
+                   (test-files (resolve-test-files filtered final-since need-run-all))
+                  ) ;
+              (if (null? test-files)
+                (handle-no-test-files final-since arg-value)
+                (begin
+                  (when arg-value
+                    (display-filter-info arg-type arg-value)
+                  ) ;when
+                  (when final-since
+                    (display (string-append "Running changed tests since: " final-since "\n"))
+                  ) ;when
+                  (execute-tests test-files jobs)
+                ) ;begin
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let*
       ) ;let*
     ) ;define
 

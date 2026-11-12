@@ -24,7 +24,8 @@
   ) ;import
   (export make-test-arg-parser classify-test-arg parse-test-args
     parse-test-changed-since parse-test-jobs parse-test-all test-help-requested?
-    show-help split-tests-target check-and-switch-to-target
+    show-help split-tests-target check-and-switch-to-target parse-test-force
+    parse-test-clear-cache
   ) ;export
   (begin
 
@@ -46,6 +47,9 @@
         (parser :add-argument '((name . "help")
                                 (short . "h")
                                 (action . store-true)))
+        (parser :add-argument '((name . "force") (action . store-true)))
+        (parser :add-argument '((name . "no-cache") (action . store-true)))
+        (parser :add-argument '((name . "clear-cache") (action . store-true)))
         parser
       ) ;let
     ) ;define
@@ -180,6 +184,9 @@
                  (string-starts? (car remaining) "--mode=")
                  (string-starts? (car remaining) "--changed-since=")
                  (equal? (car remaining) "--all")
+                 (equal? (car remaining) "--force")
+                 (equal? (car remaining) "--no-cache")
+                 (equal? (car remaining) "--clear-cache")
                ) ;or
                (loop (cdr remaining) found-target)
               ) ;
@@ -195,7 +202,9 @@
                  "Options:\n"
                  "  -j, --jobs NUM                   Number of parallel worker jobs (default: 8)\n"
                  "  --all                            Run all tests (greedy: changed first, then all)\n"
-                 "  --changed-since REV              Run tests changed since REV\n\n"
+                 "  --changed-since REV              Run tests changed since REV\n"
+                 "  --force, --no-cache              Bypass cache, always run tests\n"
+                 "  --clear-cache                    Clear test cache directory\n\n"
                  "Examples:\n"
                  "  gf test                          Run tests (smart route based on git branch)\n"
                  "  gf test --all                    Run all tests\n"
@@ -203,13 +212,30 @@
                  "  gf test tests/liii/string/       Run tests in directory\n"
                  "  gf test string-test.scm          Run specific test file\n"
                  "  gf test string                   Run tests matching pattern\n"
-                 "  gf test --changed-since=HEAD     Run changed test files\n\n"
+                 "  gf test --changed-since=HEAD     Run changed test files\n"
+                 "  gf test --force tools/pi/tests/  Force run, bypassing cache\n"
+                 "  gf test --clear-cache            Clear test cache directory\n\n"
                  "Note:\n"
                  "  Smart routing: on non-main branch, gf test runs --changed-since=main\n"
                  "  If path contains /tests/, it will switch to parent directory\n"
                  "  e.g., gf test tools/doc/tests/  =>  cd tools/doc && gf test tests/\n"
+                 "  Test cache is enabled for tools/ directory tests only\n"
                ) ;string-append
       ) ;display
+    ) ;define
+
+    (define (parse-test-force args)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (or (parser 'force) (parser 'no-cache))
+      ) ;let
+    ) ;define
+
+    (define (parse-test-clear-cache args)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (parser 'clear-cache)
+      ) ;let
     ) ;define
 
     (define (test-help-requested? args)

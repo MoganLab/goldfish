@@ -13,7 +13,7 @@
 ;; ------
 ;; TODO: 返回值说明。
 
-(import (scheme base) (liii check) (liii goldtest-runner))
+(import (scheme base) (liii check) (liii goldtest-runner-report))
 
 (check-set-mode! 'report-failed)
 
