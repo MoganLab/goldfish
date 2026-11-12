@@ -130,6 +130,19 @@ response2hashtable (s7_scheme* sc, cpr::Response r) {
   return ht;
 }
 
+static inline bool
+extract_timeout_or_response (s7_scheme* sc, const cpr::Response& r, s7_pointer* out_result, char* out_reason,
+                             size_t reason_size) {
+  if (r.error.code == cpr::ErrorCode::OPERATION_TIMEDOUT && r.error.message.find ("too slow") == std::string::npos) {
+    const std::string& msg= r.error.message.empty () ? "Operation timed out" : r.error.message;
+    std::strncpy (out_reason, msg.c_str (), reason_size - 1);
+    out_reason[reason_size - 1]= '\0';
+    return true;
+  }
+  *out_result= response2hashtable (sc, r);
+  return false;
+}
+
 inline cpr::Parameters
 to_cpr_parameters (s7_scheme* sc, s7_pointer args) {
   cpr::Parameters params= cpr::Parameters{};
@@ -348,12 +361,28 @@ f_http_head (s7_scheme* sc, s7_pointer args) {
     return err;
   }
 
-  const char*  url= s7_string (url_arg);
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  apply_session_timeout (session, timeout_ms);
-  cpr::Response r= session.Head ();
-  return response2hashtable (sc, r);
+  const char* url                = s7_string (url_arg);
+  char        timeout_reason[256]= {0};
+  bool        is_timeout         = false;
+  s7_pointer  result             = s7_nil (sc);
+
+  {
+    cpr::Session session;
+    session.SetUrl (cpr::Url (url));
+    apply_session_timeout (session, timeout_ms);
+    try {
+      cpr::Response r= session.Head ();
+      is_timeout     = extract_timeout_or_response (sc, r, &result, timeout_reason, sizeof (timeout_reason));
+    } catch (const std::exception& e) {
+      result= error2hashtable (sc, 0, url, e.what ());
+    }
+  }
+
+  if (is_timeout) {
+    return s7_error (sc, s7_make_symbol (sc, "http-client-timeout-error"),
+                     s7_list (sc, 1, s7_make_string (sc, timeout_reason)));
+  }
+  return result;
 }
 
 inline void
@@ -403,49 +432,62 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
     return err;
   }
 
-  const char*     url        = s7_string (url_arg);
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
-  cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
+  char       timeout_reason[256]= {0};
+  bool       is_timeout         = false;
+  s7_pointer result             = s7_nil (sc);
 
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  session.SetHeader (cpr_headers);
-  if (!s7_is_null (sc, proxy)) {
-    session.SetProxies (cpr_proxies);
-  }
-  apply_session_timeout (session, timeout_ms);
-  apply_session_idle_timeout (session, idle_timeout_sec);
-  apply_session_progress_callback (sc, session, progress);
+  {
+    const char*     url        = s7_string (url_arg);
+    cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+    cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
+    cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
 
-  if (s7_is_procedure (callback)) {
-    session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
-      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
-      s7_pointer call_args= s7_cons (sc, data_str, s7_nil (sc));
+    cpr::Session session;
+    session.SetUrl (cpr::Url (url));
+    session.SetParameters (cpr_params);
+    session.SetHeader (cpr_headers);
+    if (!s7_is_null (sc, proxy)) {
+      session.SetProxies (cpr_proxies);
+    }
+    apply_session_timeout (session, timeout_ms);
+    apply_session_idle_timeout (session, idle_timeout_sec);
+    apply_session_progress_callback (sc, session, progress);
 
-      s7_pointer ret= s7_call (sc, callback, call_args);
-      if (s7_is_boolean (ret)) {
-        return s7_boolean (sc, ret);
+    if (s7_is_procedure (callback)) {
+      session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
+        s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
+        s7_pointer call_args= s7_cons (sc, data_str, s7_nil (sc));
+
+        s7_pointer ret= s7_call (sc, callback, call_args);
+        if (s7_is_boolean (ret)) {
+          return s7_boolean (sc, ret);
+        }
+
+        return true;
+      }});
+
+      try {
+        cpr::Response response= session.Get ();
+        is_timeout= extract_timeout_or_response (sc, response, &result, timeout_reason, sizeof (timeout_reason));
+      } catch (const std::exception& e) {
+        result= error2hashtable (sc, 0, url, e.what ());
       }
-
-      return true;
-    }});
-
-    try {
-      cpr::Response response= session.Get ();
-      return response2hashtable (sc, response);
-    } catch (const std::exception& e) {
-      return error2hashtable (sc, 0, url, e.what ());
+    }
+    else {
+      try {
+        cpr::Response r= session.Get ();
+        is_timeout     = extract_timeout_or_response (sc, r, &result, timeout_reason, sizeof (timeout_reason));
+      } catch (const std::exception& e) {
+        result= error2hashtable (sc, 0, url, e.what ());
+      }
     }
   }
 
-  try {
-    cpr::Response r= session.Get ();
-    return response2hashtable (sc, r);
-  } catch (const std::exception& e) {
-    return error2hashtable (sc, 0, url, e.what ());
+  if (is_timeout) {
+    return s7_error (sc, s7_make_symbol (sc, "http-client-timeout-error"),
+                     s7_list (sc, 1, s7_make_string (sc, timeout_reason)));
   }
+  return result;
 }
 
 inline void
@@ -470,16 +512,28 @@ f_http_delete (s7_scheme* sc, s7_pointer args) {
     return err;
   }
 
-  const char*  url= s7_string (url_arg);
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  apply_session_timeout (session, timeout_ms);
-  try {
-    cpr::Response r= session.Delete ();
-    return response2hashtable (sc, r);
-  } catch (const std::exception& e) {
-    return error2hashtable (sc, 0, url, e.what ());
+  char       timeout_reason[256]= {0};
+  bool       is_timeout         = false;
+  s7_pointer result             = s7_nil (sc);
+
+  {
+    const char*  url= s7_string (url_arg);
+    cpr::Session session;
+    session.SetUrl (cpr::Url (url));
+    apply_session_timeout (session, timeout_ms);
+    try {
+      cpr::Response r= session.Delete ();
+      is_timeout     = extract_timeout_or_response (sc, r, &result, timeout_reason, sizeof (timeout_reason));
+    } catch (const std::exception& e) {
+      result= error2hashtable (sc, 0, url, e.what ());
+    }
   }
+
+  if (is_timeout) {
+    return s7_error (sc, s7_make_symbol (sc, "http-client-timeout-error"),
+                     s7_list (sc, 1, s7_make_string (sc, timeout_reason)));
+  }
+  return result;
 }
 
 inline void
@@ -550,51 +604,63 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-  const char*     url        = s7_string (url_arg);
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
-  cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
+  char       timeout_reason[256]= {0};
+  bool       is_timeout         = false;
+  s7_pointer result             = s7_nil (sc);
 
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  session.SetHeader (cpr_headers);
-  if (!s7_is_null (sc, proxy)) {
-    session.SetProxies (cpr_proxies);
+  {
+    const char*     url        = s7_string (url_arg);
+    cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+    cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
+    cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
+
+    cpr::Session session;
+    session.SetUrl (cpr::Url (url));
+    session.SetParameters (cpr_params);
+    session.SetHeader (cpr_headers);
+    if (!s7_is_null (sc, proxy)) {
+      session.SetProxies (cpr_proxies);
+    }
+    apply_session_timeout (session, timeout_ms);
+    apply_session_idle_timeout (session, idle_timeout_sec);
+    apply_session_progress_callback (sc, session, progress);
+
+    if (!s7_is_null (sc, files)) {
+      session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
+    }
+    else {
+      const char* body    = s7_string (body_or_data);
+      cpr::Body   cpr_body= cpr::Body (body);
+      session.SetBody (cpr_body);
+    }
+
+    if (s7_is_procedure (callback)) {
+      session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
+        s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
+        s7_pointer call_args= s7_cons (sc, data_str, s7_nil (sc));
+
+        s7_pointer ret= s7_call (sc, callback, call_args);
+        if (s7_is_boolean (ret)) {
+          return s7_boolean (sc, ret);
+        }
+
+        return true;
+      }});
+    }
+
+    try {
+      cpr::Response response= session.Post ();
+      is_timeout= extract_timeout_or_response (sc, response, &result, timeout_reason, sizeof (timeout_reason));
+    } catch (const std::exception& e) {
+      result= error2hashtable (sc, 0, url, e.what ());
+    }
   }
-  apply_session_timeout (session, timeout_ms);
-  apply_session_idle_timeout (session, idle_timeout_sec);
-  apply_session_progress_callback (sc, session, progress);
 
-  if (!s7_is_null (sc, files)) {
-    session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
+  if (is_timeout) {
+    return s7_error (sc, s7_make_symbol (sc, "http-client-timeout-error"),
+                     s7_list (sc, 1, s7_make_string (sc, timeout_reason)));
   }
-  else {
-    const char* body    = s7_string (body_or_data);
-    cpr::Body   cpr_body= cpr::Body (body);
-    session.SetBody (cpr_body);
-  }
-
-  if (s7_is_procedure (callback)) {
-    session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
-      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
-      s7_pointer call_args= s7_cons (sc, data_str, s7_nil (sc));
-
-      s7_pointer ret= s7_call (sc, callback, call_args);
-      if (s7_is_boolean (ret)) {
-        return s7_boolean (sc, ret);
-      }
-
-      return true;
-    }});
-  }
-
-  try {
-    cpr::Response response= session.Post ();
-    return response2hashtable (sc, response);
-  } catch (const std::exception& e) {
-    return error2hashtable (sc, 0, url, e.what ());
-  }
+  return result;
 }
 
 inline void

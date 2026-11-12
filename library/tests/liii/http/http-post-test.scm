@@ -124,18 +124,17 @@
   (lambda (port) (display "Goldfish multipart upload fixture.\n" port))
 ) ;call-with-output-file
 
-;; 不可达网络地址短超时熔断
+;; 超时应抛出 http-client-timeout-error 异常
 (let* ((t0 (current-second))
-       (r (http-post "http://10.255.255.1" :data "payload" :timeout 0.5 :idle-timeout 1)
-       ) ;r
-       (dt (- (current-second) t0))
+       (dt (begin
+             (check-catch 'http-client-timeout-error
+               (http-post "http://192.0.2.1" :data "payload" :timeout 0.2 :idle-timeout 1)
+             ) ;check-catch
+             (- (current-second) t0)
+           ) ;begin
+       ) ;dt
       ) ;
-  (check (r 'status-code) => 0)
   (check-true (< dt 2.5))
-  (check-true (integer? (r 'error-code)))
-  (check-true (> (r 'error-code) 0))
-  (check-true (string? (r 'reason)))
-  (check-true (> (string-length (r 'reason)) 0))
 ) ;let*
 
 
