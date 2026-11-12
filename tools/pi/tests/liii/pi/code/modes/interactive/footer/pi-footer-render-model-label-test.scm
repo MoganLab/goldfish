@@ -100,4 +100,41 @@
   (check (string-contains? (render) "-> (google) gemini-3.8-flash • high") => #t)
 ) ;let*
 
+;; 切换瞬间显示用户所选等级；请求返回后显示节点收敛后的实际值。
+;; 节点最高只支持 high：切换 max 时先显示 max，请求后回到 high
+(let* ((f (make-pi-footer
+            :model             "coding-fast"
+            :provider          "all-in-one"
+            :thinking-level    "medium"
+            :supports-thinking #t
+            :active-node       '("google" "gemini-3.8-flash" "medium" 1048576 #t)
+          ) ;make-pi-footer
+       ) ;f
+       (render (lambda () (apply string-append (map strip-ansi (component-render f 200)))))
+      ) ;
+  (pi-footer-set-thinking-level! f "max")
+  (check (string-contains? (render) "-> (google) gemini-3.8-flash • max") => #t)
+  (pi-footer-set-active-node! f '("google" "gemini-3.8-flash" "high" 1048576 #t))
+  (check (string-contains? (render) "-> (google) gemini-3.8-flash • high") => #t)
+  (check-false (string-contains? (render) "• max"))
+) ;let*
+
+;; 节点不支持思考：切换瞬间显示所选等级，请求返回后隐藏等级后缀
+(let* ((f (make-pi-footer
+            :model             "coding-fast"
+            :provider          "all-in-one"
+            :thinking-level    "low"
+            :supports-thinking #t
+            :active-node       '("ollama" "plain-model" "off" 128000 #f)
+          ) ;make-pi-footer
+       ) ;f
+       (render (lambda () (apply string-append (map strip-ansi (component-render f 200)))))
+      ) ;
+  (pi-footer-set-thinking-level! f "high")
+  (check (string-contains? (render) "-> (ollama) plain-model") => #t)
+  (pi-footer-set-active-node! f '("ollama" "plain-model" "off" 128000 #f))
+  ;; 实际不生效，后缀消失
+  (check-false (string-contains? (render) "plain-model •"))
+) ;let*
+
 (check-report)

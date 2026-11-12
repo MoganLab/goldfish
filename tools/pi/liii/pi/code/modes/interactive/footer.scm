@@ -245,9 +245,8 @@
     ) ;define
 
     ;; 会话内切换 thinking level 后同步 footer 右下角标签。
-    ;; 已缓存的 active-node 等级是上一次请求的生效值，切换后立即失效：
-    ;; 这里用用户刚选的等级占位，下一次请求回报 active_node 时替换为
-    ;; 该节点按真实能力收敛后的实际值（可能是更低的兼容档位）。
+    ;; 切换瞬间直接显示用户所选等级；下一次请求回报 active_node 时
+    ;; 替换为该节点按真实能力收敛后的实际生效值。
     (define (pi-footer-set-thinking-level! comp tl)
       (let* ((st (%footer-state comp)) (node (pi-footer-state-active-node st)))
         (pi-footer-state-thinking-level-set! st tl)
