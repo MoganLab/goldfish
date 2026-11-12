@@ -128,14 +128,14 @@
   ) ;check
 ) ;let
 
-;; 8c. pi-build-config-catalog：空数组与文件缺失时全部内置 provider 均标记为 enabled
+;; 8c. pi-build-config-catalog：空数组与文件缺失时内置常规 provider 为 enabled，all-in-one 默认未激活为 disabled
 (let ((config-catalog (pi-build-config-catalog (string-append FIXTURE "/empty-providers"))
       ) ;config-catalog
      ) ;
   (check (map car config-catalog)
     =>
     '("deepseek" "google" "kimi-coding" "minimax-cn" "ollama" "opencode"
-      "zai-coding-cn")
+      "zai-coding-cn" "all-in-one")
   ) ;check
   (check
     (map
@@ -143,7 +143,7 @@
       config-catalog
     ) ;map
     =>
-    '(#t #t #t #t #t #t #t)
+    '(#t #t #t #t #t #t #t #f)
   ) ;check
 ) ;let
 (let ((config-catalog (pi-build-config-catalog (string-append FIXTURE "/no-providers"))
@@ -155,7 +155,7 @@
       config-catalog
     ) ;map
     =>
-    '(#t #t #t #t #t #t #t)
+    '(#t #t #t #t #t #t #t #f)
   ) ;check
 ) ;let
 

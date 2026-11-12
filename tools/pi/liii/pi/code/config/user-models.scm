@@ -93,7 +93,17 @@
           (and (equal? p-id "all-in-one")
             (let ((models (all-in-one-models config-dir)))
               (and
-                (find (lambda (m) (equal? (pi-user-dict-ref m "id" #f) m-id)) models)
+                (or
+                  (find (lambda (m) (equal? (pi-user-dict-ref m "id" #f) m-id)) models)
+                  (and (or (equal? m-id "coding-deep") (equal? m-id "coding-high-level"))
+                    (find (lambda (m) (equal? (pi-user-dict-ref m "id" #f) "coding-high-quality"))
+                      models
+                    ) ;find
+                  ) ;and
+                  (and (equal? m-id "coding-fast-cheap")
+                    (find (lambda (m) (equal? (pi-user-dict-ref m "id" #f) "coding-fast")) models)
+                  ) ;and
+                ) ;or
                 #t
               ) ;and
             ) ;let

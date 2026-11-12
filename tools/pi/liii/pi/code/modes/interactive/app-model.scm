@@ -67,7 +67,14 @@
     ) ;define
 
     (define (%model-ref model key)
-      (cdr (or (assoc key model) (cons #f #f)))
+      (let ((k-str (if (symbol? key) (symbol->string key) key))
+            (k-sym (if (symbol? key) key (string->symbol key)))
+           ) ;
+        (or (cdr (or (assoc key model) '(#f . #f)))
+          (cdr (or (assoc k-sym model) '(#f . #f)))
+          (cdr (or (assoc k-str model) '(#f . #f)))
+        ) ;or
+      ) ;let
     ) ;define
 
     ;; 精确引用匹配（对齐上游 findExactModelReferenceMatch）：
@@ -157,7 +164,9 @@
         (%pi-app-available-thinking-levels-set! app
           (if supports pi-thinking-levels '("off"))
         ) ;%pi-app-available-thinking-levels-set!
-        (pi-footer-set-model! (%pi-app-footer app) provider model-id supports)
+        (let ((cw (%model-ref model 'contextWindow)))
+          (pi-footer-set-model! (%pi-app-footer app) provider model-id supports cw)
+        ) ;let
         (pi-app-apply-thinking-level-ui! app new-tl)
       ) ;let*
     ) ;define

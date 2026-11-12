@@ -19,7 +19,7 @@
 (check-set-mode! 'report-failed)
 
 (check-true (pair? PI_PROVIDER_BUILTIN_MODELS))
-(check (length PI_PROVIDER_BUILTIN_MODELS) => 7)
+(check (length PI_PROVIDER_BUILTIN_MODELS) => 8)
 
 (define (find-provider-models name)
   (let ((p (assoc name PI_PROVIDER_BUILTIN_MODELS)))
@@ -45,8 +45,11 @@
 (check (length (find-provider-models "ollama")) => 3)
 (check (length (find-provider-models "zai-coding-cn")) => 10)
 (check (length (find-provider-models "opencode")) => 27)
+(check (length (find-provider-models "all-in-one")) => 2)
 
 ;; 验证关键模型存在
+(check-true (has-model? (find-provider-models "all-in-one") "coding-fast"))
+(check-true (has-model? (find-provider-models "all-in-one") "coding-high-quality"))
 (check-true (has-model? (find-provider-models "deepseek") "deepseek-v4-pro"))
 (check-true (has-model? (find-provider-models "google") "gemini-3.8-flash"))
 (check-true (has-model? (find-provider-models "kimi-coding") "kimi-for-coding"))

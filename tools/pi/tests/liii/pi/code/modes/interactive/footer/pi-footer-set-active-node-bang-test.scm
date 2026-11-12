@@ -82,4 +82,14 @@
   ) ;check-true
 ) ;let*
 
+;; 5. 传入包含实际节点容量的 4 元组时同步更新页脚 context-window 与左侧上下文信息
+(let ((ft (make-pi-footer :cwd "/tmp/test" :provider "all-in-one" :model "chain" :context-window 128000)))
+  (check (pi-footer-context-window ft) => 128000)
+  (pi-footer-set-active-node! ft '("google" "gemini-3.8-flash" "medium" 1048576))
+  (check (pi-footer-context-window ft) => 1048576)
+  (let ((line1 (strip-ansi (list-ref (component-render ft 100) 1))))
+    (check-true (string-contains? line1 "1.0M"))
+  ) ;let
+) ;let
+
 (check-report)

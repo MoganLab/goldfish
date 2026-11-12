@@ -246,9 +246,10 @@
 (let ((dir (make-dir "last-provider-nav"))
       (vt (make-virtual-terminal :width 120 :height 24))
      ) ;
-  ;; 6 次 ↓ 到 opencode，→ 进模型列，5 次 ↓
+  ;; 7 次 ↓ 到 opencode，→ 进模型列，5 次 ↓
   (for-each (lambda (k) (virtual-terminal-push-key! vt k))
     (list 'down
+      'down
       'down
       'down
       'down

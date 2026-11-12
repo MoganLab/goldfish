@@ -46,4 +46,24 @@
   ) ;let
 ) ;let
 
+;; 切换模型时清除已有的 active-node，并可选同步 context-window
+(let ((ft (make-pi-footer
+            :cwd            "/tmp/test"
+            :provider       "all-in-one"
+            :model          "coding-fast"
+            :context-window 1000000
+          ) ;make-pi-footer
+      ) ;ft
+     ) ;
+  (pi-footer-set-active-node! ft '("google" "gemini-3.8-flash" "medium" 1048576))
+  (check-true (pair? (pi-footer-active-node ft)))
+  ;; 切换至常规模型：active-node 必须被清空为 #f，右下角恢复常规无箭头展示
+  (pi-footer-set-model! ft "deepseek" "deepseek-v4-pro" #t 1000000)
+  (check (pi-footer-active-node ft) => #f)
+  (let ((line (list-ref (component-render ft 100) 1)))
+    (check-true (string-contains? line "(deepseek) deepseek-v4-pro"))
+    (check-false (string-contains? line "->"))
+  ) ;let
+) ;let
+
 (check-report)

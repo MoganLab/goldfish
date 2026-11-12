@@ -7,16 +7,28 @@
 (define-library (liii pi code core compaction flow)
   (import (scheme base)
     (scheme write)
+    (liii list)
+    (liii date-time)
     (liii string)
     (liii pi ai config record)
+    (liii pi ai models)
+    (liii pi ai models meta)
+    (liii pi ai providers registry)
     (liii pi code cli args)
     (liii pi code config)
     (liii pi code core session-manager)
     (liii pi code core compaction tokens)
     (liii pi code core compaction session)
     (liii pi code core session-projection)
+    (liii pi code all-in-one types)
+    (liii pi code all-in-one loader)
+    (liii pi code all-in-one chain)
+    (liii pi code all-in-one provider)
   ) ;import
-  (export pi-format-compaction-summary pi-make-compaction-option)
+  (export pi-format-compaction-summary
+    pi-make-compaction-option
+    pi-resolve-compaction-window
+  ) ;export
   (begin
 
     (define (%display-stderr msg)
@@ -71,6 +83,39 @@
       ) ;let
     ) ;define
 
+    ;; 解析链中单节点的上下文窗口（模型库优先，回退内置目录与兜底）
+    (define (%node-compaction-window node store)
+      (let* ((p (chain-node-provider node))
+             (m (chain-node-model node))
+             (meta
+               (and store
+                 (catch #t (lambda () (pi-resolve-model-metadata p m store)) (lambda args #f))
+               ) ;and
+             ) ;meta
+            ) ;
+        (cond
+         ((and meta
+            (pi-model-metadata? meta)
+            (number? (pi-model-metadata-context-window meta))
+          ) ;and
+          (pi-model-metadata-context-window meta)
+         ) ;
+         (else
+           (let* ((p-models (cdr (or (assoc p PI_PROVIDER_BUILTIN_MODELS) '(#f))))
+                  (entry
+                    (find
+                      (lambda (e) (equal? (cdr (or (assoc "id" e) '(#f . #f))) m))
+                      p-models
+                    ) ;find
+                  ) ;entry
+                 ) ;
+             (if entry (cdr (or (assoc "contextWindow" entry) '(#f . 1000000))) 1000000)
+           ) ;let*
+         ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
+
     ;; 当前模型的上下文窗口：model-meta 为 pi-model-metadata record，
     ;; 兼容 alist 形态（旧会话状态），record 须走访问器读取
     (define (%context-window cfg)
@@ -83,6 +128,63 @@
               ) ;
               (else #f)
         ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 动态计算本次请求前用于自动压缩判定（%auto-compact）的上下文容量：
+    ;; 对于 all-in-one 伪模型：
+    ;;   1. 若当前链路有已就绪的有效粘性节点（且未处于冷却期），使用该实际节点的上下文窗口；
+    ;;   2. 若尚未建立粘性、或粘性节点已进入冷却期（故障被跳过），使用整条链路候选节点的保守窗口（最小值）；
+    ;;   3. 杜绝简单硬编码 1M 或沿用过期/故障节点的窗口大小。
+    ;; 对于常规供应商模型：直接使用当前模型的 metadata contextWindow。
+    (define (pi-resolve-compaction-window cfg)
+      (let ((p (cdr (or (assoc 'provider cfg) '(#f . #f)))))
+        (if (not (equal? p "all-in-one"))
+          (%context-window cfg)
+          (let* ((dir (pi-cfg-config-dir cfg))
+                 (raw-aio (all-in-one-load-config dir))
+                 (default-chains (all-in-one-default-chains))
+                 (aio-cfg (or raw-aio (make-all-in-one-cfg #t 3600000 1800000 50000 default-chains))
+                 ) ;aio-cfg
+                 (chains (all-in-one-cfg-chains aio-cfg))
+                 (chain-id (cdr (or (assoc 'model-id cfg) '(#f . #f))))
+                 (chain
+                   (and chain-id
+                     (or
+                       (find (lambda (c) (equal? (chain-def-id c) chain-id)) chains)
+                       (and (or (equal? chain-id "coding-deep") (equal? chain-id "coding-high-level"))
+                         (find (lambda (c) (equal? (chain-def-id c) "coding-high-quality")) chains)
+                       ) ;and
+                       (and (equal? chain-id "coding-fast-cheap")
+                         (find (lambda (c) (equal? (chain-def-id c) "coding-fast")) chains)
+                       ) ;and
+                       (find (lambda (c) (equal? (chain-def-id c) chain-id)) default-chains)
+                     ) ;or
+                   ) ;and
+                 ) ;chain
+                 (nodes (if chain (chain-def-nodes chain) '()))
+                 (store (cdr (or (assoc 'models-store cfg) '(#f . #f))))
+                 (conservative-window
+                   (if (pair? nodes)
+                     (apply min (map (lambda (n) (%node-compaction-window n store)) nodes))
+                     (%context-window cfg)
+                   ) ;if
+                 ) ;conservative-window
+                 (sticky-idx (and chain-id (pi-chain-current-sticky-index chain-id)))
+                 (now-ms (current-monotonic-millis))
+                ) ;
+            (cond
+             ((and (integer? sticky-idx)
+                (>= sticky-idx 0)
+                (< sticky-idx (length nodes))
+                (not (pi-chain-node-in-cooldown? (list-ref nodes sticky-idx) now-ms aio-cfg))
+              ) ;and
+              (%node-compaction-window (list-ref nodes sticky-idx) store)
+             ) ;
+             (else conservative-window)
+            ) ;cond
+          ) ;let*
+        ) ;if
       ) ;let
     ) ;define
 
@@ -128,15 +230,17 @@
                         (eq? #t (pi-compaction-settings-enabled settings))
                       ) ;and
              ) ;enabled
-             (window (%context-window cfg))
              (emit (if (pair? opt-emit) (car opt-emit) #f))
             ) ;
         (and enabled
-          (list (cons 'compactor
-                  (lambda (msgs)
-                    (%auto-compact cfg sfile state timeout settings window msgs emit)
-                  ) ;lambda
-                ) ;cons
+          (list
+            (cons 'compactor
+              (lambda (msgs)
+                (let ((window (pi-resolve-compaction-window cfg)))
+                  (%auto-compact cfg sfile state timeout settings window msgs emit)
+                ) ;let
+              ) ;lambda
+            ) ;cons
           ) ;list
         ) ;and
       ) ;let*

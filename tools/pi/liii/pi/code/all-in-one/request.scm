@@ -16,6 +16,7 @@
     (liii pi code all-in-one chain)
     (liii pi code all-in-one loader)
     (liii pi code all-in-one probe)
+    (liii pi code all-in-one provider)
     (liii pi code all-in-one types)
   ) ;import
   (export pi-all-in-one-request-stream pi-all-in-one-exhausted-message)
@@ -123,14 +124,24 @@
                (request-fn #f)
              ) ;pi-all-in-one-request-stream
       (let* ((dir (pi-cfg-config-dir config))
-             (aio-cfg (all-in-one-load-config dir))
+             (raw-aio-cfg (all-in-one-load-config dir))
+             (default-chains (all-in-one-default-chains))
+             (aio-cfg (or raw-aio-cfg (make-all-in-one-cfg #t 3600000 1800000 50000 default-chains))
+             ) ;aio-cfg
+             (chains (all-in-one-cfg-chains aio-cfg))
              (chain-id (cdr (assoc 'model-id config)))
              (chain
-               (and aio-cfg
-                 chain-id
-                 (find (lambda (c) (equal? (chain-def-id c) chain-id))
-                   (all-in-one-cfg-chains aio-cfg)
-                 ) ;find
+               (and chain-id
+                 (or
+                   (find (lambda (c) (equal? (chain-def-id c) chain-id)) chains)
+                   (and (or (equal? chain-id "coding-deep") (equal? chain-id "coding-high-level"))
+                     (find (lambda (c) (equal? (chain-def-id c) "coding-high-quality")) chains)
+                   ) ;and
+                   (and (equal? chain-id "coding-fast-cheap")
+                     (find (lambda (c) (equal? (chain-def-id c) "coding-fast")) chains)
+                   ) ;and
+                   (find (lambda (c) (equal? (chain-def-id c) chain-id)) default-chains)
+                 ) ;or
                ) ;and
              ) ;chain
             ) ;
