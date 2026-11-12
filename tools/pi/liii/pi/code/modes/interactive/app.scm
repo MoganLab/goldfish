@@ -305,7 +305,7 @@
              (event-chan (make-chan 32))
              (abort-chan (make-chan 1))
              (bash-jobs-chan (make-chan 16))
-             ;; steering / follow-up 注入通道：容量 16 与 jobs-chan 对齐
+             (bash-abort-chan (make-chan 1))
              (steering-chan (make-chan 16))
              (follow-up-chan (make-chan 16))
              (actual-record-sink (%make-pi-record-sink record-sink jobs-chan))
@@ -334,6 +334,7 @@
                     #f
                     '()
                     bash-jobs-chan
+                    bash-abort-chan
                     bash-handler
                     actual-record-sink
                     session-name
@@ -389,7 +390,7 @@
         ) ;unless
         ;; 无注入执行器时启动后台 bash worker
         (unless bash-handler
-          (go (pi-bash-worker bash-jobs-chan event-chan))
+          (go (pi-bash-worker bash-jobs-chan event-chan bash-abort-chan))
         ) ;unless
         app
       ) ;let*

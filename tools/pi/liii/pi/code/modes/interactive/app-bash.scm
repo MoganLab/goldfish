@@ -7,8 +7,8 @@
 ;; bash 编排层：! 命令的卡片上屏、!! 排除与上下文注入（对齐 pi
 ;; handleBashCommand / recordBashResult），从 app.scm 拆出以控制单文件行数
 (define-library (liii pi code modes interactive app-bash)
-  (export pi-app-run-bash! pi-app-toggle-tool-output! %pi-app-record-bash!
-    %pi-app-show-status!
+  (export pi-app-run-bash! pi-app-bash-running? pi-app-toggle-tool-output!
+    %pi-app-record-bash! %pi-app-show-status!
   ) ;export
   (import (scheme base)
     (liii go)
@@ -40,6 +40,19 @@
           ) ;when
         ) ;let
       ) ;unless
+    ) ;define
+
+    ;; 是否有 ! 命令在运行（含已派发尚未开始执行的排队命令）：
+    ;; ESC 中止 ! 命令与退出中止的门控（对齐上游 isBashRunning）；
+    ;; 无命令运行时不发信号，避免陈旧信号误伤下一个命令
+    (define (pi-app-bash-running? app)
+      (let loop
+        ((lst (%pi-app-bash-cards app)))
+        (cond ((null? lst) #f)
+              ((bash-card-running? (cdar lst)) #t)
+              (else (loop (cdr lst)))
+        ) ;cond
+      ) ;let
     ) ;define
 
     ;; 执行 bash 命令并上屏卡片（对齐 pi handleBashCommand）：同步 handler

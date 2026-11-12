@@ -20,6 +20,7 @@
     (liii pi code modes interactive state)
     (liii pi code modes interactive selection)
     (liii pi code modes interactive app)
+    (liii pi code modes interactive app-bash)
     (liii pi code modes interactive render)
     (liii pi code modes interactive app-mouse)
     (liii pi code modes interactive app-events)
@@ -71,6 +72,23 @@
     ;; 短暂窗口把会话落盘并上屏 Aborted 提示，超时则强制退出。
     (define %pi-app-exit-grace-ms 300)
 
+    ;; ESC 与退出共用的中止信号发射：agent 任务（busy 时）与运行中的 ! 命令；
+    ;; bash 通道仅在命令运行时发送，避免陈旧信号误伤下一个命令
+    (define (%pi-app-send-abort-signals! app q)
+      (when (pi-queue-busy? q)
+        (catch #t
+          (lambda () (chan-send! (pi-app-abort-chan app) 'abort 0))
+          (lambda args #f)
+        ) ;catch
+      ) ;when
+      (when (pi-app-bash-running? app)
+        (catch #t
+          (lambda () (chan-send! (pi-app-bash-abort-chan app) 'abort 0))
+          (lambda args #f)
+        ) ;catch
+      ) ;when
+    ) ;define
+
     ;; 退出前中止在途 agent 任务（对齐上游 pi 的 session.dispose() → agent.abort()）：
     ;; worker 线程此刻正阻塞在 LLM 流式 HTTP 请求上，而进程退出会 join go 线程池
     ;; （GoThreadPool 析构 → shutdown → join 全部 worker 线程），
@@ -89,12 +107,8 @@
         (if (not (pi-queue-busy? q))
           #t
           (begin
-            ;; 与 ESC 相同的中止信号：worker 在流式回调检查点返回 #f，
-            ;; C 层随即中止 HTTP 下载
-            (catch #t
-              (lambda () (chan-send! (pi-app-abort-chan app) 'abort 0))
-              (lambda args #f)
-            ) ;catch
+            ;; 与 ESC 相同的中止信号（agent 流式 + 运行中的 ! 命令）
+            (%pi-app-send-abort-signals! app q)
             ;; 宽限期内等待 worker 结算（会话文件落盘 + agent_settled 事件）
             (let ((deadline (+ (current-monotonic-millis) grace-ms)))
               (let loop
@@ -219,10 +233,10 @@
                    ) ;and
                    #t
                   ) ;
-                  ;; 按 Escape 时（对齐上游 pi 的 onEscape）：
-                  ;; busy：发 abort 信号中断正在进行的任务（worker 检查点
-                  ;;   探测后以 aborted 结算）；队列空闲：仅撤回至 editor，
-                  ;;   两种情况下都把排队消息恢复到编辑器重新编辑，不退出 TUI
+                  ;; 按 Escape 时（对齐上游 pi 的 onEscape 优先级链）：
+                  ;;   busy：发 abort 信号中断任务（worker 检查点探测后
+                  ;;   以 aborted 结算）；队列空闲：仅撤回至 editor；
+                  ;;   ! 命令运行中：另发 bash 中止信号（abortBash 语义）
                   ((and (not (pi-app-active-selector app))
                      (not (pi-app-slash-command-menu app))
                      (eq? k 'escape)
@@ -234,10 +248,9 @@
                        (loop)
                      ) ;begin
                      (begin
-                       (when (pi-queue-busy? q)
-                         ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
-                         (chan-send! (pi-app-abort-chan app) 'abort 0)
-                       ) ;when
+                       ;; agent 任务与运行中 ! 命令的中止信号
+                       ;; （对齐上游 onEscape：streaming → abort；bash 运行中 → abortBash）
+                       (%pi-app-send-abort-signals! app q)
                        ;; 撤回全部排队消息：steering → follow-up → 等待队列，
                        ;; 与编辑器当前内容合并回编辑（对齐上游 restoreQueuedMessagesToEditor）
                        (%pi-app-restore-to-editor! app)

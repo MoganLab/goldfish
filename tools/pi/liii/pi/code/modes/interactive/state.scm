@@ -20,15 +20,16 @@
     pi-app-bash-mode? %pi-app-bash-mode?-set! pi-app-tools-expanded?
     %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
     %pi-app-tool-cards %pi-app-tool-cards-set! pi-app-thinking-card
-    %pi-app-thinking-card-set! pi-app-bash-jobs-chan %pi-app-bash-handler
-    %pi-app-record-sink pi-app-session-name %pi-app-session-name-set!
-    %pi-editor-top-border pi-app-provider %pi-app-provider-set! pi-app-model
-    %pi-app-model-set! pi-app-models %pi-app-models-set! %pi-app-default-model
-    %pi-app-default-model-set! %pi-app-on-save-model
-    %pi-app-supports-thinking?-set! %pi-app-available-thinking-levels-set!
-    pi-app-resume-sessions %pi-app-resume-sessions-set! pi-app-no-session?
-    pi-app-scroll-view pi-app-wheel-accelerator pi-app-steering-chan
-    pi-app-follow-up-chan %pi-app-steering-pending %pi-app-steering-pending-set!
+    %pi-app-thinking-card-set! pi-app-bash-jobs-chan pi-app-bash-abort-chan
+    %pi-app-bash-handler %pi-app-record-sink pi-app-session-name
+    %pi-app-session-name-set! %pi-editor-top-border pi-app-provider
+    %pi-app-provider-set! pi-app-model %pi-app-model-set! pi-app-models
+    %pi-app-models-set! %pi-app-default-model %pi-app-default-model-set!
+    %pi-app-on-save-model %pi-app-supports-thinking?-set!
+    %pi-app-available-thinking-levels-set! pi-app-resume-sessions
+    %pi-app-resume-sessions-set! pi-app-no-session? pi-app-scroll-view
+    pi-app-wheel-accelerator pi-app-steering-chan pi-app-follow-up-chan
+    %pi-app-steering-pending %pi-app-steering-pending-set!
     %pi-app-follow-up-pending %pi-app-follow-up-pending-set!
     pi-app-hide-thinking? %pi-app-hide-thinking?-set!
     %pi-app-on-save-hide-thinking pi-app-selection %pi-app-selection-set!
@@ -54,13 +55,13 @@
         slash-command-menu footer queue handler jobs-chan event-chan abort-chan
         working thinking-level supports-thinking available-thinking-levels
         default-thinking-level on-save-thinking-level model-thinking-levels
-        bash-mode? tools-expanded? bash-cards bash-jobs-chan bash-handler
-        record-sink session-name provider model models default-model
-        on-save-model tool-cards resume-sessions no-session? scroll-view
-        wheel-accelerator steering-chan follow-up-chan steering-pending
-        follow-up-pending thinking-card hide-thinking? on-save-hide-thinking
-        selection flash tokens rendered-frame dock-length working-border-row
-        skills enable-skill-commands scroll-hint-rect
+        bash-mode? tools-expanded? bash-cards bash-jobs-chan bash-abort-chan
+        bash-handler record-sink session-name provider model models
+        default-model on-save-model tool-cards resume-sessions no-session?
+        scroll-view wheel-accelerator steering-chan follow-up-chan
+        steering-pending follow-up-pending thinking-card hide-thinking?
+        on-save-hide-thinking selection flash tokens rendered-frame dock-length
+        working-border-row skills enable-skill-commands scroll-hint-rect
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -99,6 +100,9 @@
       ;; id → bash 卡片的关联表（后台事件回填用）
       (bash-cards %pi-app-bash-cards %pi-app-bash-cards-set!)
       (bash-jobs-chan pi-app-bash-jobs-chan)
+      ;; ! 命令的 ESC 中止信号通道：主线程发送，bash worker 流式轮询点探测
+      ;; （与 agent 的 abort-chan 分离：chan 消费互斥，共用会抢信号）
+      (bash-abort-chan pi-app-bash-abort-chan)
       ;; 测试接缝：注入同步 bash 执行器 (lambda (cmd) (values text exit-code))
       (bash-handler %pi-app-bash-handler)
       ;; ! 命令结果注入会话上下文的回调 (lambda (command text code))；

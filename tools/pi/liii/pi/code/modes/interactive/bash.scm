@@ -8,10 +8,25 @@
 ;; 输入 !cmd 直接经 bash 执行（不发给模型），输出显示在绿色边框卡片内；
 ;; 折叠时仅显示最后 PI-BASH-PREVIEW-LINES 行，Ctrl+O 全局切换展开/折叠。
 (define-library (liii pi code modes interactive bash)
-  (export pi-bash-border-color pi-bash-dim-border-color pi-bash-preview-lines
-    make-bash-card bash-card? bash-card-component? bash-card-expanded?
-    bash-card-set-output! bash-card-set-complete! bash-card-set-expanded!
-    pi-bash-run-command pi-bash-worker pi-bash-send-event!
+  (export pi-bash-border-color
+    pi-bash-dim-border-color
+    pi-bash-preview-lines
+    make-bash-card
+    bash-card?
+    bash-card-component?
+    bash-card-expanded?
+    bash-card-running?
+    bash-card-set-output!
+    bash-card-set-complete!
+    bash-card-set-expanded!
+    pi-bash-run-command
+    pi-bash-worker
+    pi-bash-send-event!
+    ;; % 前缀助手必须导出：go 工作会话只能看到各库导出绑定，
+    ;; worker 源码重求值后会引用它们（对齐 pi-bash-send-event! 的导出缘由）
+    %bash-run-abortable
+    %bash-run-capture
+    %bash-worker-run-job
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -101,6 +116,9 @@
                        ) ;
                        ((eq? (%bash-card-status st) 'timeout)
                         (%color-line " " "(timeout)" %fg-error width)
+                       ) ;
+                       ((eq? (%bash-card-status st) 'aborted)
+                        (%color-line " " "(aborted)" %fg-error width)
                        ) ;
                        (else #f)
                       ) ;cond
@@ -200,13 +218,14 @@
       ) ;let*
     ) ;define
 
-    ;; 结束运行：exit-code 0 → complete；-1 → timeout；其他 → error
+    ;; 结束运行：exit-code 0 → complete；-1 → timeout；-2 → aborted（ESC 中止）；其他 → error
     (define (bash-card-set-complete! card exit-code)
       (let ((st (component-data card)))
         (%bash-card-exit-code-set! st exit-code)
         (%bash-card-status-set! st
           (cond ((= exit-code 0) 'complete)
                 ((= exit-code -1) 'timeout)
+                ((= exit-code -2) 'aborted)
                 (else 'error)
           ) ;cond
         ) ;%bash-card-status-set!
@@ -221,35 +240,78 @@
       (%bash-card-expanded? (component-data card))
     ) ;define
 
+    ;; 卡片是否仍在运行（含已派发尚未开始执行的排队命令）：
+    ;; ESC 中止 ! 命令的门控（对齐上游 isBashRunning）
+    (define (bash-card-running? card)
+      (eq? (%bash-card-status (component-data card)) 'running)
+    ) ;define
+
     ;; 组件级谓词：chat 容器中的子项是 component，其 data 才是 <bash-card> 状态
     (define (bash-card-component? obj)
       (and (component? obj) (bash-card? (component-data obj)))
     ) ;define
 
-    ;; 生产执行器：经 bash -c 运行命令，返回 (values 合并输出 退出码)
-    ;; 退出码 -1 表示超时（对齐 subprocess 的超时约定）；
-    ;; 输出对齐上游 session.executeBash，返回前已清理
-    ;; （剥 ANSI/OSC、删控制字符、删 \r，保留 \t\n）
+    ;; ESC 中止路径：流式执行 + 50ms 轮询点探测，中止时杀进程树返回 -2
+    (define (%bash-run-abortable command timeout check-abort)
+      (let* ((text "")
+             (ret
+               (run-streaming-chunks (list (pi-find-bash-path) "-c" command)
+                 :cwd (getcwd)
+                 :on-chunk
+                 (lambda (chunk)
+                   (when (and (string? chunk) (not (string-null? chunk)))
+                     (set! text (string-append text chunk))
+                   ) ;when
+                 ) ;lambda
+                 :timeout       timeout
+                 :should-abort? check-abort
+               ) ;run-streaming-chunks
+             ) ;ret
+             (clean (pi-bash-clean-output text))
+            ) ;
+        (cond ((eq? ret 'aborted) (values clean -2))
+              ((eq? ret #f) (values clean -1))
+              (else (values clean ret))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    ;; 无中止探测的同步捕获路径
+    (define (%bash-run-capture command timeout)
+      (let ((res (run-either (list (pi-find-bash-path) "-c" command)
+                   :cwd     (getcwd)
+                   :stdin   'null
+                   :stdout  'capture
+                   :stderr  'stdout
+                   :timeout timeout
+                 ) ;run-either
+            ) ;res
+           ) ;
+        (if (either-right? res)
+          (values (pi-bash-clean-output (to-right res)) 0)
+          (let ((err (to-left res)))
+            (values (pi-bash-clean-output (process-error-stdout err))
+              (process-error-code err)
+            ) ;values
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 生产执行器：返回 (values 清理后合并输出 退出码)；-1 超时、-2 中止
+    ;; （:check-abort 走流式探测路径，对齐上游 AbortController/signal）；
+    ;; 输出对齐上游 session.executeBash（剥 ANSI/OSC、删控制字符与 \r）
     (define (pi-bash-run-command command . opts)
-      (let ((timeout (%keyword-value :timeout opts 600)))
-        (let ((res (run-either (list (pi-find-bash-path) "-c" command)
-                     :cwd     (getcwd)
-                     :stdin   'null
-                     :stdout  'capture
-                     :stderr  'stdout
-                     :timeout timeout
-                   ) ;run-either
-              ) ;res
-             ) ;
-          (if (either-right? res)
-            (values (pi-bash-clean-output (to-right res)) 0)
-            (let ((err (to-left res)))
-              (values (pi-bash-clean-output (process-error-stdout err))
-                (process-error-code err)
-              ) ;values
-            ) ;let
-          ) ;if
-        ) ;let
+      (let ((timeout (%keyword-value :timeout opts 600))
+            (check-abort (%keyword-value :check-abort opts #f))
+           ) ;
+        (when (and check-abort (not (procedure? check-abort)))
+          (error 'type-error "pi-bash-run-command: :check-abort must be a procedure")
+        ) ;when
+        (if check-abort
+          (%bash-run-abortable command timeout check-abort)
+          (%bash-run-capture command timeout)
+        ) ;if
       ) ;let
     ) ;define
 
@@ -258,12 +320,57 @@
       (catch #t (lambda () (chan-send! ch ev 2000)) (lambda (t . a) #f))
     ) ;define
 
-    ;; 后台工作协程：顺序消费 (id command excluded?) 任务并回传
-    ;; (bash_complete id command text exit-code excluded?)；主线程据此回填卡片
-    ;; 并把未排除的结果作为 bash_record 任务投递给 agent worker 注入上下文。
-    ;; 通道关闭（TUI 退出）时 recv 返回 eof-object，循环正常结束
-    ;; 注意：go 线程只能看到导出绑定，故此过程必须顶层导出
-    (define (pi-bash-worker bash-jobs-chan event-chan)
+    ;; 单个 ! 任务的执行与结算：中止返回 -2 并在已产生输出后追加
+    ;; Command aborted（对齐 agent bash 工具的 %format-bash-result）；
+    ;; 异常统一回传 bash error 事件
+    (define (%bash-worker-run-job id command excluded? abort-chan event-chan)
+      (catch #t
+        (lambda ()
+          (let-values (((text code)
+                        (pi-bash-run-command command
+                          :check-abort
+                          (lambda () (chan-try-recv! abort-chan #f))
+                        ) ;pi-bash-run-command
+                       ) ;
+                      ) ;
+            (let ((out
+                    (if (= code -2)
+                      (if (string-null? (string-trim-both text))
+                        "Command aborted"
+                        (string-append text "\n\nCommand aborted")
+                      ) ;if
+                      text
+                    ) ;if
+                  ) ;out
+                 ) ;
+              (pi-bash-send-event! event-chan
+                (list 'bash_complete id command out code (and excluded? #t))
+              ) ;pi-bash-send-event!
+            ) ;let
+          ) ;let-values
+        ) ;lambda
+        (lambda (t . a)
+          (pi-bash-send-event! event-chan
+            (list 'bash_complete
+              id
+              command
+              (string-append "bash error: " (object->string t))
+              1
+              #f
+            ) ;list
+          ) ;pi-bash-send-event!
+        ) ;lambda
+      ) ;catch
+    ) ;define
+
+    ;; 后台工作协程：顺序消费 (id command excluded?) 任务，回传
+    ;; bash_complete 事件（主线程据此回填卡片并注入会话上下文）。
+    ;; abort-chan 是 ! 命令的 ESC 中止信号通道（对齐上游 abortBash）：
+    ;; 任务开始排空残留信号（防旧 abort 误伤新任务，语义对齐
+    ;; pi-abort-arm-chan!），执行期间流式轮询点探测即杀树返回 -2。
+    ;; 通道关闭（TUI 退出）时 recv 返回 eof-object，循环正常结束；
+    ;; go 线程只能看到导出绑定，故此过程必须顶层导出
+    (define (pi-bash-worker bash-jobs-chan event-chan abort-chan)
       (let loop
         ()
         (let ((job (chan-recv! bash-jobs-chan)))
@@ -272,26 +379,15 @@
                    (command (cadr job))
                    (excluded? (and (> (length job) 2) (caddr job)))
                   ) ;
-              (catch #t
-                (lambda ()
-                  (let-values (((text code) (pi-bash-run-command command)))
-                    (pi-bash-send-event! event-chan
-                      (list 'bash_complete id command text code (and excluded? #t))
-                    ) ;pi-bash-send-event!
-                  ) ;let-values
-                ) ;lambda
-                (lambda (t . a)
-                  (pi-bash-send-event! event-chan
-                    (list 'bash_complete
-                      id
-                      command
-                      (string-append "bash error: " (object->string t))
-                      1
-                      #f
-                    ) ;list
-                  ) ;pi-bash-send-event!
-                ) ;lambda
-              ) ;catch
+              ;; 排空上一轮残留的 abort 信号：ESC 在任务间隙到达的信号
+              ;; 不应中止下一个任务（对齐上游：abortBash 只中止运行中命令）
+              (let drain-loop
+                ()
+                (when (chan-try-recv! abort-chan #f)
+                  (drain-loop)
+                ) ;when
+              ) ;let
+              (%bash-worker-run-job id command excluded? abort-chan event-chan)
               (loop)
             ) ;let*
           ) ;when
