@@ -16,7 +16,10 @@
 
 (define-library (liii subprocess streaming)
   (export run-streaming run-streaming-chunks)
-  (import (scheme base) (scheme time) (liii error) (liii subprocess process))
+  ;; (liii string) 必须显式导入：emit! 的 string-null? 若靠全局可见性侥幸解析，
+  ;; 在 go 工作会话（按声明的 import 严格重求值）中会成为 unbound variable
+  (import (scheme base) (scheme time) (liii error) (liii string)
+    (liii subprocess process))
   (begin
 
     (define (%current-time-ms)
