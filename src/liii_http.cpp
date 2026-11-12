@@ -777,6 +777,11 @@ f_http_async_post (s7_scheme* sc, s7_pointer args) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 2, s7_make_string (sc, "http-async-post: callback must be a procedure"), callback));
   }
+  long       timeout_ms= 0;
+  s7_pointer err       = parse_timeout_ms (sc, "http-async-post", optional_arg (sc, args, 6), &timeout_ms);
+  if (err) {
+    return err;
+  }
 
   const char*     url        = s7_string (url_arg);
   const char*     body       = s7_string (body_arg);
@@ -796,6 +801,7 @@ f_http_async_post (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_null (sc, proxy)) {
     session->SetProxies (cpr_proxies);
   }
+  apply_session_timeout (*session, timeout_ms);
 
   // Start async request using libcpr's built-in thread pool
   auto async_resp= session->PostAsync ();
@@ -814,9 +820,10 @@ inline void
 glue_http_async_post (s7_scheme* sc) {
   s7_pointer  cur_env= s7_curlet (sc);
   const char* name   = "g_http-async-post";
-  const char* doc    = "(g_http-async-post url params body headers proxy callback) => boolean, start async http post. "
-                       "callback receives response hashtable. Use g_http-poll to check for completion.";
-  auto        func   = s7_make_typed_function (sc, name, f_http_async_post, 6, 0, false, doc, NULL);
+  const char* doc    = "(g_http-async-post url params body headers proxy callback [timeout]) => boolean, start async "
+                       "http post. callback receives response hashtable. timeout is in seconds. Use g_http-poll to "
+                       "check for completion.";
+  auto        func   = s7_make_typed_function (sc, name, f_http_async_post, 6, 1, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
 }
 

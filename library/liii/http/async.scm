@@ -32,13 +32,21 @@
       ) ;let
     ) ;define*
 
-    (define* (http-async-post url callback (params '()) (data "") (headers '()) (proxy '()))
+    (define* (http-async-post url
+               callback
+               (params '())
+               (data "")
+               (headers '())
+               (proxy '())
+               (timeout #f)
+             ) ;http-async-post
       (let* ((url (http-require-string "http-async-post" "url" url))
              (callback (http-require-procedure "http-async-post" "callback" callback))
              (params (http-normalize-string-alist "http-async-post" "params" params))
              (data (http-require-string "http-async-post" "data" data))
              (headers (http-normalize-string-alist "http-async-post" "headers" headers))
              (proxy (http-normalize-string-alist "http-async-post" "proxy" proxy))
+             (timeout (http-optional-timeout "http-async-post" "timeout" timeout))
             ) ;
         (cond
          ((and (> (string-length data) 0) (null? headers))
@@ -48,9 +56,10 @@
             '(("Content-Type" . "text/plain"))
             proxy
             callback
+            timeout
           ) ;g_http-async-post
          ) ;
-         (else (g_http-async-post url params data headers proxy callback))
+         (else (g_http-async-post url params data headers proxy callback timeout))
         ) ;cond
       ) ;let*
     ) ;define*
