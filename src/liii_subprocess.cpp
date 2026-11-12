@@ -29,6 +29,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include <tlhelp32.h>
 #include <windows.h>
 #else
 #include <fcntl.h>
@@ -116,6 +117,50 @@ assign_process_to_job (HANDLE h_job, tb_process_ref_t process) {
     }
   }
 }
+
+// 以原生 API 杀进程树：Toolhelp32Snapshot 一次性枚举系统快照，按父子关系收集
+// root 的全部后代（含自身），子孙先于祖先逐个 OpenProcess 加 TerminateProcess 强杀。
+// 替代原 system("taskkill /F /T")：后者需派生 cmd 与 taskkill.exe 两个外部进程，
+// 大进程树（如 gf test --all 的并行测试）下同步阻塞数百毫秒到数秒，且依赖 PATH 解析；
+// 快照加逐个终止为毫秒级、无外部进程依赖。快照先于杀动作，杀过程中孤儿的重父化
+// 不影响按 PID 终止；已死或权限不足的 PID 由 OpenProcess 失败静默跳过。
+// 该函数在 TerminateJobObject 之后调用：Job 内全树已被同步终止，此处兜底
+// 逃逸出 Job 的残余进程（Job 未开放 breakaway，逃逸属罕见路径）。
+static void
+windows_kill_tree_by_api (int root_pid) {
+  if (root_pid <= 0) return;
+  HANDLE snap= CreateToolhelp32Snapshot (TH32CS_SNAPPROCESS, 0);
+  if (snap == INVALID_HANDLE_VALUE) return;
+  vector<std::pair<DWORD, DWORD>> procs; // (pid, ppid)
+  PROCESSENTRY32                  pe;
+  memset (&pe, 0, sizeof (pe));
+  pe.dwSize= sizeof (pe);
+  if (Process32First (snap, &pe)) {
+    do {
+      procs.push_back ({pe.th32ProcessID, pe.th32ParentProcessID});
+    } while (Process32Next (snap, &pe));
+  }
+  CloseHandle (snap);
+
+  vector<DWORD> tree;
+  tree.push_back ((DWORD) root_pid);
+  for (size_t i= 0; i < tree.size (); ++i) {
+    DWORD cur= tree[i];
+    for (const auto& pp : procs) {
+      if (pp.second == cur) {
+        tree.push_back (pp.first);
+      }
+    }
+  }
+
+  for (auto it= tree.rbegin (); it != tree.rend (); ++it) {
+    HANDLE h= OpenProcess (PROCESS_TERMINATE, FALSE, *it);
+    if (h) {
+      TerminateProcess (h, 1);
+      CloseHandle (h);
+    }
+  }
+}
 #else
 extern "C" tb_int_t tb_process_pid (tb_process_ref_t self);
 static tb_int_t
@@ -185,8 +230,7 @@ struct Subprocess {
         }
         tb_process_kill (process);
         if (pid > 0) {
-          string cmd= "taskkill /F /T /PID " + std::to_string (pid) + " >NUL 2>&1";
-          system (cmd.c_str ());
+          windows_kill_tree_by_api (pid);
         }
 #else
         if (pid > 1) {
@@ -331,8 +375,7 @@ struct Subprocess {
     }
     tb_process_kill (process);
     if (pid > 0) {
-      string cmd= "taskkill /F /T /PID " + std::to_string (pid) + " >NUL 2>&1";
-      system (cmd.c_str ());
+      windows_kill_tree_by_api (pid);
     }
 #else
     if (pid > 1) {
@@ -1216,8 +1259,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
         tb_process_kill (process);
         tb_int_t p_pid= get_process_pid (process);
         if (p_pid > 0) {
-          string cmd= "taskkill /F /T /PID " + std::to_string (p_pid) + " >NUL 2>&1";
-          system (cmd.c_str ());
+          windows_kill_tree_by_api (p_pid);
         }
 #else
         tb_int_t p_pid= get_process_pid (process);
@@ -1325,8 +1367,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
         tb_process_kill (process);
         tb_int_t p_pid= get_process_pid (process);
         if (p_pid > 0) {
-          string cmd= "taskkill /F /T /PID " + std::to_string (p_pid) + " >NUL 2>&1";
-          system (cmd.c_str ());
+          windows_kill_tree_by_api (p_pid);
         }
 #else
         tb_int_t p_pid= get_process_pid (process);
@@ -1911,8 +1952,7 @@ windows_kill_tree (int pid, bool is_sigkill, int timeout_ms, Subprocess* proc) {
     tb_process_kill (proc->process);
   }
   if (pid > 0) {
-    string cmd= "taskkill /F /T /PID " + std::to_string (pid) + " >NUL 2>&1";
-    system (cmd.c_str ());
+    windows_kill_tree_by_api (pid);
   }
   if (proc) {
     proc->exited= true;
