@@ -14,6 +14,7 @@
 
           Usage:
             gf pi [options] [--] [@files...] [messages...]
+            gf pi auth print-api-key --provider <provider>
 
           Options:
             -p, --print                    Print response to stdout and exit

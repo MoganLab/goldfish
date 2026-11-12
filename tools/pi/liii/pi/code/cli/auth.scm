@@ -1,0 +1,171 @@
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the MIT License
+;;
+
+(define-library (liii pi code cli auth)
+  (import (scheme base)
+    (scheme write)
+    (scheme process-context)
+    (liii string)
+    (liii path)
+    (liii list)
+    (liii error)
+    (liii pi ai auth)
+    (liii pi code config)
+    (liii pi code modes output)
+  ) ;import
+  (export parse-pi-auth-args pi-auth-print-api-key run-pi-auth)
+  (begin
+
+    (define (%provider-default-env-var provider)
+      (cond ((string=? provider "google") "GEMINI_API_KEY")
+            ((string=? provider "kimi-coding") "KIMI_API_KEY")
+            ((string=? provider "anthropic") "ANTHROPIC_API_KEY")
+            ((string=? provider "glm") "GLM_API_KEY")
+            ((string=? provider "deepseek") "DEEPSEEK_API_KEY")
+            ((string=? provider "ollama") "OLLAMA_API_KEY")
+            ((string=? provider "minimax-cn") "MINIMAX_CN_API_KEY")
+            ((or (string=? provider "zai-coding-cn") (string=? provider "zai"))
+             "ZAI_CODING_CN_API_KEY"
+            ) ;
+            ((or (string=? provider "opencode") (string=? provider "opencode-go"))
+             "OPENCODE_API_KEY"
+            ) ;
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (%format-missing-key-error provider config-dir)
+      (let* ((auth-file (path->string (path-join (path config-dir) "auth.json")))
+             (env-var (%provider-default-env-var provider))
+             (env-hint (if env-var
+                         (string-append "set the " env-var " environment variable")
+                         "set the corresponding environment variable"
+                       ) ;if
+             ) ;env-hint
+            ) ;
+        (string-append "Error: no API key found for provider '" provider
+          "'. Configure an 'api_key' entry in " auth-file " or " env-hint "."
+        ) ;string-append
+      ) ;let*
+    ) ;define
+
+    (define (parse-pi-auth-args args)
+      (cond
+       ((or (null? args)
+          (and (pair? args)
+            (or (string=? (car args) "-h") (string=? (car args) "--help"))
+          ) ;and
+        ) ;or
+        '((help . #t))
+       ) ;
+       ((not (string=? (car args) "print-api-key"))
+        (error 'pi-arg-error
+          (string-append "unknown auth subcommand '"
+            (car args)
+            "', currently only 'print-api-key' is supported"
+          ) ;string-append
+        ) ;error
+       ) ;
+       (else
+         (let loop
+           ((rem (cdr args)) (provider #f))
+           (cond
+            ((null? rem)
+             (if (not provider)
+               (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+               (list (cons 'subcommand "print-api-key") (cons 'provider provider))
+             ) ;if
+            ) ;
+            ((or (string=? (car rem) "-h") (string=? (car rem) "--help")) '((help
+                                                                              . #t)))
+            ((string=? (car rem) "--provider")
+             (if (null? (cdr rem))
+               (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+               (let ((val (cadr rem)))
+                 (if (or (string-null? (string-trim-both val)) (string-starts? val "-"))
+                   (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+                   (loop (cddr rem) val)
+                 ) ;if
+               ) ;let
+             ) ;if
+            ) ;
+            ((string-starts? (car rem) "--provider=")
+             (let ((val (substring (car rem) 11 (string-length (car rem)))))
+               (if (string-null? (string-trim-both val))
+                 (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+                 (loop (cdr rem) val)
+               ) ;if
+             ) ;let
+            ) ;
+            ((string-starts? (car rem) "-")
+             (error 'pi-arg-error (string-append "unknown option: " (car rem)))
+            ) ;
+            (else (error 'pi-arg-error (string-append "unexpected extra argument: " (car rem)))
+            ) ;else
+           ) ;cond
+         ) ;let
+       ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (pi-auth-print-api-key provider . opt-args)
+      (let* ((config-dir (if (pair? opt-args) (car opt-args) (gf-get-config-dir)))
+             (opt-env
+               (if (and (pair? opt-args) (pair? (cdr opt-args))) (list (cadr opt-args)) '())
+             ) ;opt-env
+             (auth-creds (apply pi-load-auth (cons config-dir opt-env)))
+             (key (apply pi-resolve-provider-key (cons provider (cons auth-creds opt-env))))
+            ) ;
+        (if
+          (and (string? key) (not (string-null? (string-trim-both key))))
+          (begin
+            (display key)
+            (newline)
+            0
+          ) ;begin
+          (begin
+            (display-stderr (%format-missing-key-error provider config-dir))
+            1
+          ) ;begin
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (run-pi-auth args . opt-args)
+      (let ((config-dir (if (pair? opt-args) (car opt-args) (gf-get-config-dir)))
+            (custom-env
+              (if (and (pair? opt-args) (pair? (cdr opt-args))) (cadr opt-args) #f)
+            ) ;custom-env
+           ) ;
+        (catch 'pi-arg-error
+          (lambda ()
+            (let ((parsed (parse-pi-auth-args args)))
+              (cond ((assoc 'help parsed)
+                     (display "Usage: gf pi auth print-api-key --provider <provider>\n")
+                     0
+                    ) ;
+                    ((equal? (cdr (assoc 'subcommand parsed)) "print-api-key")
+                     (let ((provider (cdr (assoc 'provider parsed))))
+                       (if custom-env
+                         (pi-auth-print-api-key provider config-dir custom-env)
+                         (pi-auth-print-api-key provider config-dir)
+                       ) ;if
+                     ) ;let
+                    ) ;
+                    (else 1)
+              ) ;cond
+            ) ;let
+          ) ;lambda
+          (lambda (err-type . info)
+            (display-stderr (string-append "Error: " (catch-error->string err-type info)))
+            1
+          ) ;lambda
+        ) ;catch
+      ) ;let
+    ) ;define
+
+  ) ;begin
+) ;define-library

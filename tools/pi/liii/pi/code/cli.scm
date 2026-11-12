@@ -15,6 +15,7 @@
     (liii path)
     (liii pi code cli args)
     (liii pi code cli tui)
+    (liii pi code cli auth)
     (liii pi code config)
     (liii pi code config user-catalog)
     (liii pi code modes)
@@ -70,12 +71,12 @@
       ) ;if
     ) ;define
 
-    (define (%cli-stdout-use-color?)
+    (define (%cli-color? tty-fn)
       (let ((force-color (get-environment-variable "FORCE_COLOR")))
         (cond
          ((and force-color (not (string=? force-color "0"))) #t)
          ((get-environment-variable "NO_COLOR") #f)
-         (else (stdout-tty?))
+         (else (tty-fn))
         ) ;cond
       ) ;let
     ) ;define
@@ -96,7 +97,7 @@
              (search-arg (pi-args-ref parsed 'list-models))
              (search-pattern (if (string? search-arg) search-arg #f))
              (rows (pi-list-models models-store target-provider search-pattern))
-             (use-color? (%cli-stdout-use-color?))
+             (use-color? (%cli-color? stdout-tty?))
              (table-text (pi-format-models-table rows search-pattern use-color?))
             ) ;
         (display table-text)
@@ -285,19 +286,9 @@
       ) ;if
     ) ;define
 
-    (define (%cli-error-use-color?)
-      (let ((force-color (get-environment-variable "FORCE_COLOR")))
-        (cond
-         ((and force-color (not (string=? force-color "0"))) #t)
-         ((get-environment-variable "NO_COLOR") #f)
-         (else (stderr-tty?))
-        ) ;cond
-      ) ;let
-    ) ;define
-
     (define (%display-cli-error message)
       (let ((text (string-append "Error: " message)))
-        (display-stderr (if (%cli-error-use-color?) (string-append "\x1b;[31m" text "\x1b;[39m") text)
+        (display-stderr (if (%cli-color? stderr-tty?) (string-append "\x1b;[31m" text "\x1b;[39m") text)
         ) ;display-stderr
       ) ;let
     ) ;define
@@ -373,6 +364,9 @@
              ) ;
              ((and (pair? stripped) (string=? (car stripped) "config"))
               (%handle-config-command)
+             ) ;
+             ((and (pair? stripped) (string=? (car stripped) "auth"))
+              (run-pi-auth (cdr stripped))
              ) ;
              (else (begin
                      (%ensure-extensions-loaded!)
