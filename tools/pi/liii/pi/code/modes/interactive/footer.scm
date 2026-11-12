@@ -46,29 +46,27 @@
 
     ;; 上下文描述上色：超阈值标红/标黄，其余按常规暗色显示
     (define (c-context percent info)
-      (cond ((not (string? info)) "")
-            ((string-null? info) "")
-            ((and (number? percent) (> percent %ctx-error-threshold))
-             (show #f (as-red info))
-            ) ;
-            ((and (number? percent) (> percent %ctx-warn-threshold))
-             (show #f (as-yellow info))
-            ) ;
-            (else (c-dim info))
+      (cond
+       ((or (not (string? info)) (string-null? info)) "")
+       ((and (number? percent) (> percent %ctx-error-threshold))
+        (show #f (as-red info))
+       ) ;
+       ((and (number? percent) (> percent %ctx-warn-threshold))
+        (show #f (as-yellow info))
+       ) ;
+       (else (c-dim info))
       ) ;cond
     ) ;define
 
     (define (format-cwd-for-footer cwd home)
-      (if (and home (string? home) (not (string-null? home)))
-        (if (string=? cwd home)
-          "~"
-          (if (string-starts? cwd (string-append home "/"))
-            (string-append "~" (substring cwd (string-length home) (string-length cwd)))
-            cwd
-          ) ;if
-        ) ;if
-        cwd
-      ) ;if
+      (cond
+       ((not (and (string? home) (not (string-null? home)))) cwd)
+       ((string=? cwd home) "~")
+       ((string-starts? cwd (string-append home "/"))
+        (string-append "~" (substring cwd (string-length home) (string-length cwd)))
+       ) ;
+       (else cwd)
+      ) ;cond
     ) ;define
 
     (define-record-type <pi-footer-state>
@@ -198,15 +196,12 @@
     ;; 当前节点串：(provider) model • level；模型缺失时返回 #f
     (define (%active-node-label node)
       (and (pair? node)
-        (let ((provider (car node)) (model (cadr node)))
-          (and (string? model)
-            (not (string-null? model))
+        (let ((p (car node)) (m (cadr node)))
+          (and (string? m)
+            (not (string-null? m))
             (string-append
-              (if (and (string? provider) (not (string-null? provider)))
-                (string-append "(" provider ") ")
-                ""
-              ) ;if
-              (pi-footer-model-label model (caddr node) #t)
+              (if (and (string? p) (not (string-null? p))) (string-append "(" p ") ") "")
+              (pi-footer-model-label m (caddr node) #t)
             ) ;string-append
           ) ;and
         ) ;let
@@ -241,11 +236,7 @@
              (comp
                (make-component
                  :render
-                 (lambda (self width)
-                   (let ((st (%footer-state self)))
-                     (%render-footer st home width)
-                   ) ;let
-                 ) ;lambda
+                 (lambda (self width) (%render-footer (%footer-state self) home width))
                ) ;make-component
              ) ;comp
             ) ;
@@ -268,12 +259,29 @@
       (pi-footer-state-branch-set! (%footer-state comp) branch)
     ) ;define
 
-    ;; /model 会话内切换模型后同步 footer 右下角：provider/model 与 supports 联动
-    (define (pi-footer-set-model! comp provider model supports?)
+    (define (%update-footer-cw! st cw)
+      (when (and (number? cw) (> cw 0))
+        (pi-footer-state-context-window-set! st cw)
+        (let ((pct (pi-footer-state-context-percent st)))
+          (when (number? pct)
+            (pi-footer-state-context-info-set! st
+              (pi-format-context-usage (make-pi-context-usage pct cw #t))
+            ) ;pi-footer-state-context-info-set!
+          ) ;when
+        ) ;let
+      ) ;when
+    ) ;define
+
+    ;; /model 会话内切换模型后同步 footer 右下角：provider/model 与 supports 联动，并重置 active-node；可选同步 context-window
+    (define (pi-footer-set-model! comp provider model supports? . opt-cw)
       (let ((st (%footer-state comp)))
         (pi-footer-state-provider-set! st provider)
         (pi-footer-state-model-set! st model)
         (pi-footer-state-supports-thinking?-set! st supports?)
+        (pi-footer-state-active-node-set! st #f)
+        (when (pair? opt-cw)
+          (%update-footer-cw! st (car opt-cw))
+        ) ;when
       ) ;let
     ) ;define
 
@@ -284,7 +292,12 @@
 
     ;; all-in-one 交接后同步当前实际节点；#f 恢复常规显示
     (define (pi-footer-set-active-node! comp node)
-      (pi-footer-state-active-node-set! (%footer-state comp) node)
+      (let ((st (%footer-state comp)))
+        (pi-footer-state-active-node-set! st node)
+        (when (and (pair? node) (>= (length node) 4))
+          (%update-footer-cw! st (list-ref node 3))
+        ) ;when
+      ) ;let
     ) ;define
 
     (define (pi-footer-active-node comp)
@@ -308,11 +321,12 @@
       (let* ((st (%footer-state comp))
              (stats (pi-footer-state-stats st))
              (context-info (pi-footer-state-context-info st))
+             (has-s? (and (string? stats) (not (string-null? stats))))
+             (has-c? (and (string? context-info) (not (string-null? context-info))))
             ) ;
-        (cond
-         ((or (not (string? stats)) (string-null? stats)) context-info)
-         ((or (not (string? context-info)) (string-null? context-info)) stats)
-         (else (string-append stats " " context-info))
+        (cond ((and has-s? has-c?) (string-append stats " " context-info))
+              (has-s? stats)
+              (else (or context-info ""))
         ) ;cond
       ) ;let*
     ) ;define
@@ -336,45 +350,30 @@
                (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) #f)
              ) ;opt-context
              (tok-str (pi-format-token-stats tokens latest-hit-rate))
-             ;; 窗口缺失时沿用最近一次已知值，避免容量退化为 0
-             (context-window
-               (let ((w (if (pi-context-usage? opt-context) (pi-context-usage-window opt-context) #f)
-                     ) ;w
-                    ) ;
-                 (if (and (number? w) (> w 0)) w (pi-footer-state-context-window st))
-               ) ;let
+             (w (and (pi-context-usage? opt-context) (pi-context-usage-window opt-context)))
+             (context-window (if (and (number? w) (> w 0)) w (pi-footer-state-context-window st))
              ) ;context-window
+             (known? (and (pi-context-usage? opt-context) (pi-context-usage-known? opt-context))
+             ) ;known?
+             (context-percent (and known? (pi-context-usage-percent opt-context)))
              (context-info
-               (cond
-                ((pi-context-usage? opt-context)
-                 (pi-format-context-usage (make-pi-context-usage (if (pi-context-usage-known? opt-context)
-                                                                   (pi-context-usage-percent opt-context)
-                                                                   #f
-                                                                 ) ;if
-                                            context-window
-                                            (pi-context-usage-known? opt-context)
-                                          ) ;make-pi-context-usage
-                 ) ;pi-format-context-usage
-                ) ;
-                ((string? opt-context) opt-context)
-                (else (pi-footer-state-context-info st))
+               (cond ((pi-context-usage? opt-context)
+                      (pi-format-context-usage (make-pi-context-usage context-percent context-window known?)
+                      ) ;pi-format-context-usage
+                     ) ;
+                     ((string? opt-context) opt-context)
+                     (else (pi-footer-state-context-info st))
                ) ;cond
              ) ;context-info
-             (context-percent
-               (cond ((pi-context-usage? opt-context)
-                      (if (pi-context-usage-known? opt-context)
-                        (pi-context-usage-percent opt-context)
-                        #f
-                      ) ;if
-                     ) ;
-                     ((string? opt-context) #f)
-                     (else (pi-footer-state-context-percent st))
-               ) ;cond
-             ) ;context-percent
             ) ;
         (pi-footer-state-stats-set! st (if (string? tok-str) tok-str ""))
         (pi-footer-state-context-info-set! st context-info)
-        (pi-footer-state-context-percent-set! st context-percent)
+        (pi-footer-state-context-percent-set! st
+          (cond ((pi-context-usage? opt-context) context-percent)
+                ((string? opt-context) #f)
+                (else (pi-footer-state-context-percent st))
+          ) ;cond
+        ) ;pi-footer-state-context-percent-set!
         (pi-footer-state-context-window-set! st context-window)
       ) ;let*
     ) ;define

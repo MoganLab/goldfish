@@ -28,9 +28,9 @@
   (export pi-chain-execute pi-chain-node-label pi-chain-node-key
     pi-chain-reset-rewind-state! pi-chain-reset-sticky-state!
     pi-chain-clear-sticky-node! pi-chain-current-sticky-index
-    pi-chain-record-node-failure! pi-chain-clear-node-failure!
-    pi-chain-node-last-failure pi-chain-node-in-cooldown?
-    pi-chain-reset-cooldown-state!
+    pi-chain-record-sticky-node! pi-chain-record-node-failure!
+    pi-chain-clear-node-failure! pi-chain-node-last-failure
+    pi-chain-node-in-cooldown? pi-chain-reset-cooldown-state!
   ) ;export
   (begin
 
@@ -79,6 +79,10 @@
 
     (define (pi-chain-clear-sticky-node! chain-id)
       (%clear-success! chain-id)
+    ) ;define
+
+    (define (pi-chain-record-sticky-node! chain-id index)
+      (%remember-success! chain-id index)
     ) ;define
 
     (define (pi-chain-current-sticky-index chain-id)

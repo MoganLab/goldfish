@@ -162,8 +162,8 @@
                     ))) ;filter
                    ;map
       ) ;
-  ;; 夹具里启用 3 个 provider，未启用 5 个（deepseek, minimax-cn, ollama, opencode, zai-coding-cn）
-  (check (length disabled) => 5)
+  ;; 夹具里启用 3 个 provider，未启用 6 个（all-in-one, deepseek, minimax-cn, ollama, opencode, zai-coding-cn）
+  (check (length disabled) => 6)
   (let* ((st1 (pi-config-state (path->string dir) :env '()))
          (plan (pi-config-plan-toggle (pi-config-state (path->string dir) :env '())
                  (pi-config-cursor 1 0) 0

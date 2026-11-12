@@ -116,6 +116,7 @@
              (is-mm? (string=? p-str "minimax-cn"))
              (is-zai? (or (string=? p-str "zai-coding-cn") (string=? p-str "zai")))
              (is-opencode? (or (string=? p-str "opencode") (string=? p-str "opencode-go")))
+             (is-aio? (string=? p-str "all-in-one"))
              (def-url (cond (is-ant? "https://api.anthropic.com")
                             (is-kimi? "https://api.kimi.com/coding/v1")
                             (is-glm? "https://open.bigmodel.cn/api/anthropic")
@@ -129,7 +130,7 @@
              ) ;def-url
              (m
                (or (%find-model-in-list (%get-provider-models models-store p-str) model-id)
-                 (and (or is-mm? is-zai? is-opencode?)
+                 (and (or is-mm? is-zai? is-opencode? is-aio?)
                    (%find-model-in-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()) model-id)
                  ) ;and
                ) ;or
@@ -145,7 +146,8 @@
                      (else raw-url)
                ) ;cond
              ) ;norm-url
-             (def-cw (cond (is-ant? 200000)
+             (def-cw (cond (is-aio? 1000000)
+                           (is-ant? 200000)
                            (is-kimi? 262144)
                            (is-mm? 1000000)
                            (is-zai? 1000000)
@@ -153,7 +155,8 @@
                            (else 128000)
                      ) ;cond
              ) ;def-cw
-             (def-mt (cond (is-ant? 8192)
+             (def-mt (cond (is-aio? 65536)
+                           (is-ant? 8192)
                            (is-kimi? 8192)
                            (is-glm? 8192)
                            (is-ds? 8192)

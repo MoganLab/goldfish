@@ -93,10 +93,17 @@
       ) ;let*
     ) ;define
 
-    ;; provider id 列表：白名单优先，缺失时全部内置 provider（字典序）+ 有效的 all-in-one
+    ;; provider id 列表：白名单优先；缺失时内置已激活 provider（字典序）+ 有配置的 all-in-one
     (define (%provider-ids config-dir)
       (or (pi-load-providers-whitelist config-dir)
-        (let ((builtins (list-sort string<? (map car PI_PROVIDER_BUILTIN_MODELS))))
+        (let ((builtins
+                (list-sort string<?
+                  (filter (lambda (p) (not (equal? p "all-in-one")))
+                    (map car PI_PROVIDER_BUILTIN_MODELS)
+                  ) ;filter
+                ) ;list-sort
+              ) ;builtins
+             ) ;
           (if (all-in-one-provider-available? config-dir)
             (append builtins (list "all-in-one"))
             builtins
@@ -126,18 +133,13 @@
 
     ;; 白名单外的内置 provider（按 id 排序），用于配置视图灰显
     (define (%disabled-provider-ids config-dir whitelist)
-      (let* ((aio? (and (all-in-one-provider-available? config-dir)
-                     (not (member "all-in-one" whitelist))
-                   ) ;and
-             ) ;aio?
-             (base-builtins
+      (let* ((candidates
                (filter (lambda (p) (not (member p whitelist)))
                  (map car PI_PROVIDER_BUILTIN_MODELS)
                ) ;filter
-             ) ;base-builtins
-             (all-candidates (if aio? (cons "all-in-one" base-builtins) base-builtins))
+             ) ;candidates
             ) ;
-        (list-sort string<? all-candidates)
+        (list-sort string<? candidates)
       ) ;let*
     ) ;define
 
@@ -145,13 +147,9 @@
       (let* ((raw-whitelist (pi-load-providers-whitelist config-dir))
              (whitelist (or raw-whitelist (%provider-ids config-dir)))
              (enabled (map (lambda (p-id) (%config-entry config-dir p-id #t)) whitelist))
-             (disabled
-               (if raw-whitelist
-                 (map (lambda (p-id) (%config-entry config-dir p-id #f))
-                   (%disabled-provider-ids config-dir whitelist)
-                 ) ;map
-                 '()
-               ) ;if
+             (disabled (map (lambda (p-id) (%config-entry config-dir p-id #f))
+                         (%disabled-provider-ids config-dir whitelist)
+                       ) ;map
              ) ;disabled
             ) ;
         (append enabled disabled)

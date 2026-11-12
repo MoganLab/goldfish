@@ -58,7 +58,8 @@
 
     (define (pi-provider-default-model provider)
       (let ((p (%canonical-provider (if (symbol? provider) (symbol->string provider) provider))))
-        (cond ((equal? p "anthropic") "claude-opus-4-8")
+        (cond ((equal? p "all-in-one") "coding-fast")
+              ((equal? p "anthropic") "claude-opus-4-8")
               ((equal? p "kimi-coding") "kimi-for-coding")
               ((equal? p "glm") "glm-5.3")
               ((equal? p "deepseek") "deepseek-v4-pro")

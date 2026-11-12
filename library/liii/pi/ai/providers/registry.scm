@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme char)
     (liii string)
+    (liii pi ai providers all-in-one)
     (liii pi ai providers deepseek)
     (liii pi ai providers google)
     (liii pi ai providers kimi-coding)
@@ -18,6 +19,7 @@
     (liii pi ai providers quota)
   ) ;import
   (export PI_PROVIDERS PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
+    PI_ALL_IN_ONE_PROVIDER PI_ALL_IN_ONE_BUILTIN_MODELS
     pi-provider-record pi-provider-api pi-provider-base-url pi-provider-env-keys
     pi-provider-builtin-models pi-provider-quota-error-handler
     pi-provider-quota-error
@@ -27,7 +29,8 @@
     ;; 全部 provider 注册表：id -> 配置（api/baseUrl/envKeys）。
     ;; "zai" 为 "zai-coding-cn" 的路由别名，共享同一配置。
     (define PI_PROVIDERS
-      (list (cons "deepseek" PI_DEEPSEEK_PROVIDER)
+      (list (cons "all-in-one" PI_ALL_IN_ONE_PROVIDER)
+        (cons "deepseek" PI_DEEPSEEK_PROVIDER)
         (cons "google" PI_GOOGLE_PROVIDER)
         (cons "kimi-coding" PI_KIMI_CODING_PROVIDER)
         (cons "minimax-cn" PI_MINIMAX_CN_PROVIDER)
@@ -48,7 +51,8 @@
 
     ;; 各 provider 的内置模型目录（id -> models），与 PI_PROVIDERS 同源
     (define PI_PROVIDER_BUILTIN_MODELS
-      (list (cons "deepseek" PI_DEEPSEEK_BUILTIN_MODELS)
+      (list (cons "all-in-one" PI_ALL_IN_ONE_BUILTIN_MODELS)
+        (cons "deepseek" PI_DEEPSEEK_BUILTIN_MODELS)
         (cons "google" PI_GOOGLE_BUILTIN_MODELS)
         (cons "kimi-coding" PI_KIMI_CODING_BUILTIN_MODELS)
         (cons "minimax-cn" PI_MINIMAX_CN_BUILTIN_MODELS)
