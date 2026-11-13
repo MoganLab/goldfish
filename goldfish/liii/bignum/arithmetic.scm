@@ -327,21 +327,27 @@
       (bn:exact-int? exp)
       (not (if (bigint? exp) (bigint-negative? exp) (native:negative? exp)))
     ) ;and
-    (if (and (native:integer? exp) (native:exact? exp))
+    (cond
+     ((and (native:integer? exp) (native:exact? exp))
       (bn:demote-bigint (bigint-expt (bn:to-bigint base) exp))
-      (if (if (bigint? base) (bigint-zero? base) (native:zero? base))
-        0
-        (if (and (not (bigint? base)) (native:= base 1))
-          1
-          (native:expt (if (bigint? base) (bn:bigint->inexact base) (native:inexact base))
-            (if (bigint? exp) (bn:bigint->inexact exp) (native:inexact exp))
-          ) ;native:expt
-        ) ;if
-      ) ;if
-    ) ;if
+     ) ;
+     ((if (bigint? base) (bigint-zero? base) (native:zero? base)) 0)
+     ((and (not (bigint? base)) (native:= base 1)) 1)
+     ((and (not (bigint? base)) (native:= base -1)) (if (bigint-even? exp) 1 -1))
+     (else (native:expt (if (bigint? base) (bn:bigint->inexact base) (native:inexact base))
+             (if (bigint? exp) (bn:bigint->inexact exp) (native:inexact exp))
+           ) ;native:expt
+     ) ;else
+    ) ;cond
    ) ;
    ((and (bn:exact-int? base) (bn:exact-int? exp))
-    (bn:div-2 1 (bn:expt base (bn:negate-1 exp)))
+    (cond
+     ((and (not (bigint? base)) (native:= base 1)) 1)
+     ((and (not (bigint? base)) (native:= base -1))
+      (if (bigint-even? (bn:to-bigint exp)) 1 -1)
+     ) ;
+     (else (bn:div-2 1 (bn:expt base (bn:negate-1 exp))))
+    ) ;cond
    ) ;
    (else (native:expt (if (bigint? base) (bn:bigint->inexact base) base)
            (if (bigint? exp) (bn:bigint->inexact exp) exp)
