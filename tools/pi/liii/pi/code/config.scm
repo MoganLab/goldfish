@@ -27,6 +27,7 @@
     (liii pi ai event)
     (liii pi code config settings)
     (liii pi code config user-catalog)
+    (liii pi code all-in-one loader)
     (liii pi code core extensions registry)
     (liii pi code core extensions event)
   ) ;import
@@ -247,6 +248,7 @@
              ;; JSON 配置文件目录：~/.gf/agent 存在时优先，否则回退 ~/.pi/agent
              (config-dir (gf-get-config-dir env-agent-dir))
              (config-dir-str (path->string config-dir))
+             (_ (when (not env-agent-dir) (ensure-all-in-one-config! config-dir-str)))
              (settings (pi-load-settings config-dir))
              (cli-p (pi-args-ref parsed-args 'provider))
              (cli-m (pi-args-ref parsed-args 'model))

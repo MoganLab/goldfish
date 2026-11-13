@@ -134,6 +134,27 @@
   ) ;let
 ) ;let
 
+;; 8. 秒级单位支持：probeTimeout、retryInterval、cooldown 与 maxWait 以秒为单位转换为毫秒
+(%write-cfg "\n{\n  \"provider\": \"all-in-one\",\n  \"maxWait\": 1800,\n  \"retryInterval\": 45,\n  \"probeTimeout\": 6,\n  \"chains\": [\n    {\"id\": \"c-sec\", \"nodes\": [{\"provider\": \"p1\", \"model\": \"m1\"}]}\n  ]\n}\n"
+) ;%write-cfg
+
+(let ((cfg (all-in-one-load-config TMP-DIR)))
+  (check-true (all-in-one-cfg? cfg))
+  (check (all-in-one-cfg-max-wait-ms cfg) => 1800000)
+  (check (all-in-one-cfg-retry-interval-ms cfg) => 45000)
+  (check (all-in-one-cfg-probe-timeout-ms cfg) => 6000)
+) ;let
+
+;; 9. cooldown 别名以秒为单位转换为毫秒
+(%write-cfg "\n{\n  \"provider\": \"all-in-one\",\n  \"cooldown\": 30,\n  \"probeTimeout\": 5,\n  \"chains\": [\n    {\"id\": \"c-cd\", \"nodes\": [{\"provider\": \"p1\", \"model\": \"m1\"}]}\n  ]\n}\n"
+) ;%write-cfg
+
+(let ((cfg (all-in-one-load-config TMP-DIR)))
+  (check-true (all-in-one-cfg? cfg))
+  (check (all-in-one-cfg-retry-interval-ms cfg) => 30000)
+  (check (all-in-one-cfg-probe-timeout-ms cfg) => 5000)
+) ;let
+
 (when (file-exists? TMP-DIR)
   (rmtree TMP-DIR #t)
 ) ;when

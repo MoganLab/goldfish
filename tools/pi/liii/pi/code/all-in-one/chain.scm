@@ -251,7 +251,6 @@
                  (if (and (number? r) (>= r 0)) r 60000)
                ) ;let
              ) ;cooldown-ms
-             (now (%current-now now-fn))
              (dir (%config-dir-str config-dir))
              (probe (or probe-fn pi-probe-node))
              (nodes (chain-def-nodes chain-def))
@@ -294,12 +293,12 @@
                   ((eqv? index skip-index) (loop (cdr rest) (+ index 1)))
                   (else
                     (let ((cand (car rest)))
-                      (if (pi-chain-node-in-cooldown? cand cooldown-ms now)
+                      (if (pi-chain-node-in-cooldown? cand cooldown-ms (%current-now now-fn))
                         (loop (cdr rest) (+ index 1))
                         (if (probe cand timeout-ms dir request-fn)
                           (execute-candidate cand index)
                           (begin
-                            (%record-node-failure! cand now)
+                            (%record-node-failure! cand (%current-now now-fn))
                             (loop (cdr rest) (+ index 1))
                           ) ;begin
                         ) ;if
@@ -320,7 +319,7 @@
             (if (probe sticky-cand timeout-ms dir request-fn)
               (execute-candidate sticky-cand previous-index)
               (begin
-                (%record-node-failure! sticky-cand now)
+                (%record-node-failure! sticky-cand (%current-now now-fn))
                 (probe-from-head previous-index)
               ) ;begin
             ) ;if
