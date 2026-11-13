@@ -18,5 +18,7 @@
 (check-set-mode! 'report-failed)
 
 (check (lcm (expt 2 70) (* 3 (expt 2 70))) => (* 3 (expt 2 70)))
+(check (lcm (expt 10 20) 2.0) => 1e+20)
+(check (lcm (expt 10 20) 0.0) => 0.0)
 
 (check-report)

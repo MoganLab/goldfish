@@ -48,11 +48,11 @@
 
 ;; 3. 比较（精确 vs 非精确 / +inf.0）
 (check "eq-big-float-same" (= 100000000000000000000 1e20))            ; [一致] #t
-(check "eq-big-float-diff" (= 100000000000000000001 1e20))            ; [不一致] gf: #t | scheme: #f
-(check "gt-big-float-diff" (> 100000000000000000001 1e20))            ; [不一致] gf: #f | scheme: #t
+(check "eq-big-float-diff" (= 100000000000000000001 1e20))            ; [一致] #f
+(check "gt-big-float-diff" (> 100000000000000000001 1e20))            ; [一致] #t
 (check "lt-big-big" (< 100000000000000000000 100000000000000000001))  ; [一致] #t
-(check "eq-big-inf" (= (expt 10 400) +inf.0))                         ; [不一致] gf: #t | scheme: #f
-(check "lt-big-inf" (< (expt 10 400) +inf.0))                         ; [不一致] gf: #f | scheme: #t
+(check "eq-big-inf" (= (expt 10 400) +inf.0))                         ; [一致] #f
+(check "lt-big-inf" (< (expt 10 400) +inf.0))                         ; [一致] #t
 (check "max-big-float" (max 100000000000000000001 1e20))              ; [不一致(显示格式)] gf: 1e+20 | scheme: 1e20
 (check "min-big-float" (min 100000000000000000001 1e20))              ; [不一致(显示格式)] gf: 1e+20 | scheme: 1e20
 (check "exact?-max-inexact" (exact? (max 100000000000000000000 1.0))) ; [一致] #f
@@ -65,28 +65,28 @@
 (check "mul-div-big-3" (* (/ 100000000000000000000 3) 3))             ; [不一致] gf: 1e+20 | scheme: 100000000000000000000
 (check "add-big-rat" (+ 100000000000000000000 1/2))                   ; [不一致] gf: 1e+20 | scheme: 200000000000000000001/2
 (check "sub-big-rat" (- 100000000000000000000 1/2))                   ; [不一致] gf: 1e+20 | scheme: 199999999999999999999/2
-(check "mul-big-rat-2" (* 100000000000000000000 1/2))                 ; [不一致] gf: 5e+19 | scheme: 50000000000000000000
+(check "mul-big-rat-2" (* 100000000000000000000 1/2))                 ; [一致] 50000000000000000000
 (check "mul-big-rat-3" (* 100000000000000000000 1/3))                 ; [不一致] gf: 33333333333333330000.0 | scheme: 100000000000000000000/3
-(check "div-big-rat" (/ 100000000000000000000 1/2))                   ; [不一致] gf: 2e+20 | scheme: 200000000000000000000
+(check "div-big-rat" (/ 100000000000000000000 1/2))                   ; [一致] 200000000000000000000
 (check "div-rat-big" (/ 1/2 100000000000000000000))                   ; [不一致] gf: 5e-21 | scheme: 1/200000000000000000000
 
 ;; 5. quotient / remainder / modulo
 (check "quotient-big" (quotient 100000000000000000005 10))            ; [一致] 10000000000000000000
 (check "remainder-neg-pos" (remainder -100000000000000000005 10))     ; [一致] -5
 (check "modulo-neg-pos" (modulo -100000000000000000005 10))           ; [一致] 5
-(check "modulo-pos-neg" (modulo 100000000000000000005 -10))           ; [不一致] gf: 5 | scheme: -5
-(check "modulo-neg-neg" (modulo -100000000000000000005 -10))          ; [不一致] gf: 5 | scheme: -5
+(check "modulo-pos-neg" (modulo 100000000000000000005 -10))           ; [一致] -5
+(check "modulo-neg-neg" (modulo -100000000000000000005 -10))          ; [一致] -5
 (check "remainder-int64-min" (remainder -9223372036854775808 -1))     ; [一致] 0
 (check "modulo-int64-min" (modulo -9223372036854775808 -1))           ; [一致] 0
-(check "modulo-big-float" (modulo 100000000000000000005 3.0))         ; [不一致] gf: ERR | scheme: 0.0
+(check "modulo-big-float" (modulo 100000000000000000005 3.0))         ; [一致] 0.0
 
 ;; 6. gcd / lcm / expt
 (check "gcd-0" (gcd))                                                 ; [一致] 0
 (check "lcm-0" (lcm))                                                 ; [一致] 1
 (check "gcd-neg-1" (gcd -100000000000000000000))                      ; [一致] 100000000000000000000
 (check "lcm-neg-1" (lcm -100000000000000000000))                      ; [一致] 100000000000000000000
-(check "gcd-big-float" (gcd 100000000000000000000 1.0))               ; [不一致] gf: ERR | scheme: 1.0
-(check "lcm-big-float" (lcm 100000000000000000000 2.0))               ; [不一致] gf: ERR | scheme: 1e20
+(check "gcd-big-float" (gcd 100000000000000000000 1.0))               ; [一致] 1.0
+(check "lcm-big-float" (lcm 100000000000000000000 2.0))               ; [一致(显示格式)] gf: 1e+20 | scheme: 1e20
 (check "gcd-multi" (gcd 12 18 100000000000000000000))                 ; [一致] 2
 (check "lcm-big" (lcm 100000000000000000000 150000000000000000000))   ; [一致] 300000000000000000000
 (check "expt-0-0" (expt 0 0))                                         ; [一致] 1
@@ -107,8 +107,8 @@
 
 ;; 8. 转换与字符串
 (check "inexact-big" (inexact 100000000000000000000))                 ; [不一致(显示格式)] gf: 1e+20 | scheme: 1e20
-(check "exact-1e20" (exact 1e20))                                     ; [不一致] gf: ERR | scheme: 100000000000000000000
-(check "exact-1e30" (exact 1e30))                                     ; [不一致] gf: ERR | scheme: 1000000000000000019884624838656
+(check "exact-1e20" (exact 1e20))                                     ; [一致] 100000000000000000000
+(check "exact-1e30" (exact 1e30))                                     ; [一致] 1000000000000000019884624838656
 (check "inexact-1e400" (inexact (expt 10 400)))                       ; [一致] +inf.0
 (check "num->str-10" (number->string 123456789012345678901234567890 10)) ; [一致] "123456789012345678901234567890"
 (check "num->str-2" (number->string 123456789012345678901234567890 2))   ; [一致] "1100011101110100100001111111101101100001101110011111000001110111001001110001111110000101011010010"
@@ -117,6 +117,6 @@
 (check "str->num-10" (string->number "123456789012345678901234567890")) ; [一致] 123456789012345678901234567890
 (check "str->num-#x" (string->number "#x1234567890abcdef1234567890"))    ; [一致] 1442304682740643783150283421840
 (check "str->num-16" (string->number "1234567890abcdef1234567890" 16))   ; [一致] 1442304682740643783150283421840
-(check "str->num-#e1e20" (string->number "#e1e20"))                   ; [不一致] gf: #f | scheme: 100000000000000000000
-(check "str->num-#i-big" (string->number "#i123456789012345678901234567890")) ; [不一致] gf: #f | scheme: 1.2345678901234568e29
-(check "str->num-rat" (string->number "200000000000000000000/2"))     ; [不一致] gf: -1457092405402533888 | scheme: 100000000000000000000
+(check "str->num-#e1e20" (string->number "#e1e20"))                   ; [一致] 100000000000000000000
+(check "str->num-#i-big" (string->number "#i123456789012345678901234567890")) ; [一致(显示格式)] gf: 1.2345678901234568e+29 | scheme: 1.2345678901234568e29
+(check "str->num-rat" (string->number "200000000000000000000/2"))     ; [一致] 100000000000000000000

@@ -18,6 +18,7 @@
 (check-set-mode! 'report-failed)
 
 (check (number->string (* 10000000000 10000000000)) => "100000000000000000000")
+(check (* (expt 10 20) 1/2) => (* 5 (expt 10 19)))
 (check (*) => 1)
 
 (check-report)
