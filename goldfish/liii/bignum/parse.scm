@@ -46,13 +46,45 @@
   ) ;let
 ) ;define
 
+(define (bn:digit-for-radix? ch radix)
+  (let ((c (char->integer ch)))
+    (cond
+     ((and (not (native:< c 48)) (not (native:> c 57)))
+      (native:< (native:- c 48) radix)
+     ) ;
+     ((and (native:> radix 10) (not (native:< c 97)) (not (native:> c 122)))
+      (native:< (native:- c 87) radix)
+     ) ;
+     ((and (native:> radix 10) (not (native:< c 65)) (not (native:> c 90)))
+      (native:< (native:- c 55) radix)
+     ) ;
+     (else #f)
+    ) ;cond
+  ) ;let
+) ;define
+
+(define (bn:valid-int-str? s radix)
+  (let ((n (string-length s)))
+    (if (native:= n 0)
+      #f
+      (let* ((c0 (string-ref s 0)) (start (if (or (char=? c0 #\+) (char=? c0 #\-)) 1 0)))
+        (if (native:= start n)
+          #f
+          (let loop
+            ((i start))
+            (cond ((native:= i n) #t)
+                  ((bn:digit-for-radix? (string-ref s i) radix) (loop (native:+ i 1)))
+                  (else #f)
+            ) ;cond
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;if
+  ) ;let
+) ;define
+
 (define (bn:parse-exact-int s radix)
-  (if (native:= (string-length s) 0)
-    #f
-    (guard (err (#t #f))
-      (bn:demote-bigint (string->bigint s radix))
-    ) ;guard
-  ) ;if
+  (if (bn:valid-int-str? s radix) (bn:demote-bigint (string->bigint s radix)) #f)
 ) ;define
 
 (define (bn:string-index str ch)
@@ -209,4 +241,21 @@
       ) ;cond
     ) ;let-values
   ) ;let
+) ;define
+
+(define (bn:read-literal str radix)
+  (let-values (((exactness r body) (bn:parse-prefixes str radix)))
+    (cond ((eq? exactness 'invalid) #f)
+          ((bn:parse-exact-int body r) => (lambda (v) (bn:apply-exactness v exactness)))
+          ((bn:parse-rational body r) => (lambda (v) (bn:apply-exactness v exactness)))
+          ((and (eq? exactness 'exact) (native:= r 10)) (bn:parse-exact-decimal body))
+          ((and (or (eq? exactness 'inexact) (eq? exactness 'exact)) (native:= r 10))
+           (or (bn:apply-exactness (native:string->number body r) exactness)
+             (bn:apply-exactness (bn:parse-exact-decimal body) exactness)
+           ) ;or
+          ) ;
+          ((and (not exactness) (native:= r 10)) (bn:parse-exact-decimal body))
+          (else #f)
+    ) ;cond
+  ) ;let-values
 ) ;define

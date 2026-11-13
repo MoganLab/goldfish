@@ -12037,16 +12037,51 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
       if (c_strings_are_equal(name, "<eof>"))         return(eof_object);
       return(unknown_sharp_constant(sc, name, port));
 
-      /* -------- #o #x #b -------- */
-    case 'o':   /* #o (octal) */
-    case 'x':   /* #x (hex) */
-    case 'b':   /* #b (binary) */
+      /* -------- #o #x #b #d #e #i -------- */
+    case 'o': case 'O':
+    case 'x': case 'X':
+    case 'b': case 'B':
       {
-	s7_pointer result = make_atom(sc, (char *)(name + 1), (name[0] == 'o') ? 8 : ((name[0] == 'x') ? 16 : 2), NO_SYMBOLS, with_error);
+	s7_pointer result = make_atom(sc, (char *)(name + 1), ((name[0] == 'o') || (name[0] == 'O')) ? 8 : (((name[0] == 'x') || (name[0] == 'X')) ? 16 : 2), NO_SYMBOLS, with_error);
+	if ((result == sc->F) && (sc->bignum_enabled) && (sc->bignum_from_string_fn))
+	  {
+	    size_t nlen = strlen(name);
+	    char *buf = (char *)malloc(nlen + 2);
+	    if (buf)
+	      {
+		buf[0] = '#';
+		memcpy(buf + 1, name, nlen + 1);
+		result = s7_apply_function(sc, sc->bignum_from_string_fn,
+					   set_plist_2(sc, s7_make_string(sc, buf), make_integer(sc, 10)));
+		free(buf);
+	      }
+	  }
 	if ((error_if_bad_number) && (result == sc->F)) /* #b32 etc but not if called from string->number */
 	  error_nr(sc, sc->read_error_symbol, set_elist_2(sc, wrap_string(sc, "#~A is not a number", 19), wrap_string(sc, name, safe_strlen(name))));
 	return(result);
       }
+
+    case 'd': case 'D':
+    case 'e': case 'E':
+    case 'i': case 'I':
+      if ((sc->bignum_enabled) && (sc->bignum_from_string_fn))
+	{
+	  s7_pointer result = sc->F;
+	  size_t nlen = strlen(name);
+	  char *buf = (char *)malloc(nlen + 2);
+	  if (buf)
+	    {
+	      buf[0] = '#';
+	      memcpy(buf + 1, name, nlen + 1);
+	      result = s7_apply_function(sc, sc->bignum_from_string_fn,
+					 set_plist_2(sc, s7_make_string(sc, buf), make_integer(sc, 10)));
+	      free(buf);
+	    }
+	  if ((error_if_bad_number) && (result == sc->F))
+	    error_nr(sc, sc->read_error_symbol, set_elist_2(sc, wrap_string(sc, "#~A is not a number", 19), wrap_string(sc, name, safe_strlen(name))));
+	  return(result);
+	}
+      break;
 
       /* -------- #\... -------- */
     case '\\':
@@ -12851,15 +12886,24 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
     /* rational */
     if (slash1)
       {
+	bool n_ov = false, d_ov = false;
 	s7_int d;
-	const s7_int n = s7_string_to_integer(q, radix, &overflow);
-	if (overflow) return(make_undefined_overflow(sc, q));
-	d = s7_string_to_integer(slash1, radix, &overflow);
+	const s7_int n = s7_string_to_integer(q, radix, &n_ov);
+	d = s7_string_to_integer(slash1, radix, &d_ov);
+	if ((sc->bignum_enabled) && (sc->bignum_from_string_fn) &&
+	    (n_ov || d_ov || s7_string_to_integer_overflow(q, radix) || s7_string_to_integer_overflow(slash1, radix)))
+	  {
+	    s7_pointer res = s7_apply_function(sc, sc->bignum_from_string_fn,
+					       set_plist_2(sc, s7_make_string(sc, q), make_integer(sc, radix)));
+	    if (res != sc->F)
+	      return(res);
+	  }
+	if (n_ov) return(make_undefined_overflow(sc, q));
 
 	if ((n == 0) && (d != 0))                        /* 0/100000000000000000000000000000000000000 */
 	  return(int_zero);
 	if (d == 0) return(real_NaN);                    /* nan.__LINE__ here seems less than optimal */
-	if (overflow) return(make_undefined_overflow(sc, q));
+	if (d_ov) return(make_undefined_overflow(sc, q));
 	/* it would be neat to return 1 from 10000000000000000000000000000/10000000000000000000000000000
 	 *   but q is the entire number ('/' included) and slash1 is the stuff after the '/', and every
 	 *   big number comes through here, so there's no clean and safe way to check that q == slash1.
@@ -72214,7 +72258,17 @@ static token_t read_sharp(s7_scheme *sc, s7_pointer port)
       sc->read_dims = int_one;             /* for read_expression! */
       return(token_vector);
 
-    case 'i':                      /* #i(...) */
+    case 'i':                      /* #i(...) or #i<number> */
+      if (sc->bignum_enabled)
+	{
+	  if (s7_peek_char(sc, port) == chars[(int32_t)('(')])
+	    {
+	      inchar(port);
+	      sc->read_dims = int_one;
+	      return(token_int_vector);
+	    }
+	  break;
+	}
       if (read_sharp(sc, port) == token_vector)
 	return(token_int_vector);
       backchar('i', port);
