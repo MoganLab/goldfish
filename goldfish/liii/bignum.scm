@@ -16,7 +16,9 @@
     truncate round numerator denominator
   ) ;export
 
-  (include "bignum/native.scm" "bignum/convert.scm" "bignum/arithmetic.scm")
+  (include "bignum/native.scm" "bignum/convert.scm" "bignum/arithmetic.scm"
+    "bignum/parse.scm"
+  ) ;include
 
   (begin
     (define (bignum? x)
@@ -101,10 +103,6 @@
           (apply native:number->string x rest)
         ) ;if
       ) ;if
-    ) ;define
-
-    (define (bn:string->number str . rest)
-      (apply native:string->number str rest)
     ) ;define
 
     (define (bn:eqv? a b)
