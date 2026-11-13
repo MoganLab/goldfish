@@ -19,5 +19,10 @@
 
 (check (= (+ 9223372036854775807 1) (+ 9223372036854775806 2)) => #t)
 (check (= (expt 10 30) 10) => #f)
+(check (= (+ (expt 10 20) 1) 1e20) => #f)
+(check (= (expt 10 20) 1e20) => #t)
+(check (= (expt 10 400) +inf.0) => #f)
+(check (= (- (expt 10 400)) -inf.0) => #f)
+(check (= (expt 10 20) +nan.0) => #f)
 
 (check-report)

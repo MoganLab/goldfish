@@ -124,20 +124,36 @@
         ) ;if
        ) ;
        ((bigint? a)
-        (if (and (native:rational? b) (native:exact? b))
+        (cond
+         ((and (native:rational? b) (native:exact? b))
           (bigint=? (bigint-multiply a (integer->bigint (native:denominator b)))
             (integer->bigint (native:numerator b))
           ) ;bigint=?
-          (native:= (bn:bigint->inexact a) b)
-        ) ;if
+         ) ;
+         ((native:real? b)
+          (and (bn:finite-real? b)
+            (not (native:< (native:abs b) 9007199254740992.0))
+            (bigint=? a (bn:to-bigint (bn:inexact-large->bigint b)))
+          ) ;and
+         ) ;
+         (else (native:= (bn:bigint->inexact a) b))
+        ) ;cond
        ) ;
        ((bigint? b)
-        (if (and (native:rational? a) (native:exact? a))
+        (cond
+         ((and (native:rational? a) (native:exact? a))
           (bigint=? (integer->bigint (native:numerator a))
             (bigint-multiply b (integer->bigint (native:denominator a)))
           ) ;bigint=?
-          (native:= a (bn:bigint->inexact b))
-        ) ;if
+         ) ;
+         ((native:real? a)
+          (and (bn:finite-real? a)
+            (not (native:< (native:abs a) 9007199254740992.0))
+            (bigint=? (bn:to-bigint (bn:inexact-large->bigint a)) b)
+          ) ;and
+         ) ;
+         (else (native:= a (bn:bigint->inexact b)))
+        ) ;cond
        ) ;
        (else (native:= a b))
       ) ;cond
@@ -152,20 +168,42 @@
         ) ;if
        ) ;
        ((bigint? a)
-        (if (and (native:rational? b) (native:exact? b))
+        (cond
+         ((and (native:rational? b) (native:exact? b))
           (bigint<? (bigint-multiply a (integer->bigint (native:denominator b)))
             (integer->bigint (native:numerator b))
           ) ;bigint<?
-          (native:< (bn:bigint->inexact a) b)
-        ) ;if
+         ) ;
+         ((native:real? b)
+          (if (bn:finite-real? b)
+            (if (native:< (native:abs b) 9007199254740992.0)
+              (bigint-negative? a)
+              (bigint<? a (bn:to-bigint (bn:inexact-large->bigint b)))
+            ) ;if
+            (native:= b +inf.0)
+          ) ;if
+         ) ;
+         (else (native:< (bn:bigint->inexact a) b))
+        ) ;cond
        ) ;
        ((bigint? b)
-        (if (and (native:rational? a) (native:exact? a))
+        (cond
+         ((and (native:rational? a) (native:exact? a))
           (bigint<? (integer->bigint (native:numerator a))
             (bigint-multiply b (integer->bigint (native:denominator a)))
           ) ;bigint<?
-          (native:< a (bn:bigint->inexact b))
-        ) ;if
+         ) ;
+         ((native:real? a)
+          (if (bn:finite-real? a)
+            (if (native:< (native:abs a) 9007199254740992.0)
+              (bigint-positive? b)
+              (bigint<? (bn:to-bigint (bn:inexact-large->bigint a)) b)
+            ) ;if
+            (native:= a -inf.0)
+          ) ;if
+         ) ;
+         (else (native:< a (bn:bigint->inexact b)))
+        ) ;cond
        ) ;
        (else (native:< a b))
       ) ;cond
@@ -183,8 +221,12 @@
     (define bn:= (bn:make-cmp-op bn:num-eq-2))
     (define bn:< (bn:make-cmp-op bn:num-lt-2))
     (define bn:> (bn:make-cmp-op (lambda (a b) (bn:num-lt-2 b a))))
-    (define bn:<= (bn:make-cmp-op (lambda (a b) (not (bn:num-lt-2 b a)))))
-    (define bn:>= (bn:make-cmp-op (lambda (a b) (not (bn:num-lt-2 a b)))))
+    (define bn:<=
+      (bn:make-cmp-op (lambda (a b) (or (bn:num-lt-2 a b) (bn:num-eq-2 a b))))
+    ) ;define
+    (define bn:>=
+      (bn:make-cmp-op (lambda (a b) (or (bn:num-lt-2 b a) (bn:num-eq-2 a b))))
+    ) ;define
 
     (define (bn:max first . rest)
       (let loop

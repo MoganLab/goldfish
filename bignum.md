@@ -31,22 +31,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 2. 精确数与非精确数比较（精度丢失与 `+inf.0` 溢出）
-
-在 `goldfish/liii/bignum.scm` 中，`bn:num-eq-2` 与 `bn:num-lt-2` 在比较 `bigint` 与非精确浮点数时，直接将 `bigint` 通过 `bn:bigint->inexact` 转为 IEEE 754 `double` 后再调用 `native:=` / `native:<`，导致：
-1. 超过 53 位有效数字的 `bigint` 舍入为同一浮点数，造成错误相等或大小判断错误；
-2. 超过 `double` 上限（`> 1.7976931348623157e+308`）的 `bigint` 转为 `+inf.0`，导致与 `+inf.0` 相等。
-
-| 表达式 | `gf` 输出 | `scheme` 输出 |
-| --- | --- | --- |
-| `(= 100000000000000000001 1e20)` | `#t` | `#f` |
-| `(> 100000000000000000001 1e20)` | `#f` | `#t` |
-| `(= (expt 10 400) +inf.0)` | `#t` | `#f` |
-| `(< (expt 10 400) +inf.0)` | `#f` | `#t` |
-
----
-
-## 3. `modulo` / `gcd` / `lcm` 混合 `bigint` 与浮点整数时报错
+## 2. `modulo` / `gcd` / `lcm` 混合 `bigint` 与浮点整数时报错
 
 `bn:modulo`、`bn:gcd`、`bn:lcm` 在遇到非精确浮点参数时，将 `bigint` 转为 `double` 后交给 `native:modulo` / `native:gcd` / `native:lcm`，而 s7 原生实现要求参数在 `int64` 范围内或为有理数，导致报错。
 
@@ -58,7 +43,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 4. `string->number` 与 Reader 对 `#e` / `#i` 前缀支持不一致
+## 3. `string->number` 与 Reader 对 `#e` / `#i` 前缀支持不一致
 
 | 表达式 | `gf` 输出 | `scheme` 输出 | 说明 |
 | --- | --- | --- | --- |
@@ -69,7 +54,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 5. 输出格式与小细节差异
+## 4. 输出格式与小细节差异
 
 | 类别 | 表达式 | `gf` 输出 | `scheme` 输出 | 说明 |
 | --- | --- | --- | --- | --- |

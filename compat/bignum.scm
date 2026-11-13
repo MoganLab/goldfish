@@ -48,11 +48,11 @@
 
 ;; 3. 比较（精确 vs 非精确 / +inf.0）
 (check "eq-big-float-same" (= 100000000000000000000 1e20))            ; [一致] #t
-(check "eq-big-float-diff" (= 100000000000000000001 1e20))            ; [不一致] gf: #t | scheme: #f
-(check "gt-big-float-diff" (> 100000000000000000001 1e20))            ; [不一致] gf: #f | scheme: #t
+(check "eq-big-float-diff" (= 100000000000000000001 1e20))            ; [一致] #f
+(check "gt-big-float-diff" (> 100000000000000000001 1e20))            ; [一致] #t
 (check "lt-big-big" (< 100000000000000000000 100000000000000000001))  ; [一致] #t
-(check "eq-big-inf" (= (expt 10 400) +inf.0))                         ; [不一致] gf: #t | scheme: #f
-(check "lt-big-inf" (< (expt 10 400) +inf.0))                         ; [不一致] gf: #f | scheme: #t
+(check "eq-big-inf" (= (expt 10 400) +inf.0))                         ; [一致] #f
+(check "lt-big-inf" (< (expt 10 400) +inf.0))                         ; [一致] #t
 (check "max-big-float" (max 100000000000000000001 1e20))              ; [不一致(显示格式)] gf: 1e+20 | scheme: 1e20
 (check "min-big-float" (min 100000000000000000001 1e20))              ; [不一致(显示格式)] gf: 1e+20 | scheme: 1e20
 (check "exact?-max-inexact" (exact? (max 100000000000000000000 1.0))) ; [一致] #f
