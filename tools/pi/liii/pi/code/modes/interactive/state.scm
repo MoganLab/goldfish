@@ -41,7 +41,8 @@
     pi-app-enable-skill-commands? pi-app-scroll-hint-rect
     %pi-app-scroll-hint-rect-set! pi-app-thinking-level-explicit?
     %pi-app-thinking-level-explicit?-set! pi-app-recovery-card
-    %pi-app-recovery-card-set!
+    %pi-app-recovery-card-set! pi-app-tool-timer-last-tick
+    %pi-app-tool-timer-last-tick-set! pi-app-tool-timer-last-tick-set!
   ) ;export
   (import (scheme base)
     (liii date-time)
@@ -64,7 +65,7 @@
         steering-pending follow-up-pending thinking-card hide-thinking?
         on-save-hide-thinking selection flash tokens rendered-frame dock-length
         working-border-row skills enable-skill-commands scroll-hint-rect
-        thinking-level-explicit recovery-card
+        thinking-level-explicit recovery-card tool-timer-last-tick
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -171,9 +172,15 @@
       ) ;thinking-level-explicit
       ;; all-in-one 全链故障重试的原地等待状态卡片（#f 表示未在等待）
       (recovery-card pi-app-recovery-card %pi-app-recovery-card-set!)
+      ;; 运行中 bash 工具 Elapsed 计时器上次重绘时间戳（#f 表示未在运行/未计时）
+      (tool-timer-last-tick pi-app-tool-timer-last-tick
+        %pi-app-tool-timer-last-tick-set!
+      ) ;tool-timer-last-tick
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
+
+    (define pi-app-tool-timer-last-tick-set! %pi-app-tool-timer-last-tick-set!)
 
     (define (pi-app-selection-set! app sel)
       (%pi-app-selection-set! app sel)

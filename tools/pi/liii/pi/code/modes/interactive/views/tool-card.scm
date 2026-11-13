@@ -7,6 +7,8 @@
 (define-library (liii pi code modes interactive views tool-card)
   (export make-tool-card tool-card? tool-card-component? tool-card-expanded?
     tool-card-set-expanded! tool-card-set-output! tool-card-set-complete!
+    tool-card-set-started-at! tool-card-started-at tool-card-pending-bash?
+    %tool-now-ms
   ) ;export
   (import (scheme base)
     (scheme time)
@@ -32,7 +34,7 @@
       (status %tool-card-status %tool-card-status-set!)
       (result %tool-card-result %tool-card-result-set!)
       (expanded? %tool-card-expanded? %tool-card-expanded?-set!)
-      (started-at %tool-card-started-at)
+      (started-at %tool-card-started-at %tool-card-started-at-set!)
       (ended-at %tool-card-ended-at %tool-card-ended-at-set!)
       (duration-ms %tool-card-duration-ms %tool-card-duration-ms-set!)
       ;; 原始 bash 输出缓存与完整卡片渲染缓存分别保存，避免互相覆盖。
@@ -46,6 +48,24 @@
 
     (define (tool-card-set-expanded! card flag)
       (%tool-card-expanded?-set! (component-data card) flag)
+    ) ;define
+
+    (define (tool-card-started-at card)
+      (%tool-card-started-at (component-data card))
+    ) ;define
+
+    (define (tool-card-set-started-at! card t)
+      (%tool-card-started-at-set! (component-data card) t)
+    ) ;define
+
+    (define (tool-card-pending-bash? card)
+      (and (tool-card-component? card)
+        (let ((st (component-data card)))
+          (and (eq? (%tool-card-status st) 'pending)
+            (string=? (%tool-card-name st) "bash")
+          ) ;and
+        ) ;let
+      ) ;and
     ) ;define
 
     (define (tool-card-expanded? card)

@@ -9,6 +9,7 @@
     make-retry-card apply-card-bg format-tool-call format-tool-result-lines
     tool-card? tool-card-component? tool-card-expanded? tool-card-set-expanded!
     tool-card-set-output! tool-card-set-complete! make-thinking-card
+    tool-card-set-started-at! tool-card-started-at tool-card-pending-bash?
     thinking-card-append-line! thinking-card-set-hidden!
     thinking-card-component? skill-card-component? skill-card-set-expanded!
     pi-pending-hint-line
