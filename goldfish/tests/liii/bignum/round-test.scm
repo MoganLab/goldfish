@@ -18,5 +18,9 @@
 (check-set-mode! 'report-failed)
 
 (check (round (expt 10 30)) => (expt 10 30))
+(check (round (/ (+ (* 2 (expt 10 20)) 5) 2))
+  =>
+  (+ (expt 10 20) 2)
+) ;check
 
 (check-report)

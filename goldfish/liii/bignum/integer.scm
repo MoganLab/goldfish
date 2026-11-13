@@ -194,9 +194,19 @@
      (else (bn:div-2 1 (bn:expt base (bn:negate-1 exp))))
     ) ;cond
    ) ;
-   (else (native:expt (if (bigint? base) (bn:bigint->inexact base) base)
-           (if (bigint? exp) (bn:bigint->inexact exp) exp)
-         ) ;native:expt
-   ) ;else
+   ((and (bigrat? base) (native:integer? exp) (native:exact? exp))
+    (cond ((native:zero? exp) 1)
+          ((native:positive? exp)
+           (bn:make-rat (bigint-expt (bigrat-num base) exp)
+             (bigint-expt (bigrat-den base) exp)
+           ) ;bn:make-rat
+          ) ;
+          (else (bn:make-rat (bigint-expt (bigrat-den base) (native:- exp))
+                  (bigint-expt (bigrat-num base) (native:- exp))
+                ) ;bn:make-rat
+          ) ;else
+    ) ;cond
+   ) ;
+   (else (native:expt (bn:to-inexact base) (bn:to-inexact exp)))
   ) ;cond
 ) ;define

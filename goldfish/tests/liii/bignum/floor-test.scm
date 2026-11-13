@@ -18,5 +18,13 @@
 (check-set-mode! 'report-failed)
 
 (check (floor (expt 10 30)) => (expt 10 30))
+(check (floor (/ (expt 10 20) 3))
+  =>
+  (quotient (expt 10 20) 3)
+) ;check
+(check (floor (- (/ (expt 10 20) 3)))
+  =>
+  (- (- (quotient (expt 10 20) 3)) 1)
+) ;check
 
 (check-report)
