@@ -16,7 +16,7 @@
     truncate round numerator denominator
   ) ;export
 
-  (include "bignum/native.scm" "bignum/arithmetic.scm")
+  (include "bignum/native.scm" "bignum/convert.scm" "bignum/arithmetic.scm")
 
   (begin
     (define (bignum? x)
@@ -78,7 +78,15 @@
 
     ;;; ---------- 转换与等价 ----------
     (define (bn:exact x)
-      (if (bigint? x) x (native:exact x))
+      (cond ((bigint? x) x)
+            ((and (bn:finite-real? x)
+               (native:inexact? x)
+               (not (native:< (native:abs x) 9007199254740992.0))
+             ) ;and
+             (bn:inexact-large->bigint x)
+            ) ;
+            (else (native:exact x))
+      ) ;cond
     ) ;define
 
     (define (bn:inexact x)
