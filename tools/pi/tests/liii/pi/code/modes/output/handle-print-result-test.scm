@@ -42,4 +42,14 @@
   1
 ) ;check
 
+;; stopReason 为 JSON null（符号 'null）时回退为 "stop"，不抛出 string=? 类型错误
+(check (handle-print-result (list (cons 'role "assistant")
+                              (cons 'content (list (list (cons 'type "text") (cons 'text "ok"))))
+                              (cons 'stopReason 'null)
+                            ) ;list
+       ) ;handle-print-result
+  =>
+  0
+) ;check
+
 (check-report)

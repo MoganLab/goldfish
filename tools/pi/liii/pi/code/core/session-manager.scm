@@ -279,7 +279,11 @@
           #f
           (let* ((parsed (catch #t (lambda () (string->json trimmed)) (lambda _ #f)))
                  (type-pair (and parsed (assoc "type" parsed)))
-                 (msg-pair (and type-pair (string=? (cdr type-pair) "message") (assoc "message" parsed))
+                 (msg-pair (and type-pair
+                             (string? (cdr type-pair))
+                             (string=? (cdr type-pair) "message")
+                             (assoc "message" parsed)
+                           ) ;and
                  ) ;msg-pair
                 ) ;
             (and type-pair msg-pair (pi-normalize-session-msg (cdr msg-pair)))

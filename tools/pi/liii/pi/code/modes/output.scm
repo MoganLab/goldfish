@@ -132,9 +132,10 @@
           0
         ) ;begin
         (let* ((msg (if (pi-message? last-msg) (pi-message->alist last-msg) last-msg))
-               (stop-reason (cdr (or (assoc 'stopReason msg) (assoc "stopReason" msg) '(#f
-                                                                                        . "stop")))
-               ) ;stop-reason
+               (raw-stop-reason (cdr (or (assoc 'stopReason msg) (assoc "stopReason" msg) '(#f
+                                                                                            . "stop")))
+               ) ;raw-stop-reason
+               (stop-reason (if (string? raw-stop-reason) raw-stop-reason "stop"))
                (content (cdr (or (assoc 'content msg) (assoc "content" msg) '(#f))))
                (err-msg (cdr (or (assoc 'errorMessage msg) (assoc "errorMessage" msg) '(#f
                                                                                         . #f)))

@@ -62,4 +62,42 @@
   (check (cdr (assoc 'delta (car events))) => "\"ls\"}")
 ) ;let*
 
+;; 后续分块含 JSON null（符号 'null）时，不得覆盖已有 id / name，也不得因 arguments 为 null 崩溃
+(let* ((stream-state (make-openai-stream-state '() #f '() "stop" #f '()))
+       (events '())
+       (emit (lambda (ev) (set! events (append events (list ev)))))
+       (tc1 '(("index" . 0)
+              ("id" . "call_1")
+              ("function" . (("name" . "bash") ("arguments" . "{\"command\":")))))
+       (tc2 '(("index" . 0)
+              ("id" . null)
+              ("function" . (("name" . null) ("arguments" . "\"ls\"}")))))
+       (tc3 '(("index" . 0)
+              ("id" . null)
+              ("function" . (("name" . null) ("arguments" . null)))))
+       (tc4 '(("index" . 0) ("function" . null)))
+      ) ;
+  (process-openai-tool-call-delta tc1 stream-state emit)
+  (process-openai-tool-call-delta tc2 stream-state emit)
+  (process-openai-tool-call-delta tc3 stream-state emit)
+  (process-openai-tool-call-delta tc4 stream-state emit)
+  (finish-openai-stream stream-state emit)
+  (let ((blocks (openai-stream-state-blocks stream-state)))
+    (check (length blocks) => 1)
+    (check (pi-tool-call-block-id (car blocks)) => "call_1")
+    (check (pi-tool-call-block-name (car blocks)) => "bash")
+    (check (cdr (assoc "command" (pi-tool-call-block-arguments (car blocks)))) => "ls")
+  ) ;let
+) ;let*
+
+;; 首个分块即含 null 的情况也不得崩溃
+(let* ((stream-state (make-openai-stream-state '() #f '() "stop" #f '()))
+       (tc '(("index" . 0)
+             ("id" . null)
+             ("function" . (("name" . null) ("arguments" . null)))))
+      ) ;
+  (process-openai-tool-call-delta tc stream-state #f)
+  (check (length (openai-stream-state-tools stream-state)) => 1)
+) ;let*
+
 (check-report)

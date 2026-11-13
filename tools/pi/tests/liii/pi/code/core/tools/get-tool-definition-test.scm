@@ -184,4 +184,8 @@
   ) ;check
 ) ;let*
 
+;; 非字符串工具名（如 JSON null 解析后的符号 'null）安全返回 #f，不抛出 string=? 类型错误
+(check (get-tool-definition 'null) => #f)
+(check (get-tool-definition #f) => #f)
+
 (check-report)
