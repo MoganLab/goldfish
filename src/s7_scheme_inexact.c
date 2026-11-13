@@ -1324,16 +1324,21 @@ s7_pointer expt_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer pw)
       /* I think pow(rl, inf) is ok */
       if (x > 0.0)
         return(s7_make_real(sc, pow(x, y)));      /* tricky cases abound here: (expt -1 1/9223372036854775807) */
+      if (x < 0.0 && isfinite(y) && floor(y) == y)
+        return(s7_make_real(sc, pow(x, y)));
     }
 
   /* (expt 0+i 1e+16) = 0.98156860153485-0.19111012657867i ?
    * (expt 0+i 1+1/0i) = 0.0 ??
    */
   {
-    s7_complex zn = s7_real_part(n) + s7_imag_part(n) * _Complex_I;
-    s7_complex zpw = s7_real_part(pw) + s7_imag_part(pw) * _Complex_I;
-    s7_complex result = cpow(zn, zpw);
-    return s7_make_complex(sc, creal(result), cimag(result));
+    s7_double a = s7_real_part(n), b = s7_imag_part(n);
+    s7_double c = s7_real_part(pw), d = s7_imag_part(pw);
+    s7_double r = hypot(a, b);
+    s7_double theta = atan2(b, a);
+    s7_double mag = (d == 0.0) ? pow(r, c) : exp(c * log(r) - d * theta);
+    s7_double angle = d * log(r) + c * theta;
+    return s7_make_complex(sc, mag * cos(angle), mag * sin(angle));
   }
 }
 
