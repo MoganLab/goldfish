@@ -37,14 +37,13 @@
   ) ;import
   (begin
 
-    ;; alist 覆盖：pairs 中的键优先，其余沿用原 cfg
     (define (%cfg-override cfg pairs)
       (let ((keys (map car pairs)))
         (append pairs (filter (lambda (p) (not (memq (car p) keys))) cfg))
       ) ;let
     ) ;define
 
-    ;; 轮询一条注入消息（steering / follow-up 通道共用）：非阻塞拉取并同步回发事件
+    ;; 轮询一条注入消息：非阻塞拉取并同步回发事件
     (define (%poll-one-injected chan event-chan)
       (let ((msg
               (and chan (catch #t (lambda () (chan-try-recv! chan #f)) (lambda args #f)))
@@ -73,8 +72,6 @@
       ) ;%cfg-override
     ) ;define
 
-    ;; 覆盖 cfg 的 thinking-level（会话内 shift+tab 切换后生效）。
-    ;; opt-explicit 给出时一并写入显式意图标记；未给出时保留原标记。
     (define (pi-cfg-with-thinking cfg tl . opt-explicit)
       (%cfg-override cfg
         (cons (cons 'thinking-level tl)
@@ -112,7 +109,6 @@
       ) ;let*
     ) ;define
 
-    ;; job 载荷第五项为用户显式意图标记；旧四元组载荷沿用 cfg 现有标记
     (define (%job-explicit job cfg)
       (if (>= (length job) 5)
         (list-ref job 4)
@@ -120,7 +116,6 @@
       ) ;if
     ) ;define
 
-    ;; job 载荷 → 任务 cfg：跨 provider 切换时重新执行 config augmenter
     (define (%worker-job-cfg cfg job . opt-parsed)
       (let* ((base (pi-cfg-with-thinking cfg (cadr job) (%job-explicit job cfg)))
              (model-job? (and (> (length job) 3) (string? (list-ref job 2)) (string? (list-ref job 3)))
@@ -140,8 +135,6 @@
       ) ;let*
     ) ;define
 
-    ;; 会话标识附加到 cfg：请求层（OpenAI 官方端点）用作 prompt_cache_key，
-    ;; 同一会话的请求路由到同一缓存分片，提升前缀缓存命中率
     (define (%worker-cfg-with-session-id cfg session-file)
       (if (string? session-file)
         (%cfg-override cfg (list (cons 'session-id session-file)))
@@ -149,8 +142,6 @@
       ) ;if
     ) ;define
 
-    ;; 从 cfg 读取当前模型的上下文窗口 Token 数：model-meta 统一为 record，
-    ;; alist 形态仅在会话边界规范化前短暂存在，此处仅作兑底
     (define (%cfg-context-window cfg)
       (let ((meta (cdr (or (assoc 'model-meta cfg) '(#f . #f)))))
         (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
@@ -164,11 +155,21 @@
       ) ;let
     ) ;define
 
-    ;; 在后台独立 worker 线程中运行，不阻塞前台终端编辑
+    (define (%worker-assert-cred! cfg)
+      (let ((m (pi-missing-credential-msg cfg)))
+        (when m
+          (error 'credential-error
+            (string-append m ". Use /login to configure an API key.")
+          ) ;error
+        ) ;when
+      ) ;let
+    ) ;define
+
     (define (pi-tui-run-worker parsed cfg user-text event-chan . opts)
       (let ((session-file (and (pair? opts) (car opts))))
         (catch #t
           (lambda ()
+            (%worker-assert-cred! cfg)
             (run-session-flow parsed
               (%worker-cfg-with-session-id cfg session-file)
               user-text
@@ -191,7 +192,6 @@
       ) ;let
     ) ;define
 
-    ;; 惰性解析并复用会话文件，跨消息保持上下文连续；--no-session 时恒为 #f
     (define (pi-worker-ensure-session-file! parsed cfg sfile-box)
       (unless (vector-ref sfile-box 0)
         (let-values (((sf _sdir) (setup-session-file-with-name parsed cfg (path->string (path-cwd))))
@@ -202,8 +202,23 @@
       (vector-ref sfile-box 0)
     ) ;define
 
-    ;; 任务分发（对齐 pi 的会话事件处理）：bash_record / session_stats / session_name /
-    ;; session_state / session_resume / reload_models / 普通消息任务
+    (define (%worker-reload-cfg cfg job)
+      (let* ((dir
+               (if (and (> (length job) 1) (cadr job)) (cadr job) (pi-cfg-config-dir cfg))
+             ) ;dir
+             (dir-str (if (string? dir) dir (path->string dir)))
+             (cur-p (cdr (or (assoc 'provider cfg) '(#f . #f))))
+             (new-key (and cur-p (pi-resolve-provider-key cur-p (pi-load-auth dir-str))))
+            ) ;
+        (%cfg-override cfg
+          (list (cons 'models-store (pi-build-user-catalog dir-str))
+            (cons 'settings (pi-load-settings dir))
+            (cons 'api-key new-key)
+          ) ;list
+        ) ;%cfg-override
+      ) ;let*
+    ) ;define
+
     (define (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan
              . opt-chans
             ) ;
@@ -330,22 +345,8 @@
          ) ;
          ((and (pair? job) (eq? (car job) 'reload_models))
           (catch #t
-            (lambda ()
-              (let* ((dir
-                       (if (and (> (length job) 1) (cadr job)) (cadr job) (pi-cfg-config-dir cfg))
-                     ) ;dir
-                     (dir-str (if (string? dir) dir (path->string dir)))
-                     (new-store (pi-build-user-catalog dir-str))
-                     (new-settings (pi-load-settings dir))
-                    ) ;
-                (set! effective-cfg
-                  (%cfg-override cfg
-                    (list (cons 'models-store new-store) (cons 'settings new-settings))
-                  ) ;%cfg-override
-                ) ;set!
-              ) ;let*
-            ) ;lambda
-            (lambda (tag . args) #f)
+            (lambda () (set! effective-cfg (%worker-reload-cfg cfg job)))
+            (lambda args #f)
           ) ;catch
          ) ;
          (else (pi-abort-arm-chan! abort-chan)
@@ -364,7 +365,6 @@
       ) ;let*
     ) ;define
 
-    ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan
     (define* (pi-tui-agent-worker jobs-chan
                event-chan
                abort-chan

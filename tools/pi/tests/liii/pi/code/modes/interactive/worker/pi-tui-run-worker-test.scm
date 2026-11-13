@@ -25,19 +25,23 @@
 
 (import (scheme base)
   (liii check)
+  (liii string)
   (liii go)
   (liii pi code modes interactive worker)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; 1. 运行过程异常时安全捕获并投递 error 事件
+;; 1. 缺失凭证时投递包含 /login 的 error 事件并结束当前轮次
 (let ((ev-ch (make-chan 4)))
-  ;; 传入空配置使流程异常，断言异常被安全拦截入通道
-  (pi-tui-run-worker '() '() "test" ev-ch)
-  (let ((ev (chan-try-recv! ev-ch #f)))
-    (check-true (pair? ev))
-    (check (car ev) => 'error)
+  (pi-tui-run-worker '() '((provider . "deepseek") (api-key . #f)) "test" ev-ch)
+  (let ((ev1 (chan-try-recv! ev-ch #f))
+        (ev2 (chan-try-recv! ev-ch #f))
+       ) ;
+    (check-true (pair? ev1))
+    (check (car ev1) => 'error)
+    (check-true (string-contains? (cadr ev1) "/login"))
+    (check ev2 => '(agent_settled #f))
   ) ;let
 ) ;let
 

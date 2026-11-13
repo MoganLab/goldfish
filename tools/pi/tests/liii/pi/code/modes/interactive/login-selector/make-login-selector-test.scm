@@ -21,8 +21,11 @@
 
 (import (scheme base)
   (liii check)
+  (liii string)
+  (liii path)
   (liii tui)
   (liii tempfile)
+  (liii pi ai auth)
   (liii pi code modes interactive login-selector)
 ) ;import
 
@@ -60,6 +63,35 @@
       ) ;
   (component-handle-input selector 'enter)
   (check selected => "deepseek")
+) ;let*
+
+;; 5. 空配置目录下 ollama 默认未配置，写入 auth.json 后变为已配置
+(let* ((tmp (make-temp-dir "gf-login-sel-ollama-" ""))
+       (sel1 (make-login-selector (lambda (p) #f)
+               (lambda () #f)
+               :config-dir tmp
+               :providers '("ollama")
+             ) ;make-login-selector
+       ) ;sel1
+       (rendered1 (string-join (component-render sel1 80) "\n"))
+      ) ;
+  (check-true (string-contains? rendered1 "not configured"))
+  (check-false (string-contains? rendered1 "configured ✓"))
+  (let ((saved (pi-save-auth-key "ollama" "sk-ollama-1" tmp)))
+    (let* ((sel2 (make-login-selector (lambda (p) #f)
+                   (lambda () #f)
+                   :config-dir tmp
+                   :providers '("ollama")
+                 ) ;make-login-selector
+           ) ;sel2
+           (rendered2 (string-join (component-render sel2 80) "\n"))
+          ) ;
+      (check-true (string-contains? rendered2 "configured"))
+      (check-false (string-contains? rendered2 "not configured"))
+    ) ;let*
+    (path-unlink (path saved))
+  ) ;let
+  (path-rmdir tmp)
 ) ;let*
 
 (check-report)

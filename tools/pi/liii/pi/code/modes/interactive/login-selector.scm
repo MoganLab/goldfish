@@ -9,6 +9,7 @@
 (define-library (liii pi code modes interactive login-selector)
   (export make-login-selector login-selector? login-selector-cursor-position)
   (import (scheme base)
+    (scheme process-context)
     (liii string)
     (liii list)
     (liii unicode)
@@ -16,6 +17,7 @@
     (liii tui)
     (liii tui component)
     (liii pi ai auth)
+    (liii pi ai config record)
     (liii pi ai providers registry)
     (liii pi code config)
   ) ;import
@@ -69,13 +71,29 @@
       ) ;let
     ) ;define
 
+    (define (%non-empty-str? v)
+      (and (string? v) (not (string-null? (string-trim-both v))))
+    ) ;define
+
+    (define (%provider-has-env-key? provider)
+      (any (lambda (env-name) (%non-empty-str? (get-environment-variable env-name)))
+        (pi-provider-env-keys provider)
+      ) ;any
+    ) ;define
+
     (define (%provider-status provider config-dir)
       (let* ((creds (catch #t (lambda () (pi-load-auth config-dir)) (lambda args '())))
-             (key (catch #t (lambda () (pi-resolve-provider-key provider creds)) (lambda args #f))
-             ) ;key
+             (cred
+               (find
+                 (lambda (c)
+                   (and (pi-credential? c) (equal? (pi-credential-provider c) provider))
+                 ) ;lambda
+                 creds
+               ) ;find
+             ) ;cred
+             (has-auth? (and cred (%non-empty-str? (pi-credential-key cred))))
             ) ;
-        (if
-          (and (string? key) (not (string-null? (string-trim-both key))))
+        (if (or has-auth? (%provider-has-env-key? provider))
           "✓ configured"
           "• not configured"
         ) ;if
