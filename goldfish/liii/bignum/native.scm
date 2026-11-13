@@ -3,8 +3,19 @@
 ;;; 在 bignum 模式覆写 (scheme base) 数值过程之前保存原生绑定，
 ;;; 供后续算术回退与非 bignum 值运算使用。
 ;;;
-;;; Copyright (c) 2026 Liii Network
-;;; All Rights Reserved
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;;  http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 
 (define native:number? number?)
 
