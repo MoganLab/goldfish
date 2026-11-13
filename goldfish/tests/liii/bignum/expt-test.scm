@@ -18,5 +18,8 @@
 (check-set-mode! 'report-failed)
 
 (check (number->string (expt 2 100)) => "1267650600228229401496703205376")
+(check (expt -1 (string->number "100000000000000000000")) => 1)
+(check (expt -1 (string->number "100000000000000000001")) => -1)
+(check (expt -1 (string->number "-100000000000000000001")) => -1)
 
 (check-report)
