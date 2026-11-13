@@ -751,26 +751,54 @@ s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
 
   while (*tmp == '0') tmp++;
 
-  {
-    uint64_t limit = (uint64_t)INT64_MAX + (negative ? 1ULL : 0ULL);
-    uint64_t r = (uint64_t)radix;
-    while (true)
-      {
-        dig = s7_digit_table[(uint8_t)(*tmp++)];
-        if (dig >= radix) break;
-        if (new_int > (limit - (uint64_t)dig) / r)
-          {
-            *overflow = true;
-            break;
-          }
-        new_int = (new_int * r) + (uint64_t)dig;
-      }
-  }
+  while (true)
+    {
+      dig = s7_digit_table[(uint8_t)(*tmp++)];
+      if (dig >= radix) break;
+      new_int = (new_int * (uint64_t)radix) + (uint64_t)dig;
+    }
 
   if (negative)
     new_int = (uint64_t)(0 - new_int);
 
   return wrap_uint64_to_s7_int(new_int);
+}
+
+/* Pure overflow detection for the same grammar as s7_string_to_integer.
+ * Used by bignum mode (make_atom) to decide whether to hand the literal
+ * to the Scheme-level bignum hook; the default reader keeps the legacy
+ * wrap-around semantics and never calls this.
+ */
+bool s7_string_to_integer_overflow(const char *str, int32_t radix)
+{
+  bool    negative = false;
+  uint64_t new_int = 0;
+  int32_t dig;
+  const char *tmp  = str;
+  uint64_t limit, r;
+
+  if (str[0] == '+')
+    tmp++;
+  else if (str[0] == '-')
+    {
+      negative = true;
+      tmp++;
+    }
+
+  while (*tmp == '0') tmp++;
+
+  limit = (uint64_t)INT64_MAX + (negative ? 1ULL : 0ULL);
+  r     = (uint64_t)radix;
+  while (true)
+    {
+      dig = s7_digit_table[(uint8_t)(*tmp++)];
+      if (dig >= radix) break;
+      if (new_int > (limit - (uint64_t)dig) / r)
+        return true;
+      new_int = (new_int * r) + (uint64_t)dig;
+    }
+
+  return false;
 }
 
 /* String to double conversion with radix support.

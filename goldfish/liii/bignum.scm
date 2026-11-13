@@ -16,7 +16,7 @@
     truncate round numerator denominator
   ) ;export
 
-  (include "bignum/arithmetic.scm")
+  (include "bignum/native.scm" "bignum/arithmetic.scm")
 
   (begin
     (define (bignum? x)

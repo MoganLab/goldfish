@@ -100,6 +100,7 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args);
 
 /* string->number helper functions */
 s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow);
+bool s7_string_to_integer_overflow(const char *str, int32_t radix);
 double s7_string_to_double_simple(const char *str, int32_t radix);
 
 /* C string helper functions */

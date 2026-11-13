@@ -12869,16 +12869,13 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
     /* integer */
     {
       s7_int x = s7_string_to_integer(q, radix, &overflow);
-      if (overflow)
+      if ((sc->bignum_enabled) && (sc->bignum_from_string_fn) &&
+          (s7_string_to_integer_overflow(q, radix)))
         {
-          if ((sc->bignum_enabled) && (sc->bignum_from_string_fn))
-            {
-              s7_pointer res = s7_apply_function(sc, sc->bignum_from_string_fn,
-                                                 set_plist_2(sc, s7_make_string(sc, q), make_integer(sc, radix)));
-              if (res != sc->F)
-                return(res);
-            }
-          return(make_undefined_overflow(sc, q));
+          s7_pointer res = s7_apply_function(sc, sc->bignum_from_string_fn,
+                                             set_plist_2(sc, s7_make_string(sc, q), make_integer(sc, radix)));
+          if (res != sc->F)
+            return(res);
         }
       return(make_integer(sc, x));
     }
