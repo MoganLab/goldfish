@@ -23,6 +23,7 @@
     (liii pi code modes interactive app-name)
     (liii pi code modes interactive app-resume)
     (liii pi code modes interactive app-config)
+    (liii pi code modes interactive app-login)
     (liii pi code modes interactive app-bash)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive render)
@@ -86,6 +87,7 @@
                 ((pi-app-name-command? clean) (pi-app-submit-name! app clean))
                 ((pi-app-resume-command? clean) (pi-app-submit-resume! app clean))
                 ((pi-app-config-command? clean) (pi-app-submit-config! app))
+                ((pi-app-login-command? clean) (pi-app-submit-login! app clean))
                 (else
                   ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
                   ;; 命令为空（仅 "!" 或 "!!"）时回退为普通消息提交（对齐 pi 的 fall-through）
