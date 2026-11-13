@@ -18,7 +18,7 @@
 
           Options:
             -p, --print                    Print response to stdout and exit
-                --mode <mode>              Output mode: text, json (default: text)
+                --mode <mode>              Output mode: text, json, verbose (default: verbose)
                 --model <id>               Model ID to use
                 --provider <name>          Provider to search for --model (requires --model)
                 --thinking <level>         Thinking level: off, minimal, low, medium, high, xhigh, max
