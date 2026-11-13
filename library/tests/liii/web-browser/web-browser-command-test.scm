@@ -25,6 +25,7 @@
 
 (import (liii check)
         (liii os)
+        (liii sys)
         (liii web-browser))
 
 (check-set-mode! 'report-failed)
@@ -45,13 +46,13 @@
 ;; 基本解析测试（测试环境变量自定义与回退机制）
 (let ((old-browser (getenv "BROWSER")))
   ;; 自定义 BROWSER 命令（无 %s 时自动追加）
-  (putenv "BROWSER" "sh")
+  (putenv "BROWSER" (executable))
   (let ((cmd (web-browser-command "https://example.com/oauth")))
     (check-true (pair? cmd))
     (check (cadr cmd) => "https://example.com/oauth"))
 
   ;; 自定义 BROWSER 占位符替换
-  (putenv "BROWSER" "sh -c %s")
+  (putenv "BROWSER" (string-append (executable) " eval %s"))
   (let ((cmd (web-browser-command "https://example.com/login")))
     (check-true (pair? cmd))
     (check (caddr cmd) => "https://example.com/login"))

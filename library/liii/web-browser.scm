@@ -19,6 +19,7 @@
     web-browser-open-new web-browser-open-new-tab
   ) ;export
   (import (scheme base)
+    (scheme char)
     (liii base)
     (liii error)
     (liii list)
@@ -67,6 +68,42 @@
       ) ;let
     ) ;define
 
+    ;; 判断字符是否为单引号或双引号
+    (define (%quote-char? c)
+      (let ((code (char->integer c)))
+        (or (= code 34) (= code 39))
+      ) ;let
+    ) ;define
+
+    ;; 将命令行字符串切分为 token 列表，支持单引号与双引号保护空格
+    (define (%split-command-line str)
+      (let ((len (string-length str)))
+        (let loop
+          ((i 0) (curr '()) (in-quote #f) (tokens '()))
+          (if (>= i len)
+            (let ((final-tokens
+                    (if (null? curr) tokens (cons (list->string (reverse curr)) tokens))
+                  ) ;final-tokens
+                 ) ;
+              (reverse final-tokens)
+            ) ;let
+            (let ((c (string-ref str i)))
+              (cond ((and in-quote (char=? c in-quote)) (loop (+ i 1) curr #f tokens))
+                    ((and (not in-quote) (%quote-char? c)) (loop (+ i 1) curr c tokens))
+                    ((and (not in-quote) (char-whitespace? c))
+                     (if (null? curr)
+                       (loop (+ i 1) '() #f tokens)
+                       (loop (+ i 1) '() #f (cons (list->string (reverse curr)) tokens))
+                     ) ;if
+                    ) ;
+                    (else (loop (+ i 1) (cons c curr) in-quote tokens))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     ;; 解析 BROWSER 环境变量，支持以路径分隔符分隔的多候选
     (define (%parse-browser-env env-browser url)
       (let ((sep (string (pathsep))))
@@ -75,12 +112,7 @@
           (if (null? choices)
             #f
             (let* ((choice (string-trim (car choices)))
-                   (raw-tokens
-                     (if (string-null? choice)
-                       '()
-                       (filter (lambda (s) (not (string-null? s))) (string-split choice " "))
-                     ) ;if
-                   ) ;raw-tokens
+                   (raw-tokens (if (string-null? choice) '() (%split-command-line choice)))
                   ) ;
               (if (null? raw-tokens)
                 (loop (cdr choices))

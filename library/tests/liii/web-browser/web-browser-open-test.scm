@@ -25,6 +25,7 @@
 
 (import (liii check)
         (liii os)
+        (liii sys)
         (liii web-browser))
 
 (check-set-mode! 'report-failed)
@@ -40,7 +41,7 @@
 
 ;; 启动测试（通过安全的环境变量命令覆盖，避免在桌面中弹出网页）
 (let ((old-browser (getenv "BROWSER")))
-  (putenv "BROWSER" "true")
+  (putenv "BROWSER" (string-append (executable) " eval #t"))
   (check-true (web-browser-open "https://example.com/oauth/authorize"))
   (check-true (web-browser-open "https://example.com/oauth/authorize" 0))
 

@@ -22,6 +22,7 @@
 
 (import (liii check)
         (liii os)
+        (liii sys)
         (liii web-browser))
 
 (check-set-mode! 'report-failed)
@@ -33,7 +34,7 @@
 
 ;; 启动测试
 (let ((old-browser (getenv "BROWSER")))
-  (putenv "BROWSER" "true")
+  (putenv "BROWSER" (string-append (executable) " eval #t"))
   (check-true (web-browser-open-new "https://example.com/login"))
 
   (if old-browser

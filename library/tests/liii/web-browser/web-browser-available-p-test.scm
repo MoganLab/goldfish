@@ -16,6 +16,7 @@
 
 (import (liii check)
         (liii os)
+        (liii sys)
         (liii web-browser))
 
 (check-set-mode! 'report-failed)
@@ -26,7 +27,7 @@
 ;; 环境变量覆盖测试
 (let ((old-browser (getenv "BROWSER")))
   ;; 存在可用命令时应返回 #t
-  (putenv "BROWSER" "sh")
+  (putenv "BROWSER" (executable))
   (check-true (web-browser-available?))
 
   ;; 恢复环境变量
