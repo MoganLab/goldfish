@@ -2,117 +2,141 @@
   "domains": {
     "r7rs": {
       "root": "r7rs/",
-      "depends-on": []
+      "depends-on": [],
+      "mode": "r7rs"
     },
     "goldfish": {
       "root": "goldfish/",
       "depends-on": [
         "r7rs"
+      ],
+      "mode": "r7rs"
+    },
+    "bignum": {
+      "root": "bignum/",
+      "mode": "r7rs+bignum",
+      "depends-on": [
+        "goldfish"
       ]
     },
     "library": {
       "root": "library/",
       "depends-on": [
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "demo": {
       "root": "demo/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "help": {
       "root": "tools/help/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "source": {
       "root": "tools/source/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "version": {
       "root": "tools/version/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "doc": {
       "root": "tools/doc/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "fmt": {
       "root": "tools/fmt/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "fix": {
       "root": "tools/fix/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "check": {
       "root": "tools/check/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "json": {
       "root": "tools/json/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "test": {
       "root": "tools/test/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "repl": {
       "root": "tools/repl/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "code": {
       "root": "tools/code/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "pr": {
       "root": "tools/pr/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     },
     "pi": {
       "root": "tools/pi/",
       "depends-on": [
         "library",
         "goldfish"
-      ]
+      ],
+      "mode": "r7rs"
     }
   },
   "tools": {

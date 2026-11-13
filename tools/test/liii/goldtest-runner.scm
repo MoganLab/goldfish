@@ -114,42 +114,45 @@
       ) ;let
     ) ;define
 
-    (define (%tool-domain-inc d test-file)
-      (let* ((tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
-        (if (not (string-starts? test-file prefix))
-          #f
-          (let ((root (cdr (assq 'root d))))
-            (if (member root '("" "goldfish/" "r7rs/" "library/") string=?)
-              ""
-              (let ((clean
-                      (if (string-ends? root "/") (substring root 0 (- (string-length root) 1)) root)
-                    ) ;clean
-                   ) ;
-                (string-append "-I " clean " ")
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (tool-inc-for-test-file test-file)
+    (define (%find-domain-for-test-file test-file)
       (let loop
         ((ds (gfproject-domains-list)))
         (if (null? ds)
+          #f
+          (let* ((d (car ds)) (tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
+            (if (string-starts? test-file prefix) d (loop (cdr ds)))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%domain-inc d)
+      (let ((root (and d (cdr (assq 'root d)))))
+        (if (or (not root)
+              (member root '("" "goldfish/" "r7rs/" "library/" "bignum/") string=?)
+            ) ;or
           ""
-          (let ((inc (%tool-domain-inc (car ds) test-file)))
-            (if inc inc (loop (cdr ds)))
+          (let ((clean
+                  (if (string-ends? root "/") (substring root 0 (- (string-length root) 1)) root)
+                ) ;clean
+               ) ;
+            (string-append "-I " clean " ")
           ) ;let
         ) ;if
       ) ;let
     ) ;define
 
+    (define (%domain-mode d)
+      (let ((m (and d (assq 'mode d))))
+        (if (and m (string? (cdr m))) (cdr m) "r7rs")
+      ) ;let
+    ) ;define
+
     (define (goldfish-cmd . maybe-test-file)
       (let* ((test-file (if (null? maybe-test-file) #f (car maybe-test-file)))
-             (inc (if test-file (tool-inc-for-test-file test-file) ""))
+             (d (and test-file (%find-domain-for-test-file test-file)))
             ) ;
-        (string-append (executable) " -m r7rs " inc)
+        (string-append (executable) " -m " (%domain-mode d) " " (%domain-inc d))
       ) ;let*
     ) ;define
 

@@ -1309,6 +1309,14 @@ add_goldfish_load_paths (s7_scheme* sc, const char* gf_lib) {
   else if (fs::is_directory (source_library)) {
     s7_add_to_load_path (sc, source_library.string ().c_str ());
   }
+  fs::path installed_bignum= fs::path (gf_lib) / "bignum";
+  fs::path source_bignum   = fs::path (gf_lib).parent_path () / "bignum";
+  if (fs::is_directory (installed_bignum)) {
+    s7_add_to_load_path (sc, installed_bignum.string ().c_str ());
+  }
+  else if (fs::is_directory (source_bignum)) {
+    s7_add_to_load_path (sc, source_bignum.string ().c_str ());
+  }
 }
 
 s7_scheme*
