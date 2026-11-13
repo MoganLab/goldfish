@@ -70,6 +70,18 @@
       {
         "path": "goldfish/liii/decimal/",
         "reason": "decimal 聚合子模块由顶层库统一承载单测"
+      },
+      {
+        "path": "goldfish/liii/bignum/",
+        "reason": "bignum 聚合子模块由顶层库统一承载单测"
+      },
+      {
+        "path": "goldfish/liii/bignum.scm",
+        "reason": "bignum 数值塔覆写 (scheme base) 过程，由 bignum-test.scm 统一覆盖"
+      },
+      {
+        "path": "goldfish/tests/liii/bignum-test.scm",
+        "reason": "bignum 模式聚合单元测试"
       }
     ],
     "define-record-type": [
