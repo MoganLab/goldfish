@@ -15,6 +15,7 @@
     (liii sort)
     (liii list)
     (liii json)
+    (liii unicode)
     (liii pi code cli args)
     (liii pi code core compaction serialize)
   ) ;import
@@ -67,15 +68,19 @@
       (equal? (%ref entry "type" #f) type)
     ) ;define
 
+    (define (%sanitize-text str)
+      (if (string? str) (utf8-replace-invalid str) "")
+    ) ;define
+
     ;; user/assistant 消息的投影文本；非文本或空文本消息返回 #f
     (define (%message-text entry)
       (let* ((message (%ref entry "message" '()))
              (role (%ref message "role" #f))
-             (text (pi-content->text (%ref message "content" "")))
+             (raw-text (pi-content->text (%ref message "content" "")))
             ) ;
         (and (member role '("user" "assistant"))
-          (not (string-null? text))
-          (cons role text)
+          (not (string-null? raw-text))
+          (cons role (%sanitize-text raw-text))
         ) ;and
       ) ;let*
     ) ;define
@@ -126,7 +131,10 @@
     (define (%read-all-messages-text path)
       (if (not (file-exists? path))
         ""
-        (call-with-input-file path %scan-all-messages-port)
+        (catch #t
+          (lambda () (call-with-input-file path %scan-all-messages-port))
+          (lambda _ "")
+        ) ;catch
       ) ;if
     ) ;define
 
@@ -138,17 +146,19 @@
 
     (define (%build-session-info path header last-info last-msg msg-count first-user)
       (let* ((info-entry (if (string? last-info) (%parse-line last-info) last-info))
-             (name (and info-entry (pi-normalize-session-name (%ref info-entry "name" #f))))
+             (raw-name (and info-entry (pi-normalize-session-name (%ref info-entry "name" #f)))
+             ) ;raw-name
+             (name (and (string? raw-name) (%sanitize-text raw-name)))
              (msg-entry (if (string? last-msg) (%parse-line last-msg) last-msg))
              (msg-ts (and msg-entry (%ref msg-entry "timestamp" #f)))
-             (created (%ref header "timestamp" ""))
+             (created (%sanitize-text (%ref header "timestamp" "")))
             ) ;
         (make-pi-session-info path
-          (%ref header "id" "")
-          (%ref header "cwd" "")
+          (%sanitize-text (%ref header "id" ""))
+          (%sanitize-text (%ref header "cwd" ""))
           name
           created
-          (if (string? msg-ts) msg-ts created)
+          (if (string? msg-ts) (%sanitize-text msg-ts) created)
           msg-count
           (or first-user "(no messages)")
           (lambda () (%read-all-messages-text path))
@@ -231,13 +241,18 @@
     (define (pi-read-session-info file-path)
       (let ((path (if (string? file-path) file-path (path->string file-path))))
         (and (file-exists? path)
-          (call-with-input-file path
-            (lambda (port)
-              (let ((header (%read-session-header port)))
-                (and header (%scan-session-port path port header))
-              ) ;let
+          (catch #t
+            (lambda ()
+              (call-with-input-file path
+                (lambda (port)
+                  (let ((header (%read-session-header port)))
+                    (and header (%scan-session-port path port header))
+                  ) ;let
+                ) ;lambda
+              ) ;call-with-input-file
             ) ;lambda
-          ) ;call-with-input-file
+            (lambda _ #f)
+          ) ;catch
         ) ;and
       ) ;let
     ) ;define

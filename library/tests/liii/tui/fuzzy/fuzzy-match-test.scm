@@ -44,4 +44,12 @@
   (check (cdr (assoc 'matches res)) => #t)
 ) ;let
 
+;; 5. 非法 UTF-8 字节序列容错（不抛错，仍可匹配合法部分）
+(let ((bad-text (string #\d #\e (integer->char #x80) #\b #\u #\g))
+      (bad-query (string #\d (integer->char #xe4) #\b))
+     ) ;
+  (check (cdr (assoc 'matches (fuzzy-match "debug" bad-text))) => #t)
+  (check (cdr (assoc 'matches (fuzzy-match bad-query "debug"))) => #f)
+) ;let
+
 (check-report)

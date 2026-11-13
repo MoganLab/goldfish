@@ -70,4 +70,13 @@
   (check (fuzzy-filter items "high" car) => '(("high" . 2) ("xhigh" . 3)))
 ) ;let
 
+;; 含非法 UTF-8 字节序列的文本与查询不崩溃，合法文本仍正常过滤。
+(let ((bad (string #\b #\a (integer->char #x80) #\d))
+      (bad-q (string #\d (integer->char #xfe)))
+     ) ;
+  (check (fuzzy-filter (list "debug" bad "other") "debug" (lambda (x) x)) => '("debug"))
+  (check (fuzzy-filter (list "debug" bad) "bd" (lambda (x) x)) => (list bad))
+  (check (fuzzy-filter (list "debug" "other") bad-q (lambda (x) x)) => '())
+) ;let
+
 (check-report)
