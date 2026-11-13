@@ -297,6 +297,7 @@
                    (when (pi-app-flash-tick! app)
                      (pi-app-render! app)
                    ) ;when
+                   (pi-app-tool-timer-tick! app)
                    (sleep (if (pi-queue-busy? q) 0.01 0.05))
                    (loop)
                   ) ;

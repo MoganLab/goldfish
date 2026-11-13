@@ -24,7 +24,8 @@
     pi-app-handle-mouse! pi-app-handle-mouse-events! pi-app-toggle-thinking!
     pi-app-hide-thinking? pi-app-selection pi-app-selection-set!
     pi-app-selection-clear! pi-app-selection-active? pi-app-tokens
-    pi-app-thinking-level-explicit? pi-app-recovery-card
+    pi-app-thinking-level-explicit? pi-app-recovery-card pi-app-tool-timer-tick!
+    pi-app-has-pending-bash-tool? %tool-timer-frame-interval-ms
   ) ;export
   (import (scheme base)
     (scheme file)
@@ -46,6 +47,7 @@
     (liii pi code modes interactive worker)
     (liii pi code modes interactive bash)
     (liii pi code modes interactive app-bash)
+    (liii pi code modes interactive app-tool-timer)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive app-history)
     (liii pi code modes interactive app-name)
@@ -359,6 +361,7 @@
                     (and enable-skill-commands #t)
                     #f
                     (and thinking-level-explicit #t)
+                    #f
                     #f
                   ) ;%make-pi-app
              ) ;app
