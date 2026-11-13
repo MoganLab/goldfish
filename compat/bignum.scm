@@ -74,8 +74,8 @@
 (check "quotient-big" (quotient 100000000000000000005 10))            ; [一致] 10000000000000000000
 (check "remainder-neg-pos" (remainder -100000000000000000005 10))     ; [一致] -5
 (check "modulo-neg-pos" (modulo -100000000000000000005 10))           ; [一致] 5
-(check "modulo-pos-neg" (modulo 100000000000000000005 -10))           ; [不一致] gf: 5 | scheme: -5
-(check "modulo-neg-neg" (modulo -100000000000000000005 -10))          ; [不一致] gf: 5 | scheme: -5
+(check "modulo-pos-neg" (modulo 100000000000000000005 -10))           ; [一致] -5
+(check "modulo-neg-neg" (modulo -100000000000000000005 -10))          ; [一致] -5
 (check "remainder-int64-min" (remainder -9223372036854775808 -1))     ; [一致] 0
 (check "modulo-int64-min" (modulo -9223372036854775808 -1))           ; [一致] 0
 (check "modulo-big-float" (modulo 100000000000000000005 3.0))         ; [不一致] gf: ERR | scheme: 0.0

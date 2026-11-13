@@ -46,18 +46,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 3. `modulo` 负数除数的符号语义不一致
-
-在 `goldfish/liii/bignum/arithmetic.scm` 中，`bn:modulo` 调用 `bigint-modulo`；当除数为负数时，`gf` 返回正余数（欧几里得余数语义），而 Scheme / R7RS 要求 `modulo` 结果与除数同号。
-
-| 表达式 | `gf` 输出 | `scheme` 输出 |
-| --- | --- | --- |
-| `(modulo 100000000000000000005 -10)` | `5` | `-5` |
-| `(modulo -100000000000000000005 -10)` | `5` | `-5` |
-
----
-
-## 4. `exact` / `inexact->exact` 超出 `int64` 范围时报错
+## 3. `exact` / `inexact->exact` 超出 `int64` 范围时报错
 
 `bn:exact` 对非 `bigint` 直接调用 `native:exact`，s7 原生 `inexact->exact` 只能转换为 `int64`，无法将大浮点数转为 `bigint`。
 
@@ -68,7 +57,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 5. `modulo` / `gcd` / `lcm` 混合 `bigint` 与浮点整数时报错
+## 4. `modulo` / `gcd` / `lcm` 混合 `bigint` 与浮点整数时报错
 
 `bn:modulo`、`bn:gcd`、`bn:lcm` 在遇到非精确浮点参数时，将 `bigint` 转为 `double` 后交给 `native:modulo` / `native:gcd` / `native:lcm`，而 s7 原生实现要求参数在 `int64` 范围内或为有理数，导致报错。
 
@@ -80,7 +69,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 6. `string->number` 与 Reader 对 `#e` / `#i` 前缀支持不一致
+## 5. `string->number` 与 Reader 对 `#e` / `#i` 前缀支持不一致
 
 | 表达式 | `gf` 输出 | `scheme` 输出 | 说明 |
 | --- | --- | --- | --- |
@@ -91,7 +80,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 7. 输出格式与小细节差异
+## 6. 输出格式与小细节差异
 
 | 类别 | 表达式 | `gf` 输出 | `scheme` 输出 | 说明 |
 | --- | --- | --- | --- | --- |

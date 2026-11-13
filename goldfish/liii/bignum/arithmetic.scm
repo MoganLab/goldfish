@@ -253,7 +253,14 @@
 (define (bn:modulo a b)
   (if (or (bigint? a) (bigint? b))
     (if (and (bn:exact-int? a) (bn:exact-int? b))
-      (bn:demote-bigint (bigint-modulo (bn:to-bigint a) (bn:to-bigint b)))
+      (let* ((ba (bn:to-bigint a)) (bb (bn:to-bigint b)) (r (bigint-remainder ba bb)))
+        (bn:demote-bigint
+          (if (or (bigint-zero? r) (eqv? (bigint-negative? r) (bigint-negative? bb)))
+            r
+            (bigint-add r bb)
+          ) ;if
+        ) ;bn:demote-bigint
+      ) ;let*
       (native:modulo (if (bigint? a) (bn:bigint->inexact a) a)
         (if (bigint? b) (bn:bigint->inexact b) b)
       ) ;native:modulo
