@@ -64,6 +64,7 @@
                             ((eq? mode 'verbose) (make-verbose-emitter))
                             (else #f)
                       ) ;cond
+                      (eq? mode 'json)
                     ) ;run-compact-flow
                    ) ;
                    ((eq? mode 'print)
@@ -88,6 +89,8 @@
                       ) ;lambda
                       #f
                       rest-msgs
+                      ;; verbose 面向人类：不回放投影/历史消息，只展示本次会话的实时事件
+                      #f
                     ) ;run-session-flow
                    ) ;
                    ((eq? mode 'json)

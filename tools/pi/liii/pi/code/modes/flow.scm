@@ -24,6 +24,7 @@
     (liii pi code core compaction flow)
     (liii pi code core session-projection)
     (liii pi code modes output)
+    (liii pi code modes verbose)
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
     (liii pi code core skills)
@@ -332,7 +333,7 @@
       ) ;let*-values
     ) ;define*
 
-    (define (run-compact-flow parsed cfg initial-msg emit)
+    (define* (run-compact-flow parsed cfg initial-msg emit (emit-initial? #t))
       (let* ((cwd (path->string (path-cwd)))
              (config-dir (pi-cfg-config-dir cfg))
              (sdir (resolve-session-dir parsed cfg cwd))
@@ -367,24 +368,32 @@
                   (emit 'session cwd)
                 ) ;when
                 (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout emit))
+                       ;; verbose 面向人类：投影回放历史对终端阅读无意义且可能
+                       ;; 包含巨量历史文本，仅 JSON 协议模式需要完整初始回放
                        (res-msgs (run-agent-loop-with-timeout cfg
                                    init-msgs
                                    (%system-prompt-for cfg parsed)
                                    emit
                                    parsed
                                    compaction
+                                   emit-initial?
                                  ) ;run-agent-loop-with-timeout
                        ) ;res-msgs
                       ) ;
                   (persist-new-messages! sfile (vector-ref state 0) res-msgs (vector-ref state 1))
-                  (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
+                  (if (procedure? emit)
+                    ;; 事件流模式（json/verbose）：过程已实时展示，仅结算退出码
+                    (handle-verbose-result (and (pair? res-msgs) (car (reverse res-msgs))))
+                    ;; print 模式：输出最终文本
+                    (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
+                  ) ;if
                 ) ;let*
               ) ;let*
             ) ;if
           ) ;let*
         ) ;if
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

@@ -166,9 +166,10 @@
         (lambda ()
           (check-true (number? port))
 
-          ;; 1. print 模式：web_search 闭环调用与 Sources 引用展示
+          ;; 1. print 模式（text）：web_search 闭环调用与 Sources 引用展示
           (let* ((cmd (list GF_BIN "pi" "--model" "agent-web-search" "--tools"
-                        "+web_search" "--print" "Search goldfish scheme"
+                        "+web_search" "--mode" "text" "--print"
+                        "Search goldfish scheme"
                       ) ;list
                  ) ;cmd
                  (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
@@ -259,8 +260,8 @@
 
           ;; 4. 默认启用：不传 --tools 时 web_search 也在默认工具集并闭环成功
           ;; （若扩展未注册，工具执行会返回 "Tool web_search not found" 而非搜索结果）
-          (let* ((cmd (list GF_BIN "pi" "--model" "agent-web-search" "--print"
-                        "Search goldfish scheme"
+          (let* ((cmd (list GF_BIN "pi" "--model" "agent-web-search" "--mode"
+                        "text" "--print" "Search goldfish scheme"
                       ) ;list
                  ) ;cmd
                  (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
@@ -273,6 +274,23 @@
             ) ;check-true
             (check-true (string-contains? out "## Sources"))
             (check-true (string-contains? err "Searching web: Goldfish Scheme..."))
+            (process-close p)
+          ) ;let*
+
+          ;; 5. verbose 模式（脚本默认）：🔧 [web_search] 工具行与流式回复展示
+          (let* ((cmd (list GF_BIN "pi" "--mode" "verbose" "--model"
+                        "agent-web-search" "--tools" "+web_search"
+                        "Search goldfish scheme"
+                      ) ;list
+                 ) ;cmd
+                 (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+                 (code (process-wait p 15000))
+                 (out (process-read p :stream 'stdout))
+                ) ;
+            (check code => 0)
+            (check-true (string-contains? out "🔧 [web_search]"))
+            (check-true (string-contains? out "💡 [Turn 1]"))
+            (check-true (string-contains? out "🏁 [pi] Agent 本阶段结束"))
             (process-close p)
           ) ;let*
 
