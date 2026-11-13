@@ -150,6 +150,19 @@
   ) ;if
 ) ;define
 
+(define (bn:complex-expt base n)
+  (if (native:negative? n)
+    (bn:div-2 1 (bn:complex-expt base (native:- n)))
+    (let loop
+      ((acc 1) (b base) (e n))
+      (cond ((native:zero? e) acc)
+            ((native:even? e) (loop acc (bn:mul-2 b b) (native:quotient e 2)))
+            (else (loop (bn:mul-2 acc b) (bn:mul-2 b b) (native:quotient e 2)))
+      ) ;cond
+    ) ;let
+  ) ;if
+) ;define
+
 (define (bn:expt base exp)
   (cond
    ((and (bn:exact-int? base)
@@ -190,6 +203,9 @@
                 ) ;bn:make-rat
           ) ;else
     ) ;cond
+   ) ;
+   ((and (bigcomplex? base) (native:integer? exp) (native:exact? exp))
+    (bn:complex-expt base exp)
    ) ;
    (else (native:expt (bn:to-inexact base) (bn:to-inexact exp)))
   ) ;cond

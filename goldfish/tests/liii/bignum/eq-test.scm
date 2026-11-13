@@ -24,5 +24,6 @@
 (check (= (expt 10 400) +inf.0) => #f)
 (check (= (- (expt 10 400)) -inf.0) => #f)
 (check (= (expt 10 20) +nan.0) => #f)
+(check (= (expt 10 20)) => #t)
 
 (check-report)
