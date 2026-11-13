@@ -63,6 +63,7 @@
                          all-sessions
                          (lambda (path) (set! selected path) (set! done? #t))
                          (lambda () (set! done? #t))
+                         :incremental #t
                        ) ;make-session-selector
              ) ;selector
              (render!
@@ -83,7 +84,20 @@
               ()
               (unless done?
                 (let ((key (terminal-poll-key term)))
-                  (if key (begin (component-handle-input selector key) (render!)) (sleep 0.02))
+                  (if key
+                    (begin
+                      (component-handle-input selector key)
+                      (render!)
+                    ) ;begin
+                    (let ((step (session-selector-step-index! selector)))
+                      (when (eq? step 'updated)
+                        (render!)
+                      ) ;when
+                      (unless step
+                        (sleep 0.02)
+                      ) ;unless
+                    ) ;let
+                  ) ;if
                   (loop)
                 ) ;let
               ) ;unless

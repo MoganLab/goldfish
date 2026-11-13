@@ -63,6 +63,7 @@
                 all
                 (lambda (path) (%confirm-resume! app path))
                 (lambda () (pi-app-close-selector! app))
+                :incremental #t
               ) ;make-session-selector
             ) ;%pi-app-active-selector-set!
             (pi-app-render! app)
