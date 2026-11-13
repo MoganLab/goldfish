@@ -26,6 +26,7 @@
     (liii pi code modes interactive app-mouse)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive app-thinking)
+    (liii pi code modes interactive session-selector)
     (liii pi code modes interactive common)
   ) ;import
   (begin
@@ -298,7 +299,16 @@
                      (pi-app-render! app)
                    ) ;when
                    (pi-app-tool-timer-tick! app)
-                   (sleep (if (pi-queue-busy? q) 0.01 0.05))
+                   (let* ((sel (pi-app-active-selector app))
+                          (step (and (session-selector? sel) (session-selector-step-index! sel)))
+                         ) ;
+                     (when (eq? step 'updated)
+                       (pi-app-render! app)
+                     ) ;when
+                     (unless step
+                       (sleep (if (pi-queue-busy? q) 0.01 0.05))
+                     ) ;unless
+                   ) ;let*
                    (loop)
                   ) ;
                   (else (pi-app-handle-input! app k) (pi-app-render! app) (loop))

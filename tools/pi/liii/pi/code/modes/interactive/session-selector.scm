@@ -24,6 +24,7 @@
     session-selector-show-path? session-selector-visible-sessions
     session-selector-search session-selector-selected-index
     session-selector-format-age session-selector-cursor-position
+    session-selector-step-index!
   ) ;export
   (begin
 
@@ -37,7 +38,7 @@
 
     (define-record-type <session-selector-state>
       (%make-state current all on-select on-cancel scope sort-mode name-filter
-        show-path? search visible selected text-cache error-msg
+        show-path? search visible selected text-cache error-msg incremental?
       ) ;%make-state
       state?
       (current state-current)
@@ -55,6 +56,7 @@
       ;; 避免每次按键对大文本重复小写化
       (text-cache state-text-cache state-text-cache-set!)
       (error-msg state-error-msg state-error-msg-set!)
+      (incremental? state-incremental?)
     ) ;define-record-type
 
     (define (%state comp)
@@ -111,17 +113,11 @@
       ) ;if
     ) ;define
     (define (%format-error tag info)
-      (catch #t
-        (lambda ()
-          (let ((msg (catch-error->string tag info)))
-            (if (and (string? msg) (not (string-contains? msg "#1=")))
-              msg
-              (if (symbol? tag) (symbol->string tag) "unknown error")
-            ) ;if
-          ) ;let
-        ) ;lambda
-        (lambda _ (if (symbol? tag) (symbol->string tag) "unknown error"))
-      ) ;catch
+      (let ((fallback (if (symbol? tag) (symbol->string tag) "unknown error"))
+            (msg (catch #t (lambda () (catch-error->string tag info)) (lambda _ #f)))
+           ) ;
+        (if (and (string? msg) (not (string-contains? msg "#1="))) msg fallback)
+      ) ;let
     ) ;define
 
     (define (%refresh! state)
@@ -141,6 +137,7 @@
                             named
                             query
                             (state-sort-mode state)
+                            (state-incremental? state)
                           ) ;session-selector-filter-sessions
                  ) ;matched
                  (visible
@@ -167,42 +164,40 @@
                         ) ;string-replace
       ) ;string-trim-both
     ) ;define
-    (define (%row-content state session selected? width now-posix)
-      (let* ((raw-label (or (pi-session-info-name session) (pi-session-info-first-message session))
-             ) ;raw-label
-             (label
-               (%one-line (utf8-replace-invalid (if (string? raw-label) raw-label "")))
-             ) ;label
-             (right
-               (utf8-replace-invalid
-                 (string-join
-                   (append (if (eq? (state-scope state) 'all) (list (pi-session-info-cwd session)) '())
-                     (if (state-show-path? state) (list (pi-session-info-path session)) '())
-                     (list (number->string (pi-session-info-message-count session))
-                       (session-selector-format-age (pi-session-info-modified session) now-posix)
-                     ) ;list
-                   ) ;append
-                   " "
-                 ) ;string-join
-               ) ;utf8-replace-invalid
-             ) ;right
-             (cursor (if selected? "› " "  "))
-             (available (max 10 (- width (display-width right) 4)))
-             (left (string-append cursor (truncate-to-width label available "…")))
-             (spaces
-               (make-string (max 1 (- width (display-width left) (display-width right)))
-                 #\space
-               ) ;make-string
-             ) ;spaces
-             (line (string-append left spaces right))
-            ) ;
-        (truncate-to-width (if selected? (%colored %accent line) line) width)
-      ) ;let*
-    ) ;define
-
     (define (%row state session selected? width now-posix)
       (catch #t
-        (lambda () (%row-content state session selected? width now-posix))
+        (lambda ()
+          (let* ((raw-label (or (pi-session-info-name session) (pi-session-info-first-message session))
+                 ) ;raw-label
+                 (label
+                   (%one-line (utf8-replace-invalid (if (string? raw-label) raw-label "")))
+                 ) ;label
+                 (right
+                   (utf8-replace-invalid
+                     (string-join
+                       (append (if (eq? (state-scope state) 'all) (list (pi-session-info-cwd session)) '())
+                         (if (state-show-path? state) (list (pi-session-info-path session)) '())
+                         (list (number->string (pi-session-info-message-count session))
+                           (session-selector-format-age (pi-session-info-modified session) now-posix)
+                         ) ;list
+                       ) ;append
+                       " "
+                     ) ;string-join
+                   ) ;utf8-replace-invalid
+                 ) ;right
+                 (cursor (if selected? "› " "  "))
+                 (available (max 10 (- width (display-width right) 4)))
+                 (left (string-append cursor (truncate-to-width label available "…")))
+                 (spaces
+                   (make-string (max 1 (- width (display-width left) (display-width right)))
+                     #\space
+                   ) ;make-string
+                 ) ;spaces
+                 (line (string-append left spaces right))
+                ) ;
+            (truncate-to-width (if selected? (%colored %accent line) line) width)
+          ) ;let*
+        ) ;lambda
         (lambda _ (%colored %muted "  (invalid session)"))
       ) ;catch
     ) ;define
@@ -289,40 +284,40 @@
         (state-selected-set! state (max 0 (min last (+ (state-selected state) delta))))
       ) ;let
     ) ;define
+    (define (%toggle-scope! state)
+      (state-scope-set! state (if (eq? (state-scope state) 'current) 'all 'current))
+      (%refresh! state)
+    ) ;define
     (define (%dispatch-key state key)
-      (cond
-       ((eq? key 'tab)
-        (state-scope-set! state (if (eq? (state-scope state) 'current) 'all 'current))
-        (%refresh! state)
-       ) ;
-       ((eq? key 'ctrl-n)
-        (state-name-filter-set! state
-          (if (eq? (state-name-filter state) 'all) 'named 'all)
-        ) ;state-name-filter-set!
-        (%refresh! state)
-       ) ;
-       ((eq? key 'ctrl-p) (state-show-path?-set! state (not (state-show-path? state))))
-       ((eq? key 'ctrl-s)
-        (state-sort-mode-set! state
-          (if (eq? (state-sort-mode state) 'recent) 'relevance 'recent)
-        ) ;state-sort-mode-set!
-        (%refresh! state)
-       ) ;
-       ((eq? key 'up) (%move! state -1))
-       ((eq? key 'down) (%move! state 1))
-       ((eq? key 'page-up) (%move! state -10))
-       ((eq? key 'page-down) (%move! state 10))
-       ((eq? key 'enter)
-        (let ((items (state-visible state)))
-          (when (pair? items)
-            ((state-on-select state)
-             (pi-session-info-path (list-ref items (state-selected state)))
+      (cond ((eq? key 'tab) (%toggle-scope! state))
+            ((eq? key 'ctrl-n)
+             (state-name-filter-set! state
+               (if (eq? (state-name-filter state) 'all) 'named 'all)
+             ) ;state-name-filter-set!
+             (%refresh! state)
             ) ;
-          ) ;when
-        ) ;let
-       ) ;
-       ((memq key '(escape ctrl-c)) ((state-on-cancel state)))
-       (else (component-handle-input (state-search state) key))
+            ((eq? key 'ctrl-p) (state-show-path?-set! state (not (state-show-path? state))))
+            ((eq? key 'ctrl-s)
+             (state-sort-mode-set! state
+               (if (eq? (state-sort-mode state) 'recent) 'relevance 'recent)
+             ) ;state-sort-mode-set!
+             (%refresh! state)
+            ) ;
+            ((eq? key 'up) (%move! state -1))
+            ((eq? key 'down) (%move! state 1))
+            ((eq? key 'page-up) (%move! state -10))
+            ((eq? key 'page-down) (%move! state 10))
+            ((eq? key 'enter)
+             (let ((items (state-visible state)))
+               (when (pair? items)
+                 ((state-on-select state)
+                  (pi-session-info-path (list-ref items (state-selected state)))
+                 ) ;
+               ) ;when
+             ) ;let
+            ) ;
+            ((memq key '(escape ctrl-c)) ((state-on-cancel state)))
+            (else (component-handle-input (state-search state) key))
       ) ;cond
     ) ;define
 
@@ -336,9 +331,40 @@
       ) ;let
     ) ;define
 
-    ;; 默认排序使用 recent（按最后活动时间降序）；上游 pi 默认为 threaded（按父子会话构树），
-    ;; 当前模型尚无 parent 概念，故保持 recent 默认。
-    (define (make-session-selector current-sessions all-sessions on-select on-cancel)
+    (define (session-selector-step-index! comp)
+      (let ((state (%state comp)))
+        (if (not (and (state? state) (state-incremental? state)))
+          #f
+          (catch #t
+            (lambda ()
+              (let* ((res (session-selector-warm-batch! (state-text-cache state) (%source state)))
+                     (warmed (car res))
+                     (pending? (cdr res))
+                     (has-query?
+                       (not
+                         (string-null? (string-trim-both (editor-text (state-search state))))
+                       ) ;not
+                     ) ;has-query?
+                    ) ;
+                (cond ((and (> warmed 0) has-query?) (%refresh! state) 'updated)
+                      (pending? 'more)
+                      (else #f)
+                ) ;cond
+              ) ;let*
+            ) ;lambda
+            (lambda _ #f)
+          ) ;catch
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 默认 recent（最后活动时间降序）；当前无 parent 概念，故不采用上游 threaded 默认
+    (define* (make-session-selector current-sessions
+               all-sessions
+               on-select
+               on-cancel
+               (incremental #f)
+             ) ;make-session-selector
       (let* ((state (%make-state current-sessions
                       all-sessions
                       on-select
@@ -352,6 +378,7 @@
                       0
                       (make-session-search-cache)
                       #f
+                      incremental
                     ) ;%make-state
              ) ;state
              (search (make-text-input ""
@@ -367,7 +394,7 @@
         (%refresh! state)
         comp
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library
