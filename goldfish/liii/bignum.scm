@@ -7,12 +7,7 @@
 ;;; All Rights Reserved
 
 (define-library (liii bignum)
-  (import (scheme base)
-    (liii bignum native)
-    (liii bignum arithmetic)
-    (liii bigint)
-    (liii decimal)
-  ) ;import
+  (import (scheme base) (liii bigint) (liii decimal))
 
   (export bignum? number? complex? real? rational? integer? exact? inexact?
     exact-integer? zero? positive? negative? odd? even? exact inexact
@@ -21,155 +16,154 @@
     truncate round numerator denominator
   ) ;export
 
+  (include "bignum/arithmetic.scm")
+
   (begin
     (define (bignum? x)
       (bigint? x)
     ) ;define
 
     ;;; ---------- 谓词 ----------
-    (define (number? x)
-      (or (bigint? x) (base:number? x))
+    (define (bn:number? x)
+      (or (bigint? x) (native:number? x))
     ) ;define
 
-    (define (complex? x)
-      (or (bigint? x) (base:complex? x))
+    (define (bn:complex? x)
+      (or (bigint? x) (native:complex? x))
     ) ;define
 
-    (define (real? x)
-      (or (bigint? x) (base:real? x))
+    (define (bn:real? x)
+      (or (bigint? x) (native:real? x))
     ) ;define
 
-    (define (rational? x)
-      (or (bigint? x) (base:rational? x))
+    (define (bn:rational? x)
+      (or (bigint? x) (native:rational? x))
     ) ;define
 
-    (define (integer? x)
-      (or (bigint? x) (base:integer? x))
+    (define (bn:integer? x)
+      (or (bigint? x) (native:integer? x))
     ) ;define
 
-    (define (exact? x)
-      (or (bigint? x) (base:exact? x))
+    (define (bn:exact? x)
+      (or (bigint? x) (native:exact? x))
     ) ;define
 
-    (define (inexact? x)
-      (and (not (bigint? x)) (base:inexact? x))
+    (define (bn:inexact? x)
+      (and (not (bigint? x)) (native:inexact? x))
     ) ;define
 
-    (define (exact-integer? x)
-      (or (bigint? x) (and (base:integer? x) (base:exact? x)))
+    (define (bn:exact-integer? x)
+      (or (bigint? x) (and (native:integer? x) (native:exact? x)))
     ) ;define
 
-    (define (zero? x)
-      (if (bigint? x) (bigint-zero? x) (base:zero? x))
+    (define (bn:zero? x)
+      (if (bigint? x) (bigint-zero? x) (native:zero? x))
     ) ;define
 
-    (define (positive? x)
-      (if (bigint? x) (bigint-positive? x) (base:positive? x))
+    (define (bn:positive? x)
+      (if (bigint? x) (bigint-positive? x) (native:positive? x))
     ) ;define
 
-    (define (negative? x)
-      (if (bigint? x) (bigint-negative? x) (base:negative? x))
+    (define (bn:negative? x)
+      (if (bigint? x) (bigint-negative? x) (native:negative? x))
     ) ;define
 
-    (define (even? x)
-      (if (bigint? x) (bigint-even? x) (base:even? x))
+    (define (bn:even? x)
+      (if (bigint? x) (bigint-even? x) (native:even? x))
     ) ;define
 
-    (define (odd? x)
-      (if (bigint? x) (bigint-odd? x) (base:odd? x))
+    (define (bn:odd? x)
+      (if (bigint? x) (bigint-odd? x) (native:odd? x))
     ) ;define
 
     ;;; ---------- 转换与等价 ----------
-    (define (exact x)
-      (if (bigint? x) x (base:exact x))
+    (define (bn:exact x)
+      (if (bigint? x) x (native:exact x))
     ) ;define
 
-    (define (inexact x)
-      (if (bigint? x) (bigint->inexact x) (base:inexact x))
+    (define (bn:inexact x)
+      (if (bigint? x) (bn:bigint->inexact x) (native:inexact x))
     ) ;define
 
-    (define exact->inexact inexact)
-    (define inexact->exact exact)
-
-    (define (number->string x . rest)
+    (define (bn:number->string x . rest)
       (if (null? rest)
-        (if (bigint? x) (bigint->string x) (base:number->string x))
+        (if (bigint? x) (bigint->string x) (native:number->string x))
         (if (bigint? x)
           (bigint->string x (car rest))
-          (apply base:number->string x rest)
+          (apply native:number->string x rest)
         ) ;if
       ) ;if
     ) ;define
 
-    (define (string->number str . rest)
-      (apply base:string->number str rest)
+    (define (bn:string->number str . rest)
+      (apply native:string->number str rest)
     ) ;define
 
-    (define (eqv? a b)
+    (define (bn:eqv? a b)
       (cond ((and (bigint? a) (bigint? b)) (bigint=? a b))
             ((or (bigint? a) (bigint? b)) #f)
-            (else (base:eqv? a b))
+            (else (native:eqv? a b))
       ) ;cond
     ) ;define
 
     ;;; ---------- 比较 ----------
-    (define (num-eq-2 a b)
+    (define (bn:num-eq-2 a b)
       (cond
-       ((and (exact-int? a) (exact-int? b))
+       ((and (bn:exact-int? a) (bn:exact-int? b))
         (if (or (bigint? a) (bigint? b))
-          (bigint=? (to-bigint a) (to-bigint b))
-          (base:= a b)
+          (bigint=? (bn:to-bigint a) (bn:to-bigint b))
+          (native:= a b)
         ) ;if
        ) ;
        ((bigint? a)
-        (if (and (base:rational? b) (base:exact? b))
-          (bigint=? (bigint-multiply a (integer->bigint (base:denominator b)))
-            (integer->bigint (base:numerator b))
+        (if (and (native:rational? b) (native:exact? b))
+          (bigint=? (bigint-multiply a (integer->bigint (native:denominator b)))
+            (integer->bigint (native:numerator b))
           ) ;bigint=?
-          (base:= (bigint->inexact a) b)
+          (native:= (bn:bigint->inexact a) b)
         ) ;if
        ) ;
        ((bigint? b)
-        (if (and (base:rational? a) (base:exact? a))
-          (bigint=? (integer->bigint (base:numerator a))
-            (bigint-multiply b (integer->bigint (base:denominator a)))
+        (if (and (native:rational? a) (native:exact? a))
+          (bigint=? (integer->bigint (native:numerator a))
+            (bigint-multiply b (integer->bigint (native:denominator a)))
           ) ;bigint=?
-          (base:= a (bigint->inexact b))
+          (native:= a (bn:bigint->inexact b))
         ) ;if
        ) ;
-       (else (base:= a b))
+       (else (native:= a b))
       ) ;cond
     ) ;define
 
-    (define (num-lt-2 a b)
+    (define (bn:num-lt-2 a b)
       (cond
-       ((and (exact-int? a) (exact-int? b))
+       ((and (bn:exact-int? a) (bn:exact-int? b))
         (if (or (bigint? a) (bigint? b))
-          (bigint<? (to-bigint a) (to-bigint b))
-          (base:< a b)
+          (bigint<? (bn:to-bigint a) (bn:to-bigint b))
+          (native:< a b)
         ) ;if
        ) ;
        ((bigint? a)
-        (if (and (base:rational? b) (base:exact? b))
-          (bigint<? (bigint-multiply a (integer->bigint (base:denominator b)))
-            (integer->bigint (base:numerator b))
+        (if (and (native:rational? b) (native:exact? b))
+          (bigint<? (bigint-multiply a (integer->bigint (native:denominator b)))
+            (integer->bigint (native:numerator b))
           ) ;bigint<?
-          (base:< (bigint->inexact a) b)
+          (native:< (bn:bigint->inexact a) b)
         ) ;if
        ) ;
        ((bigint? b)
-        (if (and (base:rational? a) (base:exact? a))
-          (bigint<? (integer->bigint (base:numerator a))
-            (bigint-multiply b (integer->bigint (base:denominator a)))
+        (if (and (native:rational? a) (native:exact? a))
+          (bigint<? (integer->bigint (native:numerator a))
+            (bigint-multiply b (integer->bigint (native:denominator a)))
           ) ;bigint<?
-          (base:< a (bigint->inexact b))
+          (native:< a (bn:bigint->inexact b))
         ) ;if
        ) ;
-       (else (base:< a b))
+       (else (native:< a b))
       ) ;cond
     ) ;define
 
-    (define (make-cmp-op cmp2)
+    (define (bn:make-cmp-op cmp2)
       (lambda (a b . rest)
         (let loop
           ((x a) (y b) (r rest))
@@ -178,35 +172,81 @@
       ) ;lambda
     ) ;define
 
-    (define = (make-cmp-op num-eq-2))
-    (define < (make-cmp-op num-lt-2))
-    (define > (make-cmp-op (lambda (a b) (num-lt-2 b a))))
-    (define <= (make-cmp-op (lambda (a b) (not (num-lt-2 b a)))))
-    (define >= (make-cmp-op (lambda (a b) (not (num-lt-2 a b)))))
+    (define bn:= (bn:make-cmp-op bn:num-eq-2))
+    (define bn:< (bn:make-cmp-op bn:num-lt-2))
+    (define bn:> (bn:make-cmp-op (lambda (a b) (bn:num-lt-2 b a))))
+    (define bn:<= (bn:make-cmp-op (lambda (a b) (not (bn:num-lt-2 b a)))))
+    (define bn:>= (bn:make-cmp-op (lambda (a b) (not (bn:num-lt-2 a b)))))
 
-    (define (max first . rest)
+    (define (bn:max first . rest)
       (let loop
-        ((best first) (xs rest) (has-inexact (inexact? first)))
+        ((best first) (xs rest) (has-inexact (bn:inexact? first)))
         (if (null? xs)
-          (if (and has-inexact (exact? best)) (inexact best) best)
-          (let* ((x (car xs)) (inx (or has-inexact (inexact? x))))
-            (loop (if (num-lt-2 best x) x best) (cdr xs) inx)
+          (if (and has-inexact (bn:exact? best)) (bn:inexact best) best)
+          (let* ((x (car xs)) (inx (or has-inexact (bn:inexact? x))))
+            (loop (if (bn:num-lt-2 best x) x best) (cdr xs) inx)
           ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
-    (define (min first . rest)
+    (define (bn:min first . rest)
       (let loop
-        ((best first) (xs rest) (has-inexact (inexact? first)))
+        ((best first) (xs rest) (has-inexact (bn:inexact? first)))
         (if (null? xs)
-          (if (and has-inexact (exact? best)) (inexact best) best)
-          (let* ((x (car xs)) (inx (or has-inexact (inexact? x))))
-            (loop (if (num-lt-2 x best) x best) (cdr xs) inx)
+          (if (and has-inexact (bn:exact? best)) (bn:inexact best) best)
+          (let* ((x (car xs)) (inx (or has-inexact (bn:inexact? x))))
+            (loop (if (bn:num-lt-2 x best) x best) (cdr xs) inx)
           ) ;let*
         ) ;if
       ) ;let
     ) ;define
+
+    ;;; ---------- 导出绑定 ----------
+    (define number? bn:number?)
+    (define complex? bn:complex?)
+    (define real? bn:real?)
+    (define rational? bn:rational?)
+    (define integer? bn:integer?)
+    (define exact? bn:exact?)
+    (define inexact? bn:inexact?)
+    (define exact-integer? bn:exact-integer?)
+    (define zero? bn:zero?)
+    (define positive? bn:positive?)
+    (define negative? bn:negative?)
+    (define odd? bn:odd?)
+    (define even? bn:even?)
+    (define exact bn:exact)
+    (define inexact bn:inexact)
+    (define exact->inexact bn:inexact)
+    (define inexact->exact bn:exact)
+    (define number->string bn:number->string)
+    (define string->number bn:string->number)
+    (define eqv? bn:eqv?)
+    (define = bn:=)
+    (define < bn:<)
+    (define > bn:>)
+    (define <= bn:<=)
+    (define >= bn:>=)
+    (define max bn:max)
+    (define min bn:min)
+    (define + bn:+)
+    (define - bn:-)
+    (define * bn:*)
+    (define / bn:/)
+    (define abs bn:abs)
+    (define quotient bn:quotient)
+    (define remainder bn:remainder)
+    (define modulo bn:modulo)
+    (define gcd bn:gcd)
+    (define lcm bn:lcm)
+    (define expt bn:expt)
+    (define floor bn:floor)
+    (define ceiling bn:ceiling)
+    (define truncate bn:truncate)
+    (define round bn:round)
+    (define numerator bn:numerator)
+    (define denominator bn:denominator)
 
     ;;; ---------- 注册 C 层读写钩子 ----------
     (when (defined? 's7-set-bignum-hooks!)
