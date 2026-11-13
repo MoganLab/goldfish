@@ -128,3 +128,10 @@
 (check "read-#e#x10" #e#x10)                                          ; [一致] 16
 (check "read-#e1.5" #e1.5)                                            ; [一致] 3/2
 (check "read-#i42" #i42)                                              ; [一致] 42.0
+
+;; 10. 精确复数
+(check "add-big-complex" (+ 100000000000000000000 1+2i))              ; [一致] 100000000000000000001+2i
+(check "eq-big-complex-0i" (= 100000000000000000000 100000000000000000000+0i)) ; [一致] #t
+(check "mul-complex" (* 1+2i 3-4i))                                   ; [一致] 11+2i
+(check "div-complex" (/ 1+2i 1-2i))                                   ; [一致] -3/5+4/5i
+(check "exact?-complex" (exact? 1+2i))                                ; [一致] #t

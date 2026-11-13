@@ -50,6 +50,9 @@
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (bn:demote-bigint (bigint-add (bn:to-bigint a) (bn:to-bigint b)))
    ) ;
+   ((and (or (bn:complex-any? a) (bn:complex-any? b)) (bn:number? a) (bn:number? b))
+    (bn:complex-add a b)
+   ) ;
    ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
       (bn:exact-rat-any? a)
       (bn:exact-rat-any? b)
@@ -71,6 +74,7 @@
 (define (bn:negate-1 a)
   (cond ((bigint? a) (bn:demote-bigint (bigint-negate a)))
         ((bigrat? a) (bn:make-rat (bigint-negate (bigrat-num a)) (bigrat-den a)))
+        ((bigcomplex? a) (bn:complex-negate a))
         ((and (native:integer? a) (native:exact? a) (native:= a INT64-MIN))
          (bigint-negate INT64-MIN-BIG)
         ) ;
@@ -92,6 +96,9 @@
    ) ;
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (bn:demote-bigint (bigint-subtract (bn:to-bigint a) (bn:to-bigint b)))
+   ) ;
+   ((and (or (bn:complex-any? a) (bn:complex-any? b)) (bn:number? a) (bn:number? b))
+    (bn:complex-sub a b)
    ) ;
    ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
       (bn:exact-rat-any? a)
@@ -126,6 +133,9 @@
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (bn:demote-bigint (bigint-multiply (bn:to-bigint a) (bn:to-bigint b)))
    ) ;
+   ((and (or (bn:complex-any? a) (bn:complex-any? b)) (bn:number? a) (bn:number? b))
+    (bn:complex-mul a b)
+   ) ;
    ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
       (bn:exact-rat-any? a)
       (bn:exact-rat-any? b)
@@ -152,6 +162,9 @@
    ) ;
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (bn:make-rat (bn:to-bigint a) (bn:to-bigint b))
+   ) ;
+   ((and (or (bn:complex-any? a) (bn:complex-any? b)) (bn:number? a) (bn:number? b))
+    (bn:complex-div a b)
    ) ;
    ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
       (bn:exact-rat-any? a)
