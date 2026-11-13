@@ -34,4 +34,14 @@
   (check submitted => "hello world")
 ) ;let*
 
+;; 2. 提交 /login 路由到登录选择器而不会作为普通文本提交给 handler
+(let* ((vterm (make-virtual-terminal :width 80 :height 24))
+       (submitted #f)
+       (app (make-pi-app :terminal vterm :handler (lambda (a m) (set! submitted m))))
+      ) ;
+  (pi-app-submit! app "/login")
+  (check submitted => #f)
+  (check-true (if (pi-app-active-selector app) #t #f))
+) ;let*
+
 (check-report)

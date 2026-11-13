@@ -370,6 +370,9 @@
              ((and (pair? stripped) (string=? (car stripped) "auth"))
               (run-pi-auth (cdr stripped))
              ) ;
+             ((and (pair? stripped) (string=? (car stripped) "login"))
+              (run-pi-auth (cons "login" (cdr stripped)))
+             ) ;
              (else (begin
                      (%ensure-extensions-loaded!)
                      (%run-pi-main (parse-pi-args stripped))

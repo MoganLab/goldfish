@@ -34,6 +34,11 @@
   (check (cdr (assoc 'name (car matches))) => "model")
 ) ;let
 
+(let ((matches (pi-slash-command-matches "/log")))
+  (check-true (pair? matches))
+  (check (cdr (assoc 'name (car matches))) => "login")
+) ;let
+
 ;; 3. 包含空格时不匹配
 (check-false (pi-slash-command-matches "/model "))
 

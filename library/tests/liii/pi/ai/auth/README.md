@@ -21,3 +21,4 @@ gf doc pi-resolve-provider-key
 ### 凭据加载与解析
 - `pi-load-auth` - 从 auth.json 文件加载凭据列表
 - `pi-resolve-provider-key` - 解析指定服务商的生效 API 密钥
+- `pi-save-auth-key` - 向 auth.json 中保存或增量更新服务商 API 密钥凭证

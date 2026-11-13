@@ -23,7 +23,12 @@
         (let ((cred-msg (pi-missing-credential-msg cfg)))
           (if cred-msg
             (begin
-              (pi-app-add-tool-result! app "auth" '() 'error cred-msg)
+              (pi-app-add-tool-result! app
+                "auth"
+                '()
+                'error
+                (string-append cred-msg ". Use /login to configure an API key.")
+              ) ;pi-app-add-tool-result!
               (pi-queue-finish-task! (pi-app-queue app))
               (pi-app-drain-queue! app)
             ) ;begin

@@ -11,12 +11,14 @@
     (liii path)
     (liii json)
     (liii list)
+    (liii error)
+    (liii os)
     (liii pi ai template)
     (liii pi ai config types)
     (liii pi ai config record)
     (liii pi ai event)
   ) ;import
-  (export pi-load-auth pi-resolve-provider-key)
+  (export pi-load-auth pi-resolve-provider-key pi-save-auth-key)
   (begin
 
     (define (%dict-ref obj key default-val)
@@ -210,6 +212,92 @@
             ) ;or
           ) ;let*
         ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%normalize-provider-key provider)
+      (cond
+       ((string? provider)
+        (let ((trimmed (string-trim-both provider)))
+          (if (string-null? trimmed)
+            (value-error "pi-save-auth-key: provider cannot be empty")
+            trimmed
+          ) ;if
+        ) ;let
+       ) ;
+       ((symbol? provider)
+        (let ((trimmed (string-trim-both (symbol->string provider))))
+          (if (string-null? trimmed)
+            (value-error "pi-save-auth-key: provider cannot be empty")
+            trimmed
+          ) ;if
+        ) ;let
+       ) ;
+       (else (type-error "pi-save-auth-key: provider must be a string or symbol"))
+      ) ;cond
+    ) ;define
+
+    (define (%normalize-auth-key key)
+      (if (not (string? key))
+        (type-error "pi-save-auth-key: key must be a string")
+        (let ((trimmed (string-trim-both key)))
+          (if (string-null? trimmed)
+            (value-error "pi-save-auth-key: key cannot be empty")
+            trimmed
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%update-auth-alist alist p-str key)
+      (let* ((filtered
+               (filter
+                 (lambda (entry)
+                   (not
+                     (string=? (if (symbol? (car entry)) (symbol->string (car entry)) (car entry))
+                       p-str
+                     ) ;string=?
+                   ) ;not
+                 ) ;lambda
+                 alist
+               ) ;filter
+             ) ;filtered
+             (new-entry (cons p-str (list (cons "type" "api_key") (cons "key" key))))
+            ) ;
+        (append filtered (list new-entry))
+      ) ;let*
+    ) ;define
+
+    (define (pi-save-auth-key provider key . opt-config-dir)
+      (let* ((p-str (%normalize-provider-key provider))
+             (k-str (%normalize-auth-key key))
+             (dir-path
+               (path (if (and (pair? opt-config-dir) (car opt-config-dir))
+                       (car opt-config-dir)
+                       (path-join (path-home) ".gf" "agent")
+                     ) ;if
+               ) ;path
+             ) ;dir-path
+             (auth-file (path-join dir-path "auth.json"))
+             (auth-file-str (path->string auth-file))
+             (existing (or (%read-json-file auth-file-str) '()))
+             (existing-alist (if (pair? existing) existing '()))
+             (updated (%update-auth-alist existing-alist p-str k-str))
+             (json-str (string-append (json->string updated :indent 2) "\n"))
+             (tmp-file (string-append auth-file-str ".tmp"))
+            ) ;
+        (unless (path-exists? dir-path)
+          (path-mkdir dir-path :parents #t :exist-ok #t)
+        ) ;unless
+        (path-write-text (path tmp-file) json-str)
+        (when (path-exists? auth-file)
+          (path-unlink auth-file #t)
+        ) ;when
+        (path-rename (path tmp-file) auth-file)
+        (unless (os-windows?)
+          (catch #t (lambda () (g_chmod auth-file-str 384)) (lambda args #f))
+        ) ;unless
+        auth-file-str
       ) ;let*
     ) ;define
 

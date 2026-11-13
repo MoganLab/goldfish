@@ -36,6 +36,8 @@
     (liii pi code modes interactive thinking-selector)
     (liii pi code modes interactive model-selector)
     (liii pi code modes interactive session-selector)
+    (liii pi code modes interactive login-selector)
+    (liii pi code modes interactive login-dialog)
   ) ;import
   (begin
 
@@ -241,6 +243,10 @@
                                     ((session-selector? active-selector)
                                      (session-selector-cursor-position active-selector)
                                     ) ;
+                                    ((login-selector? active-selector)
+                                     (login-selector-cursor-position active-selector)
+                                    ) ;
+                                    ((login-dialog? active-selector) (login-dialog-cursor-position active-selector))
                                     (else '(6 2))
                               ) ;cond
                          ) ;pos

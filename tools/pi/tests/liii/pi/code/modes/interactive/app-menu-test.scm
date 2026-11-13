@@ -36,7 +36,7 @@
       (select-list-items (pi-app-slash-command-menu app))
     ) ;map
     =>
-    '("model" "thinking" "name" "session" "resume" "config")
+    '("model" "thinking" "name" "session" "resume" "config" "login")
   ) ;check
   (pi-app-render! app)
   (let ((plain (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
@@ -57,8 +57,8 @@
                     "Select and resume a session"
                   ) ;string-contains?
       ) ;check-true
-      ;; 菜单最多显示 5 项，第 6 项 /config 需要滚动（此处用计数行体现）
-      (check-true (string-contains? (list-ref plain 37) "(1/6)"))
+      ;; 菜单最多显示 5 项，第 6-7 项需要滚动（此处用计数行体现）
+      (check-true (string-contains? (list-ref plain 37) "(1/7)"))
     ) ;let
     ;; 光标仍在输入行（菜单增高一行，输入区随之上移一行）
     (check (terminal-cursor vterm) => '(1 30))
