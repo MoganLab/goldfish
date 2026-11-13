@@ -33,7 +33,12 @@
 ;; ----
 ;; 支持文本与工具调用增量、自动重试、API key 轮换、空闲超时和用户中止。
 
-(import (liii check) (liii pi ai api openai-completions) (liii pi ai message))
+(import (liii check)
+  (liii string)
+  (liii pi ai api openai-completions)
+  (liii pi ai retry)
+  (liii pi ai message)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -56,7 +61,7 @@
   (check (string? (pi-assistant-message-error-message resp)) => #t)
 ) ;let*
 
-;; openai-request-stream 客户端超时明确感知秒数
+;; openai-request-stream 客户端超时明确感知秒数（禁用重试）
 (let* ((cfg
          (list (cons 'model-id "kimi-for-coding")
            (cons 'model-meta '(("base-url" . "http://192.0.2.1")
@@ -73,6 +78,38 @@
   (check (pi-assistant-message? resp) => #t)
   (check (pi-assistant-message-stop-reason resp) => "error")
   (check (pi-assistant-message-error-message resp) => "Request timed out after 0.2s")
+) ;let*
+
+;; openai-request-stream 超时纳入与 HTTP 429/0 一样的退避重试
+(let* ((retry-logs '())
+       (_ (set-pi-retry-logger! (lambda (msg) (set! retry-logs (cons msg retry-logs)))))
+       (cfg
+         (list (cons 'model-id "kimi-for-coding")
+           (cons 'model-meta '(("base-url" . "http://192.0.2.1")
+                               ("max-tokens" . 1024)))
+           (cons 'api-key "dummy-key")
+           (cons 'proxy-url #f)
+           (cons 'tools '())
+           (cons 'settings '((retry (enabled . #t) (max-retries . 2) (base-delay-ms . 10))))
+         ) ;list
+       ) ;cfg
+       (msgs (list (pi-user-message "ping")))
+       (resp (openai-request-stream cfg msgs #f '() #f 0.2))
+      ) ;
+  (set-pi-retry-logger! #f)
+  (check (pi-assistant-message? resp) => #t)
+  (check (pi-assistant-message-stop-reason resp) => "error")
+  (check (pi-assistant-message-error-message resp) => "Request timed out after 0.2s")
+  ;; 验证发生了 2 次重试，且日志明确携带超时秒数
+  (check (length retry-logs) => 2)
+  (check-true (string-contains? (car (reverse retry-logs))
+                "[pi retry] Request timed out after 0.2s, attempt 1/2"
+              ) ;string-contains?
+  ) ;check-true
+  (check-true (string-contains? (car retry-logs)
+                "[pi retry] Request timed out after 0.2s, attempt 2/2"
+              ) ;string-contains?
+  ) ;check-true
 ) ;let*
 
 (check-report)

@@ -10,17 +10,14 @@
   (import (scheme base)
     (liii string)
     (liii list)
-    (liii time)
     (liii pi ai abort)
     (liii pi ai message)
     (liii pi ai time)
     (liii pi ai dispatch)
-    (liii pi ai retry)
     (liii pi agent tools)
     (liii pi agent cost)
     (liii pi agent budget)
     (liii pi agent loop-queue)
-    (liii pi agent loop-retry)
   ) ;import
   (export pi-step-agent-turn pi-notify-turn-end pi-emit-agent-end
     pi-finish-agent-turn pi-emit-agent-error pi-maybe-compact pi-handle-tool-use
@@ -52,10 +49,9 @@
                  #f
                ) ;if
              ) ;on-stream-ev
-             (raw-resp (pi-request-with-timeout-retry request-fn provider config
-                         msgs system-prompt active-tools on-stream-ev timeout
-                         emit
-                       ) ;pi-request-with-timeout-retry
+             (raw-resp (request-fn provider config msgs system-prompt
+                         active-tools on-stream-ev timeout
+                       ) ;request-fn
              ) ;raw-resp
              (resp (pi-agent-attach-cost raw-resp config))
             ) ;

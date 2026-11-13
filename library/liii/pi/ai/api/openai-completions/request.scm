@@ -261,22 +261,18 @@
                   ) ;if
                 ) ;let
                ) ;
-               ((%resp-field resp 'timeout)
-                (%make-retry-error status
-                  attempt
-                  body-str
-                  provider
-                  model-id
-                  (%resp-field resp 'reason)
-                ) ;%make-retry-error
-               ) ;
                ((openai-is-retriable-error? status body-str provider)
                 (if (<= attempt provider-max-retries)
                   (let* ((ra-raw (pi-extract-retry-after resp))
                          (ra-sec (pi-parse-retry-after ra-raw))
                          (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                         (retry-status (if (%resp-field resp 'timeout)
+                                         (%resp-field resp 'reason)
+                                         status
+                                       ) ;if
+                         ) ;retry-status
                         ) ;
-                    (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
+                    (pi-log-retry retry-status attempt provider-max-retries delay-sec ra-sec)
                     (sleep delay-sec)
                     (loop (+ attempt 1) api-key)
                   ) ;let*

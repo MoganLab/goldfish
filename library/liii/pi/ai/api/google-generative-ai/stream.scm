@@ -197,6 +197,21 @@
       ) ;pi-log-http-error!
     ) ;define
 
+    (define (%retry-stream-request resp status attempt max-retries base-delay-ms
+              max-agent-delay-ms
+            ) ;%retry-stream-request
+      (let* ((ra-raw (pi-extract-retry-after resp))
+             (ra-sec (pi-parse-retry-after ra-raw))
+             (delay-sec (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms ra-sec)
+             ) ;delay-sec
+             (retry-status (if (%resp-field resp 'timeout) (%resp-field resp 'reason) status)
+             ) ;retry-status
+            ) ;
+        (pi-log-retry retry-status attempt max-retries delay-sec ra-sec)
+        (sleep delay-sec)
+      ) ;let*
+    ) ;define
+
     (define* (gemini-request-stream config
                messages
                (system-instruction #f)
@@ -285,22 +300,16 @@
                      ) ;if
                    ) ;let
                   ) ;
-                  ((%resp-field resp 'timeout)
-                   (%retry-exhausted-result stream-state status resp provider err-body model-id)
-                  ) ;
                   ((and (not idle-timed-out?)
                      (gemini-is-retriable-error? status err-body provider)
                    ) ;and
                    (if (<= attempt provider-max-retries)
-                     (let* ((ra-raw (pi-extract-retry-after resp))
-                            (ra-sec (pi-parse-retry-after ra-raw))
-                            (delay-sec (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms ra-sec)
-                            ) ;delay-sec
-                           ) ;
-                       (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
-                       (sleep delay-sec)
+                     (begin
+                       (%retry-stream-request resp status attempt
+                         provider-max-retries base-delay-ms max-agent-delay-ms
+                       ) ;%retry-stream-request
                        (loop (+ attempt 1) api-key)
-                     ) ;let*
+                     ) ;begin
                      (%retry-exhausted-result stream-state status resp provider err-body model-id)
                    ) ;if
                   ) ;

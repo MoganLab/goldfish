@@ -217,8 +217,14 @@
                         ""
                       ) ;if
              ) ;ra-part
-             (msg (string-append "[pi retry] HTTP "
-                    (number->string status)
+             (status-prefix
+               (cond ((number? status) (string-append "HTTP " (number->string status)))
+                     ((string? status) status)
+                     (else (object->string status))
+               ) ;cond
+             ) ;status-prefix
+             (msg (string-append "[pi retry] "
+                    status-prefix
                     ", attempt "
                     (number->string attempt)
                     "/"

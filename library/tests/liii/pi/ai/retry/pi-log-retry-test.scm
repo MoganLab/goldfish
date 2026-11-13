@@ -81,4 +81,15 @@
   (set-pi-retry-logger! #f)
 ) ;let
 
+;; 6. 请求超时重试日志（携带秒数）
+(let ((p (open-output-string)))
+  (pi-log-retry "Request timed out after 30s" 1 3 2.0 #f p)
+  (let ((out (get-output-string p)))
+    (check-true (string-contains out
+                  "[pi retry] Request timed out after 30s, attempt 1/3, waiting 2.0s"
+                ) ;string-contains
+    ) ;check-true
+  ) ;let
+) ;let
+
 (check-report)

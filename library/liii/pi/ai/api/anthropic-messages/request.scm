@@ -202,54 +202,48 @@
                 ) ;list
               ) ;pi-log-http-error!
             ) ;when
-            (cond ((%resp-field resp 'timeout)
-                   (%make-retry-error status
-                     attempt
-                     body-str
-                     provider
-                     model-id
-                     (%resp-field resp 'reason)
-                   ) ;%make-retry-error
-                  ) ;
-                  ((anthropic-is-retriable-error? status body-str provider)
-                   (if (<= attempt provider-max-retries)
-                     (let* ((ra-raw (pi-extract-retry-after resp))
-                            (ra-sec (pi-parse-retry-after ra-raw))
-                            (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
-                           ) ;
-                       (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
-                       (sleep delay-sec)
-                       (loop (+ attempt 1))
-                     ) ;let*
-                     (%make-retry-error status
-                       attempt
-                       body-str
-                       provider
-                       model-id
-                       (%resp-field resp 'reason)
-                     ) ;%make-retry-error
-                   ) ;if
-                  ) ;
-                  (else
-                    (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
-                           (limit (pi-usage-limit-error? status body-str provider))
-                          ) ;
-                      (if limit
-                        (pi-assistant-message (list (pi-text-block ""))
-                          :stop-reason "error"
-                          :usage       (anthropic-map-usage '())
-                          :error-message
-                          (pi-usage-limit-error-message limit provider)
-                          :provider provider
-                          :model    model-id
-                          :api      "anthropic-messages"
-                        ) ;pi-assistant-message
-                        (anthropic-parse-response parsed-json status provider
-                          model-id "anthropic-messages"
-                        ) ;anthropic-parse-response
-                      ) ;if
-                    ) ;let*
-                  ) ;else
+            (cond
+             ((anthropic-is-retriable-error? status body-str provider)
+              (if (<= attempt provider-max-retries)
+                (let* ((ra-raw (pi-extract-retry-after resp))
+                       (ra-sec (pi-parse-retry-after ra-raw))
+                       (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                       (retry-status (if (%resp-field resp 'timeout) (%resp-field resp 'reason) status)
+                       ) ;retry-status
+                      ) ;
+                  (pi-log-retry retry-status attempt provider-max-retries delay-sec ra-sec)
+                  (sleep delay-sec)
+                  (loop (+ attempt 1))
+                ) ;let*
+                (%make-retry-error status
+                  attempt
+                  body-str
+                  provider
+                  model-id
+                  (%resp-field resp 'reason)
+                ) ;%make-retry-error
+              ) ;if
+             ) ;
+             (else
+               (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
+                      (limit (pi-usage-limit-error? status body-str provider))
+                     ) ;
+                 (if limit
+                   (pi-assistant-message (list (pi-text-block ""))
+                     :stop-reason "error"
+                     :usage       (anthropic-map-usage '())
+                     :error-message
+                     (pi-usage-limit-error-message limit provider)
+                     :provider provider
+                     :model    model-id
+                     :api      "anthropic-messages"
+                   ) ;pi-assistant-message
+                   (anthropic-parse-response parsed-json status provider
+                     model-id "anthropic-messages"
+                   ) ;anthropic-parse-response
+                 ) ;if
+               ) ;let*
+             ) ;else
             ) ;cond
           ) ;let*
         ) ;let

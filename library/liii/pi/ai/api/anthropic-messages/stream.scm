@@ -306,16 +306,18 @@
                    (%finalize-aborted-stream stream-state provider model-id)
                   ) ;
                   (idle-timed-out? (%make-idle-timeout-error eff-idle provider model-id))
-                  ((%resp-field resp 'timeout)
-                   (%make-stream-error status resp err-acc provider model-id)
-                  ) ;
                   ((anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
                    (if (<= attempt provider-r)
                      (let* ((ra-raw (pi-extract-retry-after resp))
                             (ra-sec (pi-parse-retry-after ra-raw))
                             (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                            (retry-status (if (%resp-field resp 'timeout)
+                                            (%resp-field resp 'reason)
+                                            status
+                                          ) ;if
+                            ) ;retry-status
                            ) ;
-                       (pi-log-retry status attempt provider-r delay-sec ra-sec)
+                       (pi-log-retry retry-status attempt provider-r delay-sec ra-sec)
                        (sleep delay-sec)
                        (loop (+ attempt 1))
                      ) ;let*

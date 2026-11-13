@@ -145,8 +145,33 @@
   (check-false (file-exists? (path->string (resolve-alarm-log-path TMP-DIR))))
 ) ;let
 
+;; 2b. 超时重试机制：底层将超时与 429/0 一同重试，自愈成功则探活可用（#t），不记录 FAIL
+(let ((simulated-attempts 0))
+  (reset-log!)
+  (check-true
+    (pi-probe-node NODE
+      2000
+      TMP-DIR
+      (lambda (provider config msgs sys-prompt tools timeout retry)
+        (let loop ((attempt 1))
+          (set! simulated-attempts attempt)
+          (if (< attempt 3)
+            (loop (+ attempt 1))
+            (pi-assistant-message (list (pi-text-block "pong\n")) "stop")
+          ) ;if
+        ) ;let
+      ) ;lambda
+    ) ;pi-probe-node
+  ) ;check-true
+  (check simulated-attempts => 3)
+  (check-false (file-exists? (path->string (resolve-alarm-log-path TMP-DIR))))
+) ;let
+
 ;; 3. 429 达到 3 次重试上限仍未恢复时，判定为不可用（#f），并记录 429 FAIL 日志
 (check-failure "HTTP 429 after 3 attempts: rate limit exceeded" "429" "rate limit")
+
+;; 3b. 超时达到重试上限仍未恢复时，判定为不可用（#f），并记录 timeout FAIL 日志
+(check-failure "Request timed out after 8s" "timeout" "Request timed out after 8s")
 
 ;; 4. 显式传入 opt-retry 时，能正确透传覆盖（如显式禁用重试）
 (let ((captured-retry 'unset))

@@ -290,9 +290,6 @@
                      (%finalize-aborted-stream stream-state provider model-id)
                     ) ;
                     (idle-timed-out? (%make-idle-timeout-error eff-idle provider model-id))
-                    ((%resp-field resp 'timeout)
-                     (%make-stream-error status resp err-acc provider model-id)
-                    ) ;
                     ;; 额度耗尽（5 小时/周额度）属于账户级限额，换 key 也无济于事，
                     ;; 直接给出可读提示，不再重试。
                     ((and (pi-usage-limit-error? status (%stream-error-body resp err-acc) provider)
@@ -313,8 +310,13 @@
                        (let* ((ra-raw (pi-extract-retry-after resp))
                               (ra-sec (pi-parse-retry-after ra-raw))
                               (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                              (retry-status (if (%resp-field resp 'timeout)
+                                              (%resp-field resp 'reason)
+                                              status
+                                            ) ;if
+                              ) ;retry-status
                              ) ;
-                         (pi-log-retry status attempt provider-r delay-sec ra-sec)
+                         (pi-log-retry retry-status attempt provider-r delay-sec ra-sec)
                          (sleep delay-sec)
                          (loop (+ attempt 1) api-key)
                        ) ;let*
