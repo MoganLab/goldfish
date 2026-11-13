@@ -2239,6 +2239,15 @@ static void internal_slot_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port
 
 static void let_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_write_t use_write, shared_info_t *ci)
 {
+  if ((sc->bignum_enabled) && (sc->bignum_type_symbol) && (sc->bignum_write_fn) &&
+      (is_not_slot_end(let_slots(obj))) && (slot_value(let_slots(obj)) == sc->bignum_type_symbol))
+    {
+      s7_pointer str = s7_apply_function(sc, sc->bignum_write_fn, set_plist_1(sc, obj));
+      if ((is_string(str)) && (string_length(str) > 0))
+        port_write_string(port)(sc, string_value(str), string_length(str), port);
+      return;
+    }
+
   /* if outer let points to (say) method list, the object needs to specialize object->string itself */
   if ((!sc->short_print) && (has_active_methods(sc, obj))) /* short_print 14-Dec-24 from stacktrace (see below) */
     {

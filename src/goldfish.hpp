@@ -746,7 +746,7 @@ display_help () {
   cout << "  FILE               Load and evaluate Scheme code from FILE" << endl;
   cout << endl;
   cout << "Options:" << endl;
-  cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7" << endl;
+  cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7 (append +bignum, e.g. liii+bignum)" << endl;
   cout << "  -I DIR             Prepend DIR to library search path" << endl;
   cout << "  -A DIR             Append DIR to library search path" << endl;
   cout << "  -e CODE            Alias for eval CODE" << endl;
@@ -1325,27 +1325,47 @@ init_goldfish_scheme (const char* gf_lib) {
 
 void
 customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_path) {
-  if (mode != "s7") {
+  bool         enable_bignum= false;
+  string       base_mode    = mode;
+  const string bignum_suffix= "+bignum";
+  if (base_mode.size () > bignum_suffix.size () &&
+      base_mode.compare (base_mode.size () - bignum_suffix.size (), bignum_suffix.size (), bignum_suffix) == 0) {
+    enable_bignum= true;
+    base_mode.resize (base_mode.size () - bignum_suffix.size ());
+  }
+
+  if (base_mode == "s7" && enable_bignum) {
+    cerr << "s7 mode does not support +bignum" << endl;
+    exit (-1);
+  }
+
+  s7_set_bignum_enabled (sc, enable_bignum);
+
+  if (base_mode != "s7") {
     s7_load (sc, boot_file_path);
   }
 
-  if (mode == "default" || mode == "liii") {
+  if (base_mode == "default" || base_mode == "liii") {
     s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii lang))");
   }
-  else if (mode == "scheme") {
+  else if (base_mode == "scheme") {
     s7_eval_c_string (sc, "(import (liii base) (liii error))");
   }
-  else if (mode == "sicp") {
+  else if (base_mode == "sicp") {
     s7_eval_c_string (sc, "(import (scheme base) (srfi sicp))");
   }
-  else if (mode == "r7rs") {
+  else if (base_mode == "r7rs") {
     s7_eval_c_string (sc, "(import (scheme base))");
   }
-  else if (mode == "s7") {
+  else if (base_mode == "s7") {
   }
   else {
     cerr << "No such mode: " << mode << endl;
     exit (-1);
+  }
+
+  if (enable_bignum) {
+    s7_eval_c_string (sc, "(import (liii bignum))");
   }
 }
 
