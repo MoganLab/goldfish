@@ -96,3 +96,17 @@
 (define native:real-part real-part)
 
 (define native:imag-part imag-part)
+
+(define native:exact-integer-sqrt exact-integer-sqrt)
+
+(define native:sqrt sqrt)
+
+(define native:magnitude magnitude)
+
+(define native:angle angle)
+
+(define native:finite? finite?)
+
+(define native:infinite? infinite?)
+
+(define native:nan? nan?)

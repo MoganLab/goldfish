@@ -135,3 +135,68 @@
 (check "mul-complex" (* 1+2i 3-4i))                                   ; [一致] 11+2i
 (check "div-complex" (/ 1+2i 1-2i))                                   ; [一致] -3/5+4/5i
 (check "exact?-complex" (exact? 1+2i))                                ; [一致] #t
+
+;; 11. <bigrat> / <bigcomplex> 进阶边界
+(check "floor-bigrat-pos" (floor 100000000000000000000/3))            ; [一致] 33333333333333333333
+(check "floor-bigrat-neg" (floor -100000000000000000000/3))           ; [一致] -33333333333333333334
+(check "ceiling-bigrat-pos" (ceiling 100000000000000000000/3))        ; [一致] 33333333333333333334
+(check "ceiling-bigrat-neg" (ceiling -100000000000000000000/3))       ; [一致] -33333333333333333333
+(check "truncate-bigrat-neg" (truncate -100000000000000000000/3))     ; [一致] -33333333333333333333
+(check "round-bigrat-half" (round 200000000000000000005/2))           ; [一致] 100000000000000000002
+(check "numerator-bigrat" (numerator 100000000000000000000/3))        ; [一致] 100000000000000000000
+(check "denominator-bigrat" (denominator 100000000000000000000/3))    ; [一致] 3
+(check "inexact-bigrat-large" (inexact (/ (+ (expt 10 400) 1) (expt 10 400)))) ; [一致] 1.0
+(check "expt-bigrat-neg" (expt (/ 100000000000000000000 3) -2))       ; [一致] 9/10000000000000000000000000000000000000000
+(check "eq-bigrat-expt" (= (/ 1 (expt 10 20)) (expt 10 -20)))         ; [一致] #t
+(check "lt-bigrat" (< 1/100000000000000000000 1/99999999999999999999)) ; [一致] #t
+(check "equal-big" (equal? (+ (expt 10 20) 1) (+ (expt 10 20) 1)))    ; [一致] #t
+(check "equal-bigrat" (equal? (/ (expt 10 20) 3) 100000000000000000000/3)) ; [一致] #t
+(check "equal-bigcomplex" (equal? (+ (expt 10 20) 1+2i) 100000000000000000001+2i)) ; [一致] #t
+(check "str->num-bigrat" (string->number "100000000000000000000/3"))  ; [一致] 100000000000000000000/3
+(check "str->num-bigcomplex" (string->number "100000000000000000001+2i")) ; [一致] 100000000000000000001+2i
+
+;; 12. 极端边界与跨类型组合
+(check "eq-1-arg" (= 100000000000000000000))                          ; [一致] #t
+(check "lt-1-arg" (< 100000000000000000000))                          ; [一致] #t
+(check "lt-chain" (< 1/100000000000000000000 1/2 100000000000000000000)) ; [一致] #t
+(check "le-nan" (<= 100000000000000000000 +nan.0))                    ; [一致] #f
+(check "ge-nan" (>= 100000000000000000000 +nan.0))                    ; [一致] #f
+(check "neg-bigrat" (- 100000000000000000000/3))                      ; [一致] -100000000000000000000/3
+(check "recip-bigrat" (/ 100000000000000000000/3))                    ; [一致] 3/100000000000000000000
+(check "add-cancel-bigrat" (+ 100000000000000000000/3 -100000000000000000000/3)) ; [一致] 0
+(check "mul-bigrat-0" (* 100000000000000000000/3 0))                  ; [一致] 0
+(check "mul-bigrat-0.0" (* 100000000000000000000/3 0.0))              ; [一致] 0.0
+(check "div-complex-self" (/ 1+2i 1+2i))                              ; [一致] 1
+(check "sub-complex-self" (- 1+2i 1+2i))                              ; [一致] 0
+(check "add-rat-complex" (+ 1/2+3/4i 1/2-3/4i))                       ; [一致] 1
+(check "add-bigrat-complex" (+ 100000000000000000000/3 1/2+1/3i))     ; [一致] 200000000000000000003/6+1/3i
+(check "expt-complex-0" (expt 1+2i 0))                                ; [一致] 1
+(check "expt-complex-3" (expt 1+2i 3))                                ; [一致] -11-2i
+(check "expt-complex--2" (expt 1+2i -2))                              ; [一致] -3/25-4/25i
+(check "expt-0-neg-big" (expt 0 -100000000000000000000))              ; [一致] ERR
+(check "eqv-big-float" (eqv? 100000000000000000000 1e20))             ; [一致] #f
+(check "eqv-bigrat" (eqv? 100000000000000000000/3 100000000000000000000/3)) ; [一致] #t
+(check "int?-bigrat" (integer? 100000000000000000000/3))              ; [一致] #f
+(check "rat?-bigrat" (rational? 100000000000000000000/3))             ; [一致] #t
+(check "real?-complex" (real? 1+2i))                                  ; [一致] #f
+(check "complex?-bigrat" (complex? 100000000000000000000/3))          ; [一致] #t
+(check "zero?-complex" (zero? 1+2i))                                  ; [一致] #f
+(check "zero?-bigrat" (zero? 100000000000000000000/3))                ; [一致] #f
+(check "str->num-#b-big" (string->number "#b1010101010101010101010101010101010101010101010101010101010101010101010")) ; [一致] 787061080478274202282
+(check "str->num-#o-big" (string->number "#o7777777777777777777777777777777")) ; [一致] 9903520314283042199192993791
+(check "str->num-#i-rat" (string->number "#i100000000000000000000/3")) ; [一致(显示格式)] gf: 33333333333333330000.0 | scheme: 3.333333333333333e19
+(check "str->num-rat-complex" (string->number "1/2+3/4i"))            ; [一致] 1/2+3/4i
+(check "str->num--i" (string->number "-i"))                           ; [一致(显示格式)] gf: -i | scheme: 0-1i
+(check "str->num-+i" (string->number "+i"))                           ; [一致(显示格式)] gf: +i | scheme: 0+1i
+(check "num->str-bigrat" (number->string 100000000000000000000/3))    ; [一致] "100000000000000000000/3"
+(check "num->str-bigcomplex" (number->string 100000000000000000001+2i)) ; [一致] "100000000000000000001+2i"
+(check "exact--1e30" (exact -1e30))                                   ; [一致] -1000000000000000019884624838656
+(check "inexact-tiny-bigrat" (inexact 1/10000000000000000000000000000000000000000)) ; [一致] 1e-40
+(check "inexact-huge-bigrat" (inexact (/ (expt 10 400) 1/2)))         ; [一致] +inf.0
+(check "max-mixed" (max 100000000000000000000 100000000000000000000/3 100000000000000000001)) ; [一致] 100000000000000000001
+(check "min-mixed" (min 100000000000000000000 100000000000000000000/3 -100000000000000000001)) ; [一致] -100000000000000000001
+(check "sqrt-big-exact" (sqrt 100000000000000000000))                 ; [一致] 10000000000
+(check "sqrt-bigrat-exact" (sqrt 100000000000000000000/9))            ; [一致] 10000000000/3
+(check "magnitude-3+4i" (magnitude 3+4i))                             ; [一致] 5
+(check "magnitude-big" (magnitude -100000000000000000000))            ; [一致] 100000000000000000000
+(check "angle-1+2i" (angle 1+2i))                                     ; [一致] 1.1071487177940904

@@ -20,6 +20,7 @@
 (define-library (liii bignum)
   (import (scheme base)
     (scheme complex)
+    (scheme inexact)
     (liii bigint)
     (liii bigrat)
     (liii bigcomplex)
@@ -31,11 +32,14 @@
     exact->inexact inexact->exact number->string string->number eqv? = < > <= >=
     max min + - * / abs quotient remainder modulo gcd lcm expt floor ceiling
     truncate round numerator denominator make-rectangular real-part imag-part
+    square exact-integer-sqrt floor/ floor-quotient floor-remainder truncate/
+    truncate-quotient truncate-remainder sqrt magnitude angle finite? infinite?
+    nan?
   ) ;export
 
   (include "bignum/native.scm" "bignum/convert.scm" "bignum/rat.scm"
     "bignum/complex.scm" "bignum/arithmetic.scm" "bignum/integer.scm"
-    "bignum/parse.scm"
+    "bignum/parse.scm" "bignum/extra.scm"
   ) ;include
 
   (begin
@@ -252,23 +256,36 @@
       ) ;cond
     ) ;define
 
-    (define (bn:make-cmp-op cmp2)
-      (lambda (a b . rest)
-        (let loop
-          ((x a) (y b) (r rest))
-          (if (cmp2 x y) (if (null? r) #t (loop y (car r) (cdr r))) #f)
-        ) ;let
+    (define (bn:make-cmp-op cmp2 real-only?)
+      (lambda (a . rest)
+        (if (null? rest)
+          (begin
+            (if real-only?
+              (unless (bn:real? a)
+                (native:< a 0)
+              ) ;unless
+              (unless (bn:number? a)
+                (native:= a 0)
+              ) ;unless
+            ) ;if
+            #t
+          ) ;begin
+          (let loop
+            ((x a) (y (car rest)) (r (cdr rest)))
+            (if (cmp2 x y) (if (null? r) #t (loop y (car r) (cdr r))) #f)
+          ) ;let
+        ) ;if
       ) ;lambda
     ) ;define
 
-    (define bn:= (bn:make-cmp-op bn:num-eq-2))
-    (define bn:< (bn:make-cmp-op bn:num-lt-2))
-    (define bn:> (bn:make-cmp-op (lambda (a b) (bn:num-lt-2 b a))))
+    (define bn:= (bn:make-cmp-op bn:num-eq-2 #f))
+    (define bn:< (bn:make-cmp-op bn:num-lt-2 #t))
+    (define bn:> (bn:make-cmp-op (lambda (a b) (bn:num-lt-2 b a)) #t))
     (define bn:<=
-      (bn:make-cmp-op (lambda (a b) (or (bn:num-lt-2 a b) (bn:num-eq-2 a b))))
+      (bn:make-cmp-op (lambda (a b) (or (bn:num-lt-2 a b) (bn:num-eq-2 a b))) #t)
     ) ;define
     (define bn:>=
-      (bn:make-cmp-op (lambda (a b) (or (bn:num-lt-2 b a) (bn:num-eq-2 a b))))
+      (bn:make-cmp-op (lambda (a b) (or (bn:num-lt-2 b a) (bn:num-eq-2 a b))) #t)
     ) ;define
 
     (define (bn:max first . rest)
@@ -343,6 +360,20 @@
     (define make-rectangular bn:make-complex)
     (define real-part bn:c-real)
     (define imag-part bn:c-imag)
+    (define square bn:square)
+    (define exact-integer-sqrt bn:exact-integer-sqrt)
+    (define floor/ bn:floor/)
+    (define floor-quotient bn:floor-quotient)
+    (define floor-remainder bn:floor-remainder)
+    (define truncate/ bn:truncate/)
+    (define truncate-quotient bn:truncate-quotient)
+    (define truncate-remainder bn:truncate-remainder)
+    (define sqrt bn:sqrt)
+    (define magnitude bn:magnitude)
+    (define angle bn:angle)
+    (define finite? bn:finite?)
+    (define infinite? bn:infinite?)
+    (define nan? bn:nan?)
 
     (define (bn:write-bignum x)
       (cond ((bigrat? x) (bigrat->string x))

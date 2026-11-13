@@ -25,5 +25,8 @@
 (check (expt -1 (string->number "100000000000000000000")) => 1)
 (check (expt -1 (string->number "100000000000000000001")) => -1)
 (check (expt -1 (string->number "-100000000000000000001")) => -1)
+(check (expt (make-rectangular 1 2) 0) => 1)
+(check (number->string (expt (make-rectangular 1 2) 3)) => "-11-2i")
+(check (number->string (expt (make-rectangular 1 2) -2)) => "-3/25-4/25i")
 
 (check-report)
