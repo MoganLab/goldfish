@@ -17,7 +17,7 @@
   ) ;export
 
   (include "bignum/native.scm" "bignum/convert.scm" "bignum/arithmetic.scm"
-    "bignum/parse.scm"
+    "bignum/integer.scm" "bignum/parse.scm"
   ) ;include
 
   (begin
