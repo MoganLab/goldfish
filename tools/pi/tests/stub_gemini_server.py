@@ -345,6 +345,67 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/malformed-response-always" in path:
+            # 始终返回 HTTP 200 + finishReason=MALFORMED_RESPONSE（SSE/JSON 同步支持）
+            resp = {
+                "candidates": [
+                    {
+                        "content": {"role": "model", "parts": []},
+                        "finishReason": "MALFORMED_RESPONSE"
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 5,
+                    "candidatesTokenCount": 0,
+                    "totalTokenCount": 5
+                }
+            }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if "/malformed-response-then-ok" in path:
+            # 首次返回 HTTP 200 + finishReason=MALFORMED_RESPONSE，之后正常响应
+            server = self.server
+            server.count_malformed = getattr(server, "count_malformed", 0) + 1
+            if server.count_malformed == 1:
+                resp = {
+                    "candidates": [
+                        {
+                            "content": {"role": "model", "parts": []},
+                            "finishReason": "MALFORMED_RESPONSE"
+                        }
+                    ],
+                    "usageMetadata": {
+                        "promptTokenCount": 5,
+                        "candidatesTokenCount": 0,
+                        "totalTokenCount": 5
+                    }
+                }
+                if "alt=sse" in path or ":streamGenerateContent" in path:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.end_headers()
+                    self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(resp).encode("utf-8"))
+                return
+
         if "/400" in path:
             err_resp = {
                 "error": {

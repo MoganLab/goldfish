@@ -9,14 +9,34 @@
     (scheme char)
     (liii string)
     (liii pi ai message)
+    (liii pi ai log)
     (liii pi ai api google-generative-ai core)
     (liii pi ai api google-generative-ai usage)
     (liii pi ai api google-generative-ai stream-parse)
     (liii pi ai api google-generative-ai stream-state)
     (liii pi ai api google-generative-ai thinking)
   ) ;import
-  (export gemini-finalize-stream-success gemini-classify-stream-result)
+  (export gemini-finalize-stream-success
+    gemini-classify-stream-result
+    gemini-log-finish-reason-error!
+  ) ;export
   (begin
+
+    (define (gemini-log-finish-reason-error! finish-reason body provider
+              model-id url attempt max-attempts
+            ) ;gemini-log-finish-reason-error!
+      (pi-log-http-error! 200
+        body
+        (list (cons 'provider provider)
+          (cons 'model model-id)
+          (cons 'url (string-append "POST " url))
+          (cons 'attempt attempt)
+          (cons 'max-attempts max-attempts)
+          (cons 'retryable (gemini-retriable-finish-reason? finish-reason))
+          (cons 'reason finish-reason)
+        ) ;list
+      ) ;pi-log-http-error!
+    ) ;define
 
     (define (%resp-field resp key)
       (cond ((procedure? resp) (resp key))

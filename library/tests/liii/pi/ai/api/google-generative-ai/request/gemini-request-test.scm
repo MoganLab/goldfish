@@ -33,7 +33,9 @@
   (liii string)
   (liii path)
   (liii subprocess)
+  (liii tempfile)
   (liii pi ai event)
+  (liii pi ai log)
   (liii pi ai api google-generative-ai request)
 ) ;import
 
@@ -265,6 +267,118 @@
       (check (cdr (assoc 'stopReason resp-retry-f)) => "error")
       (check-true (string-contains? (cdr (assoc 'errorMessage resp-retry-f)) "Too Many Requests")
       ) ;check-true
+    ) ;let*
+
+    ;; HTTP 200 + finishReason=MALFORMED_RESPONSE：重试后恢复成功
+    (let* ((cfg-malformed
+             (list (cons 'provider "google")
+               (cons 'api-key "test-key-stub-123")
+               (cons 'model-id "malformed-response-then-ok")
+               (cons 'model-meta (list (cons 'base-url base-url)))
+               (cons 'proxy-url #f)
+               (cons 'tools '())
+               (cons 'settings '())
+             ) ;list
+           ) ;cfg-malformed
+           (retry-opt-m '((enabled . #t)
+                         (max-retries . 3)
+                         (base-delay-ms . 20)
+                         (max-agent-delay-ms . 100))
+           ) ;retry-opt-m
+           (resp-m
+             (gemini-request cfg-malformed
+               (list '((role . "user") (content . "retry malformed")))
+               #f
+               '()
+               10
+               retry-opt-m
+             ) ;gemini-request
+           ) ;resp-m
+          ) ;
+      (check (cdr (assoc 'stopReason resp-m)) => "stop")
+      (check
+        (cdr
+          (assoc 'text (car (cdr (assoc 'content resp-m))))
+        ) ;cdr
+        =>
+        "Hello from stub!"
+      ) ;check
+    ) ;let*
+
+    ;; HTTP 200 + finishReason=MALFORMED_RESPONSE 持续失败：重试耗尽后按 error 结算
+    (let* ((cfg-m-always
+             (list (cons 'provider "google")
+               (cons 'api-key "test-key-stub-123")
+               (cons 'model-id "malformed-response-always")
+               (cons 'model-meta (list (cons 'base-url base-url)))
+               (cons 'proxy-url #f)
+               (cons 'tools '())
+               (cons 'settings '())
+             ) ;list
+           ) ;cfg-m-always
+           (retry-opt-a '((enabled . #t)
+                         (max-retries . 2)
+                         (base-delay-ms . 10)
+                         (max-agent-delay-ms . 50))
+           ) ;retry-opt-a
+           (resp-a
+             (gemini-request cfg-m-always
+               (list '((role . "user") (content . "always malformed")))
+               #f
+               '()
+               10
+               retry-opt-a
+             ) ;gemini-request
+           ) ;resp-a
+          ) ;
+      (check (cdr (assoc 'stopReason resp-a)) => "error")
+      (check (cdr (assoc 'errorMessage resp-a)) => "MALFORMED_RESPONSE")
+    ) ;let*
+
+    ;; 日志落盘：非流式 HTTP 200 但 finishReason 映射为 error 时同样写入 pi 日志
+    (let* ((log-base (make-temp-dir "gf-pi-req-log-malformed-" ""))
+           (log-dir (path-join (path log-base) "logs"))
+          ) ;
+      (pi-log-reset!)
+      (pi-log-init! log-dir)
+      (gemini-request
+        (list (cons 'provider "google")
+          (cons 'api-key "test-key-stub-123")
+          (cons 'model-id "safety")
+          (cons 'model-meta (list (cons 'base-url base-url)))
+          (cons 'proxy-url #f)
+          (cons 'tools '())
+          (cons 'settings '((retry (enabled . #f))))
+        ) ;list
+        (list '((role . "user") (content . "unsafe")))
+        #f
+        '()
+        10
+      ) ;gemini-request
+      (gemini-request
+        (list (cons 'provider "google")
+          (cons 'api-key "test-key-stub-123")
+          (cons 'model-id "malformed-response-always")
+          (cons 'model-meta (list (cons 'base-url base-url)))
+          (cons 'proxy-url #f)
+          (cons 'tools '())
+          (cons 'settings '((retry (enabled . #f))))
+        ) ;list
+        (list '((role . "user") (content . "always malformed")))
+        #f
+        '()
+        10
+      ) ;gemini-request
+      (let ((log-text (path-read-text (pi-log-file-path))))
+        (check-true (string-contains? log-text "status=200"))
+        (check-true (string-contains? log-text "reason=SAFETY"))
+        (check-true (string-contains? log-text "reason=MALFORMED_RESPONSE"))
+        (check-true (string-contains? log-text "finishReason"))
+      ) ;let
+      (pi-log-reset!)
+      (path-unlink (pi-log-file-path))
+      (path-rmdir log-dir)
+      (path-rmdir log-base)
     ) ;let*
   ) ;let*
 

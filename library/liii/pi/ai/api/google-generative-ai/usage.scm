@@ -5,8 +5,11 @@
 ;;
 
 (define-library (liii pi ai api google-generative-ai usage)
-  (import (scheme base))
-  (export gemini-map-finish-reason gemini-map-usage)
+  (import (scheme base) (scheme char) (liii string))
+  (export gemini-map-finish-reason
+    gemini-retriable-finish-reason?
+    gemini-map-usage
+  ) ;export
   (begin
 
     (define (gemini-map-finish-reason finish-reason has-function-call?)
@@ -18,6 +21,16 @@
             ) ;
             (else "error")
       ) ;cond
+    ) ;define
+
+    ;; HTTP 200 但 finishReason 表示生成失败时，是否值得原样重发请求。
+    ;; MALFORMED_RESPONSE 是服务端生成中途的偶发内部校验失败，重发通常即可
+    ;; 成功（实测同一会话手动继续即恢复），因此仅将这一项纳入重试；
+    ;; SAFETY/RECITATION 等属于内容判定类终态，重发同样结果，不重试。
+    (define (gemini-retriable-finish-reason? finish-reason)
+      (and (string? finish-reason)
+        (string=? (string-upcase finish-reason) "MALFORMED_RESPONSE")
+      ) ;and
     ) ;define
 
     (define (%usage-field usage-meta key sym-key)
