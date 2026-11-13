@@ -56,19 +56,19 @@
     ],
     "unit-test": [
       {
-        "path": "bignum/tests/liii/bigint/",
+        "path": "goldfish/tests/liii/bigint/",
         "reason": "bigint 聚合库单元测试"
       },
       {
-        "path": "bignum/tests/liii/decimal/",
+        "path": "goldfish/tests/liii/decimal/",
         "reason": "decimal 聚合库单元测试"
       },
       {
-        "path": "bignum/liii/bigint/",
+        "path": "goldfish/liii/bigint/",
         "reason": "bigint 聚合子模块由顶层库统一承载单测"
       },
       {
-        "path": "bignum/liii/decimal/",
+        "path": "goldfish/liii/decimal/",
         "reason": "decimal 聚合子模块由顶层库统一承载单测"
       }
     ],
