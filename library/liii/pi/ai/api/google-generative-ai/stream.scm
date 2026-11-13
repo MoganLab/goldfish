@@ -197,6 +197,21 @@
       ) ;pi-log-http-error!
     ) ;define
 
+    ;; HTTP 200 但 finishReason 映射为 error（SAFETY/MALFORMED_RESPONSE 等）：
+    ;; 同样落盘，否则这类失败在日志里毫无痕迹，事后无法排障
+    (define (%log-finish-reason-error stream-state body provider config attempt
+              max-attempts url
+            ) ;%log-finish-reason-error
+      (gemini-log-finish-reason-error! (gemini-stream-state-finish-reason stream-state)
+        body
+        provider
+        (cdr (or (%safe-assoc 'model-id config) '(#f . #f)))
+        url
+        attempt
+        max-attempts
+      ) ;gemini-log-finish-reason-error!
+    ) ;define
+
     (define (%retry-stream-request resp status attempt max-retries base-delay-ms
               max-agent-delay-ms
             ) ;%retry-stream-request
@@ -272,21 +287,57 @@
                      (status (or (%resp-field resp 'status-code) 0))
                      (err-body (vector-ref error-body-acc 0))
                     ) ;
-                ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
+                ;; 异常请求（非 200 / 空闲超时 / 200 但 finishReason 映射为 error）
+                ;; 连同原始响应落盘，便于事后排障
                 (when
                   (and (not aborted?)
                     (not (pi-aborted?))
-                    (or idle-timed-out? (not (= status 200)))
+                    (or idle-timed-out?
+                      (not (= status 200))
+                      (equal? (gemini-map-finish-reason (or (gemini-stream-state-finish-reason stream-state) "STOP")
+                                #f
+                              ) ;gemini-map-finish-reason
+                        "error"
+                      ) ;equal?
+                    ) ;or
                   ) ;and
-                  (%log-http-error status err-body provider config attempt
-                    provider-max-retries url
-                  ) ;%log-http-error
+                  (if (= status 200)
+                    (%log-finish-reason-error stream-state err-body provider
+                      config attempt provider-max-retries url
+                    ) ;%log-finish-reason-error
+                    (%log-http-error status err-body provider config attempt
+                      provider-max-retries url
+                    ) ;%log-http-error
+                  ) ;if
                 ) ;when
                 (cond
                   ;; 用户中止优先：不进入 key 轮换 / 重试，直接结算 aborted；
                   ;; 流尾补探测 pi-aborted? 覆盖单 chunk 交付时信号无后续检查点的场景
                   ((or aborted? (pi-aborted?))
                    (%finalize-aborted-stream stream-state provider model-id)
+                  ) ;
+                  ;; HTTP 200 但 finishReason=MALFORMED_RESPONSE：服务端生成中途
+                  ;; 偶发校验失败，重发通常即恢复；受 provider 重试上限约束
+                  ((and (= status 200)
+                     (not idle-timed-out?)
+                     (gemini-retriable-finish-reason? (gemini-stream-state-finish-reason stream-state)
+                     ) ;gemini-retriable-finish-reason?
+                   ) ;and
+                   (if (<= attempt provider-max-retries)
+                     (begin
+                       (%retry-stream-request resp
+                         (gemini-stream-state-finish-reason stream-state)
+                         attempt
+                         provider-max-retries
+                         base-delay-ms
+                         max-agent-delay-ms
+                       ) ;%retry-stream-request
+                       (loop (+ attempt 1) api-key)
+                     ) ;begin
+                     (gemini-finalize-stream-success stream-state
+                       wrapped-on-event provider model-id "google-generative-ai"
+                     ) ;gemini-finalize-stream-success
+                   ) ;if
                   ) ;
                   ((and key-rotation? (not emitted?) (or (= status 429) (= status 403)))
                    (let ((next (pi-rotate-api-key! config api-key status)))

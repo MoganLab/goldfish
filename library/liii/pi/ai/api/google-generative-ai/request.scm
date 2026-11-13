@@ -25,6 +25,7 @@
     (liii pi ai api google-generative-ai usage)
     (liii pi ai api google-generative-ai tool-call-id)
     (liii pi ai api google-generative-ai stream-parse)
+    (liii pi ai api google-generative-ai stream-result)
     (liii pi ai api google-generative-ai thinking)
   ) ;import
   (export gemini-request gemini-parse-response gemini-is-retriable-error?
@@ -63,18 +64,6 @@
       ) ;pi-assistant-message
     ) ;define
 
-    (define (%make-tool-call-block name args id ts i)
-      (let ((eff-id
-              (if (and (string? id) (not (string-null? id)))
-                id
-                (gemini-generate-tool-call-id name 0 (+ i 1))
-              ) ;if
-            ) ;eff-id
-           ) ;
-        (pi-tool-call-block eff-id name args :thought-signature ts)
-      ) ;let
-    ) ;define
-
     (define (%part->content-block part i)
       (cond
        ((assoc "text" part)
@@ -100,7 +89,15 @@
                    ) ;cond
                ) ;ts
               ) ;
-          (%make-tool-call-block name args id ts i)
+          (pi-tool-call-block
+            (if (and (string? id) (not (string-null? id)))
+              id
+              (gemini-generate-tool-call-id name 0 (+ i 1))
+            ) ;if
+            name
+            args
+            :thought-signature ts
+          ) ;pi-tool-call-block
         ) ;let*
        ) ;
        (else #f)
@@ -221,20 +218,66 @@
         ) ;lambda
         (lambda (tag . args)
           (if (eq? tag 'http-client-timeout-error)
-            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
-              (list (cons 'status-code 0)
-                (cons 'reason msg)
-                (cons 'text "")
-                (cons 'timeout #t)
-                (cons 'timeout-sec timeout)
-              ) ;list
-            ) ;let
-            (let ((err-msg (if (pair? args) (car args) "Network error")))
-              (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
-            ) ;let
+            (list (cons 'status-code 0)
+              (cons 'reason
+                (string-append "Request timed out after " (number->string timeout) "s")
+              ) ;cons
+              (cons 'text "")
+              (cons 'timeout #t)
+              (cons 'timeout-sec timeout)
+            ) ;list
+            (list (cons 'status-code 0)
+              (cons 'reason (if (pair? args) (car args) "Network error"))
+              (cons 'text "")
+            ) ;list
           ) ;if
         ) ;lambda
       ) ;catch
+    ) ;define
+
+    (define (%parse-non-stream-msg status body-str provider model-id)
+      (let ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f)))
+            (limit (pi-usage-limit-error? status body-str provider))
+           ) ;
+        (if limit
+          (%make-error-response (pi-usage-limit-error-message limit provider)
+            (gemini-map-usage '())
+            provider
+            model-id
+          ) ;%make-error-response
+          (gemini-parse-response pj status provider model-id "google-generative-ai")
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%log-request-failure! status resp body-str parsed-msg provider
+              model-id url attempt max-attempts
+            ) ;%log-request-failure!
+      (cond
+       ((not (= status 200))
+        (pi-log-http-error! status
+          body-str
+          (list (cons 'provider provider)
+            (cons 'model model-id)
+            (cons 'url (string-append "POST " url))
+            (cons 'attempt attempt)
+            (cons 'max-attempts max-attempts)
+            (cons 'retryable (gemini-is-retriable-error? status body-str provider))
+            (cons 'reason (%resp-field resp 'reason))
+          ) ;list
+        ) ;pi-log-http-error!
+       ) ;
+       ((equal? (pi-assistant-message-stop-reason parsed-msg) "error")
+        (gemini-log-finish-reason-error! (pi-assistant-message-error-message parsed-msg)
+          body-str
+          provider
+          model-id
+          url
+          attempt
+          max-attempts
+        ) ;gemini-log-finish-reason-error!
+       ) ;
+      ) ;cond
     ) ;define
 
     (define* (gemini-request config
@@ -290,21 +333,11 @@
                    (resp (%http-post-safe url req-json-str headers proxy-alist timeout))
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
+                   (parsed-msg (%parse-non-stream-msg status body-str provider model-id))
                   ) ;
-              ;; 异常请求（非 200）连同响应体原文落盘，便于事后排障
-              (when (not (= status 200))
-                (pi-log-http-error! status
-                  body-str
-                  (list (cons 'provider provider)
-                    (cons 'model model-id)
-                    (cons 'url (string-append "POST " url))
-                    (cons 'attempt attempt)
-                    (cons 'max-attempts provider-max-retries)
-                    (cons 'retryable (gemini-is-retriable-error? status body-str provider))
-                    (cons 'reason (%resp-field resp 'reason))
-                  ) ;list
-                ) ;pi-log-http-error!
-              ) ;when
+              (%log-request-failure! status resp body-str parsed-msg provider
+                model-id url attempt provider-max-retries
+              ) ;%log-request-failure!
               (cond
                ((and key-rotation? (or (= status 429) (= status 403)))
                 (let ((next (pi-rotate-api-key! config api-key status)))
@@ -316,17 +349,23 @@
                   ) ;if
                 ) ;let
                ) ;
-               ((and (gemini-is-retriable-error? status body-str provider)
-                  (<= attempt provider-max-retries)
+               ((and (<= attempt provider-max-retries)
+                  (or (gemini-is-retriable-error? status body-str provider)
+                    (and (= status 200)
+                      (equal? (pi-assistant-message-stop-reason parsed-msg) "error")
+                      (gemini-retriable-finish-reason? (pi-assistant-message-error-message parsed-msg)
+                      ) ;gemini-retriable-finish-reason?
+                    ) ;and
+                  ) ;or
                 ) ;and
-                (let* ((ra-raw (pi-extract-retry-after resp))
-                       (ra-sec (pi-parse-retry-after ra-raw))
+                (let* ((ra-sec (if (= status 200) #f (pi-parse-retry-after (pi-extract-retry-after resp)))
+                       ) ;ra-sec
                        (delay-sec (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms ra-sec)
                        ) ;delay-sec
-                       (retry-status (if (%resp-field resp 'timeout)
-                                       (%resp-field resp 'reason)
-                                       status
-                                     ) ;if
+                       (retry-status (cond ((= status 200) (pi-assistant-message-error-message parsed-msg))
+                                           ((%resp-field resp 'timeout) (%resp-field resp 'reason))
+                                           (else status)
+                                     ) ;cond
                        ) ;retry-status
                       ) ;
                   (pi-log-retry retry-status attempt provider-max-retries delay-sec ra-sec)
@@ -335,31 +374,19 @@
                 ) ;let*
                ) ;
                ((gemini-is-retriable-error? status body-str provider)
-                (let ((limit (pi-usage-limit-error? status body-str provider)))
-                  (%make-error-response (if limit
-                                          (pi-usage-limit-error-message limit provider)
-                                          (format-failed-stream-msg status resp)
-                                        ) ;if
-                    (gemini-map-usage '())
-                    provider
-                    model-id
-                  ) ;%make-error-response
-                ) ;let
+                (%make-error-response
+                  (let ((limit (pi-usage-limit-error? status body-str provider)))
+                    (if limit
+                      (pi-usage-limit-error-message limit provider)
+                      (format-failed-stream-msg status resp)
+                    ) ;if
+                  ) ;let
+                  (gemini-map-usage '())
+                  provider
+                  model-id
+                ) ;%make-error-response
                ) ;
-               (else
-                 (let* ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f)))
-                        (limit (pi-usage-limit-error? status body-str provider))
-                       ) ;
-                   (if limit
-                     (%make-error-response (pi-usage-limit-error-message limit provider)
-                       (gemini-map-usage '())
-                       provider
-                       model-id
-                     ) ;%make-error-response
-                     (gemini-parse-response pj status provider model-id "google-generative-ai")
-                   ) ;if
-                 ) ;let*
-               ) ;else
+               (else parsed-msg)
               ) ;cond
             ) ;let*
           ) ;let
