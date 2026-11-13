@@ -135,4 +135,63 @@
   (check selected => '("/sessions/new.jsonl" "/sessions/old.jsonl"))
 ) ;let
 
+;; 6. 含非法 UTF-8 字节或异常回调的坏会话不能拖垮选择器，仍可搜索、渲染与选中其他会话
+(let* ((bad-utf8 (string #\d (integer->char #x80) #\e #\b #\u #\g))
+       (bad-bytes-session
+         (info "/sessions/bad-utf8.jsonl" "bad-utf8-id" "/work/current" #f
+           (string #\h #\i (integer->char #x80))
+           "2026-10-20T08:00:03.000Z" 1 bad-utf8
+         ) ;info
+       ) ;bad-bytes-session
+       (throwing-session
+         (make-pi-session-info "/sessions/throw.jsonl" "throw-id" "/work/current" #f
+           "created" "2026-10-20T08:00:04.000Z" 1 "throw msg"
+           (lambda () (error 'value-error "corrupt session"))
+         ) ;make-pi-session-info
+       ) ;throwing-session
+       (picked #f)
+       (selector
+         (make-session-selector (list bad-bytes-session throwing-session NEW OLD)
+           '()
+           (lambda (path) (set! picked path))
+           (lambda () #f)
+         ) ;make-session-selector
+       ) ;selector
+      ) ;
+  (check-true (string-contains? (plain selector) "Named current session"))
+  (component-handle-input selector "d")
+  (check-true (pair? (session-selector-visible-sessions selector)))
+  (component-handle-input selector 'backspace)
+  (component-handle-input selector "old")
+  (check (map pi-session-info-path (session-selector-visible-sessions selector))
+    =>
+    '("/sessions/old.jsonl")
+  ) ;check
+  (component-handle-input selector 'enter)
+  (check picked => "/sessions/old.jsonl")
+) ;let
+
+;; 7. 相关度排序下会话名命中优先于正文命中
+(let* ((body-hit
+         (info "/sessions/body.jsonl" "b-id" "/work" "Other" "first"
+           "2026-10-22T08:00:00.000Z" 1 "alpha in body"
+         ) ;info
+       ) ;body-hit
+       (name-hit
+         (info "/sessions/name.jsonl" "n-id" "/work" "Alpha Session" "first"
+           "2026-10-20T08:00:00.000Z" 1 "first"
+         ) ;info
+       ) ;name-hit
+       (selector
+         (make-session-selector (list body-hit name-hit) '() (lambda (p) #f) (lambda () #f))
+       ) ;selector
+      ) ;
+  (component-handle-input selector 'ctrl-s)
+  (component-handle-input selector "alpha")
+  (check (map pi-session-info-path (session-selector-visible-sessions selector))
+    =>
+    '("/sessions/name.jsonl" "/sessions/body.jsonl")
+  ) ;check
+) ;let
+
 (check-report)

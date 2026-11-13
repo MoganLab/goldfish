@@ -23,7 +23,13 @@
 
 (define-library (liii tui fuzzy)
   (export fuzzy-match fuzzy-filter)
-  (import (scheme base) (scheme char) (liii string) (liii list) (liii sort))
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii list)
+    (liii sort)
+    (liii unicode)
+  ) ;import
   (begin
 
     (define (%word-boundary? text index)
@@ -109,8 +115,8 @@
     ) ;define
 
     (define (fuzzy-match query text)
-      (let* ((q (string-downcase query))
-             (t (string-downcase text))
+      (let* ((q (string-downcase (utf8-replace-invalid query)))
+             (t (string-downcase (utf8-replace-invalid text)))
              (primary (%match-query q t))
             ) ;
         (if primary
@@ -131,46 +137,66 @@
       (string-tokenize query (lambda (ch) (or (char-whitespace? ch) (char=? ch #\/))))
     ) ;define
 
-    (define (%match-score query text)
-      (let ((result (fuzzy-match query text)))
-        (and (cdr (assoc 'matches result)) (cdr (assoc 'score result)))
+    (define (%match-normalized q swapped t)
+      (let ((primary (%match-query q t)))
+        (if primary
+          primary
+          (and (not (string-null? swapped))
+            (let ((swapped-score (%match-query swapped t)))
+              (and swapped-score (+ swapped-score 5))
+            ) ;let
+          ) ;and
+        ) ;if
       ) ;let
     ) ;define
 
-    (define (%score-item tokens text)
-      (fold
-        (lambda (token total)
-          (and total
-            (let ((score (%match-score token text)))
-              (and score (+ total score))
-            ) ;let
-          ) ;and
-        ) ;lambda
-        0
-        tokens
-      ) ;fold
+    (define (%score-item-normalized token-pairs text)
+      (let ((t (string-downcase (utf8-replace-invalid text))))
+        (fold
+          (lambda (pair total)
+            (and total
+              (let ((score (%match-normalized (car pair) (cdr pair) t)))
+                (and score (+ total score))
+              ) ;let
+            ) ;and
+          ) ;lambda
+          0
+          token-pairs
+        ) ;fold
+      ) ;let
     ) ;define
 
-    (define (%collect-scored items tokens get-text)
+    (define (%collect-scored items token-pairs get-text)
       (filter (lambda (scored) (car scored))
         (map
-          (lambda (item) (cons (%score-item tokens (get-text item)) item))
+          (lambda (item)
+            (let ((raw (get-text item)))
+              (cons (and (string? raw) (%score-item-normalized token-pairs raw)) item)
+            ) ;let
+          ) ;lambda
           items
         ) ;map
       ) ;filter
     ) ;define
 
     (define (fuzzy-filter items query get-text)
-      (let ((tokens (%search-tokens (string-trim-both query))))
+      (let* ((safe-query (string-downcase (string-trim-both (utf8-replace-invalid query))))
+             (tokens (%search-tokens safe-query))
+            ) ;
         (if (null? tokens)
           items
-          (map cdr
-            (list-sort (lambda (a b) (< (car a) (car b)))
-              (%collect-scored items tokens get-text)
-            ) ;list-sort
-          ) ;map
+          (let ((token-pairs
+                  (map (lambda (tok) (cons tok (%swap-alphanumeric-query tok))) tokens)
+                ) ;token-pairs
+               ) ;
+            (map cdr
+              (list-sort (lambda (a b) (< (car a) (car b)))
+                (%collect-scored items token-pairs get-text)
+              ) ;list-sort
+            ) ;map
+          ) ;let
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
   ) ;begin
