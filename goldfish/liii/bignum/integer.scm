@@ -56,29 +56,13 @@
   (cond
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (if (or (bigint? a) (bigint? b))
-      (let* ((ba (bn:to-bigint a)) (bb (bn:to-bigint b)) (r (bigint-remainder ba bb)))
-        (bn:demote-bigint
-          (if (or (bigint-zero? r) (eqv? (bigint-negative? r) (bigint-negative? bb)))
-            r
-            (bigint-add r bb)
-          ) ;if
-        ) ;bn:demote-bigint
-      ) ;let*
+      (bn:demote-bigint (bigint-modulo (bn:to-bigint a) (bn:to-bigint b)))
       (native:modulo a b)
     ) ;if
    ) ;
    ((and (bn:any-int? a) (bn:any-int? b))
-    (let* ((ba (bn:any-int->bigint a))
-           (bb (bn:any-int->bigint b))
-           (r (bigint-remainder ba bb))
-          ) ;
-      (bn:int-res->inexact
-        (if (or (bigint-zero? r) (eqv? (bigint-negative? r) (bigint-negative? bb)))
-          r
-          (bigint-add r bb)
-        ) ;if
-      ) ;bn:int-res->inexact
-    ) ;let*
+    (bn:int-res->inexact (bigint-modulo (bn:any-int->bigint a) (bn:any-int->bigint b))
+    ) ;bn:int-res->inexact
    ) ;
    (else (native:modulo (if (bigint? a) (bn:bigint->inexact a) a)
            (if (bigint? b) (bn:bigint->inexact b) b)

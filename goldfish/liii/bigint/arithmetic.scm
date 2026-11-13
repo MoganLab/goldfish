@@ -168,9 +168,11 @@
         (if (bigint-zero? divisor)
           (value-error "bigint-modulo in (liii bigint arithmetic): division by zero")
           (let ((remainder (bigint-remainder a divisor)))
-            (if (or (bigint-zero? remainder) (bigint-positive? remainder))
+            (if (or (bigint-zero? remainder)
+                  (eqv? (bigint-negative? remainder) (bigint-negative? divisor))
+                ) ;or
               remainder
-              (bigint-add remainder (bigint-abs divisor))
+              (bigint-add remainder divisor)
             ) ;if
           ) ;let
         ) ;if

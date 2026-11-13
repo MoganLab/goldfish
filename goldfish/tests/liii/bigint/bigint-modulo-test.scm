@@ -1,5 +1,5 @@
 ;; bigint-modulo
-;; 计算非负模结果。
+;; 计算整数除法的模（R7RS 语义：非零结果与除数同号）。
 ;;
 ;; 语法
 ;; ----
@@ -15,7 +15,7 @@
 ;; 返回值
 ;; ----
 ;; bigint?
-;;   范围在 [0, |b|) 的结果。
+;;   与除数 b 同号的模结果。
 ;;
 ;; 错误处理
 ;; ----
@@ -33,8 +33,8 @@
 
 (check (bigint->string (bigint-modulo (b "100") (b "3"))) => "1")
 (check (bigint->string (bigint-modulo (b "-100") (b "3"))) => "2")
-(check (bigint->string (bigint-modulo (b "100") (b "-3"))) => "1")
-(check (bigint->string (bigint-modulo (b "-100") (b "-3"))) => "2")
+(check (bigint->string (bigint-modulo (b "100") (b "-3"))) => "-2")
+(check (bigint->string (bigint-modulo (b "-100") (b "-3"))) => "-1")
 
 (check-catch 'value-error (bigint-modulo (b "1") bigint-zero))
 
