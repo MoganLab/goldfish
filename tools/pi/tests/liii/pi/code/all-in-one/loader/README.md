@@ -15,9 +15,11 @@
 ```bash
 gf doc resolve-all-in-one-config-path
 gf doc all-in-one-load-config
+gf doc ensure-all-in-one-config!
 ```
 
 ## 函数分类索引
 
 - `resolve-all-in-one-config-path` - 解析 all-in-one.json 文件的完整路径
 - `all-in-one-load-config` - 加载并校验 all-in-one.json，返回配置记录
+- `ensure-all-in-one-config!` - 确保默认 all-in-one.json 出现在指定配置目录下

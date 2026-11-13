@@ -91,6 +91,7 @@
 (define (find-stub-server)
   (let loop
     ((candidates '("tools/pi/tests/stub_quota_server.py"
+                   "library/tests/stub_quota_server.py"
                    "tests/stub_quota_server.py" "stub_quota_server.py"
                    "../stub_quota_server.py" "../../stub_quota_server.py"
                    "../../../stub_quota_server.py"
@@ -179,6 +180,7 @@
 ) ;define
 
 ;; 套餐未开放模型权限：永久性错误，重试无意义
+
 (define permission-body
   "{\"error\":{\"code\":\"1311\",\"message\":\"当前订阅套餐暂未开放GLM-5.2-Highspeed权限\"}}"
 ) ;define
@@ -239,7 +241,8 @@
          ) ;
       (check (pi-assistant-message-stop-reason resp) => "error")
       (let ((msg (pi-assistant-message-error-message resp)))
-        (check-true (string-contains? msg "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"))
+        (check-true (string-contains? msg "当前订阅套餐暂未开放GLM-5.2-Highspeed权限")
+        ) ;check-true
       ) ;let
       resp
     ) ;let
@@ -261,7 +264,8 @@
          ) ;
       (check (pi-assistant-message-stop-reason resp) => "error")
       (let ((msg (pi-assistant-message-error-message resp)))
-        (check-true (string-contains? msg "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"))
+        (check-true (string-contains? msg "当前订阅套餐暂未开放GLM-5.2-Highspeed权限")
+        ) ;check-true
       ) ;let
       resp
     ) ;let
@@ -291,44 +295,59 @@
 ;; 6. 套餐未开放模型权限同样落盘，并标记为不可重试、kind 为 model-permission
 
 (check-true (string-contains? log-text "limit=model-permission"))
-(check-true (string-contains? log-text "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"))
+(check-true (string-contains? log-text
+              "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"
+            ) ;string-contains?
+) ;check-true
 
 ;; 7. openai-request 客户端超时明确感知秒数（禁用重试直接返回错误）
-(let* ((cfg (list (cons 'model-id "kimi-for-coding")
-              (cons 'model-meta '(("base-url" . "http://192.0.2.1")
-                                  ("max-tokens" . 1024)))
-              (cons 'api-key "dummy-key")
-              (cons 'proxy-url #f)
-              (cons 'tools '())
-              (cons 'settings '((retry (enabled . #f))))
-            ) ;list
+(let* ((cfg
+         (list (cons 'model-id "kimi-for-coding")
+           (cons 'model-meta '(("base-url" . "http://192.0.2.1")
+                               ("max-tokens" . 1024)))
+           (cons 'api-key "dummy-key")
+           (cons 'proxy-url #f)
+           (cons 'tools '())
+           (cons 'settings '((retry (enabled . #f))))
+         ) ;list
        ) ;cfg
        (resp (openai-request cfg (list (pi-user-message "ping")) #f '() 0.2))
       ) ;
   (check (pi-assistant-message? resp) => #t)
   (check (pi-assistant-message-stop-reason resp) => "error")
-  (check (pi-assistant-message-error-message resp) => "Request timed out after 0.2s")
+  (check (pi-assistant-message-error-message resp)
+    =>
+    "Request timed out after 0.2s"
+  ) ;check
 ) ;let*
 
 ;; 8. openai-request 超时纳入与 HTTP 429/0 一样的退避重试
 (let* ((retry-logs '())
        (old-logger #f)
-       (_ (set-pi-retry-logger! (lambda (msg) (set! retry-logs (cons msg retry-logs)))))
-       (cfg (list (cons 'model-id "kimi-for-coding")
-              (cons 'model-meta '(("base-url" . "http://192.0.2.1")
-                                  ("max-tokens" . 1024)))
-              (cons 'api-key "dummy-key")
-              (cons 'proxy-url #f)
-              (cons 'tools '())
-              (cons 'settings '((retry (enabled . #t) (max-retries . 2) (base-delay-ms . 10))))
-            ) ;list
+       (_
+         (set-pi-retry-logger! (lambda (msg) (set! retry-logs (cons msg retry-logs))))
+       ) ;_
+       (cfg
+         (list (cons 'model-id "kimi-for-coding")
+           (cons 'model-meta '(("base-url" . "http://192.0.2.1")
+                               ("max-tokens" . 1024)))
+           (cons 'api-key "dummy-key")
+           (cons 'proxy-url #f)
+           (cons 'tools '())
+           (cons 'settings
+             '((retry (enabled . #t) (max-retries . 2) (base-delay-ms . 10)))
+           ) ;cons
+         ) ;list
        ) ;cfg
        (resp (openai-request cfg (list (pi-user-message "ping")) #f '() 0.2))
       ) ;
   (set-pi-retry-logger! #f)
   (check (pi-assistant-message? resp) => #t)
   (check (pi-assistant-message-stop-reason resp) => "error")
-  (check (pi-assistant-message-error-message resp) => "Request timed out after 0.2s")
+  (check (pi-assistant-message-error-message resp)
+    =>
+    "Request timed out after 0.2s"
+  ) ;check
   ;; 验证发生了 2 次重试，且日志明确携带超时秒数
   (check (length retry-logs) => 2)
   (check-true (string-contains? (car (reverse retry-logs))

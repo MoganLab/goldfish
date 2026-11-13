@@ -36,7 +36,14 @@
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
             ) ;
         (cond ((string-starts? err-text "Request timed out") err-text)
-              ((not (string-null? err-text)) (string-append "Request failed: " err-text))
+              ((not (string-null? err-text))
+               ;; 非 0 状态码带上 HTTP 码，便于上层（如 all-in-one 探活）
+               ;; 区分 429 限流、5xx 与网络故障
+               (if (zero? status)
+                 (string-append "Request failed: " err-text)
+                 (string-append "HTTP " (number->string status) ": " err-text)
+               ) ;if
+              ) ;
               ((zero? status) "Request failed: network error")
               (else (string-append "HTTP " (number->string status) " stream error"))
         ) ;cond

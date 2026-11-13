@@ -27,10 +27,10 @@
   "Request failed: connection refused"
 ) ;check
 
-;; 带 error 字段的响应
+;; 带 error 字段的响应：非 0 状态码带上 HTTP 码，便于上层区分错误类别
 (check (format-failed-stream-msg 500 '((error . "server error")))
   =>
-  "Request failed: server error"
+  "HTTP 500: server error"
 ) ;check
 
 ;; reason 优先于 error

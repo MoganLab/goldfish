@@ -195,13 +195,15 @@
 (pi-chain-reset-sticky-state!)
 (let ((node-events '()))
   (pi-all-in-one-request-stream "all-in-one"
-    (cons (cons 'emit (lambda (type . payload)
-                        (when (eq? type 'active_node)
-                          ;; emit 以 (type . args) 形式调用，payload 首项才是节点元组
-                          (set! node-events (cons (car payload) node-events))
-                        ) ;when
-                      ) ;lambda
-          ) ;cons
+    (cons
+      (cons 'emit
+        (lambda (type . payload)
+          (when (eq? type 'active_node)
+            ;; emit 以 (type . args) 形式调用，payload 首项才是节点元组
+            (set! node-events (cons (car payload) node-events))
+          ) ;when
+        ) ;lambda
+      ) ;cons
       (cons (cons 'supports-thinking #f) CONFIG)
     ) ;cons
     (list (pi-user-message "work"))
@@ -209,7 +211,9 @@
     '()
     #f
     60
-    (lambda (node timeout-ms config-dir request-fn) (equal? (chain-node-model node) "two"))
+    (lambda (node timeout-ms config-dir request-fn)
+      (equal? (chain-node-model node) "two")
+    ) ;lambda
     (lambda (provider node-cfg messages system-prompt tools on-event timeout)
       (pi-assistant-message (list (pi-text-block "ok")) "stop")
     ) ;lambda
@@ -219,6 +223,43 @@
   (check (list-ref (car node-events) 4) => #t)
 ) ;let
 
-(rmtree TMP-DIR #t)
+;; 链式调度中真实请求 429 失败耗尽后正确记录故障并切换备用节点：
+(pi-chain-reset-sticky-state!)
+(let ((executed '()))
+  (let ((response
+          (pi-all-in-one-request-stream "all-in-one"
+            (list (cons 'provider "all-in-one")
+              (cons 'model-id "coding-deep")
+              (cons 'config-dir TMP-DIR)
+            ) ;list
+            '()
+            ""
+            '()
+            #f
+            60
+            (lambda (node timeout-ms config-dir request-fn) #t)
+            (lambda (provider node-cfg messages system-prompt tools on-event timeout)
+              (let ((m (cdr (assoc 'model-id node-cfg))))
+                (set! executed (cons m executed))
+                (if (equal? m "one")
+                  (pi-assistant-message '()
+                    :stop-reason   "error"
+                    :error-message "HTTP 429 after 2 attempts"
+                  ) ;pi-assistant-message
+                  (pi-assistant-message (list (pi-text-block "switched-ok")) "stop")
+                ) ;if
+              ) ;let
+            ) ;lambda
+          ) ;pi-all-in-one-request-stream
+        ) ;response
+       ) ;
+    (check (pi-assistant-message-stop-reason response) => "stop")
+    (check (reverse executed) => '("one" "two"))
+  ) ;let
+) ;let
+
+(when (file-exists? TMP-DIR)
+  (rmtree TMP-DIR #t)
+) ;when
 
 (check-report)

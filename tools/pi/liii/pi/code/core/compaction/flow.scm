@@ -144,7 +144,7 @@
           (let* ((dir (pi-cfg-config-dir cfg))
                  (raw-aio (all-in-one-load-config dir))
                  (default-chains (all-in-one-default-chains))
-                 (aio-cfg (or raw-aio (make-all-in-one-cfg #t 3600000 1800000 50000 default-chains))
+                 (aio-cfg (or raw-aio (make-all-in-one-cfg #t 3600000 60000 8000 default-chains))
                  ) ;aio-cfg
                  (chains (all-in-one-cfg-chains aio-cfg))
                  (chain-id (cdr (or (assoc 'model-id cfg) '(#f . #f))))

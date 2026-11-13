@@ -20,10 +20,56 @@
     (liii pi code all-in-one types)
     (liii pi code config)
   ) ;import
-  (export pi-probe-node pi-probe-prompt pi-probe-error-code)
+  (export pi-probe-node pi-probe-prompt pi-probe-error-code
+    pi-probe-max-tokens-metadata pi-probe-retry-config
+  ) ;export
   (begin
 
     (define pi-probe-prompt "ping")
+
+    ;; 探活不给思考预算：只保留极小的输出上限，避免模型把时间花在长思考上，
+    ;; 同时让响应只返回结构化状态（stop/length 也算链路健康）。
+    (define %probe-max-tokens 16)
+
+    ;; pi-probe-max-tokens-metadata
+    ;; 探活请求的 max-tokens 压到极小值（16），避免思考型模型把预算吃满导致超时。
+    (define (pi-probe-max-tokens-metadata meta)
+      (if (pi-model-metadata? meta)
+        (pi-model-metadata (pi-model-metadata-id meta)
+          (pi-model-metadata-name meta)
+          (pi-model-metadata-provider meta)
+          (pi-model-metadata-base-url meta)
+          (pi-model-metadata-context-window meta)
+          %probe-max-tokens
+          (pi-model-metadata-matched? meta)
+        ) ;pi-model-metadata
+        meta
+      ) ;if
+    ) ;define
+
+    ;; pi-probe-retry-config
+    ;; 探活重试预算：遵循 gf pi 既有重试机制，但与长任务重试预算解耦。
+    ;; 最多重试 3 次，退避基数取用户配置（上限 2000ms），单次退避上限 10s；
+    ;; 用户显式禁用重试时探活也不重试。
+    ;; 目的：429 限流节点快速失败并及时切换备用节点，不被 provider 级
+    ;; 大额重试预算（如 provider.maxRetries = 12）拖成长达数分钟的等待。
+    (define (pi-probe-retry-config settings)
+      (let* ((retry (and (pi-settings? settings) (pi-settings-retry settings)))
+             (valid? (and retry (pi-retry-config? retry)))
+             (enabled? (if valid? (pi-retry-config-enabled retry) #t))
+             (base (if valid? (pi-retry-config-base-delay-ms retry) #f))
+             (eff-base (if (and (number? base) (> base 0)) (min base 2000) 2000))
+            ) ;
+        (if enabled?
+          (list (cons 'enabled #t)
+            (cons 'max-retries 3)
+            (cons 'base-delay-ms eff-base)
+            (cons 'max-agent-delay-ms 10000)
+          ) ;list
+          (list (cons 'enabled #f))
+        ) ;if
+      ) ;let*
+    ) ;define
 
     (define (%http-code message start)
       (let loop
@@ -58,10 +104,6 @@
     (define (%failure code message)
       (list code message)
     ) ;define
-
-    ;; 探活不给思考预算：只保留极小的输出上限，避免模型把时间花在长思考上，
-    ;; 同时让响应只返回结构化状态（stop/length 也算链路健康）。
-    (define %probe-max-tokens 16)
 
     (define (%probe-node-config node dir-str)
       (catch #t
