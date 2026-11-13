@@ -17,7 +17,7 @@
 
 (check-set-mode! 'report-failed)
 
-(check (sqrt (expt 10 20)) => (expt 10 10))
-(check (number->string (sqrt (/ (expt 10 20) 9))) => "10000000000/3")
+(check (sqrt 100000000000000000000) => 10000000000)
+(check (sqrt 100000000000000000000/9) => 10000000000/3)
 
 (check-report)

@@ -17,7 +17,11 @@
 
 (check-set-mode! 'report-failed)
 
-(check (call-with-values (lambda () (exact-integer-sqrt (+ (expt 10 20) 5))) list)
+(check
+  (call-with-values
+    (lambda () (exact-integer-sqrt (+ (expt 10 20) 5)))
+    list
+  ) ;call-with-values
   =>
   (list (expt 10 10) 5)
 ) ;check

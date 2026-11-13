@@ -15,14 +15,9 @@
 ;;
 
 ;; 测试运行器：
-;; 1. 每个测试文件在独立子进程中执行，stdin 接 null（子进程内脚本错误
-;;    掉进 REPL 时立即读到 EOF 退出，而不是阻塞在等输入卡死 CI），
-;;    并施加超时（默认 300s，环境变量 GOLDFISH_TEST_TIMEOUT 可覆盖），
-;;    超时强杀子进程并记为 FAIL，单文件挂起不再拖死整个测试步骤；
-;; 2. 并行模式逐文件在执行完毕后原子打印 [n/total] path ... PASS/FAIL 进度（即时 flush），
-;;    避免多 worker 并发写控制台导致路径与结果被拆散；失败时输出捕获的 stdout/stderr 尾部；
-;; 注意：并行闭包经 (liii par) 跨 (liii go) worker 会话执行，其自由符号
-;; 必须是主库导出绑定（display/run-either 等），不能引用本库内部函数。
+;; 1. 每个测试文件在独立子进程中执行，stdin 接 null 并施加超时（默认 300s，GOLDFISH_TEST_TIMEOUT 可覆盖）；
+;; 2. 并行模式逐文件在执行完毕后原子打印进度，失败时输出捕获的 stdout/stderr 尾部；
+;; 注意：并行闭包经 (liii par) 跨 (liii go) worker 会话执行，自由符号必须是主库导出绑定。
 (define-library (liii goldtest-runner)
   (import (scheme base)
     (scheme file)
@@ -115,44 +110,49 @@
     ) ;define
 
     (define (%find-domain-for-test-file test-file)
-      (let loop
-        ((ds (gfproject-domains-list)))
-        (if (null? ds)
-          #f
-          (let* ((d (car ds)) (tdir (cdr (assq 'tests d))) (prefix (string-append tdir "/")))
-            (if (string-starts? test-file prefix) d (loop (cdr ds)))
-          ) ;let*
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (%domain-inc d)
-      (let ((root (and d (cdr (assq 'root d)))))
-        (if (or (not root)
-              (member root '("" "goldfish/" "r7rs/" "library/" "bignum/") string=?)
-            ) ;or
-          ""
-          (let ((clean
-                  (if (string-ends? root "/") (substring root 0 (- (string-length root) 1)) root)
-                ) ;clean
-               ) ;
-            (string-append "-I " clean " ")
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (%domain-mode d)
-      (let ((m (and d (assq 'mode d))))
-        (if (and m (string? (cdr m))) (cdr m) "r7rs")
+      (let ((cwd (string-replace (string-trim-right (getcwd) #\/) "\\" "/")))
+        (let loop
+          ((ds (gfproject-domains-list)))
+          (if (null? ds)
+            #f
+            (let* ((d (car ds))
+                   (root (string-trim-right (cdr (assq 'root d)) #\/))
+                   (prefix (string-append (cdr (assq 'tests d)) "/"))
+                  ) ;
+              (if
+                (or (string-starts? test-file prefix)
+                  (and (string-starts? test-file "tests/")
+                    (> (string-length root) 0)
+                    (or (string-ends? cwd (string-append "/" root)) (string=? cwd root))
+                  ) ;and
+                ) ;or
+                d
+                (loop (cdr ds))
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
     (define (goldfish-cmd . maybe-test-file)
-      (let* ((test-file (if (null? maybe-test-file) #f (car maybe-test-file)))
+      (let* ((test-file (and (pair? maybe-test-file) (car maybe-test-file)))
              (d (and test-file (%find-domain-for-test-file test-file)))
+             (root (and d (cdr (assq 'root d))))
+             (m (and d (assq 'mode d)))
+             (mode
+               (if (and m (string? (cdr m))) (cdr m) "r7rs")
+             ) ;mode
+             (inc
+               (if (or (not root)
+                     (member root '("" "goldfish/" "r7rs/" "library/" "bignum/") string=?)
+                   ) ;or
+                 ""
+                 (string-append "-I " (string-trim-right root #\/) " ")
+               ) ;if
+             ) ;inc
             ) ;
-        (string-append (executable) " -m " (%domain-mode d) " " (%domain-inc d))
+        (string-append (executable) " -m " mode " " inc)
       ) ;let*
     ) ;define
 

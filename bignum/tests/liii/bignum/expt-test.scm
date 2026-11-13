@@ -17,16 +17,13 @@
 
 (check-set-mode! 'report-failed)
 
-(check (number->string (expt 2 100)) => "1267650600228229401496703205376")
-(check (number->string (expt 2 -100))
-  =>
-  "1/1267650600228229401496703205376"
-) ;check
-(check (expt -1 (string->number "100000000000000000000")) => 1)
-(check (expt -1 (string->number "100000000000000000001")) => -1)
-(check (expt -1 (string->number "-100000000000000000001")) => -1)
-(check (expt (make-rectangular 1 2) 0) => 1)
-(check (number->string (expt (make-rectangular 1 2) 3)) => "-11-2i")
-(check (number->string (expt (make-rectangular 1 2) -2)) => "-3/25-4/25i")
+(check (expt 2 100) => 1267650600228229401496703205376)
+(check (expt 2 -100) => 1/1267650600228229401496703205376)
+(check (expt -1 100000000000000000000) => 1)
+(check (expt -1 100000000000000000001) => -1)
+(check (expt -1 -100000000000000000001) => -1)
+(check (expt 1+2i 0) => 1)
+(check (expt 1+2i 3) => -11-2i)
+(check (expt 1+2i -2) => -3/25-4/25i)
 
 (check-report)

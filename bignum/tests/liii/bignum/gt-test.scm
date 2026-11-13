@@ -27,7 +27,7 @@
   #t
 ) ;check
 
-(check (> (+ (expt 10 20) 1) 1e20) => #t)
+(check (> (+ (expt 10 20) 1) 1e+20) => #t)
 (check (> (expt 10 400) +inf.0) => #f)
 (check (> +inf.0 (expt 10 400)) => #t)
 

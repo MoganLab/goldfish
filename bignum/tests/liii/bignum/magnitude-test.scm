@@ -17,7 +17,7 @@
 
 (check-set-mode! 'report-failed)
 
-(check (magnitude (make-rectangular 3 4)) => 5)
-(check (magnitude (- (expt 10 20))) => (expt 10 20))
+(check (magnitude 3+4i) => 5)
+(check (magnitude -100000000000000000000) => 100000000000000000000)
 
 (check-report)

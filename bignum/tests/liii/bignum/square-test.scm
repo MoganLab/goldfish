@@ -17,7 +17,7 @@
 
 (check-set-mode! 'report-failed)
 
-(check (square (expt 10 20)) => (expt 10 40))
-(check (number->string (square (make-rectangular 1 2))) => "-3+4i")
+(check (square 10000000000) => 100000000000000000000)
+(check (square 1+2i) => -3+4i)
 
 (check-report)
