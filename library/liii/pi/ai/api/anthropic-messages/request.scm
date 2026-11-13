@@ -76,10 +76,10 @@
     (define (%request-error-text status attempt body-str reason)
       (if (zero? status)
         (let ((detail (if (string? reason) (string-trim-both reason) "")))
-          (if (string-null? detail)
-            "Request failed: network error"
-            (string-append "Request failed: " detail)
-          ) ;if
+          (cond ((string-null? detail) "Request failed: network error")
+                ((string-starts? detail "Request timed out") detail)
+                (else (string-append "Request failed: " detail))
+          ) ;cond
         ) ;let
         (string-append "HTTP "
           (number->string status)
@@ -119,9 +119,19 @@
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
-          (let ((err-msg (if (pair? args) (car args) "Network error")))
-            (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
-          ) ;let
+          (if (eq? tag 'http-client-timeout-error)
+            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+              (list (cons 'status-code 0)
+                (cons 'reason msg)
+                (cons 'text "")
+                (cons 'timeout #t)
+                (cons 'timeout-sec timeout)
+              ) ;list
+            ) ;let
+            (let ((err-msg (if (pair? args) (car args) "Network error")))
+              (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
+            ) ;let
+          ) ;if
         ) ;lambda
       ) ;catch
     ) ;define
@@ -192,13 +202,16 @@
                 ) ;list
               ) ;pi-log-http-error!
             ) ;when
-            (if (anthropic-is-retriable-error? status body-str provider)
+            (cond
+             ((anthropic-is-retriable-error? status body-str provider)
               (if (<= attempt provider-max-retries)
                 (let* ((ra-raw (pi-extract-retry-after resp))
                        (ra-sec (pi-parse-retry-after ra-raw))
                        (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                       (retry-status (if (%resp-field resp 'timeout) (%resp-field resp 'reason) status)
+                       ) ;retry-status
                       ) ;
-                  (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
+                  (pi-log-retry retry-status attempt provider-max-retries delay-sec ra-sec)
                   (sleep delay-sec)
                   (loop (+ attempt 1))
                 ) ;let*
@@ -210,24 +223,28 @@
                   (%resp-field resp 'reason)
                 ) ;%make-retry-error
               ) ;if
-              (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
-                     (limit (pi-usage-limit-error? status body-str provider))
-                    ) ;
-                (if limit
-                  (pi-assistant-message (list (pi-text-block ""))
-                    :stop-reason   "error"
-                    :usage         (anthropic-map-usage '())
-                    :error-message (pi-usage-limit-error-message limit provider)
-                    :provider      provider
-                    :model         model-id
-                    :api           "anthropic-messages"
-                  ) ;pi-assistant-message
-                  (anthropic-parse-response parsed-json status provider model-id
-                    "anthropic-messages"
-                  ) ;anthropic-parse-response
-                ) ;if
-              ) ;let*
-            ) ;if
+             ) ;
+             (else
+               (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
+                      (limit (pi-usage-limit-error? status body-str provider))
+                     ) ;
+                 (if limit
+                   (pi-assistant-message (list (pi-text-block ""))
+                     :stop-reason "error"
+                     :usage       (anthropic-map-usage '())
+                     :error-message
+                     (pi-usage-limit-error-message limit provider)
+                     :provider provider
+                     :model    model-id
+                     :api      "anthropic-messages"
+                   ) ;pi-assistant-message
+                   (anthropic-parse-response parsed-json status provider
+                     model-id "anthropic-messages"
+                   ) ;anthropic-parse-response
+                 ) ;if
+               ) ;let*
+             ) ;else
+            ) ;cond
           ) ;let*
         ) ;let
       ) ;let*-values

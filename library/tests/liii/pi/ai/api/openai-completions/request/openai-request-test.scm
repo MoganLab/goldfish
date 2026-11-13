@@ -47,6 +47,7 @@
   (liii path)
   (liii tempfile)
   (liii pi ai message)
+  (liii pi ai retry)
   (liii pi ai log)
   (liii pi ai api openai-completions)
 ) ;import
@@ -291,6 +292,54 @@
 
 (check-true (string-contains? log-text "limit=model-permission"))
 (check-true (string-contains? log-text "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"))
+
+;; 7. openai-request 客户端超时明确感知秒数（禁用重试直接返回错误）
+(let* ((cfg (list (cons 'model-id "kimi-for-coding")
+              (cons 'model-meta '(("base-url" . "http://192.0.2.1")
+                                  ("max-tokens" . 1024)))
+              (cons 'api-key "dummy-key")
+              (cons 'proxy-url #f)
+              (cons 'tools '())
+              (cons 'settings '((retry (enabled . #f))))
+            ) ;list
+       ) ;cfg
+       (resp (openai-request cfg (list (pi-user-message "ping")) #f '() 0.2))
+      ) ;
+  (check (pi-assistant-message? resp) => #t)
+  (check (pi-assistant-message-stop-reason resp) => "error")
+  (check (pi-assistant-message-error-message resp) => "Request timed out after 0.2s")
+) ;let*
+
+;; 8. openai-request 超时纳入与 HTTP 429/0 一样的退避重试
+(let* ((retry-logs '())
+       (old-logger #f)
+       (_ (set-pi-retry-logger! (lambda (msg) (set! retry-logs (cons msg retry-logs)))))
+       (cfg (list (cons 'model-id "kimi-for-coding")
+              (cons 'model-meta '(("base-url" . "http://192.0.2.1")
+                                  ("max-tokens" . 1024)))
+              (cons 'api-key "dummy-key")
+              (cons 'proxy-url #f)
+              (cons 'tools '())
+              (cons 'settings '((retry (enabled . #t) (max-retries . 2) (base-delay-ms . 10))))
+            ) ;list
+       ) ;cfg
+       (resp (openai-request cfg (list (pi-user-message "ping")) #f '() 0.2))
+      ) ;
+  (set-pi-retry-logger! #f)
+  (check (pi-assistant-message? resp) => #t)
+  (check (pi-assistant-message-stop-reason resp) => "error")
+  (check (pi-assistant-message-error-message resp) => "Request timed out after 0.2s")
+  ;; 验证发生了 2 次重试，且日志明确携带超时秒数
+  (check (length retry-logs) => 2)
+  (check-true (string-contains? (car (reverse retry-logs))
+                "[pi retry] Request timed out after 0.2s, attempt 1/2"
+              ) ;string-contains?
+  ) ;check-true
+  (check-true (string-contains? (car retry-logs)
+                "[pi retry] Request timed out after 0.2s, attempt 2/2"
+              ) ;string-contains?
+  ) ;check-true
+) ;let*
 
 (catch #t (lambda () (remove weekly-log)) (lambda args #f))
 (catch #t (lambda () (remove five-hour-log)) (lambda args #f))

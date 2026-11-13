@@ -68,6 +68,7 @@
 
 ;; 延迟发送 abort 信号的 worker：0.5s 后向通道发中止信号。
 ;; 顶层 define + (go (fn ch)) 传参形式（闭包变量无法跨 go 会话传输）
+
 (define (delay-abort-signal ch)
   (sleep 0.5)
   (chan-send! ch 'abort 0)
@@ -220,7 +221,15 @@
            ) ;resp-proxy
           ) ;
       (check (cdr (assoc 'stopReason resp-proxy)) => "error")
-      (check-true (string-contains? (cdr (assoc 'errorMessage resp-proxy)) "Request failed:")
+      ;; Windows 上无效代理连接可能在 timeout 内未得到 connection refused，
+      ;; 而是触发客户端超时（errorMessage 为 Request timed out after Ns）；
+      ;; 两种情况都应是人类可读的错误提示
+      (check-true
+        (let ((msg (cdr (assoc 'errorMessage resp-proxy))))
+          (or (string-contains? msg "Request failed:")
+            (string-contains? msg "Request timed out after")
+          ) ;or
+        ) ;let
       ) ;check-true
       (check-false (string=? (cdr (assoc 'errorMessage resp-proxy)) "HTTP 0 stream error")
       ) ;check-false
