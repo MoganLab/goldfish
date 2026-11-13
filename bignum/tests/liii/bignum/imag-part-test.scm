@@ -17,7 +17,7 @@
 
 (check-set-mode! 'report-failed)
 
-(check (imag-part (make-rectangular 1 (expt 10 20))) => (expt 10 20))
-(check (imag-part (expt 10 20)) => 0)
+(check (imag-part 1+100000000000000000000i) => 100000000000000000000)
+(check (imag-part 100000000000000000000) => 0)
 
 (check-report)

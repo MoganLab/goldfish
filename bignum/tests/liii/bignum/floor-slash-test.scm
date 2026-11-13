@@ -17,7 +17,8 @@
 
 (check-set-mode! 'report-failed)
 
-(check (call-with-values (lambda () (floor/ (expt 10 20) 3)) list)
+(check
+  (call-with-values (lambda () (floor/ (expt 10 20) 3)) list)
   =>
   (list (quotient (expt 10 20) 3) 1)
 ) ;check

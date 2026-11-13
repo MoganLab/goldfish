@@ -201,12 +201,31 @@
       ) ;cond
     ) ;define
 
+    (define (%domain-mode-of d)
+      (if (and (json-object? d) (json-contains-key? d "mode"))
+        (let ((m (json-ref d "mode")))
+          (if (and (string? m) (> (string-length m) 0)) m "r7rs")
+        ) ;let
+        "r7rs"
+      ) ;if
+    ) ;define
+
+    (define (%domain-deps-of d)
+      (if (and (json-object? d) (json-contains-key? d "depends-on"))
+        (let ((v (json-ref d "depends-on")))
+          (if (json-array? v) (vector->list v) '())
+        ) ;let
+        '()
+      ) ;if
+    ) ;define
+
     (define (gfproject-domains-list . opt-gf-lib)
       (let ((d-obj (apply gfproject-domains opt-gf-lib)))
         (if (or (null? d-obj) (equal? d-obj '(())))
           (list (list (cons 'name "default")
                   (cons 'root "")
                   (cons 'depends-on '())
+                  (cons 'mode "r7rs")
                   (cons 'tests "tests")
                   (cons 'hint "hint")
                 ) ;list
@@ -216,18 +235,11 @@
               (let* ((d (json-ref d-obj name))
                      (root (if (and (json-object? d) (json-contains-key? d "root")) (json-ref d "root") "")
                      ) ;root
-                     (deps
-                       (if (and (json-object? d) (json-contains-key? d "depends-on"))
-                         (let ((v (json-ref d "depends-on")))
-                           (if (json-array? v) (vector->list v) '())
-                         ) ;let
-                         '()
-                       ) ;if
-                     ) ;deps
                     ) ;
                 (list (cons 'name name)
                   (cons 'root root)
-                  (cons 'depends-on deps)
+                  (cons 'depends-on (%domain-deps-of d))
+                  (cons 'mode (%domain-mode-of d))
                   (cons 'tests (%domain-tests-dir root))
                   (cons 'hint (%domain-hint-dir root))
                 ) ;list

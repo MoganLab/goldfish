@@ -29,7 +29,7 @@
 
 (check (< (expt 10 400) +inf.0) => #t)
 (check (< -inf.0 (- (expt 10 400))) => #t)
-(check (< 1e20 (+ (expt 10 20) 1)) => #t)
+(check (< 1e+20 (+ (expt 10 20) 1)) => #t)
 (check (< (expt 10 20) +nan.0) => #f)
 (check (< (expt 10 20)) => #t)
 

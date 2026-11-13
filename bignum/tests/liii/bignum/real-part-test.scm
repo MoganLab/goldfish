@@ -17,7 +17,7 @@
 
 (check-set-mode! 'report-failed)
 
-(check (real-part (make-rectangular (expt 10 20) 2)) => (expt 10 20))
-(check (real-part (expt 10 20)) => (expt 10 20))
+(check (real-part 100000000000000000000+2i) => 100000000000000000000)
+(check (real-part 100000000000000000000) => 100000000000000000000)
 
 (check-report)

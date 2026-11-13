@@ -17,9 +17,6 @@
 
 (check-set-mode! 'report-failed)
 
-(check (truncate-quotient (- (expt 10 20)) 3)
-  =>
-  (- (quotient (expt 10 20) 3))
-) ;check
+(check (truncate-quotient (- (expt 10 20)) 3) => (- (quotient (expt 10 20) 3)))
 
 (check-report)

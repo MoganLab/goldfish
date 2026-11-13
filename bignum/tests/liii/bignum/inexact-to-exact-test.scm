@@ -19,7 +19,7 @@
 
 (check (inexact->exact (expt 10 30)) => (expt 10 30))
 (check (inexact->exact 2.5) => 5/2)
-(check (inexact->exact 1e20) => (expt 10 20))
-(check (number->string (inexact->exact 1e30)) => "1000000000000000019884624838656")
+(check (inexact->exact 1e20) => 100000000000000000000)
+(check (inexact->exact 1e30) => 1000000000000000019884624838656)
 
 (check-report)

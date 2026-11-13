@@ -19,8 +19,9 @@
 
 (check (exact (expt 10 30)) => (expt 10 30))
 (check (exact 2.5) => 5/2)
-(check (exact 1e+20) => (expt 10 20))
-(check (number->string (exact 1e+30)) => "1000000000000000019884624838656")
-(check (exact -1e+20) => (- (expt 10 20)))
+(check (exact 1e+20) => 100000000000000000000)
+(check (exact 1e+30) => 1000000000000000019884624838656)
+(check (exact -1e+20) => -100000000000000000000)
+(check #e1e20 => 100000000000000000000)
 
 (check-report)

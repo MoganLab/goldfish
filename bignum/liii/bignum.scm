@@ -1,7 +1,8 @@
 ;;; liii/bignum.scm - 运行时 bignum 数值塔适配模块
 ;;;
-;;; 配合 `--mode=liii+bignum` / `--mode=r7rs+bignum` 使用，
-;;; 基于 (liii bigint) 与 (liii decimal) 提供任意精度整数数值塔。
+;;; 必须开启 `+bignum` 模式使用（例如 `--mode=r7rs+bignum` / `--mode=liii+bignum`），
+;;; 基于 (liii bigint)、(liii bigrat)、(liii bigcomplex) 与 (liii decimal)
+;;; 提供完整的 R7RS 任意精度整数、有理数与复数数值塔，并配合 C 层读写钩子使用。
 ;;;
 ;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;

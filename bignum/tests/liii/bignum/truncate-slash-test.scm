@@ -17,7 +17,11 @@
 
 (check-set-mode! 'report-failed)
 
-(check (call-with-values (lambda () (truncate/ (- (expt 10 20)) 3)) list)
+(check
+  (call-with-values
+    (lambda () (truncate/ (- (expt 10 20)) 3))
+    list
+  ) ;call-with-values
   =>
   (list (- (quotient (expt 10 20) 3)) -1)
 ) ;check

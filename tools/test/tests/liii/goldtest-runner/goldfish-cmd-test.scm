@@ -13,11 +13,24 @@
 ;; ------
 ;; TODO: 返回值说明。
 
-(import (scheme base) (liii check) (liii goldtest-runner))
+(import (scheme base) (liii check) (liii string) (liii goldtest-runner))
 
 (check-set-mode! 'report-failed)
 
-;; TODO: 补充 goldfish-cmd 的断言用例。
 (check-true (procedure? goldfish-cmd))
+(check-true (string-contains (goldfish-cmd "bignum/tests/liii/bignum/eq-test.scm")
+              "-m r7rs+bignum"
+            ) ;string-contains
+) ;check-true
+(check-true (string-contains (goldfish-cmd "r7rs/tests/scheme/base/abs-test.scm") "-m r7rs ")
+) ;check-true
+(check-true (string-contains (goldfish-cmd "tools/fmt/tests/liii/goldfmt/dir-test.scm")
+              "-m r7rs -I tools/fmt "
+            ) ;string-contains
+) ;check-true
+(check-false (string-contains (goldfish-cmd "tests/liii/goldtest-runner/goldfish-cmd-test.scm")
+               "-I "
+             ) ;string-contains
+) ;check-false
 
 (check-report)
