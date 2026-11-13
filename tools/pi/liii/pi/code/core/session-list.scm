@@ -9,12 +9,13 @@
 ;; --resume 会话枚举：从 JSONL 提取选择器所需摘要，不投影完整对话上下文。
 (define-library (liii pi code core session-list)
   (import (scheme base)
+    (scheme file)
     (liii string)
     (liii path)
     (liii sort)
     (liii list)
+    (liii json)
     (liii pi code cli args)
-    (liii pi code core compaction session)
     (liii pi code core compaction serialize)
   ) ;import
   (export pi-read-session-info pi-list-session-infos pi-session-info-newer?
@@ -39,8 +40,22 @@
       (modified pi-session-info-modified)
       (message-count pi-session-info-message-count)
       (first-message pi-session-info-first-message)
-      (all-messages-text pi-session-info-all-messages-text)
+      (all-messages-text %pi-session-info-all-messages-text-raw
+        %pi-session-info-all-messages-text-set!
+      ) ;all-messages-text
     ) ;define-record-type
+
+    (define (pi-session-info-all-messages-text info)
+      (let ((val (%pi-session-info-all-messages-text-raw info)))
+        (if (procedure? val)
+          (let ((computed (val)))
+            (%pi-session-info-all-messages-text-set! info computed)
+            computed
+          ) ;let
+          val
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (%ref object key default)
       (let ((pair (assoc key object)))
@@ -65,42 +80,164 @@
       ) ;let*
     ) ;define
 
-    (define (%summarize-session path header entries)
-      (let* ((infos (filter (lambda (e) (%entry-type? e "session_info")) entries))
-             (name
-               (and (pair? infos) (pi-normalize-session-name (%ref (last infos) "name" #f)))
-             ) ;name
-             (messages (filter (lambda (e) (%entry-type? e "message")) entries))
-             (timestamps
-               (filter string? (map (lambda (e) (%ref e "timestamp" #f)) messages))
-             ) ;timestamps
-             (role-texts (filter (lambda (rt) rt) (map %message-text messages)))
-             (first-user
-               (find (lambda (rt) (equal? (car rt) "user")) role-texts)
-             ) ;first-user
+    (define (%parse-line line)
+      (let ((trimmed (string-trim line)))
+        (if (string-null? trimmed)
+          #f
+          (catch #t (lambda () (string->json trimmed)) (lambda _ #f))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%scan-all-messages-port port)
+      (let loop
+        ((line (read-line port)) (header? #f) (acc '()))
+        (if (eof-object? line)
+          (string-join (reverse acc) " ")
+          (cond ((string=? line "") (loop (read-line port) header? acc))
+                ((not header?) (loop (read-line port) (and (%parse-line line) #t) acc))
+                ((string-contains? line "\"type\":\"message\"")
+                 (if (or (string-contains? line "\"role\":\"user\"")
+                       (string-contains? line "\"role\":\"assistant\"")
+                     ) ;or
+                   (let* ((entry (%parse-line line))
+                          (rt (and entry (%entry-type? entry "message") (%message-text entry)))
+                         ) ;
+                     (loop (read-line port) #t (if rt (cons (cdr rt) acc) acc))
+                   ) ;let*
+                   (loop (read-line port) #t acc)
+                 ) ;if
+                ) ;
+                ((string-contains? line "\"type\":\"") (loop (read-line port) #t acc))
+                (else
+                  (let* ((entry (%parse-line line))
+                         (rt (and entry (%entry-type? entry "message") (%message-text entry)))
+                        ) ;
+                    (loop (read-line port) #t (if rt (cons (cdr rt) acc) acc))
+                  ) ;let*
+                ) ;else
+          ) ;cond
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 仅在需要全文搜索时按需扫描 user/assistant 消息文本，
+    ;; 跳过占大多数的 toolResult 与元数据行以降低解析开销
+    (define (%read-all-messages-text path)
+      (if (not (file-exists? path))
+        ""
+        (call-with-input-file path %scan-all-messages-port)
+      ) ;if
+    ) ;define
+
+    (define (%extract-user-text entry)
+      (let ((rt (%message-text entry)))
+        (and rt (equal? (car rt) "user") (cdr rt))
+      ) ;let
+    ) ;define
+
+    (define (%build-session-info path header last-info last-msg msg-count first-user)
+      (let* ((info-entry (if (string? last-info) (%parse-line last-info) last-info))
+             (name (and info-entry (pi-normalize-session-name (%ref info-entry "name" #f))))
+             (msg-entry (if (string? last-msg) (%parse-line last-msg) last-msg))
+             (msg-ts (and msg-entry (%ref msg-entry "timestamp" #f)))
+             (created (%ref header "timestamp" ""))
             ) ;
         (make-pi-session-info path
           (%ref header "id" "")
           (%ref header "cwd" "")
           name
-          (%ref header "timestamp" "")
-          (if (pair? timestamps) (last timestamps) (%ref header "timestamp" ""))
-          (length messages)
-          (if first-user (cdr first-user) "(no messages)")
-          (string-join (map cdr role-texts) " ")
+          created
+          (if (string? msg-ts) msg-ts created)
+          msg-count
+          (or first-user "(no messages)")
+          (lambda () (%read-all-messages-text path))
         ) ;make-pi-session-info
       ) ;let*
+    ) ;define
+
+    (define (%read-session-header port)
+      (let loop
+        ((line (read-line port)))
+        (cond ((eof-object? line) #f)
+              ((string=? line "") (loop (read-line port)))
+              (else
+                (let ((entry (%parse-line line)))
+                  (cond ((not entry) (loop (read-line port)))
+                        ((%entry-type? entry "session") entry)
+                        (else #f)
+                  ) ;cond
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%scan-session-port path port header)
+      (let loop
+        ((line (read-line port))
+         (last-info #f)
+         (last-msg #f)
+         (msg-count 0)
+         (first-user #f)
+        ) ;
+        (cond ((eof-object? line)
+               (%build-session-info path header last-info last-msg msg-count first-user)
+              ) ;
+              ((string=? line "")
+               (loop (read-line port) last-info last-msg msg-count first-user)
+              ) ;
+              ((string-contains? line "\"type\":\"message\"")
+               (let ((next-first
+                       (if (or first-user (not (string-contains? line "\"role\":\"user\"")))
+                         first-user
+                         (let ((entry (%parse-line line)))
+                           (and entry (%entry-type? entry "message") (%extract-user-text entry))
+                         ) ;let
+                       ) ;if
+                     ) ;next-first
+                    ) ;
+                 (loop (read-line port) last-info line (+ msg-count 1) next-first)
+               ) ;let
+              ) ;
+              ((string-contains? line "\"type\":\"session_info\"")
+               (loop (read-line port) line last-msg msg-count first-user)
+              ) ;
+              ((string-contains? line "\"type\":\"")
+               (loop (read-line port) last-info last-msg msg-count first-user)
+              ) ;
+              (else
+                (let ((entry (%parse-line line)))
+                  (cond ((not entry) (loop (read-line port) last-info last-msg msg-count first-user))
+                        ((%entry-type? entry "message")
+                         (loop (read-line port)
+                           last-info
+                           entry
+                           (+ msg-count 1)
+                           (or first-user (%extract-user-text entry))
+                         ) ;loop
+                        ) ;
+                        ((%entry-type? entry "session_info")
+                         (loop (read-line port) entry last-msg msg-count first-user)
+                        ) ;
+                        (else (loop (read-line port) last-info last-msg msg-count first-user))
+                  ) ;cond
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
     ) ;define
 
     (define (pi-read-session-info file-path)
       (let ((path (if (string? file-path) file-path (path->string file-path))))
         (and (file-exists? path)
-          (let ((entries (pi-read-session-entries path)))
-            (and (pair? entries)
-              (%entry-type? (car entries) "session")
-              (%summarize-session path (car entries) (cdr entries))
-            ) ;and
-          ) ;let
+          (call-with-input-file path
+            (lambda (port)
+              (let ((header (%read-session-header port)))
+                (and header (%scan-session-port path port header))
+              ) ;let
+            ) ;lambda
+          ) ;call-with-input-file
         ) ;and
       ) ;let
     ) ;define
