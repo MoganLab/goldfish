@@ -39,7 +39,7 @@
 
 ;; 验证各 provider 及其模型数量
 (check (length (find-provider-models "deepseek")) => 3)
-(check (length (find-provider-models "google")) => 23)
+(check (length (find-provider-models "google")) => 24)
 (check (length (find-provider-models "kimi-coding")) => 5)
 (check (length (find-provider-models "minimax-cn")) => 4)
 (check (length (find-provider-models "ollama")) => 3)
@@ -49,15 +49,18 @@
 
 ;; 验证关键模型存在
 (check-true (has-model? (find-provider-models "all-in-one") "coding-fast"))
-(check-true (has-model? (find-provider-models "all-in-one") "coding-high-quality"))
+(check-true (has-model? (find-provider-models "all-in-one") "coding-high-quality")
+) ;check-true
 (check-true (has-model? (find-provider-models "deepseek") "deepseek-v4-pro"))
 (check-true (has-model? (find-provider-models "google") "gemini-3.8-flash"))
+(check-true (has-model? (find-provider-models "google") "gemini-4-hydrogen"))
 (check-true (has-model? (find-provider-models "kimi-coding") "kimi-for-coding"))
 (check-true (has-model? (find-provider-models "minimax-cn") "MiniMax-M3.1-Flash")
 ) ;check-true
 (check-true (has-model? (find-provider-models "minimax-cn") "MiniMax-M3"))
 (check-true (has-model? (find-provider-models "ollama") "qwen2.5-coder:latest"))
 (check-true (has-model? (find-provider-models "zai-coding-cn") "glm-5.3"))
-(check-true (has-model? (find-provider-models "opencode") "deepseek-v4.1-flash"))
+(check-true (has-model? (find-provider-models "opencode") "deepseek-v4.1-flash")
+) ;check-true
 
 (check-report)

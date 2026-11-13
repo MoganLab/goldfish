@@ -249,5 +249,12 @@
   ) ;let
 ) ;let
 
+;; 12. Google 内置模型目录包含 gemini-4-hydrogen
+(let ((res (exec-gf-pi '("--provider" "google" "--list-models" "hydrogen"))))
+  (check (car res) => 0)
+  (let ((out (cadr res)))
+    (check-true (string-contains? out "gemini-4-hydrogen"))
+  ) ;let
+) ;let
 
 (check-report)
