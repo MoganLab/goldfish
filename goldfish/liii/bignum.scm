@@ -309,10 +309,7 @@
 
     ;;; ---------- 注册 C 层读写钩子 ----------
     (when (defined? 's7-set-bignum-hooks!)
-      (s7-set-bignum-hooks! '<bigint>
-        (lambda (str radix) (guard (err (#t #f)) (string->bigint str radix)))
-        bigint->string
-      ) ;s7-set-bignum-hooks!
+      (s7-set-bignum-hooks! '<bigint> bn:read-literal bigint->string)
     ) ;when
   ) ;begin
 ) ;define-library
