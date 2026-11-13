@@ -13,7 +13,7 @@
     set-partition set-partition! set-union set-intersection set-difference
     set-xor set-union! set-intersection! set-difference! set-xor! set-adjoin
     set-adjoin! set-replace set-replace! set-delete set-delete! set-delete-all
-    set-delete-all!
+    set-delete-all! set-comparator bag->set set->bag set->bag!
   ) ;export
 
   (begin
