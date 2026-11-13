@@ -19,13 +19,22 @@
   (begin
 
     (define (%val key obj default-val)
-      (let ((p
-              (or (assoc key obj)
-                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-              ) ;or
-            ) ;p
-           ) ;
-        (if (pair? p) (cdr p) default-val)
+      (if (not (pair? obj))
+        default-val
+        (let ((p
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+                ) ;or
+              ) ;p
+             ) ;
+          (if (pair? p) (cdr p) default-val)
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%num-val key obj default-val)
+      (let ((v (%val key obj default-val)))
+        (if (number? v) v default-val)
       ) ;let
     ) ;define
 
@@ -40,19 +49,26 @@
     ) ;define
 
     (define (openai-map-usage usage-meta)
-      (let* ((prompt-tokens (%val "prompt_tokens" usage-meta 0))
-             (completion-tokens (%val "completion_tokens" usage-meta 0))
+      (let* ((prompt-tokens (%num-val "prompt_tokens" usage-meta 0))
+             (completion-tokens (%num-val "completion_tokens" usage-meta 0))
              (details (%val "prompt_tokens_details" usage-meta '()))
-             (details-cached (%val "cached_tokens" details #f))
-             (hit-tokens (%val "prompt_cache_hit_tokens" usage-meta #f))
-             (top-cached (%val "cached_tokens" usage-meta #f))
-             (c-read (or details-cached hit-tokens top-cached 0))
-             (c-write (%val "cache_write_tokens" details 0))
+             (details-cached (%num-val "cached_tokens" details #f))
+             (hit-tokens (%num-val "prompt_cache_hit_tokens" usage-meta #f))
+             (top-cached (%num-val "cached_tokens" usage-meta #f))
+             (c-read
+               (cond ((number? details-cached) details-cached)
+                     ((number? hit-tokens) hit-tokens)
+                     ((number? top-cached) top-cached)
+                     (else 0)
+               ) ;cond
+             ) ;c-read
+             (c-write (%num-val "cache_write_tokens" details 0))
              (in-tok (max 0 (- prompt-tokens c-read c-write)))
              (out-tok completion-tokens)
              (tot-tok (+ in-tok out-tok c-read c-write))
              ;; reasoning 为 output 的子集（completion_tokens 已含 reasoning_tokens）
-             (reasoning-tok (%val "reasoning_tokens" (%val "completion_tokens_details" usage-meta '()) 0)
+             (reasoning-tok
+               (%num-val "reasoning_tokens" (%val "completion_tokens_details" usage-meta '()) 0)
              ) ;reasoning-tok
             ) ;
         (list (cons 'input in-tok)
@@ -66,9 +82,11 @@
     ) ;define
 
     (define (%tool-call->block tc)
-      (let* ((id (%val "id" tc ""))
+      (let* ((raw-id (%val "id" tc ""))
+             (id (if (string? raw-id) raw-id ""))
              (fn (%val "function" tc '()))
-             (name (%val "name" fn ""))
+             (raw-name (%val "name" fn ""))
+             (name (if (string? raw-name) raw-name ""))
              (raw-args (%val "arguments" fn "{}"))
              (args
                (cond

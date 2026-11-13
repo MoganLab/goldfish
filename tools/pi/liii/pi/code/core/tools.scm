@@ -202,7 +202,8 @@
               ) ;cond
             ) ;def-timeout
            ) ;
-        (cond ((string=? name "read") (%tool-def-read))
+        (cond ((not (string? name)) #f)
+              ((string=? name "read") (%tool-def-read))
               ((string=? name "bash") (%tool-def-bash def-timeout))
               ((string=? name "write") (%tool-def-write))
               ((string=? name "edit") (%tool-def-edit))
@@ -271,7 +272,12 @@
     (define (execute-tool-call name args . opts)
       (let ((def (get-tool-definition name)))
         (if (not def)
-          (pi-tool-result (string-append "Tool " name " not found") #t)
+          (pi-tool-result (string-append "Tool "
+                            (if (string? name) name (object->string name))
+                            " not found"
+                          ) ;string-append
+            #t
+          ) ;pi-tool-result
           (catch #t
             (lambda () (%run-tool-exec (pi-tool-definition-execute def) name args opts))
             (lambda (tag . info) (pi-tool-result (%format-error-info info) #t))

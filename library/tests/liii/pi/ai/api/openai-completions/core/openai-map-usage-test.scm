@@ -109,4 +109,20 @@
   (check (cdr (assoc 'reasoning u)) => 0)
 ) ;let
 
+;; 9. JSON null（符号 'null）字段防御
+(let* ((raw '(("prompt_tokens" . 100)
+              ("completion_tokens" . 20)
+              ("prompt_tokens_details" . null)
+              ("completion_tokens_details" . null)
+              ("cached_tokens" . null)
+              ("prompt_cache_hit_tokens" . null)))
+       (u (openai-map-usage raw)))
+  (check (cdr (assoc 'input u)) => 100)
+  (check (cdr (assoc 'output u)) => 20)
+  (check (cdr (assoc 'cacheRead u)) => 0)
+  (check (cdr (assoc 'cacheWrite u)) => 0)
+  (check (cdr (assoc 'reasoning u)) => 0)
+  (check (cdr (assoc 'totalTokens u)) => 120)
+) ;let*
+
 (check-report)

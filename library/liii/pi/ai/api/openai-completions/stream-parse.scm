@@ -30,14 +30,17 @@
     ) ;define-record-type
 
     (define (%val key obj default-val)
-      (let ((p
-              (or (assoc key obj)
-                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-              ) ;or
-            ) ;p
-           ) ;
-        (if (pair? p) (cdr p) default-val)
-      ) ;let
+      (if (not (pair? obj))
+        default-val
+        (let ((p
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+                ) ;or
+              ) ;p
+             ) ;
+          (if (pair? p) (cdr p) default-val)
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (extract-openai-stream-error-message body)
@@ -132,10 +135,20 @@
              (tools-alist (openai-stream-state-tools stream-state))
              (entry (assoc idx tools-alist))
              (curr-item (if entry (cdr entry) (%make-openai-tool-state "" "" "" #f)))
-             (curr-id (or id (%openai-tool-state-id curr-item)))
-             (curr-name (or name (%openai-tool-state-name curr-item)))
-             (curr-args (string-append (%openai-tool-state-args curr-item) (or args-delta ""))
-             ) ;curr-args
+             (curr-id
+               (if (and (string? id) (not (string-null? id)))
+                 id
+                 (%openai-tool-state-id curr-item)
+               ) ;if
+             ) ;curr-id
+             (curr-name
+               (if (and (string? name) (not (string-null? name)))
+                 name
+                 (%openai-tool-state-name curr-item)
+               ) ;if
+             ) ;curr-name
+             (safe-args-delta (if (string? args-delta) args-delta ""))
+             (curr-args (string-append (%openai-tool-state-args curr-item) safe-args-delta))
              (was-emitted? (%openai-tool-state-emitted curr-item))
              (usage (openai-stream-state-usage stream-state))
              (blocks (openai-stream-state-blocks stream-state))
@@ -261,7 +274,11 @@
             ) ;when
             (when (or (vector? raw-tc) (list? raw-tc))
               (let ((tc-list (if (vector? raw-tc) (vector->list raw-tc) raw-tc)))
-                (for-each (lambda (tc) (process-openai-tool-call-delta tc stream-state on-event))
+                (for-each (lambda (tc)
+                            (when (pair? tc)
+                              (process-openai-tool-call-delta tc stream-state on-event)
+                            ) ;when
+                          ) ;lambda
                   tc-list
                 ) ;for-each
               ) ;let
