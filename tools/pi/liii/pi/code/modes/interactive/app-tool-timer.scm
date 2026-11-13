@@ -15,7 +15,7 @@
   (import (scheme base)
     (liii date-time)
     (liii list)
-    (liii tui component)
+    (liii tui)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
