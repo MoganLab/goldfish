@@ -210,6 +210,70 @@
   ) ;let
 ) ;define
 
+(define (bn:find-complex-split s len)
+  (let loop
+    ((i (native:- len 1)))
+    (cond ((not (native:> i 0)) #f)
+          ((memv (string-ref s i) '(#\+ #\-))
+           (let ((prev (string-ref s (native:- i 1))))
+             (if (memv prev '(#\e #\E #\/)) (loop (native:- i 1)) i)
+           ) ;let
+          ) ;
+          (else (loop (native:- i 1)))
+    ) ;cond
+  ) ;let
+) ;define
+
+(define (bn:parse-real-part s radix exactness)
+  (cond ((bn:parse-exact-int s radix) => (lambda (v) v))
+        ((bn:parse-rational s radix) => (lambda (v) v))
+        ((and (eq? exactness 'exact) (native:= radix 10)) (bn:parse-exact-decimal s))
+        ((native:= radix 10)
+         (let ((n (native:string->number s 10)))
+           (if (and n (native:real? n)) n #f)
+         ) ;let
+        ) ;
+        (else #f)
+  ) ;cond
+) ;define
+
+(define (bn:parse-imag-part s radix exactness)
+  (cond ((string=? s "+") 1)
+        ((string=? s "-") -1)
+        (else (bn:parse-real-part s radix exactness))
+  ) ;cond
+) ;define
+
+(define (bn:parse-complex s radix exactness)
+  (let ((n (string-length s)))
+    (if
+      (or (native:= n 0) (not (memv (string-ref s (native:- n 1)) '(#\i #\I))))
+      #f
+      (let* ((body (substring s 0 (native:- n 1))) (m (string-length body)))
+        (cond ((native:= m 0) (bn:make-complex 0 1))
+              ((string=? body "+") (bn:make-complex 0 1))
+              ((string=? body "-") (bn:make-complex 0 -1))
+              ((bn:find-complex-split body m)
+               =>
+               (lambda (k)
+                 (let ((r (bn:parse-real-part (substring body 0 k) radix exactness))
+                       (im (bn:parse-imag-part (substring body k m) radix exactness))
+                      ) ;
+                   (if (and r im) (bn:make-complex r im) #f)
+                 ) ;let
+               ) ;lambda
+              ) ;
+              (else
+                (let ((im (bn:parse-imag-part body radix exactness)))
+                  (if im (bn:make-complex 0 im) #f)
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;if
+  ) ;let
+) ;define
+
 (define (bn:apply-exactness val exactness)
   (cond ((not val) #f)
         ((eq? exactness 'exact) (bn:exact val))
@@ -227,6 +291,10 @@
              (lambda (v) (bn:apply-exactness v exactness))
             ) ;
             ((bn:parse-rational body radix)
+             =>
+             (lambda (v) (bn:apply-exactness v exactness))
+            ) ;
+            ((bn:parse-complex body radix exactness)
              =>
              (lambda (v) (bn:apply-exactness v exactness))
             ) ;
@@ -248,6 +316,10 @@
     (cond ((eq? exactness 'invalid) #f)
           ((bn:parse-exact-int body r) => (lambda (v) (bn:apply-exactness v exactness)))
           ((bn:parse-rational body r) => (lambda (v) (bn:apply-exactness v exactness)))
+          ((bn:parse-complex body r exactness)
+           =>
+           (lambda (v) (bn:apply-exactness v exactness))
+          ) ;
           ((and (eq? exactness 'exact) (native:= r 10)) (bn:parse-exact-decimal body))
           ((and (or (eq? exactness 'inexact) (eq? exactness 'exact)) (native:= r 10))
            (or (bn:apply-exactness (native:string->number body r) exactness)

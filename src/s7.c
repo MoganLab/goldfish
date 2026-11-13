@@ -12790,6 +12790,15 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
 	if (q[len - 1] != 'i')
 	  return((want_symbol) ? make_symbol_with_strlen(sc, q) : sc->F);
 
+	if ((sc->bignum_enabled) && (sc->bignum_from_string_fn) &&
+	    (!(has_dec_point1 || ex1 || has_dec_point2 || ex2)))
+	  {
+	    s7_pointer res = s7_apply_function(sc, sc->bignum_from_string_fn,
+					       set_plist_2(sc, s7_make_string(sc, q), make_integer(sc, radix)));
+	    if (res != sc->F)
+	      return(res);
+	  }
+
 	/* save original string */
 	ql1 = q[len - 1];
 	pl1 = (*(plus - 1));

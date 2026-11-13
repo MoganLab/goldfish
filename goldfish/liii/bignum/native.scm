@@ -90,3 +90,9 @@
 (define native:numerator numerator)
 
 (define native:denominator denominator)
+
+(define native:make-rectangular make-rectangular)
+
+(define native:real-part real-part)
+
+(define native:imag-part imag-part)

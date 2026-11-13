@@ -64,6 +64,7 @@
 (define (bn:to-inexact x)
   (cond ((bigint? x) (bn:bigint->inexact x))
         ((bigrat? x) (bn:bigrat->inexact x))
+        ((bigcomplex? x) (bn:bigcomplex->inexact x))
         (else x)
   ) ;cond
 ) ;define
