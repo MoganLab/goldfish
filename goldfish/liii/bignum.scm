@@ -18,7 +18,7 @@
 ;; limitations under the License.
 
 (define-library (liii bignum)
-  (import (scheme base) (liii bigint) (liii decimal))
+  (import (scheme base) (liii bigint) (liii bigrat) (liii decimal))
 
   (export bignum? number? complex? real? rational? integer? exact? inexact?
     exact-integer? zero? positive? negative? odd? even? exact inexact
@@ -27,71 +27,86 @@
     truncate round numerator denominator
   ) ;export
 
-  (include "bignum/native.scm" "bignum/convert.scm" "bignum/arithmetic.scm"
-    "bignum/integer.scm" "bignum/parse.scm"
+  (include "bignum/native.scm" "bignum/convert.scm" "bignum/rat.scm"
+    "bignum/arithmetic.scm" "bignum/integer.scm" "bignum/parse.scm"
   ) ;include
 
   (begin
     (define (bignum? x)
-      (bigint? x)
+      (or (bigint? x) (bigrat? x))
     ) ;define
 
     ;;; ---------- 谓词 ----------
     (define (bn:number? x)
-      (or (bigint? x) (native:number? x))
+      (or (bigint? x) (bigrat? x) (native:number? x))
     ) ;define
 
     (define (bn:complex? x)
-      (or (bigint? x) (native:complex? x))
+      (or (bigint? x) (bigrat? x) (native:complex? x))
     ) ;define
 
     (define (bn:real? x)
-      (or (bigint? x) (native:real? x))
+      (or (bigint? x) (bigrat? x) (native:real? x))
     ) ;define
 
     (define (bn:rational? x)
-      (or (bigint? x) (native:rational? x))
+      (or (bigint? x) (bigrat? x) (native:rational? x))
     ) ;define
 
     (define (bn:integer? x)
-      (or (bigint? x) (native:integer? x))
+      (or (bigint? x) (and (not (bigrat? x)) (native:integer? x)))
     ) ;define
 
     (define (bn:exact? x)
-      (or (bigint? x) (native:exact? x))
+      (or (bigint? x) (bigrat? x) (native:exact? x))
     ) ;define
 
     (define (bn:inexact? x)
-      (and (not (bigint? x)) (native:inexact? x))
+      (and (not (bigint? x)) (not (bigrat? x)) (native:inexact? x))
     ) ;define
 
     (define (bn:exact-integer? x)
-      (or (bigint? x) (and (native:integer? x) (native:exact? x)))
+      (or (bigint? x) (and (not (bigrat? x)) (native:integer? x) (native:exact? x)))
     ) ;define
 
     (define (bn:zero? x)
-      (if (bigint? x) (bigint-zero? x) (native:zero? x))
+      (cond ((bigint? x) (bigint-zero? x))
+            ((bigrat? x) #f)
+            (else (native:zero? x))
+      ) ;cond
     ) ;define
 
     (define (bn:positive? x)
-      (if (bigint? x) (bigint-positive? x) (native:positive? x))
+      (cond ((bigint? x) (bigint-positive? x))
+            ((bigrat? x) (bigrat-positive? x))
+            (else (native:positive? x))
+      ) ;cond
     ) ;define
 
     (define (bn:negative? x)
-      (if (bigint? x) (bigint-negative? x) (native:negative? x))
+      (cond ((bigint? x) (bigint-negative? x))
+            ((bigrat? x) (bigrat-negative? x))
+            (else (native:negative? x))
+      ) ;cond
     ) ;define
 
     (define (bn:even? x)
-      (if (bigint? x) (bigint-even? x) (native:even? x))
+      (cond ((bigint? x) (bigint-even? x))
+            ((bigrat? x) (native:even? 1/2))
+            (else (native:even? x))
+      ) ;cond
     ) ;define
 
     (define (bn:odd? x)
-      (if (bigint? x) (bigint-odd? x) (native:odd? x))
+      (cond ((bigint? x) (bigint-odd? x))
+            ((bigrat? x) (native:odd? 1/2))
+            (else (native:odd? x))
+      ) ;cond
     ) ;define
 
     ;;; ---------- 转换与等价 ----------
     (define (bn:exact x)
-      (cond ((bigint? x) x)
+      (cond ((or (bigint? x) (bigrat? x)) x)
             ((and (bn:finite-real? x)
                (native:inexact? x)
                (not (native:< (native:abs x) 9007199254740992.0))
@@ -103,22 +118,29 @@
     ) ;define
 
     (define (bn:inexact x)
-      (if (bigint? x) (bn:bigint->inexact x) (native:inexact x))
+      (cond ((bigint? x) (bn:bigint->inexact x))
+            ((bigrat? x) (bn:bigrat->inexact x))
+            (else (native:inexact x))
+      ) ;cond
     ) ;define
 
     (define (bn:number->string x . rest)
       (if (null? rest)
-        (if (bigint? x) (bigint->string x) (native:number->string x))
-        (if (bigint? x)
-          (bigint->string x (car rest))
-          (apply native:number->string x rest)
-        ) ;if
+        (cond ((bigint? x) (bigint->string x))
+              ((bigrat? x) (bigrat->string x))
+              (else (native:number->string x))
+        ) ;cond
+        (cond ((bigint? x) (bigint->string x (car rest)))
+              ((bigrat? x) (bigrat->string x (car rest)))
+              (else (apply native:number->string x rest))
+        ) ;cond
       ) ;if
     ) ;define
 
     (define (bn:eqv? a b)
       (cond ((and (bigint? a) (bigint? b)) (bigint=? a b))
-            ((or (bigint? a) (bigint? b)) #f)
+            ((and (bigrat? a) (bigrat? b)) (bigrat=? a b))
+            ((or (bigint? a) (bigint? b) (bigrat? a) (bigrat? b)) #f)
             (else (native:eqv? a b))
       ) ;cond
     ) ;define
@@ -132,39 +154,22 @@
           (native:= a b)
         ) ;if
        ) ;
-       ((bigint? a)
-        (cond
-         ((and (native:rational? b) (native:exact? b))
-          (bigint=? (bigint-multiply a (integer->bigint (native:denominator b)))
-            (integer->bigint (native:numerator b))
-          ) ;bigint=?
-         ) ;
-         ((native:real? b)
-          (and (bn:finite-real? b)
-            (not (native:< (native:abs b) 9007199254740992.0))
-            (bigint=? a (bn:to-bigint (bn:inexact-large->bigint b)))
-          ) ;and
-         ) ;
-         (else (native:= (bn:bigint->inexact a) b))
-        ) ;cond
+       ((and (bn:exact-rat-any? a) (bn:exact-rat-any? b))
+        (bigint=? (bigint-multiply (bn:exact-rat-num a) (bn:exact-rat-den b))
+          (bigint-multiply (bn:exact-rat-num b) (bn:exact-rat-den a))
+        ) ;bigint=?
        ) ;
-       ((bigint? b)
-        (cond
-         ((and (native:rational? a) (native:exact? a))
-          (bigint=? (integer->bigint (native:numerator a))
-            (bigint-multiply b (integer->bigint (native:denominator a)))
-          ) ;bigint=?
-         ) ;
-         ((native:real? a)
-          (and (bn:finite-real? a)
-            (not (native:< (native:abs a) 9007199254740992.0))
-            (bigint=? (bn:to-bigint (bn:inexact-large->bigint a)) b)
-          ) ;and
-         ) ;
-         (else (native:= a (bn:bigint->inexact b)))
-        ) ;cond
+       ((and (or (bigint? a) (bigrat? a)) (native:real? b))
+        (if (bn:finite-real? b)
+          (if (not (native:< (native:abs b) 9007199254740992.0))
+            (bn:num-eq-2 a (bn:inexact-large->bigint b))
+            (and (bigrat? a) (bn:num-eq-2 a (native:exact b)))
+          ) ;if
+          #f
+        ) ;if
        ) ;
-       (else (native:= a b))
+       ((and (or (bigint? b) (bigrat? b)) (native:real? a)) (bn:num-eq-2 b a))
+       (else (native:= (bn:to-inexact a) (bn:to-inexact b)))
       ) ;cond
     ) ;define
 
@@ -176,45 +181,30 @@
           (native:< a b)
         ) ;if
        ) ;
-       ((bigint? a)
-        (cond
-         ((and (native:rational? b) (native:exact? b))
-          (bigint<? (bigint-multiply a (integer->bigint (native:denominator b)))
-            (integer->bigint (native:numerator b))
-          ) ;bigint<?
-         ) ;
-         ((native:real? b)
-          (if (bn:finite-real? b)
-            (if (native:< (native:abs b) 9007199254740992.0)
-              (bigint-negative? a)
-              (bigint<? a (bn:to-bigint (bn:inexact-large->bigint b)))
-            ) ;if
-            (native:= b +inf.0)
-          ) ;if
-         ) ;
-         (else (native:< (bn:bigint->inexact a) b))
-        ) ;cond
+       ((and (bn:exact-rat-any? a) (bn:exact-rat-any? b))
+        (bigint<? (bigint-multiply (bn:exact-rat-num a) (bn:exact-rat-den b))
+          (bigint-multiply (bn:exact-rat-num b) (bn:exact-rat-den a))
+        ) ;bigint<?
        ) ;
-       ((bigint? b)
-        (cond
-         ((and (native:rational? a) (native:exact? a))
-          (bigint<? (integer->bigint (native:numerator a))
-            (bigint-multiply b (integer->bigint (native:denominator a)))
-          ) ;bigint<?
-         ) ;
-         ((native:real? a)
-          (if (bn:finite-real? a)
-            (if (native:< (native:abs a) 9007199254740992.0)
-              (bigint-positive? b)
-              (bigint<? (bn:to-bigint (bn:inexact-large->bigint a)) b)
-            ) ;if
-            (native:= a -inf.0)
+       ((and (or (bigint? a) (bigrat? a)) (native:real? b))
+        (if (bn:finite-real? b)
+          (if (not (native:< (native:abs b) 9007199254740992.0))
+            (bn:num-lt-2 a (bn:inexact-large->bigint b))
+            (if (bigint? a) (bigint-negative? a) (bn:num-lt-2 a (native:exact b)))
           ) ;if
-         ) ;
-         (else (native:< a (bn:bigint->inexact b)))
-        ) ;cond
+          (native:= b +inf.0)
+        ) ;if
        ) ;
-       (else (native:< a b))
+       ((and (or (bigint? b) (bigrat? b)) (native:real? a))
+        (if (bn:finite-real? a)
+          (if (not (native:< (native:abs a) 9007199254740992.0))
+            (bn:num-lt-2 (bn:inexact-large->bigint a) b)
+            (if (bigint? b) (bigint-positive? b) (bn:num-lt-2 (native:exact a) b))
+          ) ;if
+          (native:= a -inf.0)
+        ) ;if
+       ) ;
+       (else (native:< (bn:to-inexact a) (bn:to-inexact b)))
       ) ;cond
     ) ;define
 
@@ -307,9 +297,13 @@
     (define numerator bn:numerator)
     (define denominator bn:denominator)
 
+    (define (bn:write-bignum x)
+      (if (bigrat? x) (bigrat->string x) (bigint->string x))
+    ) ;define
+
     ;;; ---------- 注册 C 层读写钩子 ----------
     (when (defined? 's7-set-bignum-hooks!)
-      (s7-set-bignum-hooks! '<bigint> bn:read-literal bigint->string)
+      (s7-set-bignum-hooks! '(<bigint> <bigrat>) bn:read-literal bn:write-bignum)
     ) ;when
   ) ;begin
 ) ;define-library

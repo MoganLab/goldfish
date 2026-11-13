@@ -35,10 +35,6 @@
   ) ;cond
 ) ;define
 
-(define (bn:exact-rat? x)
-  (and (not (bigint? x)) (native:rational? x) (native:exact? x))
-) ;define
-
 (define (bn:add-2 a b)
   (cond
    ((and (native:integer? a)
@@ -54,25 +50,27 @@
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (bn:demote-bigint (bigint-add (bn:to-bigint a) (bn:to-bigint b)))
    ) ;
-   ((and (bigint? a) (bn:exact-rat? b))
-    (let ((den (native:denominator b)))
-      (bn:div-2 (bn:add-2 (bn:mul-2 a den) (native:numerator b)) den)
+   ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
+      (bn:exact-rat-any? a)
+      (bn:exact-rat-any? b)
+    ) ;and
+    (let ((n1 (bn:exact-rat-num a))
+          (d1 (bn:exact-rat-den a))
+          (n2 (bn:exact-rat-num b))
+          (d2 (bn:exact-rat-den b))
+         ) ;
+      (bn:make-rat (bigint-add (bigint-multiply n1 d2) (bigint-multiply n2 d1))
+        (bigint-multiply d1 d2)
+      ) ;bn:make-rat
     ) ;let
    ) ;
-   ((and (bn:exact-rat? a) (bigint? b))
-    (let ((den (native:denominator a)))
-      (bn:div-2 (bn:add-2 (native:numerator a) (bn:mul-2 b den)) den)
-    ) ;let
-   ) ;
-   (else (native:+ (if (bigint? a) (bn:bigint->inexact a) a)
-           (if (bigint? b) (bn:bigint->inexact b) b)
-         ) ;native:+
-   ) ;else
+   (else (native:+ (bn:to-inexact a) (bn:to-inexact b)))
   ) ;cond
 ) ;define
 
 (define (bn:negate-1 a)
   (cond ((bigint? a) (bn:demote-bigint (bigint-negate a)))
+        ((bigrat? a) (bn:make-rat (bigint-negate (bigrat-num a)) (bigrat-den a)))
         ((and (native:integer? a) (native:exact? a) (native:= a INT64-MIN))
          (bigint-negate INT64-MIN-BIG)
         ) ;
@@ -95,20 +93,21 @@
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (bn:demote-bigint (bigint-subtract (bn:to-bigint a) (bn:to-bigint b)))
    ) ;
-   ((and (bigint? a) (bn:exact-rat? b))
-    (let ((den (native:denominator b)))
-      (bn:div-2 (bn:sub-2 (bn:mul-2 a den) (native:numerator b)) den)
+   ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
+      (bn:exact-rat-any? a)
+      (bn:exact-rat-any? b)
+    ) ;and
+    (let ((n1 (bn:exact-rat-num a))
+          (d1 (bn:exact-rat-den a))
+          (n2 (bn:exact-rat-num b))
+          (d2 (bn:exact-rat-den b))
+         ) ;
+      (bn:make-rat (bigint-subtract (bigint-multiply n1 d2) (bigint-multiply n2 d1))
+        (bigint-multiply d1 d2)
+      ) ;bn:make-rat
     ) ;let
    ) ;
-   ((and (bn:exact-rat? a) (bigint? b))
-    (let ((den (native:denominator a)))
-      (bn:div-2 (bn:sub-2 (native:numerator a) (bn:mul-2 b den)) den)
-    ) ;let
-   ) ;
-   (else (native:- (if (bigint? a) (bn:bigint->inexact a) a)
-           (if (bigint? b) (bn:bigint->inexact b) b)
-         ) ;native:-
-   ) ;else
+   (else (native:- (bn:to-inexact a) (bn:to-inexact b)))
   ) ;cond
 ) ;define
 
@@ -127,16 +126,15 @@
    ((and (bn:exact-int? a) (bn:exact-int? b))
     (bn:demote-bigint (bigint-multiply (bn:to-bigint a) (bn:to-bigint b)))
    ) ;
-   ((and (bigint? a) (bn:exact-rat? b))
-    (bn:div-2 (bn:mul-2 a (native:numerator b)) (native:denominator b))
+   ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
+      (bn:exact-rat-any? a)
+      (bn:exact-rat-any? b)
+    ) ;and
+    (bn:make-rat (bigint-multiply (bn:exact-rat-num a) (bn:exact-rat-num b))
+      (bigint-multiply (bn:exact-rat-den a) (bn:exact-rat-den b))
+    ) ;bn:make-rat
    ) ;
-   ((and (bn:exact-rat? a) (bigint? b))
-    (bn:div-2 (bn:mul-2 (native:numerator a) b) (native:denominator a))
-   ) ;
-   (else (native:* (if (bigint? a) (bn:bigint->inexact a) a)
-           (if (bigint? b) (bn:bigint->inexact b) b)
-         ) ;native:*
-   ) ;else
+   (else (native:* (bn:to-inexact a) (bn:to-inexact b)))
   ) ;cond
 ) ;define
 
@@ -153,38 +151,17 @@
     ) ;if
    ) ;
    ((and (bn:exact-int? a) (bn:exact-int? b))
-    (let ((ba (bn:to-bigint a)) (bb (bn:to-bigint b)))
-      (when (bigint-zero? bb)
-        (native:/ 1 0)
-      ) ;when
-      (let-values (((q r) (bigint-divide-and-remainder ba bb)))
-        (if (bigint-zero? r)
-          (bn:demote-bigint q)
-          (let* ((g (bigint-gcd (bigint-abs ba) (bigint-abs bb)))
-                 (num (bn:demote-bigint (bigint-quotient ba g)))
-                 (den (bn:demote-bigint (bigint-quotient bb g)))
-                ) ;
-            (if (and (native:integer? num) (native:integer? den))
-              (native:/ num den)
-              (native:/ (if (bigint? a) (bn:bigint->inexact a) a)
-                (if (bigint? b) (bn:bigint->inexact b) b)
-              ) ;native:/
-            ) ;if
-          ) ;let*
-        ) ;if
-      ) ;let-values
-    ) ;let
+    (bn:make-rat (bn:to-bigint a) (bn:to-bigint b))
    ) ;
-   ((and (bigint? a) (bn:exact-rat? b))
-    (bn:div-2 (bn:mul-2 a (native:denominator b)) (native:numerator b))
+   ((and (or (bigint? a) (bigrat? a) (bigint? b) (bigrat? b))
+      (bn:exact-rat-any? a)
+      (bn:exact-rat-any? b)
+    ) ;and
+    (bn:make-rat (bigint-multiply (bn:exact-rat-num a) (bn:exact-rat-den b))
+      (bigint-multiply (bn:exact-rat-den a) (bn:exact-rat-num b))
+    ) ;bn:make-rat
    ) ;
-   ((and (bn:exact-rat? a) (bigint? b))
-    (bn:div-2 (native:numerator a) (bn:mul-2 (native:denominator a) b))
-   ) ;
-   (else (native:/ (if (bigint? a) (bn:bigint->inexact a) a)
-           (if (bigint? b) (bn:bigint->inexact b) b)
-         ) ;native:/
-   ) ;else
+   (else (native:/ (bn:to-inexact a) (bn:to-inexact b)))
   ) ;cond
 ) ;define
 
@@ -230,6 +207,7 @@
 
 (define (bn:abs x)
   (cond ((bigint? x) (bn:demote-bigint (bigint-abs x)))
+        ((bigrat? x) (if (bigint-negative? (bigrat-num x)) (bn:negate-1 x) x))
         ((and (native:integer? x) (native:exact? x) (native:= x INT64-MIN))
          (bigint-negate INT64-MIN-BIG)
         ) ;

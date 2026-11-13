@@ -79808,9 +79808,20 @@ static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 bool s7i_is_bignum_object(s7_scheme *sc, s7_pointer obj)
 {
-  return((sc->bignum_enabled) && (sc->bignum_type_symbol) &&
-         (is_let(obj)) && (is_not_slot_end(let_slots(obj))) &&
-         (slot_value(let_slots(obj)) == sc->bignum_type_symbol));
+  s7_pointer tag;
+  if ((!sc->bignum_enabled) || (!sc->bignum_type_symbol) ||
+      (!is_let(obj)) || (!is_not_slot_end(let_slots(obj))))
+    return(false);
+  tag = slot_value(let_slots(obj));
+  if (is_pair(sc->bignum_type_symbol))
+    {
+      s7_pointer p;
+      for (p = sc->bignum_type_symbol; is_pair(p); p = cdr(p))
+        if (car(p) == tag)
+          return(true);
+      return(false);
+    }
+  return(tag == sc->bignum_type_symbol);
 }
 
 void s7_set_bignum_enabled(s7_scheme *sc, bool enabled)
@@ -79828,7 +79839,7 @@ static s7_pointer g_set_bignum_hooks(s7_scheme *sc, s7_pointer args)
   s7_pointer type_sym = car(args);
   s7_pointer from_str = cadr(args);
   s7_pointer write_fn = caddr(args);
-  if (is_symbol(type_sym))
+  if (is_symbol(type_sym) || is_pair(type_sym))
     {
       s7_gc_protect(sc, type_sym);
       sc->bignum_type_symbol = type_sym;

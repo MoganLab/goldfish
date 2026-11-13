@@ -61,6 +61,13 @@
   (native:string->number (string-append (bigint->string b) ".0"))
 ) ;define
 
+(define (bn:to-inexact x)
+  (cond ((bigint? x) (bn:bigint->inexact x))
+        ((bigrat? x) (bn:bigrat->inexact x))
+        (else x)
+  ) ;cond
+) ;define
+
 (define (bn:any-int? x)
   (or (bigint? x)
     (and (bn:finite-real? x)
@@ -86,25 +93,43 @@
 ) ;define
 
 (define (bn:floor x)
-  (if (bigint? x) x (native:floor x))
+  (cond ((bigint? x) x)
+        ((bigrat? x) (bn:bigrat-floor x))
+        (else (native:floor x))
+  ) ;cond
 ) ;define
 
 (define (bn:ceiling x)
-  (if (bigint? x) x (native:ceiling x))
+  (cond ((bigint? x) x)
+        ((bigrat? x) (bn:bigrat-ceiling x))
+        (else (native:ceiling x))
+  ) ;cond
 ) ;define
 
 (define (bn:truncate x)
-  (if (bigint? x) x (native:truncate x))
+  (cond ((bigint? x) x)
+        ((bigrat? x) (bn:bigrat-truncate x))
+        (else (native:truncate x))
+  ) ;cond
 ) ;define
 
 (define (bn:round x)
-  (if (bigint? x) x (native:round x))
+  (cond ((bigint? x) x)
+        ((bigrat? x) (bn:bigrat-round x))
+        (else (native:round x))
+  ) ;cond
 ) ;define
 
 (define (bn:numerator x)
-  (if (bigint? x) x (native:numerator x))
+  (cond ((bigint? x) x)
+        ((bigrat? x) (bn:demote-bigint (bigrat-num x)))
+        (else (native:numerator x))
+  ) ;cond
 ) ;define
 
 (define (bn:denominator x)
-  (if (bigint? x) 1 (native:denominator x))
+  (cond ((bigint? x) 1)
+        ((bigrat? x) (bn:demote-bigint (bigrat-den x)))
+        (else (native:denominator x))
+  ) ;cond
 ) ;define
