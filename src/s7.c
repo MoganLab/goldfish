@@ -1424,6 +1424,11 @@ struct s7_scheme {
              sequence_symbol, size_symbol, source_symbol, weak_symbol;
 
 
+  bool bignum_enabled;
+  s7_pointer bignum_from_string_fn;
+  s7_pointer bignum_write_fn;
+  s7_pointer bignum_type_symbol;
+
   s7_pointer open_input_function_choices[S7_NUM_READ_CHOICES];
   s7_pointer closed_input_function, closed_output_function;
   s7_pointer vector_set_function, string_set_function, list_set_function, hash_table_set_function, let_set_function, c_object_set_function, last_function;
@@ -12864,7 +12869,17 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
     /* integer */
     {
       s7_int x = s7_string_to_integer(q, radix, &overflow);
-      if (overflow) return(make_undefined_overflow(sc, q));
+      if (overflow)
+        {
+          if ((sc->bignum_enabled) && (sc->bignum_from_string_fn))
+            {
+              s7_pointer res = s7_apply_function(sc, sc->bignum_from_string_fn,
+                                                 set_plist_2(sc, s7_make_string(sc, q), make_integer(sc, radix)));
+              if (res != sc->F)
+                return(res);
+            }
+          return(make_undefined_overflow(sc, q));
+        }
       return(make_integer(sc, x));
     }
   }
@@ -78890,6 +78905,9 @@ then returns each var to its original value."
   sc->write_keyword =               s7_make_keyword(sc, "write");
 }
 
+static s7_pointer g_set_bignum_hooks(s7_scheme *sc, s7_pointer args);
+static s7_pointer g_is_bignum_enabled(s7_scheme *sc, s7_pointer args);
+
 static void init_rootlet(s7_scheme *sc)
 {
   /* most of init_rootlet (the built-in  functions for example), could be shared by all s7 instances.
@@ -79289,6 +79307,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->substring_uncopied_symbol =    defun("substring-uncopied",substring_uncopied,	1, 2, false);
   sc->string_symbol =                defun("string",		string,			0, 0, true);
   sc->object_to_string_symbol =      defun("object->string",	object_to_string,	1, 2, false);
+  s7_define_function(sc, "s7-set-bignum-hooks!", g_set_bignum_hooks, 3, 0, false, "(s7-set-bignum-hooks! type-sym from-str write-fn) registers bignum hooks");
+  s7_define_function(sc, "s7-bignum-enabled?", g_is_bignum_enabled, 0, 0, false, "(s7-bignum-enabled?) returns #t if bignum mode is enabled");
 
   #define H_format "(format [out] str . args) substitutes args into str sending the result to out. Most of \
 s7's format directives are taken from CL: ~% = newline, ~& = newline if the preceding output character was \
@@ -79735,6 +79755,52 @@ in the file, or by the function."
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
+bool s7i_is_bignum_object(s7_scheme *sc, s7_pointer obj)
+{
+  return((sc->bignum_enabled) && (sc->bignum_type_symbol) &&
+         (is_let(obj)) && (is_not_slot_end(let_slots(obj))) &&
+         (slot_value(let_slots(obj)) == sc->bignum_type_symbol));
+}
+
+void s7_set_bignum_enabled(s7_scheme *sc, bool enabled)
+{
+  sc->bignum_enabled = enabled;
+}
+
+bool s7_is_bignum_enabled(s7_scheme *sc)
+{
+  return sc->bignum_enabled;
+}
+
+static s7_pointer g_set_bignum_hooks(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer type_sym = car(args);
+  s7_pointer from_str = cadr(args);
+  s7_pointer write_fn = caddr(args);
+  if (is_symbol(type_sym))
+    {
+      s7_gc_protect(sc, type_sym);
+      sc->bignum_type_symbol = type_sym;
+    }
+  if (is_procedure(from_str))
+    {
+      s7_gc_protect(sc, from_str);
+      sc->bignum_from_string_fn = from_str;
+    }
+  if (is_procedure(write_fn))
+    {
+      s7_gc_protect(sc, write_fn);
+      sc->bignum_write_fn = write_fn;
+    }
+  return(sc->T);
+}
+
+static s7_pointer g_is_bignum_enabled(s7_scheme *sc, s7_pointer args)
+{
+  (void)args;
+  return(sc->bignum_enabled ? sc->T : sc->F);
+}
+
 s7_scheme *s7_init(void)
 {
   s7_scheme *sc;
@@ -79822,6 +79888,10 @@ s7_scheme *s7_init(void)
   sc->accept_all_keyword_arguments = false;
   sc->muffle_warnings = false;
   sc->symbol_quote = false;
+  sc->bignum_enabled = false;
+  sc->bignum_from_string_fn = NULL;
+  sc->bignum_write_fn = NULL;
+  sc->bignum_type_symbol = NULL;
   sc->initial_string_port_length = 128;
   sc->format_depth = -1;
   sc->singletons = (s7_pointer *)Calloc(256, sizeof(s7_pointer));

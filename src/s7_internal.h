@@ -1443,6 +1443,11 @@ struct s7_scheme {
              sequence_symbol, size_symbol, source_symbol, weak_symbol;
 
 
+  bool bignum_enabled;
+  s7_pointer bignum_from_string_fn;
+  s7_pointer bignum_write_fn;
+  s7_pointer bignum_type_symbol;
+
   s7_pointer open_input_function_choices[S7_NUM_READ_CHOICES];
   s7_pointer closed_input_function, closed_output_function;
   s7_pointer vector_set_function, string_set_function, list_set_function, hash_table_set_function, let_set_function, c_object_set_function, last_function;

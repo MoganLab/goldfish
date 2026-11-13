@@ -447,6 +447,9 @@ s7_pointer s7_openlet(s7_scheme *sc, s7_pointer e);                         /* (
 bool s7_is_openlet(s7_pointer e);                                           /* (openlet? e) */
 s7_pointer s7_method(s7_scheme *sc, s7_pointer obj, s7_pointer method);
 
+void s7_set_bignum_enabled(s7_scheme *sc, bool enabled);
+bool s7_is_bignum_enabled(s7_scheme *sc);
+
 /* *s7* */
 /* these renamed because "s7_let_field" seems the same as "s7_let", but here we're referring to *s7*, not any let */
 s7_pointer s7_let_field_ref(s7_scheme *sc, s7_pointer sym);               /* (*s7* sym) */
