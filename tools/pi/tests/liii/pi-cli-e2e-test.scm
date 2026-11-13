@@ -119,8 +119,8 @@
             ) ;check-true
           ) ;let*
 
-          ;; 4. 报错 SAFETY（退出码 1，stdout 无输出，stderr 提示错误）
-          (let* ((cmd (list GF_BIN "pi" "--model" "safety" "--print" "Run safety check"))
+          ;; 4. 报错 SAFETY（mode text 时退出码 1，stdout 无输出，stderr 提示错误）
+          (let* ((cmd (list GF_BIN "pi" "--model" "safety" "--mode" "text" "--print" "Run safety check"))
                  (res (safe-exec cmd test-env 10000))
                  (code (car res))
                  (out (cadr res))
@@ -294,8 +294,8 @@
             (check code => 1)
             (check-true (string-contains? err "Session timeout exceeded"))
           ) ;let*
-          ;; 14. 多条 prompt 必须在同一会话中依次执行，print 只输出最终回复
-          (let* ((cmd (list GF_BIN "pi" "--model" "multi-prompt" "--print" "I am a frog" "who am I")
+          ;; 14. 多条 prompt 必须在同一会话中依次执行，text mode 只输出最终回复
+          (let* ((cmd (list GF_BIN "pi" "--model" "multi-prompt" "--mode" "text" "--print" "I am a frog" "who am I")
                  ) ;cmd
                  (res (safe-exec cmd test-env 15000))
                  (code (car res))
@@ -330,6 +330,22 @@
                 ) ;
             (check code => 1)
             (check-true (string-contains? err expected))
+          ) ;let*
+
+          ;; 17. --mode verbose 输出结构化人眼可读文本与 emoji
+          (let* ((cmd (list GF_BIN "pi" "--mode" "verbose" "--model" "multi-turn"
+                        "--print" "Run multi turn steps"
+                      ) ;list
+                 ) ;cmd
+                 (res (safe-exec cmd test-env 15000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (string-contains? out "💡 [Turn 1]"))
+            (check-true (string-contains? out "💻 [bash]"))
+            (check-true (string-contains? out "└─ [bash] ✅ 完成"))
+            (check-true (string-contains? out "🏁 [pi] Agent 本阶段结束"))
           ) ;let*
         ) ;lambda
         (lambda () (process-kill proc) (process-close proc))

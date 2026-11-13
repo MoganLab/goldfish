@@ -17,10 +17,12 @@
     (liii pi code core extensions registry)
     (liii pi code modes output)
     (liii pi code modes flow)
+    (liii pi code modes verbose)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
-    run-session-flow run-compact-flow resolve-app-mode
+    run-session-flow run-compact-flow resolve-app-mode make-verbose-emitter
+    handle-verbose-result display-verbose-event display-agent-event
   ) ;export
   (begin
 
@@ -58,7 +60,11 @@
                     (run-compact-flow parsed
                       cfg
                       initial-msg
-                      (if (eq? mode 'json) emit-json-event #f)
+                      (cond ((eq? mode 'json) emit-json-event)
+                            ((eq? mode 'verbose) (make-verbose-emitter))
+                            (else #f)
+                      ) ;cond
+                      (eq? mode 'json)
                     ) ;run-compact-flow
                    ) ;
                    ((eq? mode 'print)
@@ -71,6 +77,20 @@
                       ) ;lambda
                       #f
                       rest-msgs
+                    ) ;run-session-flow
+                   ) ;
+                   ((eq? mode 'verbose)
+                    (run-session-flow parsed
+                      cfg
+                      initial-msg
+                      (make-verbose-emitter)
+                      (lambda (res-msgs)
+                        (handle-verbose-result (and (pair? res-msgs) (car (reverse res-msgs))))
+                      ) ;lambda
+                      #f
+                      rest-msgs
+                      ;; verbose 面向人类：不回放投影/历史消息，只展示本次会话的实时事件
+                      #f
                     ) ;run-session-flow
                    ) ;
                    ((eq? mode 'json)
@@ -93,14 +113,9 @@
 
     (define (resolve-app-mode mode-option print-flag stdin-tty stdout-tty)
       (cond ((or (equal? mode-option "json") (eq? mode-option 'json)) 'json)
-            ((or print-flag
-               (equal? mode-option "text")
-               (eq? mode-option 'text)
-               (not stdin-tty)
-               (not stdout-tty)
-             ) ;or
-             'print
-            ) ;
+            ((or (equal? mode-option "verbose") (eq? mode-option 'verbose)) 'verbose)
+            ((or (equal? mode-option "text") (eq? mode-option 'text)) 'print)
+            ((or print-flag (not stdin-tty) (not stdout-tty)) 'verbose)
             (else 'interactive)
       ) ;cond
     ) ;define
