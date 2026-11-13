@@ -281,9 +281,9 @@
              ) ;list
            ) ;cfg-malformed
            (retry-opt-m '((enabled . #t)
-                         (max-retries . 3)
-                         (base-delay-ms . 20)
-                         (max-agent-delay-ms . 100))
+                          (max-retries . 3)
+                          (base-delay-ms . 20)
+                          (max-agent-delay-ms . 100))
            ) ;retry-opt-m
            (resp-m
              (gemini-request cfg-malformed
@@ -317,9 +317,9 @@
              ) ;list
            ) ;cfg-m-always
            (retry-opt-a '((enabled . #t)
-                         (max-retries . 2)
-                         (base-delay-ms . 10)
-                         (max-agent-delay-ms . 50))
+                          (max-retries . 2)
+                          (base-delay-ms . 10)
+                          (max-agent-delay-ms . 50))
            ) ;retry-opt-a
            (resp-a
              (gemini-request cfg-m-always
@@ -369,14 +369,14 @@
         '()
         10
       ) ;gemini-request
-      (let ((log-text (path-read-text (pi-log-file-path))))
+      (let ((log-file (pi-log-file-path)) (log-text (path-read-text (pi-log-file-path))))
         (check-true (string-contains? log-text "status=200"))
         (check-true (string-contains? log-text "reason=SAFETY"))
         (check-true (string-contains? log-text "reason=MALFORMED_RESPONSE"))
         (check-true (string-contains? log-text "finishReason"))
+        (pi-log-reset!)
+        (path-unlink log-file)
       ) ;let
-      (pi-log-reset!)
-      (path-unlink (pi-log-file-path))
       (path-rmdir log-dir)
       (path-rmdir log-base)
     ) ;let*

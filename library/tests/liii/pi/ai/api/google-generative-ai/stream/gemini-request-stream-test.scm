@@ -285,9 +285,9 @@
              ) ;list
            ) ;cfg-malformed
            (retry-opt-m '((enabled . #t)
-                         (max-retries . 3)
-                         (base-delay-ms . 20)
-                         (max-agent-delay-ms . 100))
+                          (max-retries . 3)
+                          (base-delay-ms . 20)
+                          (max-agent-delay-ms . 100))
            ) ;retry-opt-m
            (resp-m
              (gemini-request-stream cfg-malformed
@@ -322,9 +322,9 @@
              ) ;list
            ) ;cfg-m-always
            (retry-opt-a '((enabled . #t)
-                         (max-retries . 2)
-                         (base-delay-ms . 10)
-                         (max-agent-delay-ms . 50))
+                          (max-retries . 2)
+                          (base-delay-ms . 10)
+                          (max-agent-delay-ms . 50))
            ) ;retry-opt-a
            (resp-a
              (gemini-request-stream cfg-m-always
@@ -344,7 +344,6 @@
     ;; HTTP 200 + finishReason=SAFETY：内容判定类终态，不重试，也不因重试拖延
     ;; HTTP 200 + 异常 finishReason（SAFETY 不重试 + 与 MALFORMED_RESPONSE 均落盘）
     (let* ((log-base (make-temp-dir "gf-pi-log-malformed-" ""))
-           (log-dir (path-join (path log-base) "logs"))
            (mk-cfg
              (lambda (m retry-off?)
                (list (cons 'provider "google")
@@ -357,35 +356,39 @@
                ) ;list
              ) ;lambda
            ) ;mk-cfg
-           (t0-s (current-second))
           ) ;
       (pi-log-reset!)
-      (pi-log-init! log-dir)
-      (let ((resp-s
-              (gemini-request-stream (mk-cfg "safety" #f)
-                (list '((role . "user") (content . "unsafe")))
-                #f '() (lambda (ev) #f) 10
-              ) ;gemini-request-stream
-            ) ;resp-s
-            (dt-s (- (current-second) t0-s))
-           ) ;
+      (pi-log-init! log-base)
+      (let* ((t0-s (current-second))
+             (resp-s
+               (gemini-request-stream (mk-cfg "safety" #f)
+                 (list '((role . "user") (content . "unsafe")))
+                 #f
+                 '()
+                 (lambda (ev) #f)
+                 10
+               ) ;gemini-request-stream
+             ) ;resp-s
+            ) ;
         (check (cdr (assoc 'stopReason resp-s)) => "error")
         (check (cdr (assoc 'errorMessage resp-s)) => "SAFETY")
-        (check-true (< dt-s 5))
-      ) ;let
+        (check-true (< (- (current-second) t0-s) 5))
+      ) ;let*
       (gemini-request-stream (mk-cfg "malformed-response-always" #t)
         (list '((role . "user") (content . "always malformed")))
-        #f '() (lambda (ev) #f) 10
+        #f
+        '()
+        (lambda (ev) #f)
+        10
       ) ;gemini-request-stream
-      (let ((log-text (path-read-text (pi-log-file-path))))
+      (let ((log-file (pi-log-file-path)) (log-text (path-read-text (pi-log-file-path))))
         (check-true (string-contains? log-text "status=200"))
         (check-true (string-contains? log-text "reason=SAFETY"))
         (check-true (string-contains? log-text "reason=MALFORMED_RESPONSE"))
         (check-true (string-contains? log-text "finishReason"))
+        (pi-log-reset!)
+        (path-unlink log-file)
       ) ;let
-      (pi-log-reset!)
-      (path-unlink (pi-log-file-path))
-      (path-rmdir log-dir)
       (path-rmdir log-base)
     ) ;let*
   ) ;let*

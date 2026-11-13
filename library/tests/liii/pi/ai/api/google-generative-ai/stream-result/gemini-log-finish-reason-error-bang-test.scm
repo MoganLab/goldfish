@@ -38,29 +38,28 @@
 (check-set-mode! 'report-failed)
 
 (define *base* (make-temp-dir "gf-pi-log-fr-" ""))
+
 (define *dir* (path-join (path *base*) "logs"))
 
 (pi-log-reset!)
 (pi-log-init! *dir*)
 
 (gemini-log-finish-reason-error! "MALFORMED_RESPONSE"
-  "{\"candidates\":[{\"finishReason\":\"MALFORMED_RESPONSE\"}]}"
-  "google"
+  "{\"candidates\":[{\"finishReason\":\"MALFORMED_RESPONSE\"}]}" "google"
   "gemini-4-hydrogen"
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen:streamGenerateContent?alt=sse"
-  1
-  3
+  1 3
 ) ;gemini-log-finish-reason-error!
 
-(let ((content (path-read-text (pi-log-file-path))))
+(let ((log-file (pi-log-file-path)) (content (path-read-text (pi-log-file-path))))
   (check-true (string-contains? content "status=200"))
   (check-true (string-contains? content "reason=MALFORMED_RESPONSE"))
   (check-true (string-contains? content "retryable=yes"))
   (check-true (string-contains? content "model=gemini-4-hydrogen"))
+  (pi-log-reset!)
+  (path-unlink log-file)
 ) ;let
 
-(pi-log-reset!)
-(path-unlink (pi-log-file-path))
 (path-rmdir *dir*)
 (path-rmdir *base*)
 
