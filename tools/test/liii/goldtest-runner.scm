@@ -145,6 +145,7 @@
              ) ;mode
              (inc
                (if (or (not root)
+                     (string-starts? test-file "tests/")
                      (member root '("" "goldfish/" "r7rs/" "library/" "bignum/") string=?)
                    ) ;or
                  ""
