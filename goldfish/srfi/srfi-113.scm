@@ -36,13 +36,13 @@
     set-remove! set-partition set-partition! set-union set-intersection
     set-difference set-xor set-union! set-intersection! set-difference! set-xor!
     set-adjoin set-adjoin! set-replace set-replace! set-delete set-delete!
-    set-delete-all set-delete-all! bag bag-unfold bag-member bag-comparator
-    bag->list bag-copy list->bag list->bag! bag? bag-contains? bag-empty?
-    bag-disjoint? bag-size bag-find bag-count bag-any? bag-every? bag=? bag<?
-    bag>? bag<=? bag>=? bag-union bag-intersection bag-difference bag-xor
-    bag-union! bag-intersection! bag-difference! bag-xor! bag-adjoin bag-adjoin!
-    bag-replace bag-replace! bag-delete bag-delete! bag-delete-all
-    bag-delete-all! bag-search!
+    set-delete-all set-delete-all! set-comparator bag->set set->bag set->bag!
+    bag bag-unfold bag-member bag-comparator bag->list bag-copy list->bag
+    list->bag! bag? bag-contains? bag-empty? bag-disjoint? bag-size bag-find
+    bag-count bag-any? bag-every? bag=? bag<? bag>? bag<=? bag>=? bag-union
+    bag-intersection bag-difference bag-xor bag-union! bag-intersection!
+    bag-difference! bag-xor! bag-adjoin bag-adjoin! bag-replace bag-replace!
+    bag-delete bag-delete! bag-delete-all bag-delete-all! bag-search!
   ) ;export
   (begin
 
@@ -616,6 +616,18 @@
     (define (set-delete-all set element-list)
       (apply set-delete set element-list)
     ) ;define
+
+    (define (set-hash s)
+      (let ((comp (set-element-comparator s)) (acc 0))
+        (hash-table-for-each
+          (lambda (k v) (set! acc (modulo (+ acc (comparator-hash comp k)) 33554432)))
+          (set-hash-table s)
+        ) ;hash-table-for-each
+        acc
+      ) ;let
+    ) ;define
+
+    (define set-comparator (make-comparator set? set=? #f set-hash))
 
     (define-record-type <bag-impl>
       (%make-bag entries comparator)
@@ -1234,6 +1246,36 @@
           ) ;success
         ) ;if
       ) ;let*
+    ) ;define
+
+    (define (bag->set bag)
+      (check-bag bag)
+      (let ((result (make-set/comparator (bag-comparator bag))))
+        (hash-table-for-each (lambda (k entry) (set-add! result k)) (bag-entries bag))
+        result
+      ) ;let
+    ) ;define
+
+    (define (set->bag set)
+      (check-set set)
+      (let ((result (make-bag/comparator (set-element-comparator set))))
+        (hash-table-for-each (lambda (k v) (bag-increment! result k 1))
+          (set-hash-table set)
+        ) ;hash-table-for-each
+        result
+      ) ;let
+    ) ;define
+
+    (define (set->bag! bag set)
+      (check-bag bag)
+      (check-set set)
+      (if (not (eq? (bag-comparator bag) (set-element-comparator set)))
+        (value-error "different comparators" bag set)
+      ) ;if
+      (hash-table-for-each (lambda (k v) (bag-increment! bag k 1))
+        (set-hash-table set)
+      ) ;hash-table-for-each
+      bag
     ) ;define
 
   ) ;begin

@@ -23,7 +23,7 @@
 ;; ----
 ;; 无异常抛出
 
-(import (liii check) (liii set))
+(import (liii check) (liii set) (srfi srfi-128))
 
 (check-set-mode! 'report-failed)
 
@@ -50,5 +50,12 @@
 (define s-list-dup (list->set '(1 2 2 1)))
 (check-true (set=? s-1-2 s-list-dup))
 (check (set-size s-list-dup) => 2)
+
+;; 使用指定比较器从列表构造
+(define eq-comp (make-eq-comparator))
+(define s-list-eq (list->set-with-comparator eq-comp '(a b a c)))
+(check (set-size s-list-eq) => 3)
+(check-true (eq? (set-element-comparator s-list-eq) eq-comp))
+(check-true (set-contains? s-list-eq 'a))
 
 (check-report)
