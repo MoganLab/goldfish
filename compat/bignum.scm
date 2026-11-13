@@ -78,15 +78,15 @@
 (check "modulo-neg-neg" (modulo -100000000000000000005 -10))          ; [一致] -5
 (check "remainder-int64-min" (remainder -9223372036854775808 -1))     ; [一致] 0
 (check "modulo-int64-min" (modulo -9223372036854775808 -1))           ; [一致] 0
-(check "modulo-big-float" (modulo 100000000000000000005 3.0))         ; [不一致] gf: ERR | scheme: 0.0
+(check "modulo-big-float" (modulo 100000000000000000005 3.0))         ; [一致] 0.0
 
 ;; 6. gcd / lcm / expt
 (check "gcd-0" (gcd))                                                 ; [一致] 0
 (check "lcm-0" (lcm))                                                 ; [一致] 1
 (check "gcd-neg-1" (gcd -100000000000000000000))                      ; [一致] 100000000000000000000
 (check "lcm-neg-1" (lcm -100000000000000000000))                      ; [一致] 100000000000000000000
-(check "gcd-big-float" (gcd 100000000000000000000 1.0))               ; [不一致] gf: ERR | scheme: 1.0
-(check "lcm-big-float" (lcm 100000000000000000000 2.0))               ; [不一致] gf: ERR | scheme: 1e20
+(check "gcd-big-float" (gcd 100000000000000000000 1.0))               ; [一致] 1.0
+(check "lcm-big-float" (lcm 100000000000000000000 2.0))               ; [一致(显示格式)] gf: 1e+20 | scheme: 1e20
 (check "gcd-multi" (gcd 12 18 100000000000000000000))                 ; [一致] 2
 (check "lcm-big" (lcm 100000000000000000000 150000000000000000000))   ; [一致] 300000000000000000000
 (check "expt-0-0" (expt 0 0))                                         ; [一致] 1

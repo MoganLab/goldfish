@@ -49,3 +49,51 @@
 (define (bn:bigint->inexact b)
   (native:string->number (string-append (bigint->string b) ".0"))
 ) ;define
+
+(define (bn:any-int? x)
+  (or (bigint? x)
+    (and (bn:finite-real? x)
+      (or (native:integer? x) (native:= x (native:truncate x)))
+    ) ;and
+  ) ;or
+) ;define
+
+(define (bn:any-int->bigint x)
+  (cond ((bigint? x) x)
+        ((native:exact? x) (integer->bigint x))
+        ((not (native:< (native:abs x) 9007199254740992.0))
+         (bn:to-bigint (bn:inexact-large->bigint x))
+        ) ;
+        (else (integer->bigint (native:exact x)))
+  ) ;cond
+) ;define
+
+(define (bn:int-res->inexact b)
+  (let ((d (bn:demote-bigint b)))
+    (if (bigint? d) (bn:bigint->inexact d) (native:inexact d))
+  ) ;let
+) ;define
+
+(define (bn:floor x)
+  (if (bigint? x) x (native:floor x))
+) ;define
+
+(define (bn:ceiling x)
+  (if (bigint? x) x (native:ceiling x))
+) ;define
+
+(define (bn:truncate x)
+  (if (bigint? x) x (native:truncate x))
+) ;define
+
+(define (bn:round x)
+  (if (bigint? x) x (native:round x))
+) ;define
+
+(define (bn:numerator x)
+  (if (bigint? x) x (native:numerator x))
+) ;define
+
+(define (bn:denominator x)
+  (if (bigint? x) 1 (native:denominator x))
+) ;define

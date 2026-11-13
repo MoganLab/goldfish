@@ -31,19 +31,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 2. `modulo` / `gcd` / `lcm` 混合 `bigint` 与浮点整数时报错
-
-`bn:modulo`、`bn:gcd`、`bn:lcm` 在遇到非精确浮点参数时，将 `bigint` 转为 `double` 后交给 `native:modulo` / `native:gcd` / `native:lcm`，而 s7 原生实现要求参数在 `int64` 范围内或为有理数，导致报错。
-
-| 表达式 | `gf` 输出 | `scheme` 输出 |
-| --- | --- | --- |
-| `(modulo 100000000000000000005 3.0)` | 报错 `out-of-range: s7-modulo first argument, 1e+20, is out of range` | `0.0` |
-| `(gcd 100000000000000000000 1.0)` | 报错 `type-error: gcd first argument, 1e+20, is a real but should be a rational number` | `1.0` |
-| `(lcm 100000000000000000000 2.0)` | 报错 `out-of-range: inexact->exact first argument, 1e+20, is out of range` | `1e20` |
-
----
-
-## 3. `string->number` 与 Reader 对 `#e` / `#i` 前缀支持不一致
+## 2. `string->number` 与 Reader 对 `#e` / `#i` 前缀支持不一致
 
 | 表达式 | `gf` 输出 | `scheme` 输出 | 说明 |
 | --- | --- | --- | --- |
@@ -54,7 +42,7 @@ Goldfish 的 `bignum` 模式仅支持任意精度整数（`<bigint>`），尚未
 
 ---
 
-## 4. 输出格式与小细节差异
+## 3. 输出格式与小细节差异
 
 | 类别 | 表达式 | `gf` 输出 | `scheme` 输出 | 说明 |
 | --- | --- | --- | --- | --- |

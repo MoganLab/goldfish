@@ -191,41 +191,47 @@
 ) ;define
 
 (define (bn:quotient a b)
-  (if (or (bigint? a) (bigint? b))
-    (if (and (bn:exact-int? a) (bn:exact-int? b))
+  (cond
+   ((and (bn:exact-int? a) (bn:exact-int? b))
+    (if (or (bigint? a) (bigint? b) (and (native:= a INT64-MIN) (native:= b -1)))
       (bn:demote-bigint (bigint-quotient (bn:to-bigint a) (bn:to-bigint b)))
-      (native:quotient (if (bigint? a) (bn:bigint->inexact a) a)
-        (if (bigint? b) (bn:bigint->inexact b) b)
-      ) ;native:quotient
-    ) ;if
-    (if (and (native:integer? a)
-          (native:exact? a)
-          (native:integer? b)
-          (native:exact? b)
-          (native:= a INT64-MIN)
-          (native:= b -1)
-        ) ;and
-      (bigint-negate INT64-MIN-BIG)
       (native:quotient a b)
     ) ;if
-  ) ;if
+   ) ;
+   ((and (bn:any-int? a) (bn:any-int? b))
+    (bn:int-res->inexact (bigint-quotient (bn:any-int->bigint a) (bn:any-int->bigint b))
+    ) ;bn:int-res->inexact
+   ) ;
+   (else (native:quotient (if (bigint? a) (bn:bigint->inexact a) a)
+           (if (bigint? b) (bn:bigint->inexact b) b)
+         ) ;native:quotient
+   ) ;else
+  ) ;cond
 ) ;define
 
 (define (bn:remainder a b)
-  (if (or (bigint? a) (bigint? b))
-    (if (and (bn:exact-int? a) (bn:exact-int? b))
+  (cond
+   ((and (bn:exact-int? a) (bn:exact-int? b))
+    (if (or (bigint? a) (bigint? b))
       (bn:demote-bigint (bigint-remainder (bn:to-bigint a) (bn:to-bigint b)))
-      (native:remainder (if (bigint? a) (bn:bigint->inexact a) a)
-        (if (bigint? b) (bn:bigint->inexact b) b)
-      ) ;native:remainder
+      (native:remainder a b)
     ) ;if
-    (native:remainder a b)
-  ) ;if
+   ) ;
+   ((and (bn:any-int? a) (bn:any-int? b))
+    (bn:int-res->inexact (bigint-remainder (bn:any-int->bigint a) (bn:any-int->bigint b))
+    ) ;bn:int-res->inexact
+   ) ;
+   (else (native:remainder (if (bigint? a) (bn:bigint->inexact a) a)
+           (if (bigint? b) (bn:bigint->inexact b) b)
+         ) ;native:remainder
+   ) ;else
+  ) ;cond
 ) ;define
 
 (define (bn:modulo a b)
-  (if (or (bigint? a) (bigint? b))
-    (if (and (bn:exact-int? a) (bn:exact-int? b))
+  (cond
+   ((and (bn:exact-int? a) (bn:exact-int? b))
+    (if (or (bigint? a) (bigint? b))
       (let* ((ba (bn:to-bigint a)) (bb (bn:to-bigint b)) (r (bigint-remainder ba bb)))
         (bn:demote-bigint
           (if (or (bigint-zero? r) (eqv? (bigint-negative? r) (bigint-negative? bb)))
@@ -234,12 +240,27 @@
           ) ;if
         ) ;bn:demote-bigint
       ) ;let*
-      (native:modulo (if (bigint? a) (bn:bigint->inexact a) a)
-        (if (bigint? b) (bn:bigint->inexact b) b)
-      ) ;native:modulo
+      (native:modulo a b)
     ) ;if
-    (native:modulo a b)
-  ) ;if
+   ) ;
+   ((and (bn:any-int? a) (bn:any-int? b))
+    (let* ((ba (bn:any-int->bigint a))
+           (bb (bn:any-int->bigint b))
+           (r (bigint-remainder ba bb))
+          ) ;
+      (bn:int-res->inexact
+        (if (or (bigint-zero? r) (eqv? (bigint-negative? r) (bigint-negative? bb)))
+          r
+          (bigint-add r bb)
+        ) ;if
+      ) ;bn:int-res->inexact
+    ) ;let*
+   ) ;
+   (else (native:modulo (if (bigint? a) (bn:bigint->inexact a) a)
+           (if (bigint? b) (bn:bigint->inexact b) b)
+         ) ;native:modulo
+   ) ;else
+  ) ;cond
 ) ;define
 
 (define (bn:gcd . args)
@@ -250,16 +271,26 @@
       (if (null? xs)
         acc
         (let ((y (bn:abs (car xs))))
-          (if (and (bn:exact-int? acc) (bn:exact-int? y))
+          (cond
+           ((and (bn:exact-int? acc) (bn:exact-int? y))
             (loop (bn:demote-bigint (bigint-gcd (bn:to-bigint acc) (bn:to-bigint y)))
               (cdr xs)
             ) ;loop
-            (loop (native:gcd (if (bigint? acc) (bn:bigint->inexact acc) acc)
-                    (if (bigint? y) (bn:bigint->inexact y) y)
-                  ) ;native:gcd
+           ) ;
+           ((and (bn:any-int? acc) (bn:any-int? y))
+            (loop (bn:int-res->inexact (bigint-gcd (bn:any-int->bigint acc) (bn:any-int->bigint y))
+                  ) ;bn:int-res->inexact
               (cdr xs)
             ) ;loop
-          ) ;if
+           ) ;
+           (else
+             (loop (native:gcd (if (bigint? acc) (bn:bigint->inexact acc) acc)
+                     (if (bigint? y) (bn:bigint->inexact y) y)
+                   ) ;native:gcd
+               (cdr xs)
+             ) ;loop
+           ) ;else
+          ) ;cond
         ) ;let
       ) ;if
     ) ;let
@@ -280,11 +311,21 @@
               (and (bigint? y) (bigint-zero? y))
               (and (not (bigint? y)) (native:zero? y))
             ) ;or
-            (loop 0 (cdr xs))
+            (loop (if (and (bn:exact-int? acc) (bn:exact-int? y)) 0 0.0) (cdr xs))
            ) ;
            ((and (bn:exact-int? acc) (bn:exact-int? y))
             (let* ((ba (bn:to-bigint acc)) (bb (bn:to-bigint y)) (g (bigint-gcd ba bb)))
               (loop (bn:demote-bigint (bigint-multiply (bigint-quotient ba g) bb)) (cdr xs))
+            ) ;let*
+           ) ;
+           ((and (bn:any-int? acc) (bn:any-int? y))
+            (let* ((ba (bn:any-int->bigint acc))
+                   (bb (bn:any-int->bigint y))
+                   (g (bigint-gcd ba bb))
+                  ) ;
+              (loop (bn:int-res->inexact (bigint-multiply (bigint-quotient ba g) bb))
+                (cdr xs)
+              ) ;loop
             ) ;let*
            ) ;
            (else
@@ -334,28 +375,4 @@
          ) ;native:expt
    ) ;else
   ) ;cond
-) ;define
-
-(define (bn:floor x)
-  (if (bigint? x) x (native:floor x))
-) ;define
-
-(define (bn:ceiling x)
-  (if (bigint? x) x (native:ceiling x))
-) ;define
-
-(define (bn:truncate x)
-  (if (bigint? x) x (native:truncate x))
-) ;define
-
-(define (bn:round x)
-  (if (bigint? x) x (native:round x))
-) ;define
-
-(define (bn:numerator x)
-  (if (bigint? x) x (native:numerator x))
-) ;define
-
-(define (bn:denominator x)
-  (if (bigint? x) 1 (native:denominator x))
 ) ;define

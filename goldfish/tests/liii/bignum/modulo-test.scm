@@ -41,4 +41,6 @@
   0
 ) ;check
 
+(check (modulo (+ (expt 10 20) 5) 3.0) => 0.0)
+
 (check-report)

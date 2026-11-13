@@ -18,5 +18,7 @@
 (check-set-mode! 'report-failed)
 
 (check (gcd (expt 2 80) (* 3 (expt 2 70))) => (expt 2 70))
+(check (gcd (expt 10 20) 1.0) => 1.0)
+(check (gcd (expt 10 20) 15.0) => 5.0)
 
 (check-report)
