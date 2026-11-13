@@ -268,7 +268,7 @@
             (process-kill-tree proc)
             (drain!)
             (process-close proc)
-            (process-wait proc 500)
+            (process-wait proc 50)
             'aborted
           ) ;define
           (let loop

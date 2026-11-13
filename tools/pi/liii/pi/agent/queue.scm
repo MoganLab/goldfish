@@ -6,18 +6,19 @@
 
 (define-library (liii pi agent queue)
   (export make-pi-message-queue pi-message-queue? pi-queue-empty?
-    pi-queue-length pi-queue-idle? pi-queue-busy? pi-queue-items
-    pi-queue-enqueue! pi-queue-dequeue-next! pi-queue-finish-task!
-    pi-queue-set-busy! pi-queue-restore-all! make-pi-pending-queue
-    pi-pending-queue? pi-pending-mode pi-pending-mode-set! pi-pending-empty?
-    pi-pending-length pi-pending-items pi-pending-enqueue! pi-pending-peek
-    pi-pending-drain! pi-pending-clear!
+    pi-queue-length pi-queue-idle? pi-queue-busy? pi-queue-cancelling?
+    pi-queue-items pi-queue-enqueue! pi-queue-dequeue-next!
+    pi-queue-finish-task! pi-queue-set-busy! pi-queue-set-cancelling!
+    pi-queue-restore-all! make-pi-pending-queue pi-pending-queue?
+    pi-pending-mode pi-pending-mode-set! pi-pending-empty? pi-pending-length
+    pi-pending-items pi-pending-enqueue! pi-pending-peek pi-pending-drain!
+    pi-pending-clear!
   ) ;export
   (import (scheme base) (liii queue) (liii error))
   (begin
 
     ;; 消息等待队列与调度状态机
-    ;; status: 'idle（空闲） 或 'busy（有任务正在执行）
+    ;; status: 'idle（空闲）、'busy（有任务正在执行） 或 'cancelling（正在被 ESC 中止）
     ;; items:  等待被消费的消息队列（内部复用 SRFI-117 list-queue，FIFO）
     (define-record-type <pi-message-queue>
       (%make-pi-message-queue status items)
@@ -46,20 +47,24 @@
       (eq? (%pi-queue-status q) 'busy)
     ) ;define
 
+    (define (pi-queue-cancelling? q)
+      (eq? (%pi-queue-status q) 'cancelling)
+    ) ;define
+
     (define (pi-queue-items q)
       (list-queue-list (%pi-queue-items q))
     ) ;define
 
-    ;; 发送消息：无论当前是否 busy，都先进入等待队列
+    ;; 发送消息：无论当前是否 busy/cancelling，都先进入等待队列
     (define (pi-queue-enqueue! q msg)
       (list-queue-add-back! (%pi-queue-items q) msg)
       (pi-queue-length q)
     ) ;define
 
     ;; 调度出队消费：
-    ;; 只有当前不是 busy 且队列非空时，才能消费队首消息并转入 busy 状态
+    ;; 只有当前是 idle 且队列非空时，才能消费队首消息并转入 busy 状态
     (define (pi-queue-dequeue-next! q)
-      (cond ((pi-queue-busy? q) #f)
+      (cond ((not (pi-queue-idle? q)) #f)
             ((pi-queue-empty? q) #f)
             (else (%pi-queue-status-set! q 'busy)
               (list-queue-remove-front! (%pi-queue-items q))
@@ -67,7 +72,7 @@
       ) ;cond
     ) ;define
 
-    ;; 前序任务完成通知：解除 busy 锁定，恢复为 idle
+    ;; 前序任务完成通知：解除 busy/cancelling 锁定，恢复为 idle
     (define (pi-queue-finish-task! q)
       (%pi-queue-status-set! q 'idle)
     ) ;define
@@ -77,6 +82,11 @@
     ;; 在消费消息时原子地转入 busy，保证“busy 必有对应消费”这一不变量
     (define (pi-queue-set-busy! q)
       (%pi-queue-status-set! q 'busy)
+    ) ;define
+
+    ;; 标记队列为 cancelling 状态（用户按 ESC 中止任务时调用）
+    (define (pi-queue-set-cancelling! q)
+      (%pi-queue-status-set! q 'cancelling)
     ) ;define
 
     ;; 快捷键撤回队列：排空所有未被消费的消息并返回

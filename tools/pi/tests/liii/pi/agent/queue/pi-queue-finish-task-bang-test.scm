@@ -27,4 +27,13 @@
   (check-false (pi-queue-busy? q))
 ) ;let
 
+;; 2. 验证完成任务后解除 cancelling 锁定
+(let ((q (make-pi-message-queue)))
+  (pi-queue-set-cancelling! q)
+  (check-true (pi-queue-cancelling? q))
+  (pi-queue-finish-task! q)
+  (check-true (pi-queue-idle? q))
+  (check-false (pi-queue-cancelling? q))
+) ;let
+
 (check-report)
