@@ -67,6 +67,7 @@
   ) ;check-catch
   (let ((content (path-read-text (pi-log-file-path))))
     (check-true (string-contains? content "web-search.json schema validation error"))
+    (check-true (string-contains? content "web-search.schema.json"))
     (check-true (string-contains? content "$.provider"))
     (check-true (string-contains? content "$.model"))
     (check-true (string-contains? content "$.unknownKey"))

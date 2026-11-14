@@ -30,6 +30,7 @@
     ) ;define-record-type
 
     (define %cached-schema #f)
+    (define %cached-schema-path #f)
 
     (define (%web-search-schema)
       (unless %cached-schema
@@ -42,6 +43,7 @@
               ) ;schema-path
              ) ;
           (when schema-path
+            (set! %cached-schema-path (path->string schema-path))
             (set! %cached-schema (string->json (path-read-text schema-path)))
           ) ;when
         ) ;let
@@ -56,6 +58,7 @@
         (json-schema-error-keyword err)
         "): "
         (json-schema-error-message err)
+        (if %cached-schema-path (string-append " (schema: " %cached-schema-path ")") "")
       ) ;string-append
     ) ;define
 
