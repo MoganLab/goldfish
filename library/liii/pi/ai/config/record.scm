@@ -9,18 +9,18 @@
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
-    pi-retry-config->alist pi-settings pi-settings? pi-settings-default-provider
-    pi-settings-default-model pi-settings-default-thinking-level
-    pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
-    pi-settings->alist pi-credential pi-credential? pi-credential-provider
-    pi-settings-hide-thinking-block pi-settings-session-dir pi-credential-key
-    pi-settings-model-thinking-level pi-settings-model-thinking-levels
-    pi-settings-enable-skill-commands pi-credential-type pi-credential->alist
-    pi-model-metadata pi-model-metadata? pi-model-metadata-id
-    pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
-    pi-model-metadata-context-window pi-model-metadata-max-tokens
-    pi-model-metadata-matched? pi-model-metadata->alist
-    pi-model-metadata-from-alist
+    pi-retry-config->alist json->pi-retry-config pi-settings pi-settings?
+    pi-settings-default-provider pi-settings-default-model
+    pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
+    pi-settings-default-tools pi-settings->alist pi-credential pi-credential?
+    pi-credential-provider pi-settings-hide-thinking-block
+    pi-settings-session-dir pi-credential-key pi-settings-model-thinking-level
+    pi-settings-model-thinking-levels pi-settings-enable-skill-commands
+    pi-credential-type pi-credential->alist pi-model-metadata pi-model-metadata?
+    pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
+    pi-model-metadata-base-url pi-model-metadata-context-window
+    pi-model-metadata-max-tokens pi-model-metadata-matched?
+    pi-model-metadata->alist pi-model-metadata-from-alist
   ) ;export
   (begin
 
@@ -47,6 +47,59 @@
           (cons 'max-agent-delay-ms (pi-retry-config-max-agent-delay-ms r))
           (cons 'provider-max-retries (pi-retry-config-provider-max-retries r))
         ) ;list
+      ) ;if
+    ) ;define
+
+    (define (%json-dict-pair obj str-key sym-key)
+      (let loop
+        ((rest obj))
+        (cond ((not (pair? rest)) #f)
+              ((and (pair? (car rest))
+                 (let ((k (car (car rest))))
+                   (or (equal? k str-key) (equal? k sym-key))
+                 ) ;let
+               ) ;and
+               (car rest)
+              ) ;
+              (else (loop (cdr rest)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%json-dict-ref obj key default-val)
+      (if (not (pair? obj))
+        default-val
+        (let* ((str-key (if (symbol? key) (symbol->string key) key))
+               (sym-key (if (string? key) (string->symbol key) key))
+               (pair (%json-dict-pair obj str-key sym-key))
+              ) ;
+          (if pair (cdr pair) default-val)
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%normalize-json-bool val)
+      (case val
+       ((true) #t)
+       ((false) #f)
+       (else val)
+      ) ;case
+    ) ;define
+
+    (define (json->pi-retry-config obj)
+      (if (pi-retry-config? obj)
+        obj
+        (let* ((provider-obj (%json-dict-ref obj "provider" '()))
+               (raw-provider-max (%json-dict-ref provider-obj "maxRetries" #f))
+               (provider-max (if (eq? raw-provider-max 'null) #f raw-provider-max))
+              ) ;
+          (%make-pi-retry-config (if (%normalize-json-bool (%json-dict-ref obj "enabled" #t)) #t #f)
+            (%json-dict-ref obj "maxRetries" 3)
+            (%json-dict-ref obj "baseDelayMs" 2000)
+            (%json-dict-ref obj "maxAgentDelayMs" 60000)
+            provider-max
+          ) ;%make-pi-retry-config
+        ) ;let*
       ) ;if
     ) ;define
 
