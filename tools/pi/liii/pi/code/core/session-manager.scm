@@ -17,6 +17,7 @@
     (liii sort)
     (liii time)
     (liii pi code cli args)
+    (liii pi code config query)
     (liii pi code core tools bash)
     (liii pi code core tools read)
     (liii pi ai template)
@@ -211,7 +212,7 @@
       (let* ((cli-dir (%non-empty-session-path (pi-args-ref parsed 'session-dir)))
              (env-dir (%non-empty-session-path (lookup-env-var "PI_CODING_AGENT_SESSION_DIR" opt-env))
              ) ;env-dir
-             (settings (cdr (or (assoc 'settings cfg) '(#f . #f))))
+             (settings (pi-cfg-ref cfg 'settings))
              (settings-dir
                (%non-empty-session-path (cond ((not settings) #f)
                                               ((assoc 'session-dir settings) => cdr)
@@ -223,7 +224,7 @@
             ) ;
         (if override
           (pi-resolve-path override cwd)
-          (get-session-dir (cdr (assoc 'agent-dir cfg)) cwd)
+          (get-session-dir (pi-cfg-ref cfg 'agent-dir) cwd)
         ) ;if
       ) ;let*
     ) ;define
