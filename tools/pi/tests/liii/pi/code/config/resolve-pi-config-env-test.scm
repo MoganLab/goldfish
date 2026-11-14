@@ -93,10 +93,10 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-pro")
-  (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "deepseek")
+  (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-pro")
+  (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     ;; fixture 中 baseUrl 为 https://api.deepseek.com，生产语义归一化为 /anthropic
     (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
     (check (cdr (assoc 'name meta)) => "DeepSeek V4 Pro (fixture)")
@@ -112,10 +112,10 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
-  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
-  (check (cdr (assoc 'api-key cfg)) => "glm-token-xyz-123")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "zai-coding-cn")
+  (check (pi-cfg-ref cfg 'model-id) => "glm-5.3")
+  (check (pi-cfg-ref cfg 'api-key) => "glm-token-xyz-123")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
     (check (cdr (assoc 'name meta)) => "GLM 5.3 (fixture)")
   ) ;let
@@ -128,10 +128,10 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "kimi-coding")
-  (check (cdr (assoc 'model-id cfg)) => "kimi-for-coding")
-  (check (cdr (assoc 'api-key cfg)) => "kimi-key-xyz-123")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "kimi-coding")
+  (check (pi-cfg-ref cfg 'model-id) => "kimi-for-coding")
+  (check (pi-cfg-ref cfg 'api-key) => "kimi-key-xyz-123")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
     (check (cdr (assoc 'name meta)) => "Kimi K2.7 Code (fixture)")
   ) ;let
@@ -142,10 +142,10 @@
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'api-key cfg)) => "fixture-google-key-051")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-3.8-flash")
+  (check (pi-cfg-ref cfg 'api-key) => "fixture-google-key-051")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'name meta)) => "Gemini 3.8 Flash (fixture)")
     (check (cdr (assoc 'base-url meta))
       =>
@@ -159,10 +159,10 @@
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'api-key cfg)) => #f)
-  (check (cdr (assoc 'thinking-level cfg)) => "medium")
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-3.8-flash")
+  (check (pi-cfg-ref cfg 'api-key) => #f)
+  (check (pi-cfg-ref cfg 'thinking-level) => "medium")
 ) ;let*
 
 ;; 6. 污染环境下解析结果不变（防回归：真实进程环境不得影响配置解析）
@@ -177,10 +177,10 @@
         ) ;with-env-vars
       ) ;cfg
      ) ;
-  (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-pro")
-  (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "deepseek")
+  (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-pro")
+  (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
     (check (cdr (assoc 'name meta)) => "DeepSeek V4 Pro (fixture)")
     (check (cdr (assoc 'context-window meta)) => 1000000)
@@ -198,9 +198,9 @@
         ) ;with-env-vars
       ) ;cfg
      ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'api-key cfg)) => "fixture-google-key-051")
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-3.8-flash")
+  (check (pi-cfg-ref cfg 'api-key) => "fixture-google-key-051")
 ) ;let
 
 ;; 6.2 污染环境下 config-empty fixture 仍等价于「无用户配置」
@@ -214,9 +214,9 @@
         ) ;with-env-vars
       ) ;cfg
      ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'api-key cfg)) => #f)
-  (check (cdr (assoc 'thinking-level cfg)) => "medium")
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'api-key) => #f)
+  (check (pi-cfg-ref cfg 'thinking-level) => "medium")
 ) ;let
 
 (check-report)

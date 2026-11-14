@@ -96,10 +96,10 @@
     ) ;let
     (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
       ;; 未显式指定 --provider/--model/--thinking 时，状态覆盖 cfg 默认值
-      (check (cdr (assoc 'provider merged)) => "minimax-cn")
-      (check (cdr (assoc 'model-id merged)) => "MiniMax-M3.1-Flash")
-      (check (cdr (assoc 'thinking-level merged)) => "high")
-      (check (cdr (assoc 'api-key merged)) => "fixture-minimax-key")
+      (check (pi-cfg-ref merged 'provider) => "minimax-cn")
+      (check (pi-cfg-ref merged 'model-id) => "MiniMax-M3.1-Flash")
+      (check (pi-cfg-ref merged 'thinking-level) => "high")
+      (check (pi-cfg-ref merged 'api-key) => "fixture-minimax-key")
       (check warnings => '())
     ) ;let-values
   ) ;let-values

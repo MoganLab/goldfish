@@ -60,12 +60,12 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'api-key cfg)) => "test-google-key-from-auth-json")
-  (check (cdr (assoc 'proxy-url cfg)) => "http://127.0.0.1:7890")
-  (check (cdr (assoc 'tools cfg)) => '("read" "bash" "edit" "write"))
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-3.8-flash")
+  (check (pi-cfg-ref cfg 'api-key) => "test-google-key-from-auth-json")
+  (check (pi-cfg-ref cfg 'proxy-url) => "http://127.0.0.1:7890")
+  (check (pi-cfg-ref cfg 'tools) => '("read" "bash" "edit" "write"))
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 1048576)
     (check (cdr (assoc 'max-tokens meta)) => 65536)
@@ -79,8 +79,8 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-pro")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'matched? meta)) => #t)
     ;; models-store.json 不再参与合并，取内置目录值
     (check (cdr (assoc 'context-window meta)) => 1048576)
@@ -94,7 +94,7 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-pro")
 ) ;let*
 
 ;; 4. CLI --proxy 覆盖 settings.httpProxy
@@ -102,7 +102,7 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080")
+  (check (pi-cfg-ref cfg 'proxy-url) => "socks5h://127.0.0.1:1080")
 ) ;let*
 
 ;; 5. CLI --provider "zai-coding-cn" 默认模型、端点与凭据解析（anthropic provider 已移除）
@@ -112,10 +112,10 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
-  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
-  (check (cdr (assoc 'api-key cfg)) => "zai-key-987654321")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "zai-coding-cn")
+  (check (pi-cfg-ref cfg 'model-id) => "glm-5.3")
+  (check (pi-cfg-ref cfg 'api-key) => "zai-key-987654321")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'base-url meta))
       =>
@@ -132,8 +132,8 @@
               ("HOME" . "/non-existent")))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'api-key cfg)) => #f)
+  (check (pi-cfg-ref cfg 'provider) => "deepseek")
+  (check (pi-cfg-ref cfg 'api-key) => #f)
 ) ;let*
 
 ;; 6. 未知模型：直接报 pi-config-error
@@ -154,7 +154,7 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'tools cfg)) => '("read"))
+  (check (pi-cfg-ref cfg 'tools) => '("read"))
 ) ;let*
 
 ;; 8.2b 无 settings defaultTools 时扩展 default-active 并入默认集
@@ -162,7 +162,7 @@
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'tools cfg)) => '("read" "web_search"))
+  (check (pi-cfg-ref cfg 'tools) => '("read" "web_search"))
 ) ;let*
 
 ;; 8.4 resolve-pi-config 端到端 no-tools 验证
@@ -170,14 +170,14 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'tools cfg)) => '())
+  (check (pi-cfg-ref cfg 'tools) => '())
 ) ;let*
 
 (let* ((args (parse-pi-args '("--no-builtin-tools")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'tools cfg)) => '())
+  (check (pi-cfg-ref cfg 'tools) => '())
 ) ;let*
 
 ;; 9. CLI --provider "zai-coding-cn" 凭据环境变量链
@@ -186,10 +186,10 @@
               ("GLM_API_KEY" . "glm-key-456")))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
-  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
-  (check (cdr (assoc 'api-key cfg)) => "glm-key-456")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "zai-coding-cn")
+  (check (pi-cfg-ref cfg 'model-id) => "glm-5.3")
+  (check (pi-cfg-ref cfg 'api-key) => "glm-key-456")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 1000000)
   ) ;let
@@ -211,10 +211,10 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-pro")
-  (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "deepseek")
+  (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-pro")
+  (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
     (check (cdr (assoc 'context-window meta)) => 1000000)
     (check (cdr (assoc 'max-tokens meta)) => 384000)
@@ -229,10 +229,10 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-flash")
-  (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "deepseek")
+  (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-flash")
+  (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 1000000)
   ) ;let
@@ -243,8 +243,8 @@
               ("HOME" . "/non-existent")))
       ) ;
   (let ((cfg (resolve-pi-config args env)))
-    (check (cdr (assoc 'provider cfg)) => "deepseek")
-    (check (cdr (assoc 'api-key cfg)) => #f)
+    (check (pi-cfg-ref cfg 'provider) => "deepseek")
+    (check (pi-cfg-ref cfg 'api-key) => #f)
   ) ;let
 ) ;let*
 
@@ -253,9 +253,9 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "kimi-coding")
-  (check (cdr (assoc 'model-id cfg)) => "k3")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "kimi-coding")
+  (check (pi-cfg-ref cfg 'model-id) => "k3")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
     (check (cdr (assoc 'context-window meta)) => 1048576)
@@ -266,16 +266,16 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
-  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
+  (check (pi-cfg-ref cfg 'provider) => "zai-coding-cn")
+  (check (pi-cfg-ref cfg 'model-id) => "glm-5.3")
 ) ;let*
 
 (let* ((args (parse-pi-args '("--model" "deepseek-v4-flash")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-flash")
+  (check (pi-cfg-ref cfg 'provider) => "deepseek")
+  (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-flash")
 ) ;let*
 
 ;; 显式 --provider 与 --model 归属不匹配时直接报错
@@ -297,21 +297,21 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'thinking-level cfg)) => "medium")
+  (check (pi-cfg-ref cfg 'thinking-level) => "medium")
 ) ;let*
 
 (let* ((args (parse-pi-args '("--thinking" "low")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'thinking-level cfg)) => "low")
+  (check (pi-cfg-ref cfg 'thinking-level) => "low")
 ) ;let*
 
 (let* ((args (parse-pi-args '("--thinking" "off")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'thinking-level cfg)) => "off")
+  (check (pi-cfg-ref cfg 'thinking-level) => "off")
 ) ;let*
 
 ;; 无 settings、无 CLI 时回退默认级别 medium（对齐上游 DEFAULT_THINKING_LEVEL）
@@ -321,7 +321,7 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'thinking-level cfg)) => "medium")
+  (check (pi-cfg-ref cfg 'thinking-level) => "medium")
 ) ;let*
 
 ;; 13.1 per-model 覆盖（settings.modelThinkingLevels）优先于全局默认，且被 CLI 压过
@@ -329,15 +329,15 @@
        (env `(("PI_CODING_AGENT_DIR" . ,MODEL_THINKING_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'thinking-level cfg)) => "high")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-3.8-flash")
+  (check (pi-cfg-ref cfg 'thinking-level) => "high")
 ) ;let*
 
 (let* ((args (parse-pi-args '("--thinking" "low")))
        (env `(("PI_CODING_AGENT_DIR" . ,MODEL_THINKING_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'thinking-level cfg)) => "low")
+  (check (pi-cfg-ref cfg 'thinking-level) => "low")
 ) ;let*
 
 ;; 13.2 per-model 覆盖遇到不支持思考的模型时收敛为 off
@@ -347,9 +347,9 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'model-id cfg)) => "plain-model")
-  (check (cdr (assoc 'supports-thinking cfg)) => #f)
-  (check (cdr (assoc 'thinking-level cfg)) => "off")
+  (check (pi-cfg-ref cfg 'model-id) => "plain-model")
+  (check (pi-cfg-ref cfg 'supports-thinking) => #f)
+  (check (pi-cfg-ref cfg 'thinking-level) => "off")
 ) ;let*
 
 ;; 14. 严格匹配下正常命中：内置目录模型不被误判
@@ -357,10 +357,10 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-flash")
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-flash")
   (check
-    (cdr (assoc 'matched? (cdr (assoc 'model-meta cfg))))
+    (cdr (assoc 'matched? (pi-cfg-ref cfg 'model-meta)))
     =>
     #t
   ) ;check

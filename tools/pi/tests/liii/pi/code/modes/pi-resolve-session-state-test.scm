@@ -86,13 +86,13 @@
        ) ;state
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
-    (check (cdr (assoc 'provider merged)) => "minimax-cn")
-    (check (cdr (assoc 'model-id merged)) => "MiniMax-M3.1-Flash")
-    (check (cdr (assoc 'api-key merged)) => "fixture-minimax-key")
-    (check (cdr (assoc 'thinking-level merged)) => "high")
+    (check (pi-cfg-ref merged 'provider) => "minimax-cn")
+    (check (pi-cfg-ref merged 'model-id) => "MiniMax-M3.1-Flash")
+    (check (pi-cfg-ref merged 'api-key) => "fixture-minimax-key")
+    (check (pi-cfg-ref merged 'thinking-level) => "high")
     (check warnings => '())
     ;; 原 cfg 不被破坏
-    (check (cdr (assoc 'provider cfg)) => "google")
+    (check (pi-cfg-ref cfg 'provider) => "google")
   ) ;let-values
 ) ;let*
 
@@ -110,10 +110,10 @@
        ) ;state
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
-    (check (cdr (assoc 'provider merged)) => "minimax-cn")
-    (check (cdr (assoc 'model-id merged)) => "MiniMax-M3.1-Flash")
+    (check (pi-cfg-ref merged 'provider) => "minimax-cn")
+    (check (pi-cfg-ref merged 'model-id) => "MiniMax-M3.1-Flash")
     ;; 模型被显式参数锁定，但 thinking 仍按状态应用
-    (check (cdr (assoc 'thinking-level merged)) => "high")
+    (check (pi-cfg-ref merged 'thinking-level) => "high")
     (check warnings => '())
   ) ;let-values
 ) ;let*
@@ -124,8 +124,8 @@
        (state (list (cons 'model (state-model "google" "gemini-2.5-pro"))))
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
-    (check (cdr (assoc 'provider merged)) => "minimax-cn")
-    (check (cdr (assoc 'model-id merged)) => (cdr (assoc 'model-id cfg)))
+    (check (pi-cfg-ref merged 'provider) => "minimax-cn")
+    (check (pi-cfg-ref merged 'model-id) => (pi-cfg-ref cfg 'model-id))
     (check warnings => '())
   ) ;let-values
 ) ;let*
@@ -135,7 +135,7 @@
        (state (list (cons 'thinkingLevel "high")))
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
-    (check (cdr (assoc 'thinking-level merged)) => "low")
+    (check (pi-cfg-ref merged 'thinking-level) => "low")
     (check warnings => '())
   ) ;let-values
 ) ;let*
@@ -156,9 +156,9 @@
                 ) ;pi-resolve-session-state
                ) ;
               ) ;
-    (check (cdr (assoc 'provider merged)) => "google")
-    (check (cdr (assoc 'model-id merged)) => "gemini-3.8-flash")
-    (check (cdr (assoc 'thinking-level merged)) => "medium")
+    (check (pi-cfg-ref merged 'provider) => "google")
+    (check (pi-cfg-ref merged 'model-id) => "gemini-3.8-flash")
+    (check (pi-cfg-ref merged 'thinking-level) => "medium")
     (check warnings => '())
   ) ;let-values
   ;; 只有 model，思考等级保持 cfg
@@ -169,10 +169,10 @@
                 ) ;pi-resolve-session-state
                ) ;
               ) ;
-    (check (cdr (assoc 'provider merged)) => "minimax-cn")
-    (check (cdr (assoc 'thinking-level merged))
+    (check (pi-cfg-ref merged 'provider) => "minimax-cn")
+    (check (pi-cfg-ref merged 'thinking-level)
       =>
-      (cdr (assoc 'thinking-level cfg))
+      (pi-cfg-ref cfg 'thinking-level)
     ) ;check
     (check warnings => '())
   ) ;let-values
@@ -183,8 +183,8 @@
 ;; ------------------------------------------------------------
 (let* ((cfg (base-cfg)) (state (list (cons 'model (state-model "openai" "gpt-5")))))
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
-    (check (cdr (assoc 'provider merged)) => "google")
-    (check (cdr (assoc 'model-id merged)) => "gemini-3.8-flash")
+    (check (pi-cfg-ref merged 'provider) => "google")
+    (check (pi-cfg-ref merged 'model-id) => "gemini-3.8-flash")
     (check (length warnings) => 1)
   ) ;let-values
 ) ;let*
@@ -193,8 +193,8 @@
        (state (list (cons 'model (state-model "google" "no-such-model"))))
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
-    (check (cdr (assoc 'provider merged)) => "google")
-    (check (cdr (assoc 'model-id merged)) => "gemini-3.8-flash")
+    (check (pi-cfg-ref merged 'provider) => "google")
+    (check (pi-cfg-ref merged 'model-id) => "gemini-3.8-flash")
     (check (length warnings) => 1)
   ) ;let-values
 ) ;let*
@@ -204,7 +204,7 @@
 ;; ------------------------------------------------------------
 (let* ((cfg (base-cfg)) (state (list (cons 'thinkingLevel "ludicrous"))))
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
-    (check (cdr (assoc 'thinking-level merged)) => "off")
+    (check (pi-cfg-ref merged 'thinking-level) => "off")
     (check (length warnings) => 1)
   ) ;let-values
 ) ;let*
@@ -220,16 +220,16 @@
            ) ;cons
          ) ;list
        ) ;plain-models-store
-       (cfg (cons (cons 'models-store plain-models-store) cfg))
+       (cfg (pi-cfg-set cfg 'models-store plain-models-store))
        (state (list (cons 'thinkingLevel "high")
                 (cons 'model (state-model "google" "plain-1"))
               ) ;list
        ) ;state
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
-    (check (cdr (assoc 'model-id merged)) => "plain-1")
-    (check (cdr (assoc 'supports-thinking merged)) => #f)
-    (check (cdr (assoc 'thinking-level merged)) => "off")
+    (check (pi-cfg-ref merged 'model-id) => "plain-1")
+    (check (pi-cfg-ref merged 'supports-thinking) => #f)
+    (check (pi-cfg-ref merged 'thinking-level) => "off")
     (check (length warnings) => 1)
   ) ;let-values
 ) ;let*

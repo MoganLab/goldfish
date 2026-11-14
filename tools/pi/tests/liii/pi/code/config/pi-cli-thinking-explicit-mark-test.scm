@@ -59,7 +59,7 @@
 (define ENV (list (cons "PI_CODING_AGENT_DIR" TMP-DIR)))
 
 (define (cfg-ref cfg key)
-  (let ((p (assoc key cfg))) (if p (cdr p) 'missing))
+  (pi-cfg-ref cfg key 'missing)
 ) ;define
 
 ;; 1. 显式 --thinking high：标记为 #t，来源为 cli，生效值 high
