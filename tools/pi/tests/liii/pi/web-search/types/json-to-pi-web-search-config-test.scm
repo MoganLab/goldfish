@@ -36,8 +36,9 @@
 ) ;let
 
 (let ((cfg (json->pi-web-search-config '(("provider" . "   ")
-                                         ("base-url" . "https://dash.example.com")
-                                         ("proxy" . "http://proxy:8080")
+                                         ("model" . "")
+                                         ("baseUrl" . "https://dash.example.com")
+                                         ("httpProxy" . "http://proxy:8080")
                                         )
            )
       )
