@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi code all-in-one types)
-  (import (scheme base) (liii string) (liii pi code config user-fs))
+  (import (scheme base) (liii list) (liii string) (liii pi code config user-fs))
   (export make-chain-node
     chain-node?
     chain-node-provider
@@ -18,6 +18,7 @@
     chain-def-id
     chain-def-name
     chain-def-nodes
+    json->chain-def
 
     make-all-in-one-cfg
     all-in-one-cfg?
@@ -95,6 +96,44 @@
 
     (define (make-chain-def id name nodes)
       (%make-chain-def id name nodes)
+    ) ;define
+
+    (define (json->chain-def obj)
+      (if (chain-def? obj)
+        obj
+        (if (not (pair? obj))
+          (begin
+            (pi-user-warn "all-in-one: chain 必须是对象")
+            #f
+          ) ;begin
+          (let* ((id (pi-user-dict-ref obj "id" #f))
+                 (name (pi-user-dict-ref obj "name" #f))
+                 (raw-nodes (pi-user-dict-ref obj "nodes" '()))
+                 (nodes-list (pi-user-vector->list raw-nodes))
+                ) ;
+            (if (not (%non-empty-string? id))
+              (begin
+                (pi-user-warn "all-in-one: chain 缺少必填字段 id")
+                #f
+              ) ;begin
+              (let* ((eff-name (if (%non-empty-string? name) name id))
+                     (valid-nodes
+                       (if (not (list? nodes-list))
+                         (begin
+                           (pi-user-warn (string-append "all-in-one: chain \"" id "\" 的 nodes 必须是数组")
+                           ) ;pi-user-warn
+                           '()
+                         ) ;begin
+                         (filter (lambda (x) x) (map (lambda (n) (json->chain-node n id)) nodes-list))
+                       ) ;if
+                     ) ;valid-nodes
+                    ) ;
+                (make-chain-def id eff-name valid-nodes)
+              ) ;let*
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;if
     ) ;define
 
     ;; 全局配置

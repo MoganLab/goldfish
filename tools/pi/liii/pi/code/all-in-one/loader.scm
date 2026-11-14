@@ -34,51 +34,6 @@
       ) ;let
     ) ;define
 
-    ;; 单条链解析：校验 id，提取 name，逐个解析 nodes 并过滤无效节点
-    (define (%parse-chain chain-data)
-      (if (not (pair? chain-data))
-        (begin
-          (pi-user-warn "all-in-one: chain 必须是对象")
-          #f
-        ) ;begin
-        (let* ((id (pi-user-dict-ref chain-data "id" #f))
-               (name (pi-user-dict-ref chain-data "name" #f))
-               (raw-nodes (pi-user-dict-ref chain-data "nodes" '()))
-               (nodes-list (pi-user-vector->list raw-nodes))
-              ) ;
-          (if
-            (not
-              (and (string? id) (not (string-null? (string-trim-both id))))
-            ) ;not
-            (begin
-              (pi-user-warn "all-in-one: chain 缺少必填字段 id")
-              #f
-            ) ;begin
-            (let* ((eff-name
-                     (if
-                       (and (string? name) (not (string-null? (string-trim-both name))))
-                       name
-                       id
-                     ) ;if
-                   ) ;eff-name
-                   (valid-nodes
-                     (if (not (list? nodes-list))
-                       (begin
-                         (pi-user-warn (string-append "all-in-one: chain \"" id "\" 的 nodes 必须是数组")
-                         ) ;pi-user-warn
-                         '()
-                       ) ;begin
-                       (filter (lambda (x) x) (map (lambda (n) (json->chain-node n id)) nodes-list))
-                     ) ;if
-                   ) ;valid-nodes
-                  ) ;
-              (make-chain-def id eff-name valid-nodes)
-            ) ;let*
-          ) ;if
-        ) ;let*
-      ) ;if
-    ) ;define
-
     ;; 解析 chains 数组，返回有效 <chain-def> 列表；格式非法时返回 #f
     (define (%parse-chains cfg-path raw-chains)
       (let ((chains-list (pi-user-vector->list raw-chains)))
@@ -87,7 +42,7 @@
             (pi-user-warn (string-append cfg-path ": chains 必须是数组"))
             #f
           ) ;begin
-          (filter (lambda (x) x) (map %parse-chain chains-list))
+          (filter (lambda (x) x) (map json->chain-def chains-list))
         ) ;if
       ) ;let
     ) ;define
