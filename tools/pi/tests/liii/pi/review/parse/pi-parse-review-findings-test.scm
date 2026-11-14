@@ -25,12 +25,12 @@
        (fs (pi-parse-review-findings text))
       ) ;
   (check (length fs) => 1)
-  (check (cdr (assoc 'severity (car fs))) => "CRITICAL")
-  (check (cdr (assoc 'file (car fs))) => "a.ts")
-  (check (cdr (assoc 'line (car fs))) => 42)
-  (check (cdr (assoc 'category (car fs))) => "security")
-  (check (cdr (assoc 'message (car fs))) => "bad")
-  (check (cdr (assoc 'suggestion (car fs))) => "fix it")
+  (check (pi-review-finding-severity (car fs)) => "CRITICAL")
+  (check (pi-review-finding-file (car fs)) => "a.ts")
+  (check (pi-review-finding-line (car fs)) => 42)
+  (check (pi-review-finding-category (car fs)) => "security")
+  (check (pi-review-finding-message (car fs)) => "bad")
+  (check (pi-review-finding-suggestion (car fs)) => "fix it")
 ) ;let*
 
 ;; 2. ```json 围栏
@@ -39,9 +39,9 @@
        (fs (pi-parse-review-findings text))
       ) ;
   (check (length fs) => 1)
-  (check (cdr (assoc 'severity (car fs))) => "HIGH")
-  (check (assoc 'line (car fs)) => #f)
-  (check (assoc 'suggestion (car fs)) => #f)
+  (check (pi-review-finding-severity (car fs)) => "HIGH")
+  (check (pi-review-finding-line (car fs)) => #f)
+  (check (pi-review-finding-suggestion (car fs)) => #f)
 ) ;let*
 
 ;; 2b. 多行 ```json 围栏（缩进与换行）
@@ -50,8 +50,8 @@
        (fs (pi-parse-review-findings text))
       ) ;
   (check (length fs) => 1)
-  (check (cdr (assoc 'severity (car fs))) => "HIGH")
-  (check (cdr (assoc 'line (car fs))) => 7)
+  (check (pi-review-finding-severity (car fs)) => "HIGH")
+  (check (pi-review-finding-line (car fs)) => 7)
 ) ;let*
 
 ;; 3. 无问题
@@ -63,28 +63,28 @@
        (fs (pi-parse-review-findings text))
       ) ;
   (check (length fs) => 1)
-  (check (cdr (assoc 'file (car fs))) => "y")
+  (check (pi-review-finding-file (car fs)) => "y")
 ) ;let*
 
 ;; 5. 非法 JSON 降级为 INFO parse-error，不抛异常
 (let* ((text "this is not json at all") (fs (pi-parse-review-findings text)))
   (check (length fs) => 1)
-  (check (cdr (assoc 'severity (car fs))) => "INFO")
-  (check (cdr (assoc 'category (car fs))) => "parse-error")
+  (check (pi-review-finding-severity (car fs)) => "INFO")
+  (check (pi-review-finding-category (car fs)) => "parse-error")
   (check-true
-    (string-contains? (cdr (assoc 'message (car fs)))
+    (string-contains? (pi-review-finding-message (car fs))
       "Could not parse structured review"
     ) ;string-contains?
   ) ;check-true
   (check-true
-    (string-contains? (cdr (assoc 'message (car fs))) "this is not json")
+    (string-contains? (pi-review-finding-message (car fs)) "this is not json")
   ) ;check-true
 ) ;let*
 
 ;; 6. 缺少 findings 数组也降级
 (let ((fs (pi-parse-review-findings "{\"result\":\"ok\"}")))
   (check (length fs) => 1)
-  (check (cdr (assoc 'category (car fs))) => "parse-error")
+  (check (pi-review-finding-category (car fs)) => "parse-error")
 ) ;let
 
 ;; 7. 文本前后有说明时提取 JSON 对象
@@ -93,7 +93,7 @@
        (fs (pi-parse-review-findings text))
       ) ;
   (check (length fs) => 1)
-  (check (cdr (assoc 'severity (car fs))) => "MEDIUM")
+  (check (pi-review-finding-severity (car fs)) => "MEDIUM")
 ) ;let*
 
 (check-report)

@@ -13,6 +13,7 @@
     (liii pi code core tools read)
     (liii pi code config)
     (liii pi ai config types)
+    (liii pi web-search types)
   ) ;import
   (export pi-resolve-search-base-url
     pi-resolve-deepseek-search-base-url
@@ -96,10 +97,9 @@
     ) ;define
 
     (define (pi-web-search-config-base-url ws-config)
-      (or (%cfg-str ws-config 'baseUrl)
-        (%cfg-str ws-config 'baseURL)
-        (%cfg-str ws-config 'base-url)
-      ) ;or
+      (and (pi-web-search-config? ws-config)
+        (pi-web-search-config-raw-base-url ws-config)
+      ) ;and
     ) ;define
 
     (define (%provider-base-url-from-store config provider)
@@ -192,34 +192,13 @@
       ) ;cond
     ) ;define
 
-    (define (%is-ws-config? obj)
-      (and (pair? obj)
-        (or (assoc 'provider obj)
-          (assoc "provider" obj)
-          (assoc 'model obj)
-          (assoc "model" obj)
-          (assoc 'baseUrl obj)
-          (assoc "baseUrl" obj)
-          (assoc 'baseURL obj)
-          (assoc "baseURL" obj)
-          (assoc 'base-url obj)
-          (assoc "base-url" obj)
-          (assoc 'httpProxy obj)
-          (assoc "httpProxy" obj)
-          (assoc 'proxy obj)
-          (assoc "proxy" obj)
-        ) ;or
-        #t
-      ) ;and
-    ) ;define
-
     (define (%unpack-search-base-url-args config rest)
       (let ((len (length rest)))
         (cond
          ((= len 0) (values #f (or (%cfg-str config 'provider) "google") #f))
          ((= len 1)
           (let ((a (car rest)))
-            (if (%is-ws-config? a)
+            (if (pi-web-search-config? a)
               (values a (or (%cfg-str config 'provider) "google") #f)
               (values #f (or (%cfg-str config 'provider) "google") a)
             ) ;if
@@ -243,7 +222,7 @@
                     (%unpack-search-base-url-args config rest)
                    ) ;
                   ) ;
-        (let* ((ws-config (if (%is-ws-config? raw-ws-config) raw-ws-config #f))
+        (let* ((ws-config (if (pi-web-search-config? raw-ws-config) raw-ws-config #f))
                (provider (%norm-provider (or raw-provider (%cfg-str config 'provider) "google"))
                ) ;provider
                (config-dir (%config-dir-from opt-env))
@@ -281,9 +260,9 @@
              (arg2
                (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) #f)
              ) ;arg2
-             (ws-config (if (%is-ws-config? arg1) arg1 #f))
+             (ws-config (if (pi-web-search-config? arg1) arg1 #f))
              (opt-env
-               (cond ((not (%is-ws-config? arg1)) arg1)
+               (cond ((not (pi-web-search-config? arg1)) arg1)
                      (arg2 arg2)
                      (else #f)
                ) ;cond

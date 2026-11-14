@@ -6,10 +6,25 @@
 
 (define-library (liii pi review parse)
   (import (scheme base) (liii string) (liii list) (liii json))
-  (export PI_REVIEW_SEVERITIES pi-parse-review-findings)
+  (export PI_REVIEW_SEVERITIES pi-parse-review-findings make-pi-review-finding
+    pi-review-finding? pi-review-finding-severity pi-review-finding-file
+    pi-review-finding-line pi-review-finding-category pi-review-finding-message
+    pi-review-finding-suggestion
+  ) ;export
   (begin
 
     (define PI_REVIEW_SEVERITIES '("CRITICAL" "HIGH" "MEDIUM" "INFO"))
+
+    (define-record-type <pi-review-finding>
+      (make-pi-review-finding severity file line category message suggestion)
+      pi-review-finding?
+      (severity pi-review-finding-severity)
+      (file pi-review-finding-file)
+      (line pi-review-finding-line)
+      (category pi-review-finding-category)
+      (message pi-review-finding-message)
+      (suggestion pi-review-finding-suggestion)
+    ) ;define-record-type
 
     (define (%jref obj key default)
       (if (not (pair? obj))
@@ -56,16 +71,15 @@
     ) ;define
 
     (define (%fallback text)
-      (list
-        (list (cons 'severity "INFO")
-          (cons 'file "")
-          (cons 'category "parse-error")
-          (cons 'message
-            (string-append "Could not parse structured review. Raw response: "
-              (%truncate-raw text)
-            ) ;string-append
-          ) ;cons
-        ) ;list
+      (list (make-pi-review-finding "INFO"
+              ""
+              #f
+              "parse-error"
+              (string-append "Could not parse structured review. Raw response: "
+                (%truncate-raw text)
+              ) ;string-append
+              #f
+            ) ;make-pi-review-finding
       ) ;list
     ) ;define
 
@@ -90,20 +104,15 @@
     ) ;define
 
     (define (%normalize-finding item)
-      (let* ((line (%jref item "line" #f))
-             (suggestion (%jref item "suggestion" #f))
-             (base (list (cons 'severity (%jref item "severity" ""))
-                     (cons 'file (%jref item "file" ""))
-                     (cons 'category (%jref item "category" ""))
-                     (cons 'message (%jref item "message" ""))
-                   ) ;list
-             ) ;base
-            ) ;
-        (append base
-          (if (number? line) (list (cons 'line line)) '())
-          (if (string? suggestion) (list (cons 'suggestion suggestion)) '())
-        ) ;append
-      ) ;let*
+      (let ((line (%jref item "line" #f)) (suggestion (%jref item "suggestion" #f)))
+        (make-pi-review-finding (%jref item "severity" "")
+          (%jref item "file" "")
+          (if (number? line) line #f)
+          (%jref item "category" "")
+          (%jref item "message" "")
+          (if (string? suggestion) suggestion #f)
+        ) ;make-pi-review-finding
+      ) ;let
     ) ;define
 
     (define (%extract-findings text)

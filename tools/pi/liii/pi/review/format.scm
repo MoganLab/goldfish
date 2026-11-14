@@ -14,12 +14,6 @@
   (export pi-format-review-findings)
   (begin
 
-    (define (%field key entry default)
-      (let ((pair (assoc key entry)))
-        (if pair (cdr pair) default)
-      ) ;let
-    ) ;define
-
     (define (%severity-order severity)
       (or (list-index (lambda (s) (string=? s severity)) PI_REVIEW_SEVERITIES) 99)
     ) ;define
@@ -27,8 +21,8 @@
     (define (%sorted findings)
       (list-sort
         (lambda (a b)
-          (< (%severity-order (%field 'severity a ""))
-            (%severity-order (%field 'severity b ""))
+          (< (%severity-order (pi-review-finding-severity a))
+            (%severity-order (pi-review-finding-severity b))
           ) ;<
         ) ;lambda
         findings
@@ -36,21 +30,23 @@
     ) ;define
 
     (define (%format-location finding)
-      (let ((file (%field 'file finding "")) (line (%field 'line finding #f)))
+      (let ((file (pi-review-finding-file finding))
+            (line (pi-review-finding-line finding))
+           ) ;
         (if line (string-append file ":" (number->string line)) file)
       ) ;let
     ) ;define
 
     (define (%format-finding finding)
-      (let* ((suggestion (%field 'suggestion finding #f))
+      (let* ((suggestion (pi-review-finding-suggestion finding))
              (line (string-append "- **"
-                     (%field 'severity finding "")
+                     (pi-review-finding-severity finding)
                      "** ["
-                     (%field 'category finding "")
+                     (pi-review-finding-category finding)
                      "] "
                      (%format-location finding)
                      ": "
-                     (%field 'message finding "")
+                     (pi-review-finding-message finding)
                    ) ;string-append
              ) ;line
             ) ;
@@ -59,7 +55,7 @@
     ) ;define
 
     (define (%count-severity findings severity)
-      (count (lambda (f) (string=? (%field 'severity f "") severity)) findings)
+      (count (lambda (f) (string=? (pi-review-finding-severity f) severity)) findings)
     ) ;define
 
     (define (%summary findings)

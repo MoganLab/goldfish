@@ -8,29 +8,29 @@
 ;; 参数
 ;; ----
 ;; findings : list?
-;; 审查发现的问题字典列表。
+;; 审查发现的 pi-review-finding 记录列表。
 ;;
 ;; 返回值
 ;; ----
 ;; string?
 ;; 格式化后的 Markdown 字符串。
 
-(import (liii check) (liii string) (liii pi review format))
+(import (liii check)
+  (liii string)
+  (liii pi review parse)
+  (liii pi review format)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define (finding severity file line category message . maybe-suggestion)
-  (append (list (cons 'severity severity)
-            (cons 'file file)
-            (cons 'line line)
-            (cons 'category category)
-            (cons 'message message)
-          ) ;list
-    (if (pair? maybe-suggestion)
-      (list (cons 'suggestion (car maybe-suggestion)))
-      '()
-    ) ;if
-  ) ;append
+  (make-pi-review-finding severity
+    file
+    line
+    category
+    message
+    (if (pair? maybe-suggestion) (car maybe-suggestion) #f)
+  ) ;make-pi-review-finding
 ) ;define
 
 ;; 无问题时输出固定文案。

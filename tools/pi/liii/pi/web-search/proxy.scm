@@ -12,6 +12,7 @@
     (liii path)
     (liii pi code core tools read)
     (liii pi code config)
+    (liii pi web-search types)
   ) ;import
   (export pi-resolve-search-proxy-url
     pi-resolve-search-proxy-alist
@@ -85,10 +86,9 @@
     ) ;define
 
     (define (pi-web-search-config-proxy ws-config)
-      (or (%cfg-str ws-config 'httpProxy)
-        (%cfg-str ws-config 'proxy)
-        (%cfg-str ws-config 'http-proxy)
-      ) ;or
+      (and (pi-web-search-config? ws-config)
+        (pi-web-search-config-raw-proxy ws-config)
+      ) ;and
     ) ;define
 
     (define (%provider-proxy-from-store config provider)

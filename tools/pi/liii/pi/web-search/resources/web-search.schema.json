@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://case-lambda.org/agent/web-search.schema.json",
+  "title": "Goldfish pi web-search 配置（web-search.json）",
+  "description": "web_search 工具的全局覆盖配置（位于配置目录 <config-dir>/web-search.json，或通过 PI_WEB_SEARCH_CONFIG 环境变量指定路径）。存在时对任何会话 provider/模型生效。",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "本 schema 的 URL，编辑器据此提供补全与校验，可省略"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "google",
+        "deepseek"
+      ],
+      "description": "联网搜索后端 provider，支持 google 或 deepseek；其余值或省略时由上层回退 google"
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "联网搜索使用的模型标识（如 gemini-2.5-flash、deepseek-chat）"
+    },
+    "baseUrl": {
+      "type": "string",
+      "minLength": 1,
+      "description": "自定义联网搜索 API 基础 URL"
+    },
+    "httpProxy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "联网搜索请求使用的 HTTP/HTTPS 代理 URL"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "provider": "deepseek"
+    },
+    {
+      "provider": "google",
+      "model": "gemini-2.5-flash",
+      "baseUrl": "https://generativelanguage.googleapis.com",
+      "httpProxy": "http://127.0.0.1:7890"
+    }
+  ]
+}

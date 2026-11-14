@@ -17,6 +17,7 @@
     (liii pi ai template)
     (liii pi web-search proxy)
     (liii pi web-search base-url)
+    (liii pi web-search types)
   ) ;import
   (export pi-resolve-google-api-key pi-resolve-search-base-url
     pi-resolve-search-proxy-url pi-resolve-search-proxy-alist
@@ -24,6 +25,8 @@
     pi-web-search-config-model pi-web-search-config-proxy
     pi-web-search-config-base-url pi-resolve-web-search-provider
     pi-resolve-deepseek-api-key pi-resolve-deepseek-search-base-url
+    make-pi-web-search-config pi-web-search-config?
+    pi-web-search-config-provider json->pi-web-search-config
   ) ;export
   (begin
 
@@ -176,12 +179,15 @@
                ) ;and
              ) ;default-path
             ) ;
-        (or (%read-json-file explicit) (%read-json-file default-path))
+        (json->pi-web-search-config (or (%read-json-file explicit) (%read-json-file default-path))
+        ) ;json->pi-web-search-config
       ) ;let*
     ) ;define
 
     (define (pi-web-search-config-model ws-config)
-      (%cfg-str ws-config 'model)
+      (and (pi-web-search-config? ws-config)
+        (pi-web-search-config-raw-model ws-config)
+      ) ;and
     ) ;define
 
     ;; 决定 web_search 用哪个后端：只有 google/deepseek 两个后端，
@@ -189,6 +195,10 @@
     ;; 优先级：显式 opt > web-search.json（全局覆盖） > 环境变量 > config
     (define (pi-resolve-web-search-provider config opt-provider ws-config . opt-env)
       (let* ((env (if (pair? opt-env) (car opt-env) #f))
+             (ws-provider (and (pi-web-search-config? ws-config)
+                            (pi-web-search-config-provider ws-config)
+                          ) ;and
+             ) ;ws-provider
              (raw
                (cond
                 ((and (string? opt-provider)
@@ -196,7 +206,7 @@
                  ) ;and
                  opt-provider
                 ) ;
-                ((%cfg-str ws-config 'provider))
+                (ws-provider)
                 ((%cfg-str config 'web-search-provider))
                 ((%env-ref-str "GF_PI_WEB_SEARCH_PROVIDER" env))
                 ((%cfg-str config 'provider))

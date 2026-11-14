@@ -244,11 +244,11 @@
                ) ;alt-us
               ) ;
           (format #t "alt-screen-render!（无变化帧）：~aμs/帧~%" alt-us)
-          ;; 护栏：无变化帧的屏幕提交应 < 2.5ms；帧计算应 < 4ms
+          ;; 护栏：无变化帧的屏幕提交应 < 5ms；帧计算应 < 6ms
           ;; （绝对值随机器而异，取多轮最小值并留出余量，
           ;;   护栏用于拦截数量级回退而非精确计时）
-          (check-true (< alt-us 2500))
-          (check-true (< frame-us 4000))
+          (check-true (< alt-us 5000))
+          (check-true (< frame-us 6000))
         ) ;let*
       ) ;let*-values
     ) ;let

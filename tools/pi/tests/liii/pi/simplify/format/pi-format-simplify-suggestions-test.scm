@@ -8,28 +8,28 @@
 ;; 参数
 ;; ----
 ;; suggestions : list?
-;; 简化建议 alist 列表。
+;; 简化建议 pi-simplify-suggestion 记录列表。
 ;;
 ;; 返回值
 ;; ----
 ;; string?
 ;; 格式化后的 Markdown 字符串。
 
-(import (liii check) (liii string) (liii pi simplify format))
+(import (liii check)
+  (liii string)
+  (liii pi simplify parse)
+  (liii pi simplify format)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define (suggestion file line category message . maybe-suggestion)
-  (append (list (cons 'file file)
-            (cons 'line line)
-            (cons 'category category)
-            (cons 'message message)
-          ) ;list
-    (if (pair? maybe-suggestion)
-      (list (cons 'suggestion (car maybe-suggestion)))
-      '()
-    ) ;if
-  ) ;append
+  (make-pi-simplify-suggestion file
+    line
+    category
+    message
+    (if (pair? maybe-suggestion) (car maybe-suggestion) #f)
+  ) ;make-pi-simplify-suggestion
 ) ;define
 
 ;; 无建议时输出固定文案。
