@@ -58,9 +58,13 @@
 (let ((log-dir (path-join (path-temp-dir) "pi-ws-types-log-test")))
   (pi-log-reset!)
   (pi-log-init! log-dir)
-  (check-false (json->pi-web-search-config '(("provider" . "openai"))))
-  (check-false (json->pi-web-search-config '(("model" . ""))))
-  (check-false (json->pi-web-search-config '(("unknownKey" . "val"))))
+  (check-catch 'web-search-config-error
+    (json->pi-web-search-config '(("provider" . "openai")))
+  ) ;check-catch
+  (check-catch 'web-search-config-error (json->pi-web-search-config '(("model" . ""))))
+  (check-catch 'web-search-config-error
+    (json->pi-web-search-config '(("unknownKey" . "val")))
+  ) ;check-catch
   (let ((content (path-read-text (pi-log-file-path))))
     (check-true (string-contains? content "web-search.json schema validation error"))
     (check-true (string-contains? content "$.provider"))

@@ -49,20 +49,18 @@
       %cached-schema
     ) ;define
 
+    (define (%format-schema-error err)
+      (string-append "web-search.json schema validation error at "
+        (json-schema-error-json-path err)
+        " ("
+        (json-schema-error-keyword err)
+        "): "
+        (json-schema-error-message err)
+      ) ;string-append
+    ) ;define
+
     (define (%log-schema-errors errs)
-      (for-each
-        (lambda (err)
-          (pi-log-error! (string-append "web-search.json schema validation error at "
-                           (json-schema-error-json-path err)
-                           " ("
-                           (json-schema-error-keyword err)
-                           "): "
-                           (json-schema-error-message err)
-                         ) ;string-append
-          ) ;pi-log-error!
-        ) ;lambda
-        errs
-      ) ;for-each
+      (for-each (lambda (err) (pi-log-error! (%format-schema-error err))) errs)
     ) ;define
 
     (define (json->pi-web-search-config data)
@@ -79,7 +77,7 @@
                  ) ;make-pi-web-search-config
                  (begin
                    (%log-schema-errors errs)
-                   #f
+                   (error 'web-search-config-error (%format-schema-error (car errs)))
                  ) ;begin
                ) ;if
              ) ;let*
