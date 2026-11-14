@@ -60,14 +60,6 @@
       ) ;and
     ) ;define
 
-    (define (%normalize-bool val)
-      (case val
-       ((true) #t)
-       ((false) #f)
-       (else val)
-      ) ;case
-    ) ;define
-
     (define (pi-load-settings config-dir)
       (let* ((filepath (path-join config-dir "settings.json"))
              (obj (or (pi-read-json-file filepath) '()))
@@ -153,14 +145,8 @@
     (define (pi-load-compaction-settings config-dir)
       (let* ((filepath (path-join config-dir "settings.json"))
              (obj (or (pi-read-json-file filepath) '()))
-             (defaults (pi-compaction-default-settings))
-             (node (json-dict-ref obj "compaction" '()))
-             (get (lambda (key default) (json-dict-ref node key default)))
             ) ;
-        (make-pi-compaction-settings (%normalize-bool (get "enabled" (pi-compaction-settings-enabled defaults)))
-          (get "reserveTokens" (pi-compaction-settings-reserve-tokens defaults))
-          (get "keepRecentTokens" (pi-compaction-settings-keep-recent-tokens defaults))
-        ) ;make-pi-compaction-settings
+        (json->pi-compaction-settings (json-dict-ref obj "compaction" '()))
       ) ;let*
     ) ;define
 

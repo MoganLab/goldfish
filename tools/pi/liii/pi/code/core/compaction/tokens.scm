@@ -15,9 +15,9 @@
     pi-context-token-estimate pi-should-compact? pi-compaction-default-settings
     make-pi-compaction-settings pi-compaction-settings?
     pi-compaction-settings-enabled pi-compaction-settings-reserve-tokens
-    pi-compaction-settings-keep-recent-tokens make-pi-context-token-estimate
-    pi-context-token-estimate? pi-context-token-estimate-tokens
-    pi-context-token-estimate-usage-tokens
+    pi-compaction-settings-keep-recent-tokens json->pi-compaction-settings
+    make-pi-context-token-estimate pi-context-token-estimate?
+    pi-context-token-estimate-tokens pi-context-token-estimate-usage-tokens
     pi-context-token-estimate-trailing-tokens
   ) ;export
   (begin
@@ -40,6 +40,65 @@
 
     (define (pi-compaction-default-settings)
       (make-pi-compaction-settings #t 16384 20000)
+    ) ;define
+
+    (define (%json-dict-pair obj str-key sym-key)
+      (let loop
+        ((rest obj))
+        (cond ((not (pair? rest)) #f)
+              ((and (pair? (car rest))
+                 (let ((k (car (car rest))))
+                   (or (equal? k str-key) (equal? k sym-key))
+                 ) ;let
+               ) ;and
+               (car rest)
+              ) ;
+              (else (loop (cdr rest)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%json-dict-ref obj key default-val)
+      (if (not (pair? obj))
+        default-val
+        (let* ((str-key (if (symbol? key) (symbol->string key) key))
+               (sym-key (if (string? key) (string->symbol key) key))
+               (pair (%json-dict-pair obj str-key sym-key))
+              ) ;
+          (if pair (cdr pair) default-val)
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%normalize-json-bool val)
+      (case val
+       ((true) #t)
+       ((false) #f)
+       (else val)
+      ) ;case
+    ) ;define
+
+    (define (json->pi-compaction-settings obj)
+      (if (pi-compaction-settings? obj)
+        obj
+        (let ((defaults (pi-compaction-default-settings)))
+          (make-pi-compaction-settings
+            (if (%normalize-json-bool (%json-dict-ref obj "enabled" (pi-compaction-settings-enabled defaults))
+                ) ;%normalize-json-bool
+              #t
+              #f
+            ) ;if
+            (%json-dict-ref obj
+              "reserveTokens"
+              (pi-compaction-settings-reserve-tokens defaults)
+            ) ;%json-dict-ref
+            (%json-dict-ref obj
+              "keepRecentTokens"
+              (pi-compaction-settings-keep-recent-tokens defaults)
+            ) ;%json-dict-ref
+          ) ;make-pi-compaction-settings
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%ref obj key)
