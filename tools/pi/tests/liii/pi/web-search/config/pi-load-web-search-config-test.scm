@@ -56,8 +56,8 @@
         ) ;pi-load-web-search-config
       ) ;cfg
      ) ;
-  (check-true (pair? cfg))
-  (check (cdr (assoc "provider" cfg)) => "deepseek")
+  (check-true (pi-web-search-config? cfg))
+  (check (pi-web-search-config-provider cfg) => "deepseek")
 ) ;let
 
 ;; 路径不存在时返回 #f
@@ -97,9 +97,9 @@
     (putenv "USERPROFILE" (path->string home))
   ) ;when
   (let ((cfg (pi-load-web-search-config '())))
-    (check-true (pair? cfg))
-    (check (cdr (assoc "provider" cfg)) => "google")
-    (check (cdr (assoc "model" cfg)) => "gemini-2.5-flash")
+    (check-true (pi-web-search-config? cfg))
+    (check (pi-web-search-config-provider cfg) => "google")
+    (check (pi-web-search-config-model cfg) => "gemini-2.5-flash")
   ) ;let
   (if saved-agent
     (putenv "PI_CODING_AGENT_DIR" saved-agent)

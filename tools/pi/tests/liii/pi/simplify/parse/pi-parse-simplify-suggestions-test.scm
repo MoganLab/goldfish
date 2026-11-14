@@ -20,7 +20,14 @@
 (check-set-mode! 'report-failed)
 
 (define (field key entry)
-  (cdr (assoc key entry))
+  (case key
+    ((file) (pi-simplify-suggestion-file entry))
+    ((line) (pi-simplify-suggestion-line entry))
+    ((category) (pi-simplify-suggestion-category entry))
+    ((message) (pi-simplify-suggestion-message entry))
+    ((suggestion) (pi-simplify-suggestion-suggestion entry))
+    (else #f)
+  ) ;case
 ) ;define
 
 ;; 1. 完整字段
@@ -64,7 +71,7 @@
       ) ;
   (check (length ss) => 1)
   (check (field 'file (car ss)) => "y.ts")
-  (check (assoc 'suggestion (car ss)) => #f)
+  (check (pi-simplify-suggestion-suggestion (car ss)) => #f)
 ) ;let*
 
 ;; 5. line 缺失仍可用，但 file/category/message 必需
@@ -73,7 +80,7 @@
        (ss (pi-parse-simplify-suggestions text))
       ) ;
   (check (length ss) => 1)
-  (check (assoc 'line (car ss)) => #f)
+  (check (pi-simplify-suggestion-line (car ss)) => #f)
 ) ;let*
 
 ;; 6. 顶层直接是数组也接受
@@ -88,7 +95,7 @@
 (let* ((text "not json at all") (ss (pi-parse-simplify-suggestions text)))
   (check (length ss) => 1)
   (check (field 'file (car ss)) => "")
-  (check (assoc 'line (car ss)) => #f)
+  (check (pi-simplify-suggestion-line (car ss)) => #f)
   (check (field 'category (car ss)) => "parse-error")
   (check-true (string-contains? (field 'message (car ss))
                 "Could not parse structured simplification suggestions"

@@ -17,7 +17,11 @@
 ;; string
 ;; 形如 "Compacted session: summarized 3 messages, kept 5, tokens before 1200" 的摘要串。
 
-(import (scheme base) (liii check) (liii pi code core compaction flow))
+(import (scheme base)
+  (liii check)
+  (liii pi code core compaction flow)
+  (liii pi code core compaction session)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -44,6 +48,14 @@
 (check (pi-format-compaction-summary result 42)
   =>
   "Compacted session: summarized 3 messages, kept 5, tokens before 1200"
+) ;check
+
+;; 4. 支持 pi-compaction-result record
+(check (pi-format-compaction-summary
+         (make-pi-compaction-result "c-1" "sum" "e-1" 1500 4 6 '())
+       ) ;pi-format-compaction-summary
+  =>
+  "Compacted session: summarized 4 messages, kept 6, tokens before 1500"
 ) ;check
 
 (check-report)

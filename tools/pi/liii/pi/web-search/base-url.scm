@@ -13,6 +13,7 @@
     (liii pi code core tools read)
     (liii pi code config)
     (liii pi ai config types)
+    (liii pi web-search types)
   ) ;import
   (export pi-resolve-search-base-url
     pi-resolve-deepseek-search-base-url
@@ -96,10 +97,13 @@
     ) ;define
 
     (define (pi-web-search-config-base-url ws-config)
-      (or (%cfg-str ws-config 'baseUrl)
-        (%cfg-str ws-config 'baseURL)
-        (%cfg-str ws-config 'base-url)
-      ) ;or
+      (if (pi-web-search-config? ws-config)
+        (pi-web-search-config-raw-base-url ws-config)
+        (or (%cfg-str ws-config 'baseUrl)
+          (%cfg-str ws-config 'baseURL)
+          (%cfg-str ws-config 'base-url)
+        ) ;or
+      ) ;if
     ) ;define
 
     (define (%provider-base-url-from-store config provider)

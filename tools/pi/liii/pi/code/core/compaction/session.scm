@@ -22,9 +22,27 @@
     (liii pi code core compaction summary)
   ) ;import
   (export pi-read-session-entries pi-last-compaction-summary
-    pi-append-compaction-entry! pi-compact-session!
+    pi-append-compaction-entry! pi-compact-session! make-pi-compaction-result
+    pi-compaction-result? pi-compaction-result-id pi-compaction-result-summary
+    pi-compaction-result-first-kept-entry-id pi-compaction-result-tokens-before
+    pi-compaction-result-summarized-count pi-compaction-result-kept-count
+    pi-compaction-result-usage
   ) ;export
   (begin
+
+    (define-record-type <pi-compaction-result>
+      (make-pi-compaction-result id summary first-kept-entry-id tokens-before
+        summarized-count kept-count usage
+      ) ;make-pi-compaction-result
+      pi-compaction-result?
+      (id pi-compaction-result-id)
+      (summary pi-compaction-result-summary)
+      (first-kept-entry-id pi-compaction-result-first-kept-entry-id)
+      (tokens-before pi-compaction-result-tokens-before)
+      (summarized-count pi-compaction-result-summarized-count)
+      (kept-count pi-compaction-result-kept-count)
+      (usage pi-compaction-result-usage)
+    ) ;define-record-type
 
     (define (%ref obj key)
       (let* ((str-key (if (symbol? key) (symbol->string key) key))
@@ -149,14 +167,14 @@
                    ) ;pi-append-compaction-entry!
                ) ;id
               ) ;
-          (list (cons 'id id)
-            (cons 'summary summary)
-            (cons 'first-kept-entry-id first-kept-id)
-            (cons 'tokens-before tokens-before)
-            (cons 'summarized-count (length summarize-msgs))
-            (cons 'kept-count (%kept-message-count entries cut-index))
-            (cons 'usage (cdr (assoc 'usage gen)))
-          ) ;list
+          (make-pi-compaction-result id
+            summary
+            first-kept-id
+            tokens-before
+            (length summarize-msgs)
+            (%kept-message-count entries cut-index)
+            (cdr (assoc 'usage gen))
+          ) ;make-pi-compaction-result
         ) ;let*
       ) ;let*
     ) ;define*

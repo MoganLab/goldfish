@@ -15,9 +15,19 @@
   (begin
 
     (define (%field key entry default)
-      (let ((pair (assoc key entry)))
-        (if pair (cdr pair) default)
-      ) ;let
+      (if (pi-simplify-suggestion? entry)
+        (case key
+         ((file) (pi-simplify-suggestion-file entry))
+         ((line) (pi-simplify-suggestion-line entry))
+         ((category) (pi-simplify-suggestion-category entry))
+         ((message) (pi-simplify-suggestion-message entry))
+         ((suggestion) (pi-simplify-suggestion-suggestion entry))
+         (else default)
+        ) ;case
+        (let ((pair (assoc key entry)))
+          (if pair (cdr pair) default)
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%line-of entry)

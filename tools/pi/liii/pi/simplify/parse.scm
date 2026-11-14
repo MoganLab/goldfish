@@ -6,8 +6,22 @@
 
 (define-library (liii pi simplify parse)
   (import (scheme base) (liii string) (liii list) (liii json))
-  (export pi-parse-simplify-suggestions)
+  (export pi-parse-simplify-suggestions make-pi-simplify-suggestion
+    pi-simplify-suggestion? pi-simplify-suggestion-file
+    pi-simplify-suggestion-line pi-simplify-suggestion-category
+    pi-simplify-suggestion-message pi-simplify-suggestion-suggestion
+  ) ;export
   (begin
+
+    (define-record-type <pi-simplify-suggestion>
+      (make-pi-simplify-suggestion file line category message suggestion)
+      pi-simplify-suggestion?
+      (file pi-simplify-suggestion-file)
+      (line pi-simplify-suggestion-line)
+      (category pi-simplify-suggestion-category)
+      (message pi-simplify-suggestion-message)
+      (suggestion pi-simplify-suggestion-suggestion)
+    ) ;define-record-type
 
     (define (%jref obj key default)
       (if (not (pair? obj))
@@ -57,15 +71,14 @@
     ) ;define
 
     (define (%fallback text)
-      (list
-        (list (cons 'file "")
-          (cons 'category "parse-error")
-          (cons 'message
-            (string-append "Could not parse structured simplification suggestions. Raw response: "
-              (%truncate-raw text)
-            ) ;string-append
-          ) ;cons
-        ) ;list
+      (list (make-pi-simplify-suggestion ""
+              #f
+              "parse-error"
+              (string-append "Could not parse structured simplification suggestions. Raw response: "
+                (%truncate-raw text)
+              ) ;string-append
+              #f
+            ) ;make-pi-simplify-suggestion
       ) ;list
     ) ;define
 
@@ -96,19 +109,16 @@
     ) ;define
 
     (define (%normalize item)
-      (let* ((line (%normalize-line (%jref item "line" #f)))
-             (suggestion (%jref item "suggestion" #f))
-             (base (list (cons 'file (%jref item "file" ""))
-                     (cons 'category (%jref item "category" ""))
-                     (cons 'message (%jref item "message" ""))
-                   ) ;list
-             ) ;base
-            ) ;
-        (append base
-          (if line (list (cons 'line line)) '())
-          (if (string? suggestion) (list (cons 'suggestion suggestion)) '())
-        ) ;append
-      ) ;let*
+      (let ((line (%normalize-line (%jref item "line" #f)))
+            (suggestion (%jref item "suggestion" #f))
+           ) ;
+        (make-pi-simplify-suggestion (%jref item "file" "")
+          line
+          (%jref item "category" "")
+          (%jref item "message" "")
+          (if (string? suggestion) suggestion #f)
+        ) ;make-pi-simplify-suggestion
+      ) ;let
     ) ;define
 
     (define (%raw-suggestions parsed)

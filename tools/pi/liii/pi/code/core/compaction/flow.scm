@@ -71,14 +71,29 @@
                 "Compacted"
               ) ;if
             ) ;label
+            (summarized-count (if (pi-compaction-result? result)
+                                (pi-compaction-result-summarized-count result)
+                                (cdr (assoc 'summarized-count result))
+                              ) ;if
+            ) ;summarized-count
+            (kept-count (if (pi-compaction-result? result)
+                          (pi-compaction-result-kept-count result)
+                          (cdr (assoc 'kept-count result))
+                        ) ;if
+            ) ;kept-count
+            (tokens-before (if (pi-compaction-result? result)
+                             (pi-compaction-result-tokens-before result)
+                             (cdr (assoc 'tokens-before result))
+                           ) ;if
+            ) ;tokens-before
            ) ;
         (string-append label
           " session: summarized "
-          (number->string (cdr (assoc 'summarized-count result)))
+          (number->string summarized-count)
           " messages, kept "
-          (number->string (cdr (assoc 'kept-count result)))
+          (number->string kept-count)
           ", tokens before "
-          (number->string (cdr (assoc 'tokens-before result)))
+          (number->string tokens-before)
         ) ;string-append
       ) ;let
     ) ;define

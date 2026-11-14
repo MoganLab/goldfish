@@ -15,9 +15,20 @@
   (begin
 
     (define (%field key entry default)
-      (let ((pair (assoc key entry)))
-        (if pair (cdr pair) default)
-      ) ;let
+      (if (pi-review-finding? entry)
+        (case key
+         ((severity) (pi-review-finding-severity entry))
+         ((file) (pi-review-finding-file entry))
+         ((line) (pi-review-finding-line entry))
+         ((category) (pi-review-finding-category entry))
+         ((message) (pi-review-finding-message entry))
+         ((suggestion) (pi-review-finding-suggestion entry))
+         (else default)
+        ) ;case
+        (let ((pair (assoc key entry)))
+          (if pair (cdr pair) default)
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%severity-order severity)
