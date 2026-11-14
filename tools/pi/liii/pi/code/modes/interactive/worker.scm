@@ -73,30 +73,30 @@
     ) ;define
 
     (define (pi-cfg-with-thinking cfg tl . opt-explicit)
-      (%cfg-override cfg
+      (pi-cfg-merge cfg
         (cons (cons 'thinking-level tl)
           (if (pair? opt-explicit)
             (list (cons 'thinking-level-explicit? (car opt-explicit)))
-            (if (assoc 'thinking-level-explicit? cfg)
-              (list (assoc 'thinking-level-explicit? cfg))
+            (if (pi-cfg-ref cfg 'thinking-level-explicit?)
+              (list (cons 'thinking-level-explicit? #t))
               '()
             ) ;if
           ) ;if
         ) ;cons
-      ) ;%cfg-override
+      ) ;pi-cfg-merge
     ) ;define
 
     ;; 覆盖 cfg 的模型相关项（会话内 /model 切换后下一条消息生效，对齐上游 setModel）
     (define (pi-cfg-with-model cfg provider model-id)
       (let* ((config-dir (pi-cfg-config-dir cfg))
-             (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+             (models-store (pi-cfg-ref cfg 'models-store '()))
              (auth (pi-load-auth config-dir))
              (api-key (pi-resolve-provider-key provider auth))
              (raw-meta (pi-resolve-model-metadata provider model-id models-store))
              (meta (pi-ensure-catalog-meta raw-meta provider model-id models-store))
              (supports (pi-model-supports-thinking? models-store provider model-id))
             ) ;
-        (%cfg-override cfg
+        (pi-cfg-merge cfg
           (list (cons 'provider provider)
             (cons 'provider-api (pi-cfg-provider-api cfg provider))
             (cons 'model-id model-id)
@@ -105,14 +105,14 @@
             (cons 'supports-thinking supports)
             (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
           ) ;list
-        ) ;%cfg-override
+        ) ;pi-cfg-merge
       ) ;let*
     ) ;define
 
     (define (%job-explicit job cfg)
       (if (>= (length job) 5)
         (list-ref job 4)
-        (cdr (or (assoc 'thinking-level-explicit? cfg) '(#f . #f)))
+        (pi-cfg-ref cfg 'thinking-level-explicit?)
       ) ;if
     ) ;define
 
@@ -121,7 +121,7 @@
              (model-job? (and (> (length job) 3) (string? (list-ref job 2)) (string? (list-ref job 3)))
              ) ;model-job?
              (provider (and model-job? (list-ref job 2)))
-             (old-provider (cdr (or (assoc 'provider cfg) '(#f . #f))))
+             (old-provider (pi-cfg-ref cfg 'provider))
             ) ;
         (if (not model-job?)
           base

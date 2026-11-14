@@ -26,15 +26,17 @@
     (liii pi ai config record)
     (liii pi ai event)
     (liii pi code config settings)
+    (liii pi code config query)
     (liii pi code config user-catalog)
     (liii pi code all-in-one loader)
     (liii pi code core extensions registry)
     (liii pi code core extensions event)
   ) ;import
-  (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    gf-get-config-dir pi-cfg-config-dir pi-read-json-file pi-load-settings
-    pi-save-default-thinking-level! pi-save-hide-thinking-block!
-    pi-save-default-model! pi-model-supports-thinking? pi-cfg-provider-proxy
+  (export pi-resolve-config-value json-dict-ref pi-get-agent-dir pi-cfg-ref
+    pi-cfg-set pi-cfg-merge gf-get-config-dir pi-cfg-config-dir
+    pi-read-json-file pi-load-settings pi-save-default-thinking-level!
+    pi-save-hide-thinking-block! pi-save-default-model!
+    pi-model-supports-thinking? pi-cfg-provider-proxy
     pi-model-available-thinking-levels pi-cfg-provider-api
     pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
     pi-resolve-provider-key pi-resolve-model-metadata resolve-pi-config

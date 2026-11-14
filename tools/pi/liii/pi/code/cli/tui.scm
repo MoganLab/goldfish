@@ -19,7 +19,7 @@
 
     ;; 当前模型的上下文窗口：页脚左下角上下文占比的容量分母
     (define (%pi-tui-context-window cfg)
-      (let ((meta (cdr (or (assoc 'model-meta cfg) '(#f)))))
+      (let ((meta (pi-cfg-ref cfg 'model-meta)))
         (if (pi-model-metadata? meta) (pi-model-metadata-context-window meta) #f)
       ) ;let
     ) ;define
@@ -32,16 +32,16 @@
     ;; 由默认级别 medium 兜底）；model-thinking-levels 为 per-model 覆盖表
     ;; 供 make-pi-app 使用（models 为已激活模型列表，供 /model 选择器）
     (define (%pi-tui-footer-fields cfg)
-      (let* ((provider (cdr (or (assoc 'provider cfg) (cons #f "google"))))
-             (model-id (cdr (or (assoc 'model-id cfg) (cons #f "gemini-3.8-flash"))))
-             (tl (cdr (or (assoc 'thinking-level cfg) (cons #f "off"))))
-             (supports (cdr (or (assoc 'supports-thinking cfg) (cons #f #t))))
-             (settings (cdr (or (assoc 'settings cfg) (cons #f #f))))
+      (let* ((provider (pi-cfg-ref cfg 'provider "google"))
+             (model-id (pi-cfg-ref cfg 'model-id "gemini-3.8-flash"))
+             (tl (pi-cfg-ref cfg 'thinking-level "off"))
+             (supports (pi-cfg-ref cfg 'supports-thinking #t))
+             (settings (pi-cfg-ref cfg 'settings))
              (default-tl (if settings (pi-settings-default-thinking-level settings) #f))
              (model-thinking-levels (if settings (pi-settings-model-thinking-levels settings) '())
              ) ;model-thinking-levels
              (config-dir (pi-cfg-config-dir cfg))
-             (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+             (models-store (pi-cfg-ref cfg 'models-store '()))
              (models (pi-usable-models models-store))
              (default-model
                (and settings
@@ -66,7 +66,7 @@
           context-window
           ;; Agent Skills：/skill: 命令开关（默认开启）
           (if settings (pi-settings-enable-skill-commands settings) #t)
-          (and (cdr (or (assoc 'thinking-level-explicit? cfg) '(#f . #f))) #t)
+          (and (pi-cfg-ref cfg 'thinking-level-explicit?) #t)
         ) ;list
       ) ;let*
     ) ;define

@@ -61,22 +61,16 @@
                         (or (pi-args-ref parsed 'append-system-prompt) '())
                       ) ;map
              ) ;appends
-             (reg
-               (or (and (pair? cfg) (assoc 'registry cfg) (cdr (assoc 'registry cfg)))
-                 (current-extension-registry)
-                 (default-extension-registry)
-               ) ;or
+             (reg (or (pi-cfg-ref cfg 'registry)
+                    (current-extension-registry)
+                    (default-extension-registry)
+                  ) ;or
              ) ;reg
              (custom-info (%collect-custom-tool-info reg))
-             (max-turns
-               (or (pi-args-ref parsed 'max-turns)
-                 (cdr (or (assoc 'max-turns cfg) (cons #f 0)))
-               ) ;or
-             ) ;max-turns
+             (max-turns (or (pi-args-ref parsed 'max-turns) (pi-cfg-ref cfg 'max-turns 0)))
              (session-timeout
                (let ((st (pi-args-ref parsed 'session-timeout)))
-                 (if (number? st) st (cdr (or (assoc 'session-timeout cfg) '(#f
-                                                                             . 0))))
+                 (if (number? st) st (pi-cfg-ref cfg 'session-timeout 0))
                ) ;let
              ) ;session-timeout
              ;; skills 未传入时自行加载（独立调用场景）；
@@ -90,7 +84,7 @@
                ) ;or
              ) ;skills
             ) ;
-        (pi-build-system-prompt (cdr (assoc 'tools cfg))
+        (pi-build-system-prompt (pi-cfg-ref cfg 'tools)
           cwd
           (pi-load-project-context cwd)
           sys-override
@@ -105,11 +99,10 @@
 
     (define* (%system-prompt-for cfg parsed (skills #f))
       (let* ((base (prepare-system-prompt cfg parsed skills))
-             (reg
-               (or (and (pair? cfg) (assoc 'registry cfg) (cdr (assoc 'registry cfg)))
-                 (current-extension-registry)
-                 (default-extension-registry)
-               ) ;or
+             (reg (or (pi-cfg-ref cfg 'registry)
+                    (current-extension-registry)
+                    (default-extension-registry)
+                  ) ;or
              ) ;reg
             ) ;
         (lambda (tool-calls)
@@ -145,22 +138,14 @@
                (request-fn #f)
              ) ;run-agent-loop-with-timeout
       (let* ((timeout (pi-resolve-timeout parsed cfg))
-             (max-turns
-               (or (pi-args-ref parsed 'max-turns)
-                 (cdr (or (assoc 'max-turns cfg) (cons #f 0)))
-               ) ;or
-             ) ;max-turns
+             (max-turns (or (pi-args-ref parsed 'max-turns) (pi-cfg-ref cfg 'max-turns 0)))
              (session-timeout
                (let ((st (pi-args-ref parsed 'session-timeout)))
-                 (if (number? st) st (cdr (or (assoc 'session-timeout cfg) '(#f
-                                                                             . 0))))
+                 (if (number? st) st (pi-cfg-ref cfg 'session-timeout 0))
                ) ;let
              ) ;session-timeout
             ) ;
-        (let ((all-in-one?
-                (equal? (cdr (or (assoc 'provider cfg) '(#f . #f))) "all-in-one")
-              ) ;all-in-one?
-             ) ;
+        (let ((all-in-one? (equal? (pi-cfg-ref cfg 'provider) "all-in-one")))
           (run-agent-loop cfg
             init-msgs
             system-prompt
@@ -173,7 +158,7 @@
               (lambda (provider config messages system-prompt tools on-event timeout)
                 ;; 把 agent emit 注入给请求适配器，用于上报实际节点
                 (pi-all-in-one-request-stream provider
-                  (cons (cons 'emit emit) config)
+                  (pi-cfg-set config 'emit emit)
                   messages
                   system-prompt
                   tools

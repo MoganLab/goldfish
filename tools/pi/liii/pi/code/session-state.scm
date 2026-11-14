@@ -43,18 +43,8 @@
       ) ;let*
     ) ;define
 
-    (define (%cfg-ref cfg key)
-      (cdr (or (assoc key cfg) (cons #f #f)))
-    ) ;define
-    ;; alist 覆盖：pairs 中的键优先，其余沿用原 cfg
-    (define (%cfg-override cfg pairs)
-      (let ((keys (map car pairs)))
-        (append pairs (filter (lambda (p) (not (memq (car p) keys))) cfg))
-      ) ;let
-    ) ;define
-
     (define (%cfg-with-thinking-level cfg level)
-      (%cfg-override cfg (list (cons 'thinking-level level)))
+      (pi-cfg-set cfg 'thinking-level level)
     ) ;define
     ;; 级别全集与 interactive 层一致（flow 不能反向依赖 interactive）
     (define %projection-thinking-levels pi-thinking-levels)
@@ -62,7 +52,7 @@
     ;; 无凭证、模型不在目录或元数据缺失时保留 cfg 的模型并返回警告
     (define (%apply-state-model cfg provider model-id)
       (let* ((config-dir (pi-cfg-config-dir cfg))
-             (models-store (or (%cfg-ref cfg 'models-store) '()))
+             (models-store (or (pi-cfg-ref cfg 'models-store) '()))
              (auth (pi-load-auth config-dir))
              (api-key (pi-resolve-provider-key provider auth))
              (meta (pi-ensure-catalog-meta (pi-resolve-model-metadata provider model-id models-store)
@@ -78,9 +68,9 @@
                  (list (string-append "Session state model skipped: no credentials for provider \""
                          provider
                          "\"; using \""
-                         (%cfg-ref cfg 'provider)
+                         (pi-cfg-ref cfg 'provider)
                          "/"
-                         (%cfg-ref cfg 'model-id)
+                         (pi-cfg-ref cfg 'model-id)
                          "\""
                        ) ;string-append
                  ) ;list
@@ -96,9 +86,9 @@
                          "/"
                          model-id
                          "\" is unavailable; using \""
-                         (%cfg-ref cfg 'provider)
+                         (pi-cfg-ref cfg 'provider)
                          "/"
-                         (%cfg-ref cfg 'model-id)
+                         (pi-cfg-ref cfg 'model-id)
                          "\""
                        ) ;string-append
                  ) ;list
@@ -106,7 +96,7 @@
               ) ;
               (else
                 (values
-                  (%cfg-override cfg
+                  (pi-cfg-merge cfg
                     (list (cons 'provider provider)
                       ;; 协议标识随 provider 变化而更新
                       (cons 'provider-api (pi-cfg-provider-api cfg provider))
@@ -119,7 +109,7 @@
                       ;; provider 级代理随 provider 变化而重算
                       (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
                     ) ;list
-                  ) ;%cfg-override
+                  ) ;pi-cfg-merge
                   '()
                 ) ;values
               ) ;else
@@ -143,9 +133,9 @@
                ) ;values
               ) ;
               (else
-                (let* ((provider (%cfg-ref cfg 'provider))
-                       (model-id (%cfg-ref cfg 'model-id))
-                       (models-store (or (%cfg-ref cfg 'models-store) '()))
+                (let* ((provider (pi-cfg-ref cfg 'provider))
+                       (model-id (pi-cfg-ref cfg 'model-id))
+                       (models-store (or (pi-cfg-ref cfg 'models-store) '()))
                        (available (pi-model-available-thinking-levels models-store provider model-id))
                        (clamped (pi-clamp-thinking-level level available))
                       ) ;
@@ -167,9 +157,7 @@
 
     ;; 写入等级并标记为显式覆盖（来自用户主动设置的会话状态）
     (define (%cfg-explicit-thinking cfg level)
-      (%cfg-override (%cfg-with-thinking-level cfg level)
-        (list (cons 'thinking-level-explicit? #t))
-      ) ;%cfg-override
+      (pi-cfg-set (%cfg-with-thinking-level cfg level) 'thinking-level-explicit? #t)
     ) ;define
 
     ;; 合并投影状态：CLI 显式 --provider / --model 时完全不应用状态模型（避免混搭），
@@ -193,8 +181,14 @@
           (let*-values (((cfg model-warnings)
                          (if apply-model?
                            (%apply-state-model cfg
-                             (if (%non-empty-string? state-provider) state-provider (%cfg-ref cfg 'provider))
-                             (if (%non-empty-string? state-model-id) state-model-id (%cfg-ref cfg 'model-id))
+                             (if (%non-empty-string? state-provider)
+                               state-provider
+                               (pi-cfg-ref cfg 'provider)
+                             ) ;if
+                             (if (%non-empty-string? state-model-id)
+                               state-model-id
+                               (pi-cfg-ref cfg 'model-id)
+                             ) ;if
                            ) ;%apply-state-model
                            (values cfg '())
                          ) ;if

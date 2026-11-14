@@ -134,7 +134,7 @@
     ;; 当前模型的上下文窗口：model-meta 为 pi-model-metadata record，
     ;; 兼容 alist 形态（旧会话状态），record 须走访问器读取
     (define (%context-window cfg)
-      (let ((meta (cdr (or (assoc 'model-meta cfg) '(#f)))))
+      (let ((meta (pi-cfg-ref cfg 'model-meta)))
         (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
               ((pair? meta)
                (let ((pair (assoc 'context-window meta)))
@@ -153,7 +153,7 @@
     ;;   3. 杜绝简单硬编码 1M 或沿用过期/故障节点的窗口大小。
     ;; 对于常规供应商模型：直接使用当前模型的 metadata contextWindow。
     (define (pi-resolve-compaction-window cfg)
-      (let ((p (cdr (or (assoc 'provider cfg) '(#f . #f)))))
+      (let ((p (pi-cfg-ref cfg 'provider)))
         (if (not (equal? p "all-in-one"))
           (%context-window cfg)
           (let* ((dir (pi-cfg-config-dir cfg))
@@ -162,7 +162,7 @@
                  (aio-cfg (or raw-aio (make-all-in-one-cfg #t 3600000 60000 8000 default-chains))
                  ) ;aio-cfg
                  (chains (all-in-one-cfg-chains aio-cfg))
-                 (chain-id (cdr (or (assoc 'model-id cfg) '(#f . #f))))
+                 (chain-id (pi-cfg-ref cfg 'model-id))
                  (chain
                    (and chain-id
                      (or
@@ -178,7 +178,7 @@
                    ) ;and
                  ) ;chain
                  (nodes (if chain (chain-def-nodes chain) '()))
-                 (store (cdr (or (assoc 'models-store cfg) '(#f . #f))))
+                 (store (pi-cfg-ref cfg 'models-store))
                  (conservative-window
                    (if (pair? nodes)
                      (apply min (map (lambda (n) (%node-compaction-window n store)) nodes))
