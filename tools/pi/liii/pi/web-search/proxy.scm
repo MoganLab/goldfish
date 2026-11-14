@@ -86,13 +86,9 @@
     ) ;define
 
     (define (pi-web-search-config-proxy ws-config)
-      (if (pi-web-search-config? ws-config)
+      (and (pi-web-search-config? ws-config)
         (pi-web-search-config-raw-proxy ws-config)
-        (or (%cfg-str ws-config 'httpProxy)
-          (%cfg-str ws-config 'proxy)
-          (%cfg-str ws-config 'http-proxy)
-        ) ;or
-      ) ;if
+      ) ;and
     ) ;define
 
     (define (%provider-proxy-from-store config provider)

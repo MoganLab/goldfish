@@ -44,7 +44,7 @@
 ;; 7. 全局 settings.json 中的 httpProxy
 ;; 8. 直连（返回 #f）
 
-(import (liii check) (liii path) (liii pi web-search proxy))
+(import (liii check) (liii path) (liii pi web-search types) (liii pi web-search proxy))
 
 (check-set-mode! 'report-failed)
 
@@ -65,21 +65,12 @@
   ;; 2. ws-config (web-search.json) 覆盖
   (check (pi-resolve-search-proxy-url '()
            #f
-           '(("httpProxy" . "http://ws-proxy:7890"))
+           (make-pi-web-search-config "google" #f #f "http://ws-proxy:7890")
            "google"
            clean-env
          ) ;pi-resolve-search-proxy-url
     =>
     "http://ws-proxy:7890"
-  ) ;check
-  (check (pi-resolve-search-proxy-url '()
-           #f
-           '(("proxy" . "http://ws-proxy-alias:7890"))
-           "google"
-           clean-env
-         ) ;pi-resolve-search-proxy-url
-    =>
-    "http://ws-proxy-alias:7890"
   ) ;check
 
   ;; 3. 会话 provider 与 search provider 一致时的 proxy-url

@@ -185,10 +185,9 @@
     ) ;define
 
     (define (pi-web-search-config-model ws-config)
-      (if (pi-web-search-config? ws-config)
+      (and (pi-web-search-config? ws-config)
         (pi-web-search-config-raw-model ws-config)
-        (%cfg-str ws-config 'model)
-      ) ;if
+      ) ;and
     ) ;define
 
     ;; 决定 web_search 用哪个后端：只有 google/deepseek 两个后端，
@@ -196,10 +195,9 @@
     ;; 优先级：显式 opt > web-search.json（全局覆盖） > 环境变量 > config
     (define (pi-resolve-web-search-provider config opt-provider ws-config . opt-env)
       (let* ((env (if (pair? opt-env) (car opt-env) #f))
-             (ws-provider (if (pi-web-search-config? ws-config)
+             (ws-provider (and (pi-web-search-config? ws-config)
                             (pi-web-search-config-provider ws-config)
-                            (%cfg-str ws-config 'provider)
-                          ) ;if
+                          ) ;and
              ) ;ws-provider
              (raw
                (cond

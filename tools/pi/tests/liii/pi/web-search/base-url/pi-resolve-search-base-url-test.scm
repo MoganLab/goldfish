@@ -22,6 +22,7 @@
   (liii check)
   (liii path)
   (liii pi ai config types)
+  (liii pi web-search types)
   (liii pi web-search base-url)
 ) ;import
 
@@ -105,7 +106,7 @@
   (check
     (pi-resolve-search-base-url '()
       #f
-      '(("baseUrl" . "http://ws-server:8080"))
+      (make-pi-web-search-config "google" #f "http://ws-server:8080" #f)
       "google"
       clean-env
     ) ;pi-resolve-search-base-url

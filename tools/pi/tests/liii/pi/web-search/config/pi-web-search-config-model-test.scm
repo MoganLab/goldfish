@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; ws-config : list?
-;; web-search.json 解析后的配置 alist。
+;; ws-config : (or pi-web-search-config? #f)
+;; web-search 配置记录。
 ;;
 ;; 返回值
 ;; ----
@@ -20,12 +20,11 @@
 (check-set-mode! 'report-failed)
 
 ;; 从 web-search 配置中解析联网搜索使用的模型标识。
-(check (pi-web-search-config-model '(("provider" . "google")
-                                     ("model" . "gemini-2.5-pro"))
+(check (pi-web-search-config-model (make-pi-web-search-config "google" "gemini-2.5-pro" #f #f)
        ) ;pi-web-search-config-model
   =>
   "gemini-2.5-pro"
 ) ;check
-(check (pi-web-search-config-model '(("provider" . "deepseek"))) => #f)
+(check (pi-web-search-config-model (make-pi-web-search-config "deepseek" #f #f #f)) => #f)
 
 (check-report)
