@@ -35,9 +35,7 @@
   (check-true (eq? (json->pi-web-search-config cfg) cfg))
 ) ;let
 
-(let ((cfg (json->pi-web-search-config '(("provider" . "   ")
-                                         ("model" . "")
-                                         ("baseUrl" . "https://dash.example.com")
+(let ((cfg (json->pi-web-search-config '(("baseUrl" . "https://dash.example.com")
                                          ("httpProxy" . "http://proxy:8080")
                                         )
            )
@@ -50,6 +48,9 @@
   (check (pi-web-search-config-raw-proxy cfg) => "http://proxy:8080")
 ) ;let
 
+(check-false (json->pi-web-search-config '(("provider" . "openai"))))
+(check-false (json->pi-web-search-config '(("model" . ""))))
+(check-false (json->pi-web-search-config '(("unknownKey" . "val"))))
 (check-false (json->pi-web-search-config #f))
 (check-false (json->pi-web-search-config '()))
 
