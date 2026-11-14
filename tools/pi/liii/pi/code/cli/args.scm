@@ -19,6 +19,7 @@
   ) ;import
   (export parse-pi-args pi-args-ref pi-resolve-timeout format-file-block
     process-file-arguments pi-validate-review-flags pi-normalize-session-name
+    pi-cli-args?
   ) ;export
   (begin
 
@@ -35,39 +36,6 @@
     ) ;define
 
     (add-registry-initializer! ensure-builtin-extensions!)
-
-    (define (default-args-alist)
-      (list (cons 'help #f)
-        (cons 'print #f)
-        (cons 'mode #f)
-        (cons 'model #f)
-        (cons 'provider #f)
-        (cons 'thinking-level #f)
-        (cons 'proxy #f)
-        (cons 'tools #f)
-        (cons 'exclude-tools #f)
-        (cons 'no-tools #f)
-        (cons 'max-turns #f)
-        (cons 'timeout #f)
-        (cons 'session-timeout #f)
-        (cons 'session-dir #f)
-        (cons 'name #f)
-        (cons 'no-session #f)
-        (cons 'continue #f)
-        (cons 'resume #f)
-        (cons 'session-file #f)
-        (cons 'compact #f)
-        (cons 'no-auto-compact #f)
-        (cons 'list-models #f)
-        (cons 'system-prompt #f)
-        (cons 'append-system-prompt '())
-        (cons 'skill-paths '())
-        (cons 'no-skills #f)
-        (cons 'file-args '())
-        (cons 'messages '())
-        (cons 'unknown-flags '())
-      ) ;list
-    ) ;define
 
     (define (parse-positionals rest file-args messages)
       (if (null? rest)
@@ -282,7 +250,7 @@
                  ext-flags
                ) ;map
              ) ;ext-defaults
-             (initial-res (append (default-args-alist) ext-defaults))
+             (initial-res (make-pi-cli-args :extensions ext-defaults))
             ) ;
         (let loop
           ((args argv) (res initial-res) (file-args '()) (messages '()))

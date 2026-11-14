@@ -1,9 +1,9 @@
 ;; parse-pi-args
-;; 解析 gf pi 命令行参数为 alist（含默认键）。
+;; 解析 gf pi 命令行参数为 <pi-cli-args> 记录（含默认字段）。
 ;;
 ;; 语法
 ;; ----
-;; (parse-pi-args args) -> alist
+;; (parse-pi-args args) -> <pi-cli-args>
 ;;
 ;; 参数
 ;; ----
@@ -12,15 +12,16 @@
 ;;
 ;; 返回值
 ;; ------
-;; alist
-;; 解析结果；未出现的键取默认值。
+;; <pi-cli-args>
+;; 解析结果记录；未出现的字段取默认值。
 
 (import (scheme base) (liii check) (liii pi code cli args))
 
 (check-set-mode! 'report-failed)
 
-;; 空参数：默认值
+;; 空参数：默认值与 record 谓词
 (let ((res (parse-pi-args '())))
+  (check-true (pi-cli-args? res))
   (check (pi-args-ref res 'provider) => #f)
   (check (pi-args-ref res 'print) => #f)
   (check (pi-args-ref res 'skill-paths) => '())
