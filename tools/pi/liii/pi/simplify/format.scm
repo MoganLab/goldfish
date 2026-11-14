@@ -14,31 +14,11 @@
   (export pi-format-simplify-suggestions)
   (begin
 
-    (define (%field key entry default)
-      (if (pi-simplify-suggestion? entry)
-        (case key
-         ((file) (pi-simplify-suggestion-file entry))
-         ((line) (pi-simplify-suggestion-line entry))
-         ((category) (pi-simplify-suggestion-category entry))
-         ((message) (pi-simplify-suggestion-message entry))
-         ((suggestion) (pi-simplify-suggestion-suggestion entry))
-         (else default)
-        ) ;case
-        (let ((pair (assoc key entry)))
-          (if pair (cdr pair) default)
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define (%line-of entry)
-      (%field 'line entry #f)
-    ) ;define
-
     (define (%before? a b)
-      (let ((file-a (%field 'file a ""))
-            (file-b (%field 'file b ""))
-            (line-a (%line-of a))
-            (line-b (%line-of b))
+      (let ((file-a (pi-simplify-suggestion-file a))
+            (file-b (pi-simplify-suggestion-file b))
+            (line-a (pi-simplify-suggestion-line a))
+            (line-b (pi-simplify-suggestion-line b))
            ) ;
         (cond ((string<? file-a file-b) #t)
               ((string>? file-a file-b) #f)
@@ -54,19 +34,21 @@
     ) ;define
 
     (define (%location entry)
-      (let ((file (%field 'file entry "")) (line (%line-of entry)))
+      (let ((file (pi-simplify-suggestion-file entry))
+            (line (pi-simplify-suggestion-line entry))
+           ) ;
         (if line (string-append file ":" (number->string line)) file)
       ) ;let
     ) ;define
 
     (define (%format-entry entry)
-      (let* ((suggestion (%field 'suggestion entry #f))
+      (let* ((suggestion (pi-simplify-suggestion-suggestion entry))
              (line (string-append "- ["
-                     (%field 'category entry "")
+                     (pi-simplify-suggestion-category entry)
                      "] "
                      (%location entry)
                      ": "
-                     (%field 'message entry "")
+                     (pi-simplify-suggestion-message entry)
                    ) ;string-append
              ) ;line
             ) ;
