@@ -8,7 +8,7 @@
   (import (scheme base)
     (liii list)
     (liii path)
-    (liii logging)
+    (liii pi ai log)
     (liii json)
     (liii json schema)
     (liii json schema error)
@@ -52,14 +52,14 @@
     (define (%log-schema-errors errs)
       (for-each
         (lambda (err)
-          (log-warning (string-append "web-search.json schema validation error at "
-                         (json-schema-error-json-path err)
-                         " ("
-                         (json-schema-error-keyword err)
-                         "): "
-                         (json-schema-error-message err)
-                       ) ;string-append
-          ) ;log-warning
+          (pi-log-error! (string-append "web-search.json schema validation error at "
+                           (json-schema-error-json-path err)
+                           " ("
+                           (json-schema-error-keyword err)
+                           "): "
+                           (json-schema-error-message err)
+                         ) ;string-append
+          ) ;pi-log-error!
         ) ;lambda
         errs
       ) ;for-each

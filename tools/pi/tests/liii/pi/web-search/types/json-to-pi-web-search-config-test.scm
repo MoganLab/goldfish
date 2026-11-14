@@ -18,7 +18,9 @@
 (import (scheme base)
   (liii check)
   (liii string)
-  (liii logging)
+  (liii path)
+  (liii shutil)
+  (liii pi ai log)
   (liii pi web-search types)
 ) ;import
 
@@ -53,14 +55,20 @@
   (check (pi-web-search-config-raw-proxy cfg) => "http://proxy:8080")
 ) ;let
 
-(let ((logs '()) (prev-cb (current-log-callback)))
-  (log-set-callback! (lambda (msg) (set! logs (cons (log-message-message msg) logs))))
+(let ((log-dir (path-join (path-temp-dir) "pi-ws-types-log-test")))
+  (pi-log-reset!)
+  (pi-log-init! log-dir)
   (check-false (json->pi-web-search-config '(("provider" . "openai"))))
   (check-false (json->pi-web-search-config '(("model" . ""))))
   (check-false (json->pi-web-search-config '(("unknownKey" . "val"))))
-  (log-set-callback! prev-cb)
-  (check (length logs) => 3)
-  (check-true (string-contains? (car logs) "$.unknownKey"))
+  (let ((content (path-read-text (pi-log-file-path))))
+    (check-true (string-contains? content "web-search.json schema validation error"))
+    (check-true (string-contains? content "$.provider"))
+    (check-true (string-contains? content "$.model"))
+    (check-true (string-contains? content "$.unknownKey"))
+  ) ;let
+  (pi-log-reset!)
+  (rmtree (path->string log-dir) #t)
 ) ;let
 (check-false (json->pi-web-search-config #f))
 (check-false (json->pi-web-search-config '()))
