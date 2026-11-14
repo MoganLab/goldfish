@@ -17,10 +17,7 @@ gf doc scheme/base
 ;; 示例1：组合多个函数
 ((compose (lambda (x) (* x 2)) (lambda (x) (+ x 1))) 3) ; => 8
 
-;; 示例2：带类型标注的 lambda
-((typed-lambda ((x number?)) (* x 2)) 21) ; => 42
-
-;; 示例3：宽松地取 car
+;; 示例2：宽松地取 car
 (loose-car '()) ; => ()
 ```
 
@@ -71,9 +68,6 @@ gf doc liii/base "函数名"
 - `format` - 格式化输出
 - `cyclic-sequences` - 构造循环序列
 
-### 五、类型检查语法
-- `typed-lambda` - 带类型标注的 lambda 语法
-
-### 六、列表操作
+### 五、列表操作
 - `reverse!` - 原地反转列表（性能优于 reverse）
 - `sort!` - 原地排序序列
