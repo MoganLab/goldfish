@@ -58,7 +58,7 @@
              (pairs (map (lambda (key) (%node-config-pair key node-cfg thinking-level)) keys)
              ) ;pairs
             ) ;
-        (append pairs (filter (lambda (p) (not (memq (car p) keys))) config))
+        (pi-cfg-merge config pairs)
       ) ;let*
     ) ;define
 
@@ -66,14 +66,14 @@
     (define (%node-config-pair key node-cfg thinking-level)
       (cond ((eq? key 'thinking-level) (cons 'thinking-level thinking-level))
             ((eq? key 'thinking-level-explicit?) (cons key #f))
-            (else (cons key (cdr (assoc key node-cfg))))
+            (else (cons key (pi-cfg-ref node-cfg key)))
       ) ;cond
     ) ;define
 
     ;; 当前实际节点上报给 TUI：emit 为 agent 事件回调（来自 cfg），
     ;; 与请求层只接单参数的流式 on-event 区分开。
     (define (%node-context-window node-config)
-      (let ((meta (cdr (or (assoc 'model-meta node-config) '(#f . #f)))))
+      (let ((meta (pi-cfg-ref node-config 'model-meta)))
         (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
               ((pair? meta) (cdr (or (assoc 'context-window meta) '(#f . #f))))
               (else #f)
@@ -82,16 +82,12 @@
     ) ;define
 
     (define (%emit-active-node cfg provider model-id thinking-level node-config)
-      (let* ((emit (and (pair? cfg) (assoc 'emit cfg)))
+      (let* ((emit (pi-cfg-ref cfg 'emit))
              (window (%node-context-window node-config))
-             (supports? (cdr (or (assoc 'supports-thinking node-config) '(#f
-                                                                          . #t))))
+             (supports? (pi-cfg-ref node-config 'supports-thinking #t))
             ) ;
-        (when (and emit (procedure? (cdr emit)))
-          ((cdr emit)
-           'active_node
-           (list provider model-id thinking-level window supports?)
-          ) ;
+        (when (procedure? emit)
+          (emit 'active_node (list provider model-id thinking-level window supports?))
         ) ;when
       ) ;let*
     ) ;define
@@ -104,12 +100,7 @@
 
     ;; 用户是否本次显式指定了思考等级（CLI /thinking / Shift+Tab）
     (define (%cfg-ref cfg key default-val)
-      (if (not (pair? cfg))
-        default-val
-        (let ((p (assoc key cfg)))
-          (if p (cdr p) default-val)
-        ) ;let
-      ) ;if
+      (pi-cfg-ref cfg key default-val)
     ) ;define
 
     (define (%node-effective-thinking-level config node-default-level provider model-id)
@@ -149,7 +140,14 @@
               ) ;
           ;; 交接前把实际节点告知前台，供页脚展示
           (%emit-active-node config provider model-id eff-tl node-config)
-          (request provider node-config messages system-prompt tools on-event timeout)
+          (request provider
+            (pi-cfg->alist node-config)
+            messages
+            system-prompt
+            tools
+            on-event
+            timeout
+          ) ;request
         ) ;let*
       ) ;lambda
     ) ;define

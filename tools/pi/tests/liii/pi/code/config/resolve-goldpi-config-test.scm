@@ -35,7 +35,7 @@
         ) ;resolve-goldpi-config
       ) ;cfg
      ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
+  (check (pi-cfg-ref cfg 'provider) => "google")
 ) ;let
 
 (check-report)
