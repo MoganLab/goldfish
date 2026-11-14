@@ -5,12 +5,13 @@
 ;;
 
 (define-library (liii pi code all-in-one types)
-  (import (scheme base))
+  (import (scheme base) (liii string) (liii pi code config user-fs))
   (export make-chain-node
     chain-node?
     chain-node-provider
     chain-node-model
     chain-node-thinking-level
+    json->chain-node
 
     make-chain-def
     chain-def?
@@ -39,6 +40,49 @@
     (define* (make-chain-node provider model (thinking-level "off"))
       (%make-chain-node provider model thinking-level)
     ) ;define*
+
+    (define (%non-empty-string? x)
+      (and (string? x) (not (string-null? (string-trim-both x))))
+    ) ;define
+
+    (define (json->chain-node obj . opt-chain-id)
+      (if (chain-node? obj)
+        obj
+        (let ((chain-id (if (pair? opt-chain-id) (car opt-chain-id) "<unknown>")))
+          (if (not (pair? obj))
+            (begin
+              (pi-user-warn (string-append "all-in-one: chain \"" chain-id "\" 的 node 必须是对象")
+              ) ;pi-user-warn
+              #f
+            ) ;begin
+            (let* ((p (pi-user-dict-ref obj "provider" #f))
+                   (m (pi-user-dict-ref obj "model" #f))
+                   (tl-raw (pi-user-dict-ref obj "thinkingLevel" "off"))
+                   (tl (if (%non-empty-string? tl-raw) tl-raw "off"))
+                  ) ;
+              (cond ((not (%non-empty-string? p))
+                     (pi-user-warn (string-append "all-in-one: chain \""
+                                     chain-id
+                                     "\" 节点缺少必填字段 provider，已跳过"
+                                   ) ;string-append
+                     ) ;pi-user-warn
+                     #f
+                    ) ;
+                    ((not (%non-empty-string? m))
+                     (pi-user-warn (string-append "all-in-one: chain \""
+                                     chain-id
+                                     "\" 节点缺少必填字段 model，已跳过"
+                                   ) ;string-append
+                     ) ;pi-user-warn
+                     #f
+                    ) ;
+                    (else (make-chain-node p m tl))
+              ) ;cond
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
 
     ;; 链式定义 (链式 ID 即伪模型 ID)
     (define-record-type <chain-def>

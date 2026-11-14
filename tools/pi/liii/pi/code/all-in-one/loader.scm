@@ -34,53 +34,6 @@
       ) ;let
     ) ;define
 
-    ;; 单节点解析：严格校验必填字段 provider 与 model，可选 thinkingLevel（缺省为 "off"）
-    ;; 缺失或类型非法时发出警告并返回 #f，合法时返回 <chain-node> 记录。
-    (define (%parse-node chain-id node-data)
-      (if (not (pair? node-data))
-        (begin
-          (pi-user-warn (string-append "all-in-one: chain \"" chain-id "\" 的 node 必须是对象")
-          ) ;pi-user-warn
-          #f
-        ) ;begin
-        (let* ((p (pi-user-dict-ref node-data "provider" #f))
-               (m (pi-user-dict-ref node-data "model" #f))
-               (tl-raw (pi-user-dict-ref node-data "thinkingLevel" "off"))
-               (tl
-                 (if
-                   (and (string? tl-raw) (not (string-null? (string-trim-both tl-raw))))
-                   tl-raw
-                   "off"
-                 ) ;if
-               ) ;tl
-              ) ;
-          (cond
-           ((not
-              (and (string? p) (not (string-null? (string-trim-both p))))
-            ) ;not
-            (pi-user-warn (string-append "all-in-one: chain \""
-                            chain-id
-                            "\" 节点缺少必填字段 provider，已跳过"
-                          ) ;string-append
-            ) ;pi-user-warn
-            #f
-           ) ;
-           ((not
-              (and (string? m) (not (string-null? (string-trim-both m))))
-            ) ;not
-            (pi-user-warn (string-append "all-in-one: chain \""
-                            chain-id
-                            "\" 节点缺少必填字段 model，已跳过"
-                          ) ;string-append
-            ) ;pi-user-warn
-            #f
-           ) ;
-           (else (make-chain-node p m tl))
-          ) ;cond
-        ) ;let*
-      ) ;if
-    ) ;define
-
     ;; 单条链解析：校验 id，提取 name，逐个解析 nodes 并过滤无效节点
     (define (%parse-chain chain-data)
       (if (not (pair? chain-data))
@@ -115,7 +68,7 @@
                          ) ;pi-user-warn
                          '()
                        ) ;begin
-                       (filter (lambda (x) x) (map (lambda (n) (%parse-node id n)) nodes-list))
+                       (filter (lambda (x) x) (map (lambda (n) (json->chain-node n id)) nodes-list))
                      ) ;if
                    ) ;valid-nodes
                   ) ;
