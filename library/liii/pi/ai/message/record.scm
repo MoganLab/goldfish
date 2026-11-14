@@ -7,14 +7,16 @@
 (define-library (liii pi ai message record)
   (import (scheme base)
     (liii base)
+    (liii list)
     (liii string)
     (liii pi ai time)
     (liii pi ai message types)
   ) ;import
-  (export pi-message? pi-message-role pi-message->alist pi-block? pi-block-type
-    pi-block->alist pi-user-message pi-user-message? pi-user-message-role
-    pi-user-message-content pi-user-message-timestamp pi-assistant-message
-    pi-assistant-message? pi-assistant-message-role pi-assistant-message-content
+  (export pi-message? pi-message-role pi-message->alist pi-message->json
+    pi-block? pi-block-type pi-block->alist pi-block->json pi-user-message
+    pi-user-message? pi-user-message-role pi-user-message-content
+    pi-user-message-timestamp pi-assistant-message pi-assistant-message?
+    pi-assistant-message-role pi-assistant-message-content
     pi-assistant-message-stop-reason pi-assistant-message-error-message
     pi-assistant-message-usage pi-assistant-message-timestamp
     pi-assistant-message-provider pi-assistant-message-model
@@ -134,6 +136,48 @@
             ) ;
             (else '())
       ) ;cond
+    ) ;define
+
+    (define (%json-object-entry? x)
+      (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
+    ) ;define
+
+    (define (%normalize-json-entry entry)
+      (let* ((raw-k (car entry))
+             (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
+             (v (cdr entry))
+            ) ;
+        (cond ((and (string=? k "errorMessage") (not v)) #f)
+              ((and (or (string=? k "arguments") (string=? k "input"))
+                 (or (null? v) (equal? v '(())) (not v) (eq? v 'null))
+               ) ;and
+               (cons k '(()))
+              ) ;
+              (else (cons k (%normalize-json-value v)))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (%normalize-json-value x)
+      (cond ((null? x) #())
+            ((equal? x '(())) '(()))
+            ((pi-block? x) (%normalize-json-value (pi-block->alist x)))
+            ((vector? x) (vector-map %normalize-json-value x))
+            ((and (pair? x) (every %json-object-entry? x))
+             (filter (lambda (entry) entry) (map %normalize-json-entry x))
+            ) ;
+            ((pair? x) (list->vector (map %normalize-json-value x)))
+            ((symbol? x) (symbol->string x))
+            (else x)
+      ) ;cond
+    ) ;define
+
+    (define (pi-block->json blk)
+      (%normalize-json-value (pi-block->alist blk))
+    ) ;define
+
+    (define (pi-message->json msg)
+      (%normalize-json-value (pi-message->alist msg))
     ) ;define
 
     (define (%normalize-content-for-alist c)

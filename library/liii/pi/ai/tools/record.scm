@@ -5,18 +5,23 @@
 ;;
 
 (define-library (liii pi ai tools record)
-  (import (scheme base) (liii pi ai tools types))
+  (import (scheme base)
+    (liii base)
+    (liii list)
+    (liii pi ai tools types)
+    (liii pi ai message record)
+  ) ;import
   (export pi-tool-definition pi-tool-definition? pi-tool-definition-name
     pi-tool-definition-description pi-tool-definition-parameters
     pi-tool-definition-execute pi-tool-definition-snippet
     pi-tool-definition-guidelines pi-tool-definition->alist pi-tool-result
     pi-tool-result? pi-tool-result-content pi-tool-result-is-error
-    pi-tool-result-isError pi-tool-result->alist pi-trunc-result
-    pi-trunc-result? pi-trunc-result-content pi-trunc-result-truncated
-    pi-trunc-result-truncated? pi-trunc-result-truncated-by
-    pi-trunc-result-total-lines pi-trunc-result-total-bytes
-    pi-trunc-result-output-lines pi-trunc-result-output-bytes
-    pi-trunc-result-first-line-exceeds-limit?
+    pi-tool-result-isError pi-tool-result->alist pi-tool-result->json
+    pi-trunc-result pi-trunc-result? pi-trunc-result-content
+    pi-trunc-result-truncated pi-trunc-result-truncated?
+    pi-trunc-result-truncated-by pi-trunc-result-total-lines
+    pi-trunc-result-total-bytes pi-trunc-result-output-lines
+    pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
     pi-trunc-result-first-line-truncated pi-trunc-result-last-line-partial?
     pi-trunc-result-last-line-truncated pi-trunc-result->alist
   ) ;export
@@ -70,6 +75,35 @@
           (cons 'isError (pi-tool-result-is-error res))
         ) ;list
       ) ;if
+    ) ;define
+
+    (define (%json-object-entry? x)
+      (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
+    ) ;define
+
+    (define (%normalize-json-entry entry)
+      (let* ((raw-k (car entry))
+             (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
+             (v (cdr entry))
+            ) ;
+        (cons k (%normalize-json-value v))
+      ) ;let*
+    ) ;define
+
+    (define (%normalize-json-value x)
+      (cond ((null? x) #())
+            ((equal? x '(())) '(()))
+            ((pi-block? x) (pi-block->json x))
+            ((vector? x) (vector-map %normalize-json-value x))
+            ((and (pair? x) (every %json-object-entry? x)) (map %normalize-json-entry x))
+            ((pair? x) (list->vector (map %normalize-json-value x)))
+            ((symbol? x) (symbol->string x))
+            (else x)
+      ) ;cond
+    ) ;define
+
+    (define (pi-tool-result->json res)
+      (%normalize-json-value (pi-tool-result->alist res))
     ) ;define
 
     (define* (pi-trunc-result content

@@ -68,58 +68,11 @@
       ) ;case
     ) ;define
 
-    (define (%parse-tools-list val)
-      (cond ((vector? val) (vector->list val))
-            ((list? val) val)
-            (else #f)
-      ) ;cond
-    ) ;define
-
-    (define (%build-retry-record retry-obj)
-      (let ((provider-obj (json-dict-ref retry-obj "provider" '())))
-        (%make-pi-retry-config (%normalize-bool (json-dict-ref retry-obj "enabled" #t))
-          (json-dict-ref retry-obj "maxRetries" 3)
-          (json-dict-ref retry-obj "baseDelayMs" 2000)
-          (json-dict-ref retry-obj "maxAgentDelayMs" 60000)
-          (json-dict-ref provider-obj "maxRetries" #f)
-        ) ;%make-pi-retry-config
-      ) ;let
-    ) ;define
-
-    ;; modelThinkingLevels：per-model 思考级别覆盖表（键为 "provider/modelId"）
-    ;; 非 alist 结构时忽略，避免脏数据影响启动
-    (define (%parse-model-thinking-levels val)
-      (if (and (pair? val) (every pair? val)) val '())
-    ) ;define
-
     (define (pi-load-settings config-dir)
       (let* ((filepath (path-join config-dir "settings.json"))
              (obj (or (pi-read-json-file filepath) '()))
-             (raw-proxy (json-dict-ref obj "httpProxy" #f))
-             (clean-proxy
-               (and (string? raw-proxy)
-                 (not (string-null? (string-trim-both raw-proxy)))
-                 raw-proxy
-               ) ;and
-             ) ;clean-proxy
-             ;; defaultThinkingLevel 未配置时保持 #f（未设置），
-             ;; 生效默认值由 pi-default-thinking-level 兜底
-             (raw-thinking (json-dict-ref obj "defaultThinkingLevel" #f))
-             (default-thinking (if (string? raw-thinking) raw-thinking #f))
             ) ;
-        (%make-pi-settings (json-dict-ref obj "defaultProvider" "google")
-          (json-dict-ref obj "defaultModel" "gemini-3.8-flash")
-          default-thinking
-          clean-proxy
-          (%build-retry-record (json-dict-ref obj "retry" '()))
-          (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
-          (json-dict-ref obj "sessionDir" #f)
-          ;; 与上游共用 settings.json：hideThinkingBlock 隔离为单行斜体标签
-          (%normalize-bool (json-dict-ref obj "hideThinkingBlock" #f))
-          (%parse-model-thinking-levels (json-dict-ref obj "modelThinkingLevels" '()))
-          ;; Agent Skills：斜杠命令中的 /skill: 展示与展开开关（默认开启）
-          (%normalize-bool (json-dict-ref obj "enableSkillCommands" #t))
-        ) ;%make-pi-settings
+        (json->pi-settings obj)
       ) ;let*
     ) ;define
 
