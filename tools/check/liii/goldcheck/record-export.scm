@@ -122,7 +122,7 @@
       (if (or (not (pair? form)) (%quoted-form? form))
         acc
         (let ((acc
-                (if (eq? (car form) 'define-record-type)
+                (if (memq (car form) '(define-record-type define*-record-type))
                   (let ((missing? (not (pair? (cdr form))))
                         (name (if (pair? (cdr form)) (cadr form) #f))
                        ) ;

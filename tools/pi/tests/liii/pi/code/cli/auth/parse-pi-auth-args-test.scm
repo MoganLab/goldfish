@@ -12,30 +12,38 @@
 ;;
 ;; 返回值
 ;; ----
-;; list?
-;; 解析后的参数关联表（包含 subcommand、provider 或 help 键）。
+;; <pi-auth-args>
+;; 解析后的参数记录（包含 help?、subcommand、provider、key 字段）。
 
 (import (liii check) (liii pi code cli auth))
 
 (check-set-mode! 'report-failed)
 
-;; 1. 无参数或 --help/-h 时返回包含 help 的关联表
-(check (parse-pi-auth-args '()) => '((help . #t)))
-(check (parse-pi-auth-args '("-h")) => '((help . #t)))
-(check (parse-pi-auth-args '("--help")) => '((help . #t)))
-(check (parse-pi-auth-args '("print-api-key" "--help")) => '((help . #t)))
-(check (parse-pi-auth-args '("print-api-key" "-h")) => '((help . #t)))
+;; 1. 无参数或 --help/-h 时返回 help? 为 #t 的记录
+(for-each
+  (lambda (argv)
+    (let ((res (parse-pi-auth-args argv)))
+      (check-true (pi-auth-args? res))
+      (check-true (pi-auth-args-help? res))
+    ) ;let
+  ) ;lambda
+  '(() ("-h") ("--help") ("print-api-key" "--help") ("print-api-key" "-h"))
+) ;for-each
 
 ;; 2. 正确识别 print-api-key 与 --provider 参数
 (let ((res (parse-pi-auth-args '("print-api-key" "--provider" "deepseek"))))
-  (check (cdr (assoc 'subcommand res)) => "print-api-key")
-  (check (cdr (assoc 'provider res)) => "deepseek")
+  (check-true (pi-auth-args? res))
+  (check (pi-auth-args-help? res) => #f)
+  (check (pi-auth-args-subcommand res) => "print-api-key")
+  (check (pi-auth-args-provider res) => "deepseek")
+  (check (pi-auth-args-key res) => #f)
 ) ;let
 
 ;; 3. 支持 --provider=value 格式
 (let ((res (parse-pi-auth-args '("print-api-key" "--provider=deepseek"))))
-  (check (cdr (assoc 'subcommand res)) => "print-api-key")
-  (check (cdr (assoc 'provider res)) => "deepseek")
+  (check-true (pi-auth-args? res))
+  (check (pi-auth-args-subcommand res) => "print-api-key")
+  (check (pi-auth-args-provider res) => "deepseek")
 ) ;let
 
 ;; 4. 缺失 --provider 时报错

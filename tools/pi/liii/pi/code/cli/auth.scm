@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme write)
     (scheme process-context)
+    (liii base)
     (liii string)
     (liii path)
     (liii list)
@@ -16,8 +17,20 @@
     (liii pi code config)
     (liii pi code modes output)
   ) ;import
-  (export parse-pi-auth-args pi-auth-print-api-key pi-auth-login run-pi-auth)
+  (export parse-pi-auth-args pi-auth-print-api-key pi-auth-login run-pi-auth
+    pi-auth-args? make-pi-auth-args pi-auth-args-help? pi-auth-args-subcommand
+    pi-auth-args-provider pi-auth-args-key
+  ) ;export
   (begin
+
+    (define*-record-type <pi-auth-args>
+      (make-pi-auth-args (help? #f) (subcommand #f) (provider #f) (key #f))
+      pi-auth-args?
+      (help? pi-auth-args-help?)
+      (subcommand pi-auth-args-subcommand)
+      (provider pi-auth-args-provider)
+      (key pi-auth-args-key)
+    ) ;define*-record-type
 
     (define (%provider-default-env-var provider)
       (cond ((string=? provider "google") "GEMINI_API_KEY")
@@ -59,7 +72,7 @@
             (or (string=? (car args) "-h") (string=? (car args) "--help"))
           ) ;and
         ) ;or
-        '((help . #t))
+        (make-pi-auth-args :help? #t)
        ) ;
        ((not (or (string=? (car args) "print-api-key") (string=? (car args) "login")))
         (error 'pi-arg-error
@@ -78,11 +91,12 @@
               (error 'pi-arg-error
                 "auth login requires --provider <provider> and --key <key>"
               ) ;error
-              (list (cons 'subcommand "login") (cons 'provider provider) (cons 'key key))
+              (make-pi-auth-args :subcommand "login" :provider provider :key key)
             ) ;if
            ) ;
-           ((or (string=? (car rem) "-h") (string=? (car rem) "--help")) '((help
-                                                                             . #t)))
+           ((or (string=? (car rem) "-h") (string=? (car rem) "--help"))
+            (make-pi-auth-args :help? #t)
+           ) ;
            ((string=? (car rem) "--provider")
             (if (null? (cdr rem))
               (error 'pi-arg-error "auth login requires --provider <provider>")
@@ -137,39 +151,39 @@
        (else
          (let loop
            ((rem (cdr args)) (provider #f))
-           (cond
-            ((null? rem)
-             (if (not provider)
-               (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
-               (list (cons 'subcommand "print-api-key") (cons 'provider provider))
-             ) ;if
-            ) ;
-            ((or (string=? (car rem) "-h") (string=? (car rem) "--help")) '((help
-                                                                              . #t)))
-            ((string=? (car rem) "--provider")
-             (if (null? (cdr rem))
-               (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
-               (let ((val (cadr rem)))
-                 (if (or (string-null? (string-trim-both val)) (string-starts? val "-"))
-                   (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
-                   (loop (cddr rem) val)
-                 ) ;if
-               ) ;let
-             ) ;if
-            ) ;
-            ((string-starts? (car rem) "--provider=")
-             (let ((val (substring (car rem) 11 (string-length (car rem)))))
-               (if (string-null? (string-trim-both val))
-                 (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
-                 (loop (cdr rem) val)
-               ) ;if
-             ) ;let
-            ) ;
-            ((string-starts? (car rem) "-")
-             (error 'pi-arg-error (string-append "unknown option: " (car rem)))
-            ) ;
-            (else (error 'pi-arg-error (string-append "unexpected extra argument: " (car rem)))
-            ) ;else
+           (cond ((null? rem)
+                  (if (not provider)
+                    (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+                    (make-pi-auth-args :subcommand "print-api-key" :provider provider)
+                  ) ;if
+                 ) ;
+                 ((or (string=? (car rem) "-h") (string=? (car rem) "--help"))
+                  (make-pi-auth-args :help? #t)
+                 ) ;
+                 ((string=? (car rem) "--provider")
+                  (if (null? (cdr rem))
+                    (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+                    (let ((val (cadr rem)))
+                      (if (or (string-null? (string-trim-both val)) (string-starts? val "-"))
+                        (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+                        (loop (cddr rem) val)
+                      ) ;if
+                    ) ;let
+                  ) ;if
+                 ) ;
+                 ((string-starts? (car rem) "--provider=")
+                  (let ((val (substring (car rem) 11 (string-length (car rem)))))
+                    (if (string-null? (string-trim-both val))
+                      (error 'pi-arg-error "auth print-api-key requires --provider <provider>")
+                      (loop (cdr rem) val)
+                    ) ;if
+                  ) ;let
+                 ) ;
+                 ((string-starts? (car rem) "-")
+                  (error 'pi-arg-error (string-append "unknown option: " (car rem)))
+                 ) ;
+                 (else (error 'pi-arg-error (string-append "unexpected extra argument: " (car rem)))
+                 ) ;else
            ) ;cond
          ) ;let
        ) ;else
@@ -231,21 +245,21 @@
         (catch 'pi-arg-error
           (lambda ()
             (let ((parsed (parse-pi-auth-args args)))
-              (cond ((assoc 'help parsed)
+              (cond ((pi-auth-args-help? parsed)
                      (display "Usage: gf pi auth print-api-key --provider <provider>\n       gf pi auth login --provider <provider> --key <key>\n"
                      ) ;display
                      0
                     ) ;
-                    ((equal? (cdr (assoc 'subcommand parsed)) "print-api-key")
-                     (let ((provider (cdr (assoc 'provider parsed))))
+                    ((equal? (pi-auth-args-subcommand parsed) "print-api-key")
+                     (let ((provider (pi-auth-args-provider parsed)))
                        (if custom-env
                          (pi-auth-print-api-key provider config-dir custom-env)
                          (pi-auth-print-api-key provider config-dir)
                        ) ;if
                      ) ;let
                     ) ;
-                    ((equal? (cdr (assoc 'subcommand parsed)) "login")
-                     (let ((provider (cdr (assoc 'provider parsed))) (key (cdr (assoc 'key parsed))))
+                    ((equal? (pi-auth-args-subcommand parsed) "login")
+                     (let ((provider (pi-auth-args-provider parsed)) (key (pi-auth-args-key parsed)))
                        (pi-auth-login provider key config-dir)
                      ) ;let
                     ) ;

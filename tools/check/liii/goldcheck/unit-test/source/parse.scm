@@ -125,7 +125,9 @@
             ((memq (car form) '(define define* define-syntax define-macro))
              (if (pair? (cdr form)) (extract-target-name (cadr form)) '())
             ) ;
-            ((eq? (car form) 'define-record-type) (extract-record-type-definitions form))
+            ((memq (car form) '(define-record-type define*-record-type))
+             (extract-record-type-definitions form)
+            ) ;
             ((eq? (car form) 'begin)
              (let loop
                ((rest (cdr form)) (acc '()))
