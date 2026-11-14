@@ -5,15 +5,15 @@
 ;;
 
 (define-library (liii pi ai config record)
-  (import (scheme base) (liii string) (liii pi ai config types))
+  (import (scheme base) (liii list) (liii string) (liii pi ai config types))
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
     pi-retry-config->alist json->pi-retry-config pi-settings pi-settings?
     pi-settings-default-provider pi-settings-default-model
     pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
-    pi-settings-default-tools pi-settings->alist pi-credential pi-credential?
-    pi-credential-provider pi-settings-hide-thinking-block
+    pi-settings-default-tools pi-settings->alist json->pi-settings pi-credential
+    pi-credential? pi-credential-provider pi-settings-hide-thinking-block
     pi-settings-session-dir pi-credential-key pi-settings-model-thinking-level
     pi-settings-model-thinking-levels pi-settings-enable-skill-commands
     pi-credential-type pi-credential->alist pi-model-metadata pi-model-metadata?
@@ -141,6 +141,55 @@
           (cons 'model-thinking-levels (pi-settings-model-thinking-levels s))
           (cons 'enable-skill-commands (pi-settings-enable-skill-commands s))
         ) ;list
+      ) ;if
+    ) ;define
+
+    (define (%parse-tools-list val)
+      (cond ((vector? val) (vector->list val))
+            ((list? val) val)
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (%parse-model-thinking-levels val)
+      (if (and (pair? val) (every pair? val)) val '())
+    ) ;define
+
+    (define (json->pi-settings obj)
+      (if (pi-settings? obj)
+        obj
+        (let* ((raw-provider (%json-dict-ref obj "defaultProvider" "google"))
+               (default-provider (if (string? raw-provider) raw-provider "google"))
+               (raw-model (%json-dict-ref obj "defaultModel" "gemini-3.8-flash"))
+               (default-model (if (string? raw-model) raw-model "gemini-3.8-flash"))
+               (raw-proxy (%json-dict-ref obj "httpProxy" #f))
+               (clean-proxy
+                 (and (string? raw-proxy)
+                   (not (string-null? (string-trim-both raw-proxy)))
+                   raw-proxy
+                 ) ;and
+               ) ;clean-proxy
+               (raw-thinking (%json-dict-ref obj "defaultThinkingLevel" #f))
+               (default-thinking (if (string? raw-thinking) raw-thinking #f))
+               (raw-session-dir (%json-dict-ref obj "sessionDir" #f))
+               (session-dir (if (string? raw-session-dir) raw-session-dir #f))
+               (hide-thinking (if (%normalize-json-bool (%json-dict-ref obj "hideThinkingBlock" #f)) #t #f)
+               ) ;hide-thinking
+               (enable-skills (if (%normalize-json-bool (%json-dict-ref obj "enableSkillCommands" #t)) #t #f)
+               ) ;enable-skills
+              ) ;
+          (%make-pi-settings default-provider
+            default-model
+            default-thinking
+            clean-proxy
+            (json->pi-retry-config (%json-dict-ref obj "retry" '()))
+            (%parse-tools-list (%json-dict-ref obj "defaultTools" #f))
+            session-dir
+            hide-thinking
+            (%parse-model-thinking-levels (%json-dict-ref obj "modelThinkingLevels" '()))
+            enable-skills
+          ) ;%make-pi-settings
+        ) ;let*
       ) ;if
     ) ;define
 
