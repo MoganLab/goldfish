@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://case-lambda.org/agent/all-in-one.schema.json",
+  "title": "Goldfish pi all-in-one 配置（all-in-one.json）",
+  "description": "all-in-one 高可用多模型调度链配置（位于 <config-dir>/all-in-one.json，默认 ~/.gf/agent/all-in-one.json）。",
+  "type": "object",
+  "required": [
+    "provider"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "本 schema 的 URL，可省略"
+    },
+    "provider": {
+      "const": "all-in-one",
+      "description": "固定为 \"all-in-one\""
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "配置展示名称"
+    },
+    "continuous": {
+      "type": "boolean",
+      "description": "是否启用长程连续重试（默认 true）"
+    },
+    "maxWait": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "单次调度最大等待秒数（默认 3600）"
+    },
+    "maxWaitSeconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "maxWait 别名（秒）"
+    },
+    "maxWaitMs": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "单次调度最大等待毫秒数（默认 3600000）"
+    },
+    "retryInterval": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "节点失败冷却/重试间隔秒数（默认 60）"
+    },
+    "retryIntervalSeconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "retryInterval 别名（秒）"
+    },
+    "retryIntervalMs": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "节点失败冷却/重试间隔毫秒数（默认 60000）"
+    },
+    "cooldown": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "retryInterval 别名（秒）"
+    },
+    "cooldownSeconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "retryInterval 别名（秒）"
+    },
+    "probeTimeout": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "节点探活超时秒数（默认 8）"
+    },
+    "probeTimeoutSeconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "probeTimeout 别名（秒）"
+    },
+    "probeTimeoutMs": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "节点探活超时毫秒数（默认 8000）"
+    },
+    "chains": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/chain"
+      },
+      "description": "可用调度链定义列表"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "chain": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "调度链 ID（即伪模型 ID，如 coding-fast、coding-high-quality）"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "调度链展示名称（缺省回退为 id）"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          },
+          "description": "链内候选模型节点列表（按顺序优先尝试）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "provider",
+        "model"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "description": "节点所属 provider ID"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "节点模型 ID"
+        },
+        "thinkingLevel": {
+          "type": "string",
+          "enum": [
+            "off",
+            "minimal",
+            "low",
+            "medium",
+            "high",
+            "xhigh"
+          ],
+          "description": "节点思考强度（默认 off）"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "provider": "all-in-one",
+      "name": "高可用长程推进总线",
+      "continuous": true,
+      "maxWait": 3600,
+      "retryInterval": 60,
+      "probeTimeout": 8,
+      "chains": [
+        {
+          "id": "coding-fast",
+          "name": "快速",
+          "nodes": [
+            {
+              "provider": "google",
+              "model": "gemini-3.8-flash",
+              "thinkingLevel": "medium"
+            },
+            {
+              "provider": "deepseek",
+              "model": "deepseek-v4-pro",
+              "thinkingLevel": "high"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

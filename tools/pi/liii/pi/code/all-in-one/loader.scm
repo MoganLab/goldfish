@@ -11,6 +11,9 @@
     (liii path)
     (liii string)
     (liii json)
+    (liii json schema)
+    (liii json schema error)
+    (liii pi ai log)
     (liii pi code all-in-one types)
     (liii pi code config user-fs)
   ) ;import
@@ -72,6 +75,61 @@
       ) ;let*
     ) ;define
 
+    (define %cached-aio-schema #f)
+    (define %cached-aio-schema-path #f)
+
+    (define (%all-in-one-schema)
+      (unless %cached-aio-schema
+        (let ((schema-path
+                (find (lambda (cand) (file-exists? (path->string cand)))
+                  (map (lambda (d) (path-join d "liii/pi/code/resources/all-in-one.schema.json"))
+                    *load-path*
+                  ) ;map
+                ) ;find
+              ) ;schema-path
+             ) ;
+          (when schema-path
+            (set! %cached-aio-schema-path (path->string schema-path))
+            (set! %cached-aio-schema (string->json (path-read-text schema-path)))
+          ) ;when
+        ) ;let
+      ) ;unless
+      %cached-aio-schema
+    ) ;define
+
+    (define (%log-schema-errors cfg-path errs)
+      (for-each
+        (lambda (err)
+          (pi-log-error! (string-append cfg-path
+                           " schema validation error at "
+                           (json-schema-error-json-path err)
+                           " ("
+                           (json-schema-error-keyword err)
+                           "): "
+                           (json-schema-error-message err)
+                           (if %cached-aio-schema-path
+                             (string-append " (schema: " %cached-aio-schema-path ")")
+                             ""
+                           ) ;if
+                         ) ;string-append
+          ) ;pi-log-error!
+        ) ;lambda
+        errs
+      ) ;for-each
+    ) ;define
+
+    (define (%validate-aio-schema cfg-path data)
+      (let ((schema (%all-in-one-schema)))
+        (when schema
+          (let ((errs (json-schema-errors data schema)))
+            (unless (null? errs)
+              (%log-schema-errors cfg-path errs)
+            ) ;unless
+          ) ;let
+        ) ;when
+      ) ;let
+    ) ;define
+
     ;; all-in-one-load-config
     ;; 加载并校验 all-in-one.json 配置文件。
     ;; 若文件不存在，安全返回 #f。
@@ -91,11 +149,12 @@
                    #f
                   ) ;
                   ((not (equal? (pi-user-dict-ref data "provider" #f) "all-in-one"))
+                   (%validate-aio-schema cfg-path data)
                    (pi-user-warn (string-append cfg-path ": 根节点 provider 必须是 \"all-in-one\"")
                    ) ;pi-user-warn
                    #f
                   ) ;
-                  (else (json->all-in-one-cfg data cfg-path))
+                  (else (%validate-aio-schema cfg-path data) (json->all-in-one-cfg data cfg-path))
             ) ;cond
           ) ;let
         ) ;if
