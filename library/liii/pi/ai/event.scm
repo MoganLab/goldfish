@@ -20,7 +20,7 @@
     (liii pi ai tools record)
   ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
-    pi-event? pi-event-type pi-event->alist pi-event-session pi-event-session?
+    pi-event? pi-event-type pi-event->alist pi-event->json pi-event-session pi-event-session?
     pi-event-session-type pi-event-session-version pi-event-session-id
     pi-event-session-timestamp pi-event-session-cwd pi-event-agent-start
     pi-event-agent-start? pi-event-agent-start-type pi-event-turn-start
@@ -131,47 +131,8 @@
       ) ;case
     ) ;define
 
-    (define (%json-object-entry? x)
-      (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
-    ) ;define
-
-    (define (%normalize-json-entry entry)
-      (let* ((raw-k (car entry))
-             (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
-             (v (cdr entry))
-            ) ;
-        (cond ((and (string=? k "errorMessage") (not v)) #f)
-              ((and (or (string=? k "arguments") (string=? k "input"))
-                 (or (null? v) (equal? v '(())) (not v) (eq? v 'null))
-               ) ;and
-               (cons k '(()))
-              ) ;
-              (else (cons k (%normalize-json-value v)))
-        ) ;cond
-      ) ;let*
-    ) ;define
-
-    (define (%normalize-json-value x)
-      (cond ((null? x) #())
-            ((equal? x '(())) '(()))
-            ((pi-event? x) (%normalize-json-value (pi-event->alist x)))
-            ((pi-message? x) (%normalize-json-value (pi-message->alist x)))
-            ((pi-block? x) (%normalize-json-value (pi-block->alist x)))
-            ((pi-tool-result? x) (%normalize-json-value (pi-tool-result->alist x)))
-            ((pi-tool-definition? x) (%normalize-json-value (pi-tool-definition->alist x)))
-            ((pi-trunc-result? x) (%normalize-json-value (pi-trunc-result->alist x)))
-            ((vector? x) (vector-map %normalize-json-value x))
-            ((and (pair? x) (every %json-object-entry? x))
-             (filter (lambda (entry) entry) (map %normalize-json-entry x))
-            ) ;
-            ((pair? x) (list->vector (map %normalize-json-value x)))
-            ((symbol? x) (symbol->string x))
-            (else x)
-      ) ;cond
-    ) ;define
-
     (define (pi-serialize-event alist)
-      (json->string (%normalize-json-value alist))
+      (json->string (pi-event->json alist))
     ) ;define
 
   ) ;begin

@@ -7,19 +7,22 @@
 (define-library (liii pi ai event record)
   (import (scheme base)
     (liii base)
+    (liii list)
     (liii uuid)
     (liii pi ai time)
     (liii pi ai event types)
+    (liii pi ai message record)
+    (liii pi ai tools record)
   ) ;import
-  (export pi-event? pi-event-type pi-event->alist pi-event-session
-    pi-event-session? pi-event-session-type pi-event-session-version
-    pi-event-session-id pi-event-session-timestamp pi-event-session-cwd
-    pi-event-agent-start pi-event-agent-start? pi-event-agent-start-type
-    pi-event-turn-start pi-event-turn-start? pi-event-turn-start-type
-    pi-event-message-start pi-event-message-start? pi-event-message-start-type
-    pi-event-message-start-message pi-event-message-update
-    pi-event-message-update? pi-event-message-update-type
-    pi-event-message-update-usage
+  (export pi-event? pi-event-type pi-event->alist pi-event->json
+    pi-event-session pi-event-session? pi-event-session-type
+    pi-event-session-version pi-event-session-id pi-event-session-timestamp
+    pi-event-session-cwd pi-event-agent-start pi-event-agent-start?
+    pi-event-agent-start-type pi-event-turn-start pi-event-turn-start?
+    pi-event-turn-start-type pi-event-message-start pi-event-message-start?
+    pi-event-message-start-type pi-event-message-start-message
+    pi-event-message-update pi-event-message-update?
+    pi-event-message-update-type pi-event-message-update-usage
     pi-event-message-update-assistant-message-event pi-event-message-end
     pi-event-message-end? pi-event-message-end-type pi-event-message-end-message
     pi-event-tool-execution-start pi-event-tool-execution-start?
@@ -203,6 +206,49 @@
        ) ;
        (else #f)
       ) ;cond
+    ) ;define
+
+    (define (%json-object-entry? x)
+      (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
+    ) ;define
+
+    (define (%normalize-json-entry entry)
+      (let* ((raw-k (car entry))
+             (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
+             (v (cdr entry))
+            ) ;
+        (cond ((and (string=? k "errorMessage") (not v)) #f)
+              ((and (or (string=? k "arguments") (string=? k "input"))
+                 (or (null? v) (equal? v '(())) (not v) (eq? v 'null))
+               ) ;and
+               (cons k '(()))
+              ) ;
+              (else (cons k (%normalize-json-value v)))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (%normalize-json-value x)
+      (cond ((null? x) #())
+            ((equal? x '(())) '(()))
+            ((pi-event? x) (%normalize-json-value (pi-event->alist x)))
+            ((pi-message? x) (pi-message->json x))
+            ((pi-block? x) (pi-block->json x))
+            ((pi-tool-result? x) (pi-tool-result->json x))
+            ((pi-tool-definition? x) (%normalize-json-value (pi-tool-definition->alist x)))
+            ((pi-trunc-result? x) (%normalize-json-value (pi-trunc-result->alist x)))
+            ((vector? x) (vector-map %normalize-json-value x))
+            ((and (pair? x) (every %json-object-entry? x))
+             (filter (lambda (entry) entry) (map %normalize-json-entry x))
+            ) ;
+            ((pair? x) (list->vector (map %normalize-json-value x)))
+            ((symbol? x) (symbol->string x))
+            (else x)
+      ) ;cond
+    ) ;define
+
+    (define (pi-event->json ev)
+      (%normalize-json-value (if (pi-event? ev) (pi-event->alist ev) ev))
     ) ;define
 
     (define* (pi-event-session cwd (id #f) (timestamp #f))

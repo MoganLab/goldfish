@@ -7,7 +7,7 @@
 (define-library (liii pi ai types)
   (import (scheme base) (liii base) (liii pi ai event) (liii pi ai message))
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
-    pi-event? pi-event-type pi-event->alist pi-event-session pi-event-session?
+    pi-event? pi-event-type pi-event->alist pi-event->json pi-event-session pi-event-session?
     pi-event-session-type pi-event-session-version pi-event-session-id
     pi-event-session-timestamp pi-event-session-cwd pi-event-agent-start
     pi-event-agent-start? pi-event-agent-start-type pi-event-turn-start
