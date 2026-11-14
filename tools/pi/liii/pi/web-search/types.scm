@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi web-search types)
-  (import (scheme base) (liii string) (liii list))
+  (import (scheme base) (liii string) (liii list) (liii json))
   (export make-pi-web-search-config pi-web-search-config?
     pi-web-search-config-provider pi-web-search-config-raw-model
     pi-web-search-config-raw-base-url pi-web-search-config-raw-proxy
@@ -22,32 +22,24 @@
       (proxy pi-web-search-config-raw-proxy)
     ) ;define-record-type
 
-    (define (%jref obj key)
-      (and (pair? obj)
-        (let ((p
-                (or (assoc key obj)
-                  (if (symbol? key) (assoc (symbol->string key) obj) #f)
-                  (if (string? key) (assoc (string->symbol key) obj) #f)
-                ) ;or
-              ) ;p
-             ) ;
-          (and (pair? p) (cdr p))
-        ) ;let
-      ) ;and
-    ) ;define
-
     (define (%jstr obj . keys)
       (let loop
         ((rest keys))
         (if (null? rest)
           #f
-          (let ((v (%jref obj (car rest))))
+          (let* ((k (car rest))
+                 (v
+                   (let ((sv (json-ref obj (if (symbol? k) (symbol->string k) k))))
+                     (if (null? sv) (json-ref obj (if (string? k) (string->symbol k) k)) sv)
+                   ) ;let
+                 ) ;v
+                ) ;
             (if
               (and (string? v) (not (string-null? (string-trim-both v))))
               v
               (loop (cdr rest))
             ) ;if
-          ) ;let
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define
