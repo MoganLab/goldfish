@@ -4,9 +4,9 @@
     define*-record-type procedure-source procedure-arglist arity defined?
     object->string eval-string signature copy keyword? string->keyword
     symbol->keyword keyword->symbol loose-car loose-cdr compose identity any?
-    typed-lambda make-hook hook-functions with-output-to-string
-    with-input-from-string call-with-input-string call-with-output-string
-    reverse! sort! format cyclic-sequences
+    make-hook hook-functions with-output-to-string with-input-from-string
+    call-with-input-string call-with-output-string reverse! sort! format
+    cyclic-sequences
   ) ;export
   (begin
 
@@ -84,29 +84,6 @@
         ) ;
       ) ;syntax-rules
     ) ;define-syntax
-
-    (define-macro (typed-lambda args . body)
-      (if (symbol? args)
-        (apply lambda args body)
-        (let ((new-args (copy args)))
-          (do ((p new-args (cdr p)))
-            ((not (pair? p)))
-            (if (pair? (car p)) (set-car! p (caar p)))
-          ) ;do
-          `(lambda ,new-args
-             ,@(map (lambda (arg)
-                      (if (pair? arg)
-                        `(unless (,(cadr arg) ,(car arg))
-                           (error 'type-error
-                             "~S is not ~S~%"
-                             (quote ,(car arg))
-                             (quote ,(cadr arg))))
-                        (values)))
-                 args)
-             ,@body)
-        ) ;let
-      ) ;if
-    ) ;define-macro
 
   ) ;begin
 ) ;define-library

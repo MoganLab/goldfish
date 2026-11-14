@@ -28,7 +28,7 @@
 ;;      call-with-output-string reverse! sort! format cyclic-sequences
 ;;      这些过程没有 Scheme 层实现，由 (liii base) 导出，归属本库。
 ;;   3. 语法形式：and-let* receive define* lambda* define-macro define-bacro
-;;      typed-lambda 不是过程，不提供签名。
+;;      以上语法形式不是过程，不提供签名。
 
 (define-library (hint liii base)
   (import (scheme base))
