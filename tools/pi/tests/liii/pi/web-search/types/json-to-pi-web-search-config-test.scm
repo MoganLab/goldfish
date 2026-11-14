@@ -15,7 +15,12 @@
 ;; pi-web-search-config? | #f
 ;; 转换后的配置记录，输入非法时返回 #f。
 
-(import (scheme base) (liii check) (liii pi web-search types))
+(import (scheme base)
+  (liii check)
+  (liii string)
+  (liii logging)
+  (liii pi web-search types)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -48,9 +53,15 @@
   (check (pi-web-search-config-raw-proxy cfg) => "http://proxy:8080")
 ) ;let
 
-(check-false (json->pi-web-search-config '(("provider" . "openai"))))
-(check-false (json->pi-web-search-config '(("model" . ""))))
-(check-false (json->pi-web-search-config '(("unknownKey" . "val"))))
+(let ((logs '()) (prev-cb (current-log-callback)))
+  (log-set-callback! (lambda (msg) (set! logs (cons (log-message-message msg) logs))))
+  (check-false (json->pi-web-search-config '(("provider" . "openai"))))
+  (check-false (json->pi-web-search-config '(("model" . ""))))
+  (check-false (json->pi-web-search-config '(("unknownKey" . "val"))))
+  (log-set-callback! prev-cb)
+  (check (length logs) => 3)
+  (check-true (string-contains? (car logs) "$.unknownKey"))
+) ;let
 (check-false (json->pi-web-search-config #f))
 (check-false (json->pi-web-search-config '()))
 
