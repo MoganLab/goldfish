@@ -5,7 +5,11 @@
 ;;;; 投影状态导出：从会话路径提取 thinkingLevel 与 model。
 ;; 从投影入口拆出，避免投影主库超过单文件行数限制；纯函数，不读文件、不写日志。
 (define-library (liii pi code core session-projection state)
-  (import (scheme base) (liii string))
+  (import (scheme base)
+    (liii string)
+    (liii pi ai message)
+    (liii pi code core session-entry)
+  ) ;import
   (export pi-collect-projection-state)
   (begin
     ;; 字段访问兼容字符串键与符号键；与投影主库的 %ref 同构（子库不共享内部定义）
@@ -20,9 +24,11 @@
 
     ;; 条目 id：仅接受非空字符串，其余按缺失处理
     (define (%entry-id entry)
-      (let ((id (%ref entry "id")))
+      (let* ((se (or (json->pi-session-entry entry) entry))
+             (id (if (pi-session-entry? se) (pi-session-entry-id se) (%ref entry "id")))
+            ) ;
         (and (string? id) (not (string-null? id)) id)
-      ) ;let
+      ) ;let*
     ) ;define
 
     ;; 路径上最后一个指定 type 的条目（根到叶顺序中最靠近叶子）；无匹配返回 #f
@@ -30,8 +36,11 @@
       (let loop
         ((rest (reverse path)))
         (cond ((null? rest) #f)
-              ((equal? (%ref (car rest) "type") type) (car rest))
-              (else (loop (cdr rest)))
+              (else
+                (let ((se (or (json->pi-session-entry (car rest)) (car rest))))
+                  (if (equal? (pi-session-entry-type se) type) (car rest) (loop (cdr rest)))
+                ) ;let
+              ) ;else
         ) ;cond
       ) ;let
     ) ;define
@@ -41,15 +50,19 @@
     ;; 使用 "level" / "model-id"；此处兼容读取上游会话与本地写入的两种拼写，
     ;; 优先上游键名。值缺失或非字符串时继续尝试后一个键，全部不可用返回 #f。
     (define (%state-field entry keys)
-      (let loop
-        ((rest keys))
-        (cond ((null? rest) #f)
-              (else
-                (let ((v (%ref entry (car rest))))
-                  (if (string? v) v (loop (cdr rest)))
-                ) ;let
-              ) ;else
-        ) ;cond
+      (let ((obj (if (pi-session-state-entry? entry) (pi-session-state-entry-fields entry) entry)
+            ) ;obj
+           ) ;
+        (let loop
+          ((rest keys))
+          (cond ((null? rest) #f)
+                (else
+                  (let ((v (%ref obj (car rest))))
+                    (if (string? v) v (loop (cdr rest)))
+                  ) ;let
+                ) ;else
+          ) ;cond
+        ) ;let
       ) ;let
     ) ;define
 
@@ -59,13 +72,22 @@
       (let loop
         ((rest (reverse path)))
         (cond ((null? rest) #f)
-              ((equal? (%ref (car rest) "type") "model_change") (car rest))
-              ((and (equal? (%ref (car rest) "type") "message")
-                 (equal? (%ref (%ref (car rest) "message") "role") "assistant")
-               ) ;and
-               (car rest)
-              ) ;
-              (else (loop (cdr rest)))
+              (else
+                (let ((se (or (json->pi-session-entry (car rest)) (car rest))))
+                  (cond ((equal? (pi-session-entry-type se) "model_change") (car rest))
+                        ((and (pi-session-message-entry? se)
+                           (let ((m (pi-session-message-entry-message se)))
+                             (or (pi-assistant-message? m)
+                               (and (pair? m) (equal? (%ref m "role") "assistant"))
+                             ) ;or
+                           ) ;let
+                         ) ;and
+                         (car rest)
+                        ) ;
+                        (else (loop (cdr rest)))
+                  ) ;cond
+                ) ;let
+              ) ;else
         ) ;cond
       ) ;let
     ) ;define
@@ -73,10 +95,29 @@
     ;; 模型来源条目的字段：model_change 自带 provider / modelId，
     ;; assistant 消息把 provider / model 放在 message 里；缺失返回 #f
     (define (%model-field entry type-keys message-keys)
-      (let ((msg (%ref entry "message")))
-        (if (and (pair? msg) (equal? (%ref entry "type") "message"))
-          (%state-field msg message-keys)
-          (%state-field entry type-keys)
+      (let ((se (or (json->pi-session-entry entry) entry)))
+        (if (pi-session-message-entry? se)
+          (let ((m (pi-session-message-entry-message se)))
+            (if (pi-assistant-message? m)
+              (let ((k (car message-keys)))
+                (cond
+                 ((equal? k "provider")
+                  (let ((v (pi-assistant-message-provider m)))
+                    (and (string? v) v)
+                  ) ;let
+                 ) ;
+                 ((equal? k "model")
+                  (let ((v (pi-assistant-message-model m)))
+                    (and (string? v) v)
+                  ) ;let
+                 ) ;
+                 (else #f)
+                ) ;cond
+              ) ;let
+              (%state-field m message-keys)
+            ) ;if
+          ) ;let
+          (%state-field se type-keys)
         ) ;if
       ) ;let
     ) ;define

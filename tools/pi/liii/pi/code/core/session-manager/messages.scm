@@ -11,6 +11,7 @@
 (define-library (liii pi code core session-manager messages)
   (import (scheme base)
     (liii pi ai message)
+    (liii pi code core session-entry)
     (liii pi code core session-manager normalize)
   ) ;import
   (export pi-entry-to-context-messages)
@@ -51,50 +52,65 @@
     ;;   excludeFromContext（!! 前缀）返回空列表，不进入 LLM 上下文
     ;; - compaction / session 及未知 type 均返回空列表
     ;; - content 缺失、为 null 或为空块列表时降级为空内容，不抛异常
+    (define (%to-list-content c)
+      (cond ((vector? c) (vector->list c))
+            (else c)
+      ) ;cond
+    ) ;define
+
     (define (pi-entry-to-context-messages entry)
-      (if (not (equal? (%entry-ref entry "type") "message"))
-        '()
-        (let* ((msg (pi-normalize-session-msg (%entry-ref entry "message")))
-               (role (%entry-ref msg "role"))
-              ) ;
-          (cond
-           ((equal? role "user")
-            (list (pi-user-message (%lax-content role (%entry-ref msg "content"))))
-           ) ;
-           ((equal? role "assistant")
-            (list (pi-assistant-message (%lax-content role (%entry-ref msg "content"))
-                    :stop-reason   (or (%entry-ref msg "stopReason") "stop")
-                    :error-message (%entry-ref msg "errorMessage")
-                    :usage         (%entry-ref msg "usage")
-                    :provider      (%entry-ref msg "provider")
-                    :model         (%entry-ref msg "model")
-                    :api           (%entry-ref msg "api")
-                  ) ;pi-assistant-message
-            ) ;list
-           ) ;
-           ((equal? role "toolResult")
-            (list (pi-tool-result-message (or (%entry-ref msg "toolCallId") "")
-                    (or (%entry-ref msg "toolName") "")
-                    (%lax-content role (%entry-ref msg "content"))
-                    (%json-true? (%entry-ref msg "isError"))
-                  ) ;pi-tool-result-message
-            ) ;list
-           ) ;
-           ((equal? role "bashExecution")
-            (if (%json-true? (%entry-ref msg "excludeFromContext"))
-              '()
-              (list (pi-user-message (pi-bash-execution->user-text (%entry-ref msg "command")
-                                       (%entry-ref msg "output")
-                                       (%entry-ref msg "exitCode")
-                                     ) ;pi-bash-execution->user-text
-                    ) ;pi-user-message
+      (let ((se (or (json->pi-session-entry entry) entry)))
+        (if (not (pi-session-message-entry? se))
+          '()
+          (let* ((raw-msg (pi-session-message-entry-message se))
+                 (msg (if (pi-message? raw-msg) raw-msg (pi-normalize-session-msg raw-msg)))
+                ) ;
+            (cond
+             ((pi-user-message? msg)
+              (list
+                (pi-user-message (%lax-content "user" (%to-list-content (pi-user-message-content msg)))
+                ) ;pi-user-message
               ) ;list
-            ) ;if
-           ) ;
-           (else '())
-          ) ;cond
-        ) ;let*
-      ) ;if
+             ) ;
+             ((pi-assistant-message? msg)
+              (list
+                (pi-assistant-message (%lax-content "assistant" (%to-list-content (pi-assistant-message-content msg)))
+                  :stop-reason   (pi-assistant-message-stop-reason msg)
+                  :error-message (pi-assistant-message-error-message msg)
+                  :usage         (pi-assistant-message-usage msg)
+                  :provider      (pi-assistant-message-provider msg)
+                  :model         (pi-assistant-message-model msg)
+                  :api           (pi-assistant-message-api msg)
+                ) ;pi-assistant-message
+              ) ;list
+             ) ;
+             ((pi-tool-result-message? msg)
+              (list
+                (pi-tool-result-message (pi-tool-result-message-tool-call-id msg)
+                  (pi-tool-result-message-tool-name msg)
+                  (%lax-content "toolResult"
+                    (%to-list-content (pi-tool-result-message-content msg))
+                  ) ;%lax-content
+                  (pi-tool-result-message-is-error msg)
+                ) ;pi-tool-result-message
+              ) ;list
+             ) ;
+             ((and (pair? msg) (equal? (%entry-ref msg "role") "bashExecution"))
+              (if (%json-true? (%entry-ref msg "excludeFromContext"))
+                '()
+                (list (pi-user-message (pi-bash-execution->user-text (%entry-ref msg "command")
+                                         (%entry-ref msg "output")
+                                         (%entry-ref msg "exitCode")
+                                       ) ;pi-bash-execution->user-text
+                      ) ;pi-user-message
+                ) ;list
+              ) ;if
+             ) ;
+             (else '())
+            ) ;cond
+          ) ;let*
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin

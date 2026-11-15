@@ -15,6 +15,7 @@
     (liii pi ai time)
     (liii pi ai event)
     (liii pi code core session-manager)
+    (liii pi code core session-entry)
     (liii pi code core compaction tokens)
     (liii pi code core compaction cut)
     (liii pi code core compaction fileops)
@@ -73,7 +74,10 @@
 
     (define (%last-compaction-index entries)
       (let ((rev-idx
-              (list-index (lambda (e) (equal? (%ref e "type") "compaction"))
+              (list-index
+                (lambda (e)
+                  (equal? (pi-session-entry-type (or (json->pi-session-entry e) e)) "compaction")
+                ) ;lambda
                 (reverse entries)
               ) ;list-index
             ) ;rev-idx
@@ -90,12 +94,23 @@
 
     (define (pi-last-compaction-summary entries)
       (let ((idx (%last-compaction-index entries)))
-        (and idx (%ref (list-ref entries idx) "summary"))
+        (and idx
+          (let* ((raw (list-ref entries idx)) (rec (or (json->pi-session-entry raw) raw)))
+            (if (pi-session-compaction-entry? rec)
+              (pi-session-compaction-entry-summary rec)
+              (%ref raw "summary")
+            ) ;if
+          ) ;let*
+        ) ;and
       ) ;let
     ) ;define
 
     (define (%last-entry-id entries)
-      (if (null? entries) #f (%ref (car (reverse entries)) "id"))
+      (and (pair? entries)
+        (let* ((raw (car (reverse entries))) (rec (or (json->pi-session-entry raw) raw)))
+          (if (pi-session-entry? rec) (pi-session-entry-id rec) (%ref raw "id"))
+        ) ;let*
+      ) ;and
     ) ;define
 
     (define (pi-append-compaction-entry! file-path summary first-kept-entry-id
@@ -104,25 +119,30 @@
       (let* ((entries (pi-read-session-entries file-path))
              (parent-id (%last-entry-id entries))
              (id (uuid4))
-             (entry (list (cons "type" "compaction")
-                      (cons "id" id)
-                      (cons "parentId" parent-id)
-                      (cons "timestamp" (pi-iso-8601-utc-now))
-                      (cons "summary" summary)
-                      (cons "firstKeptEntryId" first-kept-entry-id)
-                      (cons "tokensBefore" tokens-before)
-                      (cons "details" details)
-                    ) ;list
+             (entry (pi-session-compaction-entry id
+                      parent-id
+                      (pi-iso-8601-utc-now)
+                      summary
+                      first-kept-entry-id
+                      tokens-before
+                      details
+                    ) ;pi-session-compaction-entry
              ) ;entry
             ) ;
-        (append-session-entry! file-path (pi-serialize-event entry))
+        (append-session-entry! file-path (json->string (pi-session-entry->json entry)))
         id
       ) ;let*
     ) ;define
 
     (define (%kept-message-count entries start)
       (count
-        (lambda (entry idx) (and (>= idx start) (equal? (%ref entry "type") "message")))
+        (lambda (entry idx)
+          (and (>= idx start)
+            (equal? (pi-session-entry-type (or (json->pi-session-entry entry) entry))
+              "message"
+            ) ;equal?
+          ) ;and
+        ) ;lambda
         entries
         (iota (length entries))
       ) ;count

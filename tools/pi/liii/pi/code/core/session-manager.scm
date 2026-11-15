@@ -23,6 +23,7 @@
     (liii pi ai template)
     (liii pi ai types)
     (liii pi ai message)
+    (liii pi code core session-entry)
     (liii pi code core session-manager normalize)
     (liii pi code core session-manager messages)
     (liii pi code core session-manager append)
@@ -94,16 +95,12 @@
                  (if excluded? (list (cons "excludeFromContext" #t)) '())
                ) ;append
              ) ;msg
-             (json-str (json->string msg))
              (mid (uuid4))
              (now-iso (pi-iso-8601-utc-now))
+             (entry (pi-session-message-entry mid (find-last-session-message-id sfile) now-iso msg)
+             ) ;entry
             ) ;
-        (save-session-message! sfile
-          json-str
-          mid
-          (find-last-session-message-id sfile)
-          now-iso
-        ) ;save-session-message!
+        (append-session-entry! sfile (json->string (pi-session-entry->json entry)))
         mid
       ) ;let*
     ) ;define
@@ -146,11 +143,11 @@
           (when (> total-len old-len)
             (for-each
               (lambda (m)
-                (let* ((json-str (json->string (pi-message->json m)))
-                       (mid (uuid4))
+                (let* ((mid (uuid4))
                        (now-iso (pi-iso-8601-utc-now))
+                       (entry (pi-session-message-entry mid current-parent-id now-iso m))
                       ) ;
-                  (save-session-message! sfile json-str mid current-parent-id now-iso)
+                  (append-session-entry! sfile (json->string (pi-session-entry->json entry)))
                   (set! current-parent-id mid)
                 ) ;let*
               ) ;lambda
@@ -236,31 +233,33 @@
       ) ;let
     ) ;define
 
-    ;; header 用 json->string 构造：cwd 在 Windows 上含反斜杠，
-    ;; 手工拼接会产生 \\a、\\g 等非法 JSON 转义导致 header 行读回时被丢弃
+    ;; header 用 record + pi-session-entry->json 构造：cwd 在 Windows 上含反斜杠，
+    ;; 避免手工拼接产生非法 JSON 转义
     (define (save-session-header! file-path session-id timestamp-iso cwd)
       (append-session-entry! file-path
-        (json->string (list (cons "type" "session")
-                        (cons "version" 3)
-                        (cons "id" session-id)
-                        (cons "timestamp" timestamp-iso)
-                        (cons "cwd" cwd)
-                      ) ;list
+        (json->string (pi-session-entry->json (pi-session-header-entry session-id timestamp-iso cwd 3)
+                      ) ;pi-session-entry->json
         ) ;json->string
       ) ;append-session-entry!
     ) ;define
 
     (define (save-session-message! file-path message-json-str id parent-id timestamp-iso)
-      (let ((entry (string-append "{\"type\":\"message\",\"id\":\""
-                     id
-                     "\",\"parentId\":"
-                     (if parent-id (string-append "\"" parent-id "\"") "null")
-                     ",\"timestamp\":\""
-                     timestamp-iso
-                     "\",\"message\":"
-                     message-json-str
-                     "}"
-                   ) ;string-append
+      (let ((entry
+              (if (string? message-json-str)
+                (string-append "{\"type\":\"message\",\"id\":\""
+                  id
+                  "\",\"parentId\":"
+                  (if parent-id (string-append "\"" parent-id "\"") "null")
+                  ",\"timestamp\":\""
+                  timestamp-iso
+                  "\",\"message\":"
+                  message-json-str
+                  "}"
+                ) ;string-append
+                (json->string (pi-session-entry->json (pi-session-message-entry id parent-id timestamp-iso message-json-str)
+                              ) ;pi-session-entry->json
+                ) ;json->string
+              ) ;if
             ) ;entry
            ) ;
         (append-session-entry! file-path entry)
