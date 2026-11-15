@@ -41,6 +41,7 @@
     (define (pi-extract-tool-result-text res)
       (let* ((tr (or (json->pi-tool-result res) res))
              (c (cond ((pi-tool-result? tr) (pi-tool-result-content tr))
+                      ((pi-tool-result-message? tr) (pi-tool-result-message-content tr))
                       ((pair? tr) (pi-agent-assoc-val 'content "content" tr #()))
                       (else #())
                 ) ;cond
