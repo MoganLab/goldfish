@@ -273,7 +273,7 @@
     ;; 全链枯竭时构造 recovery 选项：只传递时钟、取消、轮询与事件回调
     (define (%recovery-options config chain-id dir)
       (let* ((poll-steering (%cfg-ref config 'get-steering-messages (lambda () '())))
-             (emit (%cfg-ref config 'emit (lambda args #f)))
+             (emit (or (%cfg-ref config 'emit #f) (lambda args #f)))
              (base (list (cons 'chain-id chain-id)
                      (cons 'config-dir dir)
                      (cons 'poll-steering poll-steering)
@@ -283,8 +283,8 @@
             ) ;
         (fold
           (lambda (k acc)
-            (let ((entry (assoc k config)))
-              (if entry (cons entry acc) acc)
+            (let ((v (%cfg-ref config k #f)))
+              (if v (cons (cons k v) acc) acc)
             ) ;let
           ) ;lambda
           base
@@ -328,7 +328,7 @@
                         (make-all-in-one-cfg #t 3600000 60000 8000 (all-in-one-default-chains))
                       ) ;or
              ) ;aio-cfg
-             (raw-model-id (cdr (assoc 'model-id config)))
+             (raw-model-id (%cfg-ref config 'model-id #f))
              (chain (%resolve-chain aio-cfg raw-model-id))
             ) ;
         (if (not chain)

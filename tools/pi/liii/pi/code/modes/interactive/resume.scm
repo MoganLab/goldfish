@@ -9,6 +9,7 @@
   (import (scheme base)
     (liii time)
     (liii tui)
+    (liii pi ai config runtime)
     (liii pi code cli args)
     (liii pi code core session-manager)
     (liii pi code core session-list)
@@ -38,7 +39,7 @@
 
     (define (pi-load-resume-sessions parsed cfg cwd)
       (let* ((current-dir (resolve-session-dir parsed cfg cwd))
-             (agent-dir (cdr (assoc 'agent-dir cfg)))
+             (agent-dir (pi-cfg-ref cfg 'agent-dir))
              (default-layout? (string=? current-dir (get-session-dir agent-dir cwd)))
              (current (pi-list-session-infos current-dir))
             ) ;

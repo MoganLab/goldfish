@@ -18,7 +18,11 @@
     (define (pi-agent-attach-cost resp config)
       (if (not (or (pair? resp) (pi-assistant-message? resp)))
         resp
-        (let* ((u (pi-agent-assoc-val 'usage "usage" resp #f))
+        (let* ((u (if (pi-assistant-message? resp)
+                    (pi-assistant-message-usage resp)
+                    (pi-agent-assoc-val 'usage "usage" resp #f)
+                  ) ;if
+               ) ;u
                (provider (pi-cfg-ref config 'provider "google"))
                (model-id (pi-cfg-ref config 'model-id ""))
                (models-store (pi-cfg-ref config 'models-store '()))
@@ -62,18 +66,21 @@
     ) ;define
 
     (define (pi-agent-session-cost-summary msgs config)
-      (let* ((provider (pi-agent-assoc-val 'provider "provider" config "google"))
-             (model-id (pi-agent-assoc-val 'model-id "model-id" config ""))
-             (models-store (pi-agent-assoc-val 'models-store "models-store" config '()))
+      (let* ((provider (pi-cfg-ref config 'provider "google"))
+             (model-id (pi-cfg-ref config 'model-id ""))
+             (models-store (pi-cfg-ref config 'models-store '()))
              (cost-rates (pi-model-cost provider model-id models-store))
             ) ;
         (pi-summarize-session-cost cost-rates
           (filter pair?
             (map
               (lambda (m)
-                (and (equal? (pi-agent-assoc-val 'role "role" m "") "assistant")
-                  (pi-agent-assoc-val 'usage "usage" m #f)
-                ) ;and
+                (cond ((pi-assistant-message? m) (pi-assistant-message-usage m))
+                      ((and (pair? m) (equal? (pi-agent-assoc-val 'role "role" m "") "assistant"))
+                       (pi-agent-assoc-val 'usage "usage" m #f)
+                      ) ;
+                      (else #f)
+                ) ;cond
               ) ;lambda
               msgs
             ) ;map
