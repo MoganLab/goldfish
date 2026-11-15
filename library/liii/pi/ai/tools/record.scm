@@ -10,6 +10,7 @@
     (liii list)
     (liii pi ai tools types)
     (liii pi ai message record)
+    (liii pi ai message json)
   ) ;import
   (export pi-tool-definition pi-tool-definition? pi-tool-definition-name
     pi-tool-definition-description pi-tool-definition-parameters
@@ -17,6 +18,7 @@
     pi-tool-definition-guidelines pi-tool-definition->alist pi-tool-result
     pi-tool-result? pi-tool-result-content pi-tool-result-is-error
     pi-tool-result-isError pi-tool-result->alist pi-tool-result->json
+    json->pi-tool-result
     pi-trunc-result pi-trunc-result? pi-trunc-result-content
     pi-trunc-result-truncated pi-trunc-result-truncated?
     pi-trunc-result-truncated-by pi-trunc-result-total-lines
@@ -104,6 +106,44 @@
 
     (define (pi-tool-result->json res)
       (%normalize-json-value (pi-tool-result->alist res))
+    ) ;define
+
+    (define (%tool-dict-ref obj key default-val)
+      (if (not (pair? obj))
+        default-val
+        (let* ((str-key (if (symbol? key) (symbol->string key) key))
+               (sym-key (if (string? key) (string->symbol key) key))
+               (pair (or (assoc str-key obj) (assoc sym-key obj)))
+              ) ;
+          (if (and pair (not (eq? (cdr pair) 'null))) (cdr pair) default-val)
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%tool-json-bool val)
+      (case val
+       ((true) #t)
+       ((false) #f)
+       (else (if val #t #f))
+      ) ;case
+    ) ;define
+
+    (define (%tool-convert-content c)
+      (cond ((vector? c) (vector-map (lambda (x) (or (json->pi-block x) x)) c))
+            ((pair? c) (list->vector (map (lambda (x) (or (json->pi-block x) x)) c)))
+            (else c)
+      ) ;cond
+    ) ;define
+
+    (define (json->pi-tool-result obj)
+      (cond ((pi-tool-result? obj) obj)
+            ((not (pair? obj)) #f)
+            (else
+             (pi-tool-result (%tool-convert-content (%tool-dict-ref obj "content" #()))
+               (%tool-json-bool (%tool-dict-ref obj "isError" #f))
+             ) ;pi-tool-result
+            ) ;else
+      ) ;cond
     ) ;define
 
     (define* (pi-trunc-result content

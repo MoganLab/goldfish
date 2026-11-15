@@ -13,6 +13,7 @@
     (liii pi ai time)
     (liii pi ai event types)
     (liii pi ai event record)
+    (liii pi ai event json)
     (liii pi ai message)
     (liii pi ai config types)
     (liii pi ai config record)
@@ -20,7 +21,8 @@
     (liii pi ai tools record)
   ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
-    pi-event? pi-event-type pi-event->alist pi-event->json pi-event-session pi-event-session?
+    pi-event? pi-event-type pi-event->alist pi-event->json json->pi-event
+    pi-event-session pi-event-session?
     pi-event-session-type pi-event-session-version pi-event-session-id
     pi-event-session-timestamp pi-event-session-cwd pi-event-agent-start
     pi-event-agent-start? pi-event-agent-start-type pi-event-turn-start

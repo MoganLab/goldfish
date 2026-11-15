@@ -11,10 +11,11 @@
     (liii base)
     (liii pi ai message types)
     (liii pi ai message record)
+    (liii pi ai message json)
   ) ;import
-  (export pi-message? pi-message-role pi-message->alist pi-message->json pi-block?
-    pi-block-type
-    pi-block->alist pi-block->json pi-user-message pi-user-message?
+  (export pi-message? pi-message-role pi-message->alist pi-message->json
+    json->pi-message pi-block? pi-block-type pi-block->alist pi-block->json
+    json->pi-block pi-user-message pi-user-message?
     pi-user-message-role
     pi-user-message-content pi-user-message-timestamp
     pi-bash-execution->user-text pi-assistant-message pi-assistant-message?

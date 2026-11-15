@@ -57,8 +57,16 @@
           (emit 'message_end resp)
         ) ;when
         (let* ((new-msgs (append msgs (list resp)))
-               (stop-reason (pi-agent-assoc-val 'stopReason "stopReason" resp ""))
-               (content (pi-agent-assoc-val 'content "content" resp '()))
+               (stop-reason (if (pi-assistant-message? resp)
+                              (pi-assistant-message-stop-reason resp)
+                              (pi-agent-assoc-val 'stopReason "stopReason" resp "")
+                            ) ;if
+               ) ;stop-reason
+               (content (if (pi-assistant-message? resp)
+                          (pi-assistant-message-content resp)
+                          (pi-agent-assoc-val 'content "content" resp '())
+                        ) ;if
+               ) ;content
                (tool-calls (pi-filter-tool-calls content))
               ) ;
           (values new-msgs stop-reason tool-calls resp)
