@@ -163,15 +163,10 @@
 
     ;; 探活配置：继承节点配置但覆盖 model-meta 的 max-tokens
     (define (%probe-config base-cfg)
-      (let* ((raw-meta (cdr (or (assoc 'model-meta base-cfg) '(#f . #f))))
+      (let* ((raw-meta (pi-cfg-ref base-cfg 'model-meta #f))
              (probe-meta (pi-probe-max-tokens-metadata raw-meta))
             ) ;
-        (cons (cons 'model-meta probe-meta)
-          (filter
-            (lambda (pair) (not (eq? (car pair) 'model-meta)))
-            base-cfg
-          ) ;filter
-        ) ;cons
+        (pi-cfg-set base-cfg 'model-meta probe-meta)
       ) ;let*
     ) ;define
 
