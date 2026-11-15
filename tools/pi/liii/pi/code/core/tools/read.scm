@@ -19,6 +19,7 @@
     (liii pi ai tools record)
     (liii pi ai config types)
     (liii pi ai config record)
+    (liii pi ai config runtime)
     (liii pi ai models)
     (liii pi code core tools truncate)
   ) ;import
@@ -295,9 +296,9 @@
     (define (%catalog-model-entry opt-cfg)
       (catch #t
         (lambda ()
-          (pi-provider-model-entry (cdr (assoc 'provider opt-cfg))
-            (cdr (assoc 'model-id opt-cfg))
-            (cdr (assoc 'models-store opt-cfg))
+          (pi-provider-model-entry (pi-cfg-ref opt-cfg 'provider)
+            (pi-cfg-ref opt-cfg 'model-id)
+            (pi-cfg-ref opt-cfg 'models-store)
           ) ;pi-provider-model-entry
         ) ;lambda
         (lambda _ #f)
@@ -311,15 +312,11 @@
              (opt-cfg (pi-keyword-value :config opts #f))
              ;; 优先级：显式 :model > cfg 的 models-store 目录行 > cfg 的 model-meta；
              ;; 目录行是唯一携带 "input" 视觉能力信息的形态
-             (model
-               (or opt-model
-                 (and (pair? opt-cfg)
-                   (or (%catalog-model-entry opt-cfg)
-                     (and (assoc 'model-meta opt-cfg) (cdr (assoc 'model-meta opt-cfg)))
-                     (and (assoc 'model opt-cfg) (cdr (assoc 'model opt-cfg)))
-                   ) ;or
-                 ) ;and
-               ) ;or
+             (model (or opt-model
+                      (%catalog-model-entry opt-cfg)
+                      (pi-cfg-ref opt-cfg 'model-meta #f)
+                      (pi-cfg-ref opt-cfg 'model #f)
+                    ) ;or
              ) ;model
              (non-vision-note
                (if (and model (not (%model-supports-images? model)))

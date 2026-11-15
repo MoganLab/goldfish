@@ -12,6 +12,7 @@
     (scheme char)
     (liii string)
     (liii list)
+    (liii pi ai config runtime)
     (liii pi ai message)
     (liii pi ai transcript cross-model)
   ) ;import
@@ -19,15 +20,21 @@
   (begin
 
     (define (%val key alist default-val)
-      (if (not (pair? alist))
-        default-val
-        (let* ((str-k (if (symbol? key) (symbol->string key) key))
-               (sym-k (if (string? key) (string->symbol key) key))
-               (p (or (assoc key alist) (assoc str-k alist) (assoc sym-k alist)))
-              ) ;
-          (if p (cdr p) default-val)
-        ) ;let*
-      ) ;if
+      (cond ((pi-config? alist)
+             (let ((sym-k (if (string? key) (string->symbol key) key)))
+               (pi-cfg-ref alist sym-k default-val)
+             ) ;let
+            ) ;
+            ((not (pair? alist)) default-val)
+            (else
+              (let* ((str-k (if (symbol? key) (symbol->string key) key))
+                     (sym-k (if (string? key) (string->symbol key) key))
+                     (p (or (assoc key alist) (assoc str-k alist) (assoc sym-k alist)))
+                    ) ;
+                (if p (cdr p) default-val)
+              ) ;let*
+            ) ;else
+      ) ;cond
     ) ;define
 
     ;; 消息 role 统一以字符串比较；支持 record 与 alist；非 alist/record 原样跳过（防御）

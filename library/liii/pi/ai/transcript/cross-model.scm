@@ -15,6 +15,7 @@
     (scheme char)
     (liii string)
     (liii list)
+    (liii pi ai config runtime)
     (liii pi ai message)
   ) ;import
   (export pi-transcript-same-model? pi-transcript-normalize-block)
@@ -22,15 +23,21 @@
 
     ;; 关联表取值：兼容字符串键与符号键，缺失时返回默认值
     (define (%val key alist default-val)
-      (if (not (pair? alist))
-        default-val
-        (let* ((str-k (if (symbol? key) (symbol->string key) key))
-               (sym-k (if (string? key) (string->symbol key) key))
-               (p (or (assoc key alist) (assoc str-k alist) (assoc sym-k alist)))
-              ) ;
-          (if p (cdr p) default-val)
-        ) ;let*
-      ) ;if
+      (cond ((pi-config? alist)
+             (let ((sym-k (if (string? key) (string->symbol key) key)))
+               (pi-cfg-ref alist sym-k default-val)
+             ) ;let
+            ) ;
+            ((not (pair? alist)) default-val)
+            (else
+              (let* ((str-k (if (symbol? key) (symbol->string key) key))
+                     (sym-k (if (string? key) (string->symbol key) key))
+                     (p (or (assoc key alist) (assoc str-k alist) (assoc sym-k alist)))
+                    ) ;
+                (if p (cdr p) default-val)
+              ) ;let*
+            ) ;else
+      ) ;cond
     ) ;define
 
     ;; 可选元数据比对：目标侧缺省时要求消息侧同样缺省，否则要求严格相等

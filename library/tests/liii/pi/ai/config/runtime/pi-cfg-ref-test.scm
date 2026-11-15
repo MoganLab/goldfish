@@ -7,7 +7,7 @@
 ;;
 ;; 参数
 ;; ----
-;; cfg : alist
+;; cfg : <pi-config> | alist
 ;; 运行时配置。
 ;;
 ;; key : symbol
@@ -21,13 +21,13 @@
 ;; any
 ;; 键对应的取值，或默认值。
 
-(import (liii check) (liii pi code config query))
+(import (liii check) (liii pi ai config runtime))
 
 (check-set-mode! 'report-failed)
 
-(let ((cfg '((provider . "deepseek") (max-turns . 10))))
+(let ((cfg (make-pi-config :provider "deepseek" :model-id "m1")))
   (check (pi-cfg-ref cfg 'provider) => "deepseek")
-  (check (pi-cfg-ref cfg 'max-turns) => 10)
+  (check (pi-cfg-ref cfg 'model-id) => "m1")
   (check (pi-cfg-ref cfg 'missing) => #f)
   (check (pi-cfg-ref cfg 'missing "fallback") => "fallback")
   (check (pi-cfg-ref #f 'provider "google") => "google")

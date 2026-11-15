@@ -11,12 +11,12 @@
 ;; 扩展经 config augmenter 注入，核心不依赖任何具体实现库。
 
 (define-library (liii pi ai keyring)
-  (import (scheme base))
+  (import (scheme base) (liii pi ai config runtime))
   (export pi-request-api-key pi-key-rotation? pi-rotate-api-key!)
   (begin
 
     (define (%config-ref config key)
-      (if (pair? config) (cdr (or (assoc key config) '(#f . #f))) #f)
+      (pi-cfg-ref config key)
     ) ;define
 
     ;; 每次请求开始时取本次使用的 key：

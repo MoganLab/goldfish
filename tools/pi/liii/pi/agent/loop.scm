@@ -11,6 +11,7 @@
     (liii string)
     (liii list)
     (liii pi ai abort)
+    (liii pi ai config runtime)
     (liii pi ai message)
     (liii pi ai time)
     (liii pi ai dispatch)
@@ -27,18 +28,14 @@
 
     ;; 从 config 取扩展事件桥接（由上层注入；缺失时不向扩展系统转发事件）
     (define (%ext-emit config)
-      (let ((pair (and (pair? config) (assoc 'emit-extension-event config))))
-        (and pair (procedure? (cdr pair)) (cdr pair))
+      (let ((val (pi-cfg-ref config 'emit-extension-event)))
+        (and (procedure? val) val)
       ) ;let
     ) ;define
 
     (define* (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
-      (let* ((tools-pair (and (pair? config) (or (assoc 'tools config) (assoc "tools" config)))
-             ) ;tools-pair
-             (active-tools (if tools-pair (cdr tools-pair) '()))
-             (prov-pair (and (pair? config) (or (assoc 'provider config) (assoc "provider" config)))
-             ) ;prov-pair
-             (provider (if prov-pair (cdr prov-pair) "google"))
+      (let* ((active-tools (pi-cfg-ref config 'tools '()))
+             (provider (pi-cfg-ref config 'provider "google"))
              (on-stream-ev
                (if (procedure? emit)
                  (lambda (ev)

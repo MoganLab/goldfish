@@ -9,14 +9,14 @@
   (export %get-poll-fn %poll-config-messages %poll-steering %inject-steering
     %maybe-inject-steering! %queue-before-stop %natural-stop-continue
   ) ;export
-  (import (scheme base) (liii pi ai message))
+  (import (scheme base) (liii pi ai config runtime) (liii pi ai message))
   (begin
 
     ;; 从 config 取轮询回调（由上层注入；缺失时返回 #f）。
     ;; 契约（对齐上游）：不得抛错，无消息时返回空表
     (define (%get-poll-fn config key)
-      (let ((pair (and (pair? config) (assoc key config))))
-        (and pair (procedure? (cdr pair)) (cdr pair))
+      (let ((val (pi-cfg-ref config key)))
+        (and (procedure? val) val)
       ) ;let
     ) ;define
 

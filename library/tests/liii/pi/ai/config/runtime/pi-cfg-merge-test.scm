@@ -3,11 +3,11 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-cfg-merge cfg overrides) -> alist
+;; (pi-cfg-merge cfg overrides) -> <pi-config> | alist
 ;;
 ;; 参数
 ;; ----
-;; cfg : alist
+;; cfg : <pi-config> | alist
 ;; 原运行时配置。
 ;;
 ;; overrides : alist
@@ -15,19 +15,18 @@
 ;;
 ;; 返回值
 ;; ------
-;; alist
+;; <pi-config> | alist
 ;; 合并后的新配置对象。
 
-(import (liii check) (liii pi code config query))
+(import (liii check) (liii pi ai config runtime))
 
 (check-set-mode! 'report-failed)
 
-(let* ((cfg '((provider . "google") (model-id . "m1") (timeout . 60)))
+(let* ((cfg (make-pi-config :provider "google" :model-id "m1"))
        (merged (pi-cfg-merge cfg '((provider . "deepseek") (api-key . "sk-1"))))
       ) ;
   (check (pi-cfg-ref merged 'provider) => "deepseek")
   (check (pi-cfg-ref merged 'model-id) => "m1")
-  (check (pi-cfg-ref merged 'timeout) => 60)
   (check (pi-cfg-ref merged 'api-key) => "sk-1")
 ) ;let*
 

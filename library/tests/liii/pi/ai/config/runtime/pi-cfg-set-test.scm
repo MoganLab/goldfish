@@ -3,11 +3,11 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-cfg-set cfg key val) -> alist
+;; (pi-cfg-set cfg key val) -> <pi-config> | alist
 ;;
 ;; 参数
 ;; ----
-;; cfg : alist
+;; cfg : <pi-config> | alist
 ;; 原运行时配置。
 ;;
 ;; key : symbol
@@ -18,14 +18,14 @@
 ;;
 ;; 返回值
 ;; ------
-;; alist
+;; <pi-config> | alist
 ;; 更新后的新配置对象。
 
-(import (liii check) (liii pi code config query))
+(import (liii check) (liii pi ai config runtime))
 
 (check-set-mode! 'report-failed)
 
-(let* ((cfg '((provider . "google")))
+(let* ((cfg (make-pi-config :provider "google"))
        (cfg2 (pi-cfg-set cfg 'model-id "gemini-2.5-flash"))
        (cfg3 (pi-cfg-set cfg2 'provider "deepseek"))
       ) ;

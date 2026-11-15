@@ -22,27 +22,29 @@
 (check-set-mode! 'report-failed)
 
 ;; 无 augmenter 时原样返回
-(check
-  (with-extension-registry (make-extension-api)
-    (lambda () (augment-pi-config '((provider . "google")) '()))
-  ) ;with-extension-registry
-  =>
-  '((provider . "google"))
-) ;check
+(let ((cfg (make-pi-config :provider "google")))
+  (check
+    (with-extension-registry (make-extension-api)
+      (lambda () (augment-pi-config cfg '()))
+    ) ;with-extension-registry
+    =>
+    cfg
+  ) ;check
+) ;let
 
 ;; 注册的 augmenter 会被依次应用
 (let ((api (make-extension-api)))
   (set-extension-registry-augmenters! (extension-api-registry api)
-    (list (lambda (cfg parsed) (cons (cons 'augmented #t) cfg)))
+    (list (lambda (cfg parsed) (pi-cfg-set cfg 'augmented #t)))
   ) ;set-extension-registry-augmenters!
   (let ((out
           (with-extension-registry api
-            (lambda () (augment-pi-config '((provider . "google")) '()))
+            (lambda () (augment-pi-config (make-pi-config :provider "google") '()))
           ) ;with-extension-registry
         ) ;out
        ) ;
-    (check (cdr (assoc 'augmented out)) => #t)
-    (check (cdr (assoc 'provider out)) => "google")
+    (check (pi-cfg-ref out 'augmented) => #t)
+    (check (pi-cfg-ref out 'provider) => "google")
   ) ;let
 ) ;let
 

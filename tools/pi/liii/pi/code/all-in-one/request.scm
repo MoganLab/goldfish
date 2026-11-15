@@ -14,6 +14,7 @@
     (liii pi ai message)
     (liii pi ai config record)
     (liii pi ai thinking)
+    (liii pi code cli args query)
     (liii pi code config)
     (liii pi code modes output)
     (liii pi code all-in-one chain)
@@ -45,11 +46,12 @@
     ) ;define
 
     (define (%node-config config provider model-id thinking-level)
-      (let* ((parsed (list (cons 'provider provider)
-                       (cons 'model model-id)
-                       (cons 'thinking-level thinking-level)
-                       (cons 'no-tools #t)
-                     ) ;list
+      (let* ((parsed (make-pi-cli-args
+                       :provider       provider
+                       :model          model-id
+                       :thinking-level thinking-level
+                       :no-tools       #t
+                     ) ;make-pi-cli-args
              ) ;parsed
              (dir-str (path->string (pi-cfg-config-dir config)))
              (node-cfg (resolve-pi-config parsed (list (cons "PI_CODING_AGENT_DIR" dir-str)))
@@ -140,14 +142,7 @@
               ) ;
           ;; 交接前把实际节点告知前台，供页脚展示
           (%emit-active-node config provider model-id eff-tl node-config)
-          (request provider
-            (pi-cfg->alist node-config)
-            messages
-            system-prompt
-            tools
-            on-event
-            timeout
-          ) ;request
+          (request provider node-config messages system-prompt tools on-event timeout)
         ) ;let*
       ) ;lambda
     ) ;define
@@ -168,15 +163,10 @@
 
     ;; 探活配置：继承节点配置但覆盖 model-meta 的 max-tokens
     (define (%probe-config base-cfg)
-      (let* ((raw-meta (cdr (or (assoc 'model-meta base-cfg) '(#f . #f))))
+      (let* ((raw-meta (pi-cfg-ref base-cfg 'model-meta #f))
              (probe-meta (pi-probe-max-tokens-metadata raw-meta))
             ) ;
-        (cons (cons 'model-meta probe-meta)
-          (filter
-            (lambda (pair) (not (eq? (car pair) 'model-meta)))
-            base-cfg
-          ) ;filter
-        ) ;cons
+        (pi-cfg-set base-cfg 'model-meta probe-meta)
       ) ;let*
     ) ;define
 
@@ -278,7 +268,7 @@
     ;; 全链枯竭时构造 recovery 选项：只传递时钟、取消、轮询与事件回调
     (define (%recovery-options config chain-id dir)
       (let* ((poll-steering (%cfg-ref config 'get-steering-messages (lambda () '())))
-             (emit (%cfg-ref config 'emit (lambda args #f)))
+             (emit (or (%cfg-ref config 'emit #f) (lambda args #f)))
              (base (list (cons 'chain-id chain-id)
                      (cons 'config-dir dir)
                      (cons 'poll-steering poll-steering)
@@ -288,8 +278,8 @@
             ) ;
         (fold
           (lambda (k acc)
-            (let ((entry (assoc k config)))
-              (if entry (cons entry acc) acc)
+            (let ((v (%cfg-ref config k #f)))
+              (if v (cons (cons k v) acc) acc)
             ) ;let
           ) ;lambda
           base
@@ -333,7 +323,7 @@
                         (make-all-in-one-cfg #t 3600000 60000 8000 (all-in-one-default-chains))
                       ) ;or
              ) ;aio-cfg
-             (raw-model-id (cdr (assoc 'model-id config)))
+             (raw-model-id (%cfg-ref config 'model-id #f))
              (chain (%resolve-chain aio-cfg raw-model-id))
             ) ;
         (if (not chain)

@@ -15,6 +15,7 @@
     (liii error)
     (liii time)
     (liii pi ai event)
+    (liii pi ai config runtime)
     (liii pi ai message)
     (liii pi ai api anthropic-messages core)
     (liii pi ai api anthropic-messages thinking)
@@ -143,12 +144,12 @@
                (timeout 300)
                (opt-retry #f)
              ) ;anthropic-request
-      (let*-values (((model-id) (cdr (assoc 'model-id config)))
-                    ((model-meta) (cdr (assoc 'model-meta config)))
-                    ((api-key) (cdr (assoc 'api-key config)))
-                    ((proxy-url) (cdr (assoc 'proxy-url config)))
-                    ((settings) (cdr (assoc 'settings config)))
-                    ((provider) (cdr (or (assoc 'provider config) '(#f . #f))))
+      (let*-values (((model-id) (pi-cfg-ref config 'model-id))
+                    ((model-meta) (pi-cfg-ref config 'model-meta))
+                    ((api-key) (pi-cfg-ref config 'api-key))
+                    ((proxy-url) (pi-cfg-ref config 'proxy-url))
+                    ((settings) (pi-cfg-ref config 'settings))
+                    ((provider) (pi-cfg-ref config 'provider))
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
                     ) ;
@@ -159,12 +160,9 @@
                     ((max-tokens) (cdr (or (assoc 'max-tokens model-meta) '(#f
                                                                             . 8192))))
                     ((url) (anthropic-build-endpoint base-url))
-                    ((eff-tool-names) (or tool-names (cdr (assoc 'tools config))))
+                    ((eff-tool-names) (or tool-names (pi-cfg-ref config 'tools '())))
                     ((tool-resolver)
-                     (if (assoc 'tool-resolver config)
-                       (cdr (assoc 'tool-resolver config))
-                       (lambda (name) #f)
-                     ) ;if
+                     (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
                     ) ;
                     ((tool-decls)
                      (anthropic-build-tool-declarations-from-names eff-tool-names tool-resolver)
@@ -175,8 +173,7 @@
                        system-instruction tool-decls max-tokens
                      ) ;anthropic-build-request-body
                     ) ;
-                    ((thinking-lvl) (cdr (or (assoc 'thinking-level config) '(#f
-                                                                              . #f))))
+                    ((thinking-lvl) (pi-cfg-ref config 'thinking-level))
                     ((req-body) (anthropic-inject-thinking raw-body thinking-lvl))
                     ((req-json-str) (json->string req-body))
                     ((headers) (%build-anthropic-headers api-key))

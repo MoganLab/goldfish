@@ -12,6 +12,7 @@
     (liii http)
     (liii time)
     (liii pi ai abort)
+    (liii pi ai config runtime)
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai retry)
@@ -343,33 +344,30 @@
                (opt-retry #f)
                (idle-timeout #f)
              ) ;anthropic-request-stream
-      (let* ((model-id (cdr (assoc 'model-id config)))
-             (model-meta (cdr (assoc 'model-meta config)))
-             (api-key (cdr (assoc 'api-key config)))
-             (proxy-url (cdr (assoc 'proxy-url config)))
+      (let* ((model-id (pi-cfg-ref config 'model-id))
+             (model-meta (pi-cfg-ref config 'model-meta))
+             (api-key (pi-cfg-ref config 'api-key))
+             (proxy-url (pi-cfg-ref config 'proxy-url))
              (base-url (cdr (or (assoc 'base-url model-meta) '(#f
                                                                . "https://api.anthropic.com")))
              ) ;base-url
              (max-tokens (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192))))
              (url (anthropic-build-endpoint base-url))
-             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
-             (tool-resolver (if (assoc 'tool-resolver config)
-                              (cdr (assoc 'tool-resolver config))
-                              (lambda (name) #f)
-                            ) ;if
+             (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
              ) ;tool-resolver
              (tool-decls (anthropic-build-tool-declarations-from-names eff-tool-names tool-resolver)
              ) ;tool-decls
              (ant-msgs (anthropic-build-messages messages))
              (raw-req-body (%build-req-body model-id ant-msgs system-instruction tool-decls max-tokens)
              ) ;raw-req-body
-             (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
+             (thinking-lvl (pi-cfg-ref config 'thinking-level))
              (req-body (anthropic-inject-thinking raw-req-body thinking-lvl))
              (req-json-str (json->string req-body))
              (headers (%build-headers api-key))
              (proxy-alist (%build-proxy proxy-url))
-             (settings (cdr (or (assoc 'settings config) '(#f))))
-             (provider (cdr (or (assoc 'provider config) '(#f . #f))))
+             (settings (pi-cfg-ref config 'settings))
+             (provider (pi-cfg-ref config 'provider))
              (eff-idle (or idle-timeout timeout))
             ) ;
         (%run-stream-loop settings url req-json-str headers proxy-alist on-event

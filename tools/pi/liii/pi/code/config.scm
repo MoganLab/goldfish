@@ -33,8 +33,8 @@
     (liii pi code core extensions event)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir pi-config?
-    make-pi-config pi-cfg-ref pi-cfg-set pi-cfg-merge pi-cfg->alist
-    gf-get-config-dir pi-cfg-config-dir pi-read-json-file pi-load-settings
+    make-pi-config pi-cfg-ref pi-cfg-set pi-cfg-merge gf-get-config-dir
+    pi-cfg-config-dir pi-read-json-file pi-load-settings
     pi-save-default-thinking-level! pi-save-hide-thinking-block!
     pi-save-default-model! pi-model-supports-thinking? pi-cfg-provider-proxy
     pi-model-available-thinking-levels pi-cfg-provider-api

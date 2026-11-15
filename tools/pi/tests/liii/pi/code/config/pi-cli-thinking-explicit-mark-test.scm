@@ -25,6 +25,7 @@
   (liii path)
   (liii shutil)
   (liii string)
+  (liii pi code cli args query)
   (liii pi code config)
 ) ;import
 
@@ -64,10 +65,10 @@
 
 ;; 1. 显式 --thinking high：标记为 #t，来源为 cli，生效值 high
 (let ((cfg (resolve-pi-config
-             (list (cons 'provider "stub")
-               (cons 'model "one")
-               (cons 'thinking-level "high")
-             ) ;list
+             (make-pi-cli-args :provider "stub"
+               :model "one"
+               :thinking-level "high"
+             ) ;make-pi-cli-args
              ENV
            ) ;resolve-pi-config
           ) ;
@@ -79,7 +80,7 @@
 
 ;; 2. 无 --thinking：settings 默认值 low 不得被标为显式覆盖
 (let ((cfg (resolve-pi-config
-             (list (cons 'provider "stub") (cons 'model "one"))
+             (make-pi-cli-args :provider "stub" :model "one")
              ENV
            ) ;resolve-pi-config
           ) ;
@@ -91,7 +92,7 @@
 
 ;; 3. --thinking 为空串或空白串：同样不视为显式
 (let ((cfg (resolve-pi-config
-             (list (cons 'provider "stub") (cons 'model "one") (cons 'thinking-level "  "))
+             (make-pi-cli-args :provider "stub" :model "one" :thinking-level "  ")
              ENV
            ) ;resolve-pi-config
           ) ;

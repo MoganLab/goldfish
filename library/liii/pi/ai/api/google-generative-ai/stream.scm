@@ -15,6 +15,7 @@
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai config types)
+    (liii pi ai config runtime)
     (liii pi ai retry)
     (liii pi ai limits)
     (liii pi ai log)
@@ -101,20 +102,17 @@
     ) ;define
 
     (define (%build-stream-req-params config tool-names messages sys-inst)
-      (let* ((model-id (cdr (assoc 'model-id config)))
-             (model-meta (cdr (assoc 'model-meta config)))
-             (proxy-url (cdr (assoc 'proxy-url config)))
-             (provider (cdr (or (%safe-assoc 'provider config) '(#f . "google"))))
-             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
-             (tool-resolver (if (assoc 'tool-resolver config)
-                              (cdr (assoc 'tool-resolver config))
-                              (lambda (name) #f)
-                            ) ;if
+      (let* ((model-id (pi-cfg-ref config 'model-id))
+             (model-meta (pi-cfg-ref config 'model-meta))
+             (proxy-url (pi-cfg-ref config 'proxy-url))
+             (provider (pi-cfg-ref config 'provider "google"))
+             (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
              ) ;tool-resolver
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
              (contents (gemini-build-contents messages model-id (or provider "google")))
              (raw-req-body (gemini-build-request-body contents sys-inst tool-decls))
-             (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
+             (thinking-lvl (pi-cfg-ref config 'thinking-level))
              (req-body (gemini-inject-thinking-config raw-req-body thinking-lvl))
              (proxy-alist
                (if (and (string? proxy-url) (not (string-null? proxy-url)))
@@ -188,7 +186,7 @@
       (pi-log-http-error! status
         body
         (list (cons 'provider provider)
-          (cons 'model (cdr (or (%safe-assoc 'model-id config) '(#f . #f))))
+          (cons 'model (pi-cfg-ref config 'model-id))
           (cons 'url (string-append "POST " url))
           (cons 'attempt attempt)
           (cons 'max-attempts max-attempts)
@@ -205,7 +203,7 @@
       (gemini-log-finish-reason-error! (gemini-stream-state-finish-reason stream-state)
         body
         provider
-        (cdr (or (%safe-assoc 'model-id config) '(#f . #f)))
+        (pi-cfg-ref config 'model-id)
         url
         attempt
         max-attempts
@@ -240,10 +238,9 @@
                     (%build-stream-req-params config tool-names messages system-instruction)
                    ) ;
                   ) ;
-        (let* ((settings (cdr (or (%safe-assoc 'settings config) '(#f))))
-               (provider (cdr (or (%safe-assoc 'provider config) '(#f
-                                                                   . "google"))))
-               (model-id (cdr (assoc 'model-id config)))
+        (let* ((settings (pi-cfg-ref config 'settings))
+               (provider (pi-cfg-ref config 'provider "google"))
+               (model-id (pi-cfg-ref config 'model-id))
                (effective-idle (or idle-timeout timeout))
                (key-rotation? (pi-key-rotation? config))
               ) ;
