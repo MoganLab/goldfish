@@ -51,21 +51,21 @@ jobs:
       - name: build
         run: xmake build --yes -vD goldfish
       - name: test r7rs
-        run: bin/gf test -j 2 r7rs/tests/
+        run: bin/gf test r7rs/tests/
       - name: test library
-        run: bin/gf test -j 2 library/tests/
+        run: bin/gf test library/tests/
       - name: test goldfish
-        run: bin/gf test -j 2 goldfish/tests/
+        run: bin/gf test goldfish/tests/
       - name: test tools/fmt
-        run: bin/gf test -j 2 tools/fmt/tests
+        run: bin/gf test tools/fmt/tests
       - name: test tools/check
-        run: bin/gf test -j 2 tools/check/tests
+        run: bin/gf test tools/check/tests
       - name: test tools/doc
-        run: bin/gf test -j 2 tools/doc/tests
+        run: bin/gf test tools/doc/tests
       - name: test tools/fix
-        run: bin/gf test -j 2 tools/fix/tests
+        run: bin/gf test tools/fix/tests
       - name: test tools/pi
-        run: bin/gf test -j 2 tools/pi/tests
+        run: bin/gf test tools/pi/tests
       - name: test tools/repl
-        run: bin/gf test -j 2 tools/repl/tests
+        run: bin/gf test tools/repl/tests
 

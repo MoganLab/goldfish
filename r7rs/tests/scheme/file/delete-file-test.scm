@@ -20,32 +20,37 @@
 ;; 当文件不存在或无法删除时抛出 read-error 或对应错误。
 ;; 当参数类型不为字符串时抛出 type-error。
 
-(import (liii check) (scheme file))
+(import (liii check) (liii path) (liii tempfile) (scheme file))
 (check-set-mode! 'report-failed)
 
-(define test-file "tests/scheme/file/test-delete-file.txt")
-;; 创建测试文件
-(with-output-to-file test-file (lambda () (display "test")))
-;; 验证文件存在
-(check-true (file-exists? test-file))
-;; 测试 delete-file
-(check (delete-file test-file) => #t)
-;; 验证文件已删除
-(check-false (file-exists? test-file))
-;; 测试删除不存在的文件应报错
-(check-catch 'read-error
-  (delete-file "tests/scheme/file/non-existent-file.txt")
-) ;check-catch
-;; 测试删除参数类型错误
-(check-catch 'type-error (delete-file 123))
-;; C 层入口 g_delete-file 走同一实现 (devel/0143.md)
-(check-catch 'type-error (g_delete-file 123))
-;; 测试删除中文文件名
-
-(define chinese-file "tests/scheme/file/中文删除.txt")
-(with-output-to-file chinese-file (lambda () (display "test")))
-(check-true (file-exists? chinese-file))
-(check (delete-file chinese-file) => #t)
-(check-false (file-exists? chinese-file))
+(with-temp-dir
+  (lambda (dir)
+    (let ((test-file (path->string (path-join dir "test-delete-file.txt")))
+          (chinese-file (path->string (path-join dir "中文删除.txt")))
+         ) ;
+      ;; 创建测试文件
+      (with-output-to-file test-file (lambda () (display "test")))
+      ;; 验证文件存在
+      (check-true (file-exists? test-file))
+      ;; 测试 delete-file
+      (check (delete-file test-file) => #t)
+      ;; 验证文件已删除
+      (check-false (file-exists? test-file))
+      ;; 测试删除不存在的文件应报错
+      (check-catch 'read-error
+        (delete-file (path->string (path-join dir "non-existent-file.txt")))
+      ) ;check-catch
+      ;; 测试删除参数类型错误
+      (check-catch 'type-error (delete-file 123))
+      ;; C 层入口 g_delete-file 走同一实现 (devel/0143.md)
+      (check-catch 'type-error (g_delete-file 123))
+      ;; 测试删除中文文件名
+      (with-output-to-file chinese-file (lambda () (display "test")))
+      (check-true (file-exists? chinese-file))
+      (check (delete-file chinese-file) => #t)
+      (check-false (file-exists? chinese-file))
+    ) ;let
+  ) ;lambda
+) ;with-temp-dir
 
 (check-report)
