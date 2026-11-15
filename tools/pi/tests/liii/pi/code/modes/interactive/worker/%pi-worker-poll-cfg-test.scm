@@ -24,6 +24,7 @@
 (import (scheme base)
   (liii check)
   (liii go)
+  (liii pi code config)
   (liii pi code modes interactive worker)
 ) ;import
 
@@ -33,10 +34,10 @@
 (let* ((st-ch (make-chan 4))
        (fu-ch (make-chan 4))
        (ev-ch (make-chan 4))
-       (cfg (%pi-worker-poll-cfg '((api-key . "key")) st-ch fu-ch ev-ch))
+       (cfg (%pi-worker-poll-cfg (make-pi-config :api-key "key") st-ch fu-ch ev-ch))
       ) ;
-  (check-true (procedure? (cdr (assoc 'get-steering-messages cfg))))
-  (check-true (procedure? (cdr (assoc 'get-follow-up-messages cfg))))
+  (check-true (procedure? (pi-cfg-ref cfg 'get-steering-messages)))
+  (check-true (procedure? (pi-cfg-ref cfg 'get-follow-up-messages)))
 ) ;let*
 
 (check-report)

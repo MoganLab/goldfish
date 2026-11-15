@@ -15,7 +15,7 @@
 ;; boolean?
 ;; 若为 <pi-config> 记录则返回 #t，否则返回 #f。
 
-(import (liii check) (liii pi code config query))
+(import (liii check) (liii pi ai config runtime))
 
 (check-set-mode! 'report-failed)
 

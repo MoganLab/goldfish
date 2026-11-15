@@ -15,6 +15,7 @@
     (liii error)
     (liii time)
     (liii pi ai event)
+    (liii pi ai config runtime)
     (liii pi ai retry)
     (liii pi ai limits)
     (liii pi ai log)
@@ -287,11 +288,11 @@
                (timeout 300)
                (opt-retry #f)
              ) ;gemini-request
-      (let* ((model-id (cdr (assoc 'model-id config)))
-             (model-meta (cdr (assoc 'model-meta config)))
-             (proxy-url (cdr (assoc 'proxy-url config)))
-             (settings (cdr (assoc 'settings config)))
-             (provider (cdr (or (assoc 'provider config) '(#f . "google"))))
+      (let* ((model-id (pi-cfg-ref config 'model-id))
+             (model-meta (pi-cfg-ref config 'model-meta))
+             (proxy-url (pi-cfg-ref config 'proxy-url))
+             (settings (pi-cfg-ref config 'settings))
+             (provider (pi-cfg-ref config 'provider "google"))
              (key-rotation? (pi-key-rotation? config))
              (base-url (cdr (or (assoc 'base-url model-meta)
                               '(#f
@@ -300,17 +301,14 @@
                        ) ;cdr
              ) ;base-url
              (url (gemini-build-endpoint base-url model-id))
-             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
-             (tool-resolver (if (assoc 'tool-resolver config)
-                              (cdr (assoc 'tool-resolver config))
-                              (lambda (name) #f)
-                            ) ;if
+             (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
              ) ;tool-resolver
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
              (contents (gemini-build-contents messages model-id (or provider "google")))
              (raw-req-body (gemini-build-request-body contents system-instruction tool-decls)
              ) ;raw-req-body
-             (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
+             (thinking-lvl (pi-cfg-ref config 'thinking-level))
              (req-body (gemini-inject-thinking-config raw-req-body thinking-lvl))
              (req-json-str (json->string req-body))
              (proxy-alist

@@ -18,6 +18,7 @@
     (liii pi agent tools)
     (liii pi code all-in-one alarm)
     (liii pi code all-in-one types)
+    (liii pi code cli args query)
     (liii pi code config)
   ) ;import
   (export pi-probe-node pi-probe-prompt pi-probe-error-code
@@ -108,14 +109,15 @@
     (define (%probe-node-config node dir-str)
       (catch #t
         (lambda ()
-          (let* ((parsed (list (cons 'provider (chain-node-provider node))
-                           (cons 'model (chain-node-model node))
-                           (cons 'thinking-level (chain-node-thinking-level node))
-                           (cons 'no-tools #t)
-                         ) ;list
+          (let* ((parsed (make-pi-cli-args
+                           :provider       (chain-node-provider node)
+                           :model          (chain-node-model node)
+                           :thinking-level (chain-node-thinking-level node)
+                           :no-tools       #t
+                         ) ;make-pi-cli-args
                  ) ;parsed
                  (cfg (resolve-pi-config parsed (list (cons "PI_CODING_AGENT_DIR" dir-str))))
-                 (meta (cdr (or (assoc 'model-meta cfg) '(#f . #f))))
+                 (meta (pi-cfg-ref cfg 'model-meta))
                  (base-url
                    (cond ((pi-model-metadata? meta) (pi-model-metadata-base-url meta))
                          ((pair? meta) (cdr (or (assoc 'base-url meta) '(#f
@@ -139,29 +141,24 @@
                    ) ;pi-model-metadata-from-alist
                  ) ;probe-meta
                 ) ;
-            (cons (cons 'model-meta probe-meta)
-              (filter
-                (lambda (p) (not (eq? (car p) 'model-meta)))
-                cfg
-              ) ;filter
-            ) ;cons
+            (pi-cfg-set cfg 'model-meta probe-meta)
           ) ;let*
         ) ;lambda
         (lambda _
-          (list (cons 'provider (chain-node-provider node))
-            (cons 'model-id (chain-node-model node))
-            (cons 'thinking-level (chain-node-thinking-level node))
-            (cons 'model-meta
-              (pi-model-metadata-from-alist (list (cons 'id (chain-node-model node))
-                                              (cons 'name (chain-node-model node))
-                                              (cons 'provider (chain-node-provider node))
-                                              (cons 'base-url "")
-                                              (cons 'max-tokens %probe-max-tokens)
-                                            ) ;list
-              ) ;pi-model-metadata-from-alist
-            ) ;cons
-            (cons 'config-dir (path dir-str))
-          ) ;list
+          (make-pi-config
+            :provider       (chain-node-provider node)
+            :model-id       (chain-node-model node)
+            :thinking-level (chain-node-thinking-level node)
+            :model-meta
+            (pi-model-metadata-from-alist (list (cons 'id (chain-node-model node))
+                                            (cons 'name (chain-node-model node))
+                                            (cons 'provider (chain-node-provider node))
+                                            (cons 'base-url "")
+                                            (cons 'max-tokens %probe-max-tokens)
+                                          ) ;list
+            ) ;pi-model-metadata-from-alist
+            :config-dir (path dir-str)
+          ) ;make-pi-config
         ) ;lambda
       ) ;catch
     ) ;define

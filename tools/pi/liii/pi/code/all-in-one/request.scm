@@ -14,6 +14,7 @@
     (liii pi ai message)
     (liii pi ai config record)
     (liii pi ai thinking)
+    (liii pi code cli args query)
     (liii pi code config)
     (liii pi code modes output)
     (liii pi code all-in-one chain)
@@ -45,11 +46,12 @@
     ) ;define
 
     (define (%node-config config provider model-id thinking-level)
-      (let* ((parsed (list (cons 'provider provider)
-                       (cons 'model model-id)
-                       (cons 'thinking-level thinking-level)
-                       (cons 'no-tools #t)
-                     ) ;list
+      (let* ((parsed (make-pi-cli-args
+                       :provider       provider
+                       :model          model-id
+                       :thinking-level thinking-level
+                       :no-tools       #t
+                     ) ;make-pi-cli-args
              ) ;parsed
              (dir-str (path->string (pi-cfg-config-dir config)))
              (node-cfg (resolve-pi-config parsed (list (cons "PI_CODING_AGENT_DIR" dir-str)))
@@ -140,14 +142,7 @@
               ) ;
           ;; 交接前把实际节点告知前台，供页脚展示
           (%emit-active-node config provider model-id eff-tl node-config)
-          (request provider
-            (pi-cfg->alist node-config)
-            messages
-            system-prompt
-            tools
-            on-event
-            timeout
-          ) ;request
+          (request provider node-config messages system-prompt tools on-event timeout)
         ) ;let*
       ) ;lambda
     ) ;define

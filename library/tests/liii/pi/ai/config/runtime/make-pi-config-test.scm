@@ -15,7 +15,7 @@
 ;; <pi-config>
 ;; 初始化后的运行时配置记录。
 
-(import (liii check) (liii pi code config query))
+(import (liii check) (liii pi ai config runtime))
 
 (check-set-mode! 'report-failed)
 

@@ -11,6 +11,7 @@
     (liii pi ai api openai-completions)
     (liii pi ai config types)
     (liii pi ai config record)
+    (liii pi ai config runtime)
     (liii pi ai providers registry)
     (liii pi ai transcript)
   ) ;import
@@ -58,21 +59,13 @@
 
     ;; 规范化配置：补齐 downstream 必需字段，防止缺失键触发 type-error
     (define (%normalize-config config provider api tools)
-      (let* ((cfg (if (pair? config) config '()))
-             (p-pair (or (assoc 'provider cfg) (assoc "provider" cfg)))
-             (c1 (if p-pair cfg (cons (cons 'provider provider) cfg)))
-             (api-pair (or (assoc 'provider-api c1) (assoc "provider-api" c1)))
-             (c2 (if api-pair c1 (cons (cons 'provider-api api) c1)))
-             (tools-pair (or (assoc 'tools c2) (assoc "tools" c2)))
-             (c3
-               (if tools-pair c2 (cons (cons 'tools (or tools '())) c2))
-             ) ;c3
-             (proxy-pair (or (assoc 'proxy-url c3) (assoc "proxy-url" c3)))
-             (c4 (if proxy-pair c3 (cons (cons 'proxy-url #f) c3)))
-             (settings-pair (or (assoc 'settings c4) (assoc "settings" c4)))
-             (c5 (if settings-pair c4 (cons (cons 'settings '()) c4)))
-             (meta-pair (or (assoc 'model-meta c5) (assoc "model-meta" c5)))
-             (raw-meta (and meta-pair (cdr meta-pair)))
+      (let* ((cfg (if (or (pi-config? config) (pair? config)) config (make-pi-config)))
+             (c1 (if (pi-cfg-ref cfg 'provider) cfg (pi-cfg-set cfg 'provider provider)))
+             (c2 (if (pi-cfg-ref c1 'provider-api) c1 (pi-cfg-set c1 'provider-api api)))
+             (c3 (if (pi-cfg-ref c2 'tools) c2 (pi-cfg-set c2 'tools (or tools '()))))
+             (c4 (if (pi-cfg-ref c3 'proxy-url) c3 (pi-cfg-set c3 'proxy-url #f)))
+             (c5 (if (pi-cfg-ref c4 'settings) c4 (pi-cfg-set c4 'settings '())))
+             (raw-meta (pi-cfg-ref c5 'model-meta))
              ;; model-meta 统一为 record：旧 alist（含会话 JSON 载入）规范化，
              ;; 缺失时用注册表默认值补齐；不再把 record 降级为 alist
              (c6
@@ -93,7 +86,7 @@
                       ) ;cond
                     ) ;m
                    ) ;
-                 (cons (cons 'model-meta m) c5)
+                 (pi-cfg-set c5 'model-meta m)
                ) ;let
              ) ;c6
             ) ;
@@ -116,23 +109,11 @@
                timeout
                (opt-retry #f)
              ) ;pi-request-provider
-      (let* ((cfg-p
-               (and (pair? config)
-                 (let ((p (or (assoc 'provider config) (assoc "provider" config))))
-                   (and p (cdr p))
-                 ) ;let
-               ) ;and
-             ) ;cfg-p
+      (let* ((cfg-p (pi-cfg-ref config 'provider))
              (eff-provider (or provider cfg-p "google"))
              (eff-p-str (if (symbol? eff-provider) (symbol->string eff-provider) eff-provider)
              ) ;eff-p-str
-             (cfg-api
-               (and (pair? config)
-                 (let ((v (or (assoc 'provider-api config) (assoc "provider-api" config))))
-                   (and v (cdr v))
-                 ) ;let
-               ) ;and
-             ) ;cfg-api
+             (cfg-api (pi-cfg-ref config 'provider-api))
              (api (or cfg-api (pi-provider-api eff-p-str)))
              (eff-config (%normalize-config config eff-p-str api tools))
              (norm-msgs (pi-normalize-transcript msgs eff-config))
@@ -149,23 +130,11 @@
     ) ;define*
 
     (define (pi-request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
-      (let* ((cfg-p
-               (and (pair? config)
-                 (let ((p (or (assoc 'provider config) (assoc "provider" config))))
-                   (and p (cdr p))
-                 ) ;let
-               ) ;and
-             ) ;cfg-p
+      (let* ((cfg-p (pi-cfg-ref config 'provider))
              (eff-provider (or provider cfg-p "google"))
              (eff-p-str (if (symbol? eff-provider) (symbol->string eff-provider) eff-provider)
              ) ;eff-p-str
-             (cfg-api
-               (and (pair? config)
-                 (let ((v (or (assoc 'provider-api config) (assoc "provider-api" config))))
-                   (and v (cdr v))
-                 ) ;let
-               ) ;and
-             ) ;cfg-api
+             (cfg-api (pi-cfg-ref config 'provider-api))
              (api (or cfg-api (pi-provider-api eff-p-str)))
              (eff-config (%normalize-config config eff-p-str api tools))
              ;; 请求前转录规范化（对齐上游 transformMessages）：跳过 error/aborted

@@ -7,6 +7,7 @@
 (define-library (liii pi agent cost)
   (import (scheme base)
     (liii list)
+    (liii pi ai config runtime)
     (liii pi ai cost)
     (liii pi ai message)
     (liii pi agent tools)
@@ -18,9 +19,9 @@
       (if (not (or (pair? resp) (pi-assistant-message? resp)))
         resp
         (let* ((u (pi-agent-assoc-val 'usage "usage" resp #f))
-               (provider (pi-agent-assoc-val 'provider "provider" config "google"))
-               (model-id (pi-agent-assoc-val 'model-id "model-id" config ""))
-               (models-store (pi-agent-assoc-val 'models-store "models-store" config '()))
+               (provider (pi-cfg-ref config 'provider "google"))
+               (model-id (pi-cfg-ref config 'model-id ""))
+               (models-store (pi-cfg-ref config 'models-store '()))
               ) ;
           (if (not (pair? u))
             resp

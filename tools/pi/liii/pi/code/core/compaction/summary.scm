@@ -63,8 +63,7 @@
     ) ;define
 
     (define* (pi-generate-summary config msgs previous-summary (timeout 600) (request-fn #f))
-      (let* ((config (pi-cfg->alist config))
-             (provider (or (%ref config 'provider) "google"))
+      (let* ((provider (or (pi-cfg-ref config 'provider) "google"))
              (conversation (pi-serialize-conversation msgs))
              (prompt (pi-build-summarization-prompt conversation previous-summary))
              (user-msg (pi-user-message prompt))

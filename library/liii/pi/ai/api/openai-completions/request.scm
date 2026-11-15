@@ -16,6 +16,7 @@
     (liii error)
     (liii time)
     (liii pi ai event)
+    (liii pi ai config runtime)
     (liii pi ai message)
     (liii pi ai api openai-completions core)
     (liii pi ai api openai-completions msg)
@@ -176,11 +177,11 @@
                (timeout 300)
                (opt-retry #f)
              ) ;openai-request
-      (let*-values (((model-id) (cdr (assoc 'model-id config)))
-                    ((model-meta) (cdr (assoc 'model-meta config)))
-                    ((proxy-url) (cdr (assoc 'proxy-url config)))
-                    ((settings) (cdr (assoc 'settings config)))
-                    ((provider) (cdr (or (assoc 'provider config) '(#f . #f))))
+      (let*-values (((model-id) (pi-cfg-ref config 'model-id))
+                    ((model-meta) (pi-cfg-ref config 'model-meta))
+                    ((proxy-url) (pi-cfg-ref config 'proxy-url))
+                    ((settings) (pi-cfg-ref config 'settings))
+                    ((provider) (pi-cfg-ref config 'provider))
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
                     ) ;
@@ -191,21 +192,16 @@
                     ((max-tokens) (cdr (or (assoc 'max-tokens model-meta) '(#f
                                                                             . 8192))))
                     ((url) (openai-build-endpoint base-url))
-                    ((eff-tool-names) (or tool-names (cdr (assoc 'tools config))))
+                    ((eff-tool-names) (or tool-names (pi-cfg-ref config 'tools '())))
                     ((tool-resolver)
-                     (if (assoc 'tool-resolver config)
-                       (cdr (assoc 'tool-resolver config))
-                       (lambda (name) #f)
-                     ) ;if
+                     (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
                     ) ;
                     ((tool-decls)
                      (openai-build-tool-declarations-from-names eff-tool-names tool-resolver)
                     ) ;
                     ((prompt-cache-key)
                      (openai-resolve-prompt-cache-key base-url
-                       (let ((p (assoc 'session-id config)))
-                         (and p (cdr p))
-                       ) ;let
+                       (pi-cfg-ref config 'session-id)
                      ) ;openai-resolve-prompt-cache-key
                     ) ;
                     ((openai-msgs) (openai-build-messages messages system-instruction))
@@ -219,9 +215,7 @@
                    ) ;
         (let ((key-rotation? (pi-key-rotation? config))
               (session-id
-                (let ((p (assoc 'session-id config)))
-                  (and p (cdr p))
-                ) ;let
+                (pi-cfg-ref config 'session-id)
               ) ;session-id
              ) ;
           (let loop

@@ -28,6 +28,7 @@
   (scheme file)
   (scheme process-context)
   (liii check)
+  (liii pi code config)
   (liii os)
   (liii path)
   (liii shutil)
@@ -110,8 +111,8 @@
          (retry (list-ref captured 6))
         ) ;
     (check provider => "kimi1")
-    (check (cdr (assoc 'model-id config)) => "kimi-k3")
-    (check (cdr (assoc 'thinking-level config)) => "high")
+    (check (pi-cfg-ref config 'model-id) => "kimi-k3")
+    (check (pi-cfg-ref config 'thinking-level) => "high")
     (check (length msgs) => 1)
     (check (pi-user-message-content (car msgs)) => "ping")
     (check sys-prompt => #f)

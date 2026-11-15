@@ -10,6 +10,7 @@
     (liii string)
     (liii list)
     (liii pi ai abort)
+    (liii pi ai config runtime)
     (liii pi ai event)
     (liii pi ai message)
     (liii pi ai tools types)
@@ -105,15 +106,15 @@
 
     ;; 从 config 取扩展事件桥接（由上层注入；缺失时不向扩展系统转发事件）
     (define (%ext-emit opt-config)
-      (let ((pair (and (pair? opt-config) (assoc 'emit-extension-event opt-config))))
-        (and pair (procedure? (cdr pair)) (cdr pair))
+      (let ((val (pi-cfg-ref opt-config 'emit-extension-event)))
+        (and (procedure? val) val)
       ) ;let
     ) ;define
 
     ;; 从 config 取工具执行器（由上层注入；缺失时返回占位错误结果）
     (define (%tool-executor opt-config)
-      (let ((pair (and (pair? opt-config) (assoc 'execute-tool-call opt-config))))
-        (or (and pair (procedure? (cdr pair)) (cdr pair))
+      (let ((val (pi-cfg-ref opt-config 'execute-tool-call)))
+        (or (and (procedure? val) val)
           (lambda (name . args) (pi-tool-result "execute-tool-call not configured" #t))
         ) ;or
       ) ;let

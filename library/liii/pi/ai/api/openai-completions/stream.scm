@@ -13,6 +13,7 @@
     (liii uuid)
     (liii time)
     (liii pi ai abort)
+    (liii pi ai config runtime)
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai retry)
@@ -222,15 +223,11 @@
     (define (%run-stream-loop config url req-json-str proxy-alist on-ev timeout
               opt-retry eff-idle
             ) ;%run-stream-loop
-      (let* ((settings (cdr (or (assoc 'settings config) '(#f))))
+      (let* ((settings (pi-cfg-ref config 'settings))
              (key-rotation? (pi-key-rotation? config))
-             (provider (cdr (or (assoc 'provider config) '(#f . #f))))
-             (model-id (cdr (assoc 'model-id config)))
-             (session-id
-               (let ((p (assoc 'session-id config)))
-                 (and p (cdr p))
-               ) ;let
-             ) ;session-id
+             (provider (pi-cfg-ref config 'provider))
+             (model-id (pi-cfg-ref config 'model-id))
+             (session-id (pi-cfg-ref config 'session-id))
             ) ;
         (let-values (((max-r base-delay max-delay provider-r)
                       (pi-resolve-retry-params settings opt-retry)
@@ -274,7 +271,7 @@
                 (pi-log-http-error! status
                   (%stream-error-body resp err-acc)
                   (list (cons 'provider provider)
-                    (cons 'model (cdr (assoc 'model-id config)))
+                    (cons 'model (pi-cfg-ref config 'model-id))
                     (cons 'url (string-append "POST " url))
                     (cons 'attempt attempt)
                     (cons 'max-attempts provider-r)
@@ -343,28 +340,21 @@
                (opt-retry #f)
                (idle-timeout #f)
              ) ;openai-request-stream
-      (let* ((model-id (cdr (assoc 'model-id config)))
-             (model-meta (cdr (assoc 'model-meta config)))
-             (proxy-url (cdr (assoc 'proxy-url config)))
+      (let* ((model-id (pi-cfg-ref config 'model-id))
+             (model-meta (pi-cfg-ref config 'model-meta))
+             (proxy-url (pi-cfg-ref config 'proxy-url))
              (base-url (cdr (or (assoc 'base-url model-meta) '(#f
                                                                . "https://api.openai.com/v1")))
              ) ;base-url
              (max-tokens (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192))))
              (url (openai-build-endpoint base-url))
-             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
-             (tool-resolver (if (assoc 'tool-resolver config)
-                              (cdr (assoc 'tool-resolver config))
-                              (lambda (name) #f)
-                            ) ;if
+             (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
              ) ;tool-resolver
              (tool-decls (openai-build-tool-declarations-from-names eff-tool-names tool-resolver)
              ) ;tool-decls
              (prompt-cache-key
-               (openai-resolve-prompt-cache-key base-url
-                 (let ((p (assoc 'session-id config)))
-                   (and p (cdr p))
-                 ) ;let
-               ) ;openai-resolve-prompt-cache-key
+               (openai-resolve-prompt-cache-key base-url (pi-cfg-ref config 'session-id))
              ) ;prompt-cache-key
              (openai-msgs (openai-build-messages messages system-instruction))
              (req-body (openai-build-request-body model-id openai-msgs #t
