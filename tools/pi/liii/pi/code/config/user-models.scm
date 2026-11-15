@@ -17,6 +17,7 @@
     (liii pi code all-in-one provider)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
+    (liii pi code config types)
   ) ;import
   (export pi-user-provider-models
     pi-user-provider-model-list
@@ -197,10 +198,18 @@
 
     ;; ---------- provider 层字段 ----------
 
-    ;; provider 文件的 baseUrl/api（字段级覆盖内置值）
-    (define (pi-user-provider-fields p-file)
-      (let ((p-url (pi-user-dict-ref p-file "baseUrl" #f))
-            (p-api (pi-user-dict-ref p-file "api" #f))
+    ;; provider 文件的 baseUrl/api（字段级覆盖内置值；支持 <pi-provider-entry> 或 alist）
+    (define (pi-user-provider-fields p-entry)
+      (let ((p-url (if (pi-provider-entry? p-entry)
+                     (pi-provider-entry-base-url p-entry)
+                     (pi-user-dict-ref p-entry "baseUrl" #f)
+                   ) ;if
+            ) ;p-url
+            (p-api (if (pi-provider-entry? p-entry)
+                     (pi-provider-entry-api p-entry)
+                     (pi-user-dict-ref p-entry "api" #f)
+                   ) ;if
+            ) ;p-api
            ) ;
         (append (if p-url (list (cons "baseUrl" p-url)) '())
           (if p-api (list (cons "api" p-api)) '())
@@ -336,10 +345,9 @@
     (define (pi-user-provider-model-list config-dir p-id)
       (if (equal? p-id "all-in-one")
         (map (lambda (m) (%mark #t m)) (all-in-one-models config-dir))
-        (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
-               (p-fields (pi-user-provider-fields p-file))
-               (wl-raw (pi-user-dict-ref p-file "models" #f))
-               (wl (and (vector? wl-raw) (vector->list wl-raw)))
+        (let* ((p-entry (pi-load-provider-entry config-dir p-id))
+               (p-fields (if p-entry (pi-user-provider-fields p-entry) '()))
+               (wl (and p-entry (pi-provider-entry-models p-entry)))
                (builtin (%builtin-table p-id))
               ) ;
           (if wl
@@ -360,10 +368,9 @@
     (define (pi-user-provider-models config-dir p-id)
       (if (equal? p-id "all-in-one")
         (all-in-one-models config-dir)
-        (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
-               (p-fields (pi-user-provider-fields p-file))
-               (wl-raw (pi-user-dict-ref p-file "models" #f))
-               (wl (and (vector? wl-raw) (vector->list wl-raw)))
+        (let* ((p-entry (pi-load-provider-entry config-dir p-id))
+               (p-fields (if p-entry (pi-user-provider-fields p-entry) '()))
+               (wl (and p-entry (pi-provider-entry-models p-entry)))
                (builtin (%builtin-table p-id))
               ) ;
           (if wl

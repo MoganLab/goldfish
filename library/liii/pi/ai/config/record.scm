@@ -9,18 +9,20 @@
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
-    pi-retry-config->alist json->pi-retry-config pi-settings pi-settings?
-    pi-settings-default-provider pi-settings-default-model
-    pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
-    pi-settings-default-tools pi-settings->alist json->pi-settings pi-credential
+    pi-retry-config->alist pi-retry-config->json json->pi-retry-config
+    pi-settings pi-settings? pi-settings-default-provider
+    pi-settings-default-model pi-settings-default-thinking-level
+    pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
+    pi-settings->alist pi-settings->json json->pi-settings pi-credential
     pi-credential? pi-credential-provider pi-settings-hide-thinking-block
     pi-settings-session-dir pi-credential-key pi-settings-model-thinking-level
     pi-settings-model-thinking-levels pi-settings-enable-skill-commands
-    pi-credential-type pi-credential->alist pi-model-metadata pi-model-metadata?
-    pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
-    pi-model-metadata-base-url pi-model-metadata-context-window
-    pi-model-metadata-max-tokens pi-model-metadata-matched?
-    pi-model-metadata->alist pi-model-metadata-from-alist
+    pi-credential-type pi-credential->alist pi-credential->json
+    pi-model-metadata pi-model-metadata? pi-model-metadata-id
+    pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
+    pi-model-metadata-context-window pi-model-metadata-max-tokens
+    pi-model-metadata-matched? pi-model-metadata->alist pi-model-metadata->json
+    pi-model-metadata-from-alist
   ) ;export
   (begin
 
@@ -47,6 +49,26 @@
           (cons 'max-agent-delay-ms (pi-retry-config-max-agent-delay-ms r))
           (cons 'provider-max-retries (pi-retry-config-provider-max-retries r))
         ) ;list
+      ) ;if
+    ) ;define
+
+    (define (pi-retry-config->json r)
+      (if (pair? r)
+        r
+        (let ((base
+                (list (cons "enabled" (if (pi-retry-config-enabled r) 'true 'false))
+                  (cons "maxRetries" (pi-retry-config-max-retries r))
+                  (cons "baseDelayMs" (pi-retry-config-base-delay-ms r))
+                  (cons "maxAgentDelayMs" (pi-retry-config-max-agent-delay-ms r))
+                ) ;list
+              ) ;base
+              (provider-max (pi-retry-config-provider-max-retries r))
+             ) ;
+          (if provider-max
+            (append base (list (cons "provider" (list (cons "maxRetries" provider-max)))))
+            base
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
@@ -144,6 +166,37 @@
       ) ;if
     ) ;define
 
+    (define (pi-settings->json s)
+      (if (pair? s)
+        s
+        (let ((dp (pi-settings-default-provider s))
+              (dm (pi-settings-default-model s))
+              (dtl (pi-settings-default-thinking-level s))
+              (proxy (pi-settings-http-proxy s))
+              (retry (pi-settings-retry s))
+              (tools (pi-settings-default-tools s))
+              (sdir (pi-settings-session-dir s))
+              (levels (pi-settings-model-thinking-levels s))
+             ) ;
+          (append (if (string? dp) (list (cons "defaultProvider" dp)) '())
+            (if (string? dm) (list (cons "defaultModel" dm)) '())
+            (if (string? dtl) (list (cons "defaultThinkingLevel" dtl)) '())
+            (if (string? proxy) (list (cons "httpProxy" proxy)) '())
+            (if retry (list (cons "retry" (pi-retry-config->json retry))) '())
+            (if (list? tools) (list (cons "defaultTools" (list->vector tools))) '())
+            (if (string? sdir) (list (cons "sessionDir" sdir)) '())
+            (list (cons "hideThinkingBlock" (if (pi-settings-hide-thinking-block s) 'true 'false))
+            ) ;list
+            (if (pair? levels) (list (cons "modelThinkingLevels" levels)) '())
+            (list (cons "enableSkillCommands"
+                    (if (pi-settings-enable-skill-commands s) 'true 'false)
+                  ) ;cons
+            ) ;list
+          ) ;append
+        ) ;let
+      ) ;if
+    ) ;define
+
     (define (%parse-tools-list val)
       (cond ((vector? val) (vector->list val))
             ((list? val) val)
@@ -228,6 +281,16 @@
       ) ;if
     ) ;define
 
+    (define (pi-credential->json c)
+      (if (pair? c)
+        c
+        (list (cons "provider" (pi-credential-provider c))
+          (cons "type" (pi-credential-type c))
+          (cons "key" (pi-credential-key c))
+        ) ;list
+      ) ;if
+    ) ;define
+
     (define* (pi-model-metadata id
                name
                provider
@@ -257,6 +320,28 @@
           (cons 'max-tokens (pi-model-metadata-max-tokens m))
           (cons 'matched? (pi-model-metadata-matched? m))
         ) ;list
+      ) ;if
+    ) ;define
+
+    (define (pi-model-metadata->json m)
+      (if (pair? m)
+        m
+        (let ((base
+                (list (cons "id" (pi-model-metadata-id m))
+                  (cons "name" (pi-model-metadata-name m))
+                  (cons "provider" (pi-model-metadata-provider m))
+                  (cons "baseUrl" (pi-model-metadata-base-url m))
+                  (cons "matched" (if (pi-model-metadata-matched? m) 'true 'false))
+                ) ;list
+              ) ;base
+              (cw (pi-model-metadata-context-window m))
+              (mt (pi-model-metadata-max-tokens m))
+             ) ;
+          (append base
+            (if cw (list (cons "contextWindow" cw)) '())
+            (if mt (list (cons "maxTokens" mt)) '())
+          ) ;append
+        ) ;let
       ) ;if
     ) ;define
 

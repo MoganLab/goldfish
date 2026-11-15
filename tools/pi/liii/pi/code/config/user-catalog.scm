@@ -39,8 +39,8 @@
   (begin
 
     ;; provider 名（内置注册表优先，缺失时用 id 本身）
-    (define (%provider-name p-file p-id)
-      (or (pi-user-dict-ref p-file "name" #f) p-id)
+    (define (%provider-name p-entry p-id)
+      (or (and p-entry (pi-provider-entry-name p-entry)) p-id)
     ) ;define
 
     (define (%builtin-field p-id key)
@@ -50,14 +50,16 @@
     ) ;define
 
     ;; provider 层 baseUrl/api：用户文件优先，回退内置注册表；api 归一化为全名
-    (define (%provider-base-url p-file p-id)
-      (or (pi-user-dict-ref p-file "baseUrl" #f) (%builtin-field p-id 'baseUrl))
+    (define (%provider-base-url p-entry p-id)
+      (or (and p-entry (pi-provider-entry-base-url p-entry))
+        (%builtin-field p-id 'baseUrl)
+      ) ;or
     ) ;define
 
-    (define (%provider-api p-file p-id)
+    (define (%provider-api p-entry p-id)
       (if (equal? p-id "all-in-one")
         "all-in-one"
-        (let* ((configured (pi-user-dict-ref p-file "api" #f))
+        (let* ((configured (and p-entry (pi-provider-entry-api p-entry)))
                (raw (if (string? configured) configured (%builtin-field p-id 'api)))
               ) ;
           (and raw (pi-user-normalize-api raw))
@@ -65,8 +67,8 @@
       ) ;if
     ) ;define
 
-    (define (%provider-http-proxy p-file)
-      (let ((proxy (pi-user-dict-ref p-file "httpProxy" #f)))
+    (define (%provider-http-proxy p-entry)
+      (let ((proxy (and p-entry (pi-provider-entry-http-proxy p-entry))))
         (if
           (and (string? proxy) (not (string-null? (string-trim-both proxy))))
           (list (cons "httpProxy" proxy))
@@ -77,16 +79,16 @@
 
     ;; 单个 provider 的目录条目（models 取可用模型；配置视图另用 %config-entry）
     (define (%provider-entry config-dir p-id)
-      (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
-             (base-url (%provider-base-url p-file p-id))
-             (api (%provider-api p-file p-id))
+      (let* ((p-entry (pi-load-provider-entry config-dir p-id))
+             (base-url (%provider-base-url p-entry p-id))
+             (api (%provider-api p-entry p-id))
              (models (pi-user-provider-models config-dir p-id))
             ) ;
         (cons p-id
-          (append (list (cons "name" (%provider-name p-file p-id)))
+          (append (list (cons "name" (%provider-name p-entry p-id)))
             (if base-url (list (cons "baseUrl" base-url)) '())
             (if api (list (cons "api" api)) '())
-            (%provider-http-proxy p-file)
+            (%provider-http-proxy p-entry)
             (list (cons "models" models))
           ) ;append
         ) ;cons
@@ -115,15 +117,15 @@
     ;; 配置浏览视图：全部内置 provider（白名单顺序在前）+ 每个 provider 的全部模型，
     ;; 各自带 "enabled" 标记，供 `gf pi config` 区分可用/不可用。
     (define (%config-entry config-dir p-id enabled?)
-      (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
-             (base-url (%provider-base-url p-file p-id))
-             (api (%provider-api p-file p-id))
+      (let* ((p-entry (pi-load-provider-entry config-dir p-id))
+             (base-url (%provider-base-url p-entry p-id))
+             (api (%provider-api p-entry p-id))
             ) ;
         (cons p-id
-          (append (list (cons "name" (%provider-name p-file p-id)))
+          (append (list (cons "name" (%provider-name p-entry p-id)))
             (if base-url (list (cons "baseUrl" base-url)) '())
             (if api (list (cons "api" api)) '())
-            (%provider-http-proxy p-file)
+            (%provider-http-proxy p-entry)
             (list (cons "enabled" (and enabled? #t)))
             (list (cons "models" (pi-user-provider-model-list config-dir p-id)))
           ) ;append
@@ -165,9 +167,7 @@
 
     ;; 从 catalog 取 provider 层配置，无则 #f
     (define (pi-user-provider-config catalog p-id)
-      (let ((entry (and (pair? catalog) (assoc p-id catalog))))
-        (and entry (cdr entry))
-      ) ;let
+      (pi-user-dict-ref catalog p-id #f)
     ) ;define
 
     ;; 解析 settings 中的默认 provider 与 model（支持 provider/model 斜杠语法）
@@ -178,7 +178,7 @@
              (parts (if slash? (string-split m "/") '()))
              (first-part (and slash? (pair? parts) (car parts)))
              (first-is-provider? (and first-part
-                                   (or (assoc first-part PI_PROVIDERS)
+                                   (or (pi-provider-record first-part)
                                      (member first-part PI_SUPPORTED_PROVIDERS)
                                      (equal? first-part "all-in-one")
                                    ) ;or
@@ -201,11 +201,9 @@
     ) ;define
 
     (define (%provider-models-whitelist config-dir p-id)
-      (let* ((p-file (pi-user-provider-file config-dir p-id))
-             (wl-raw (and p-file (pi-user-dict-ref p-file "models" #f)))
-            ) ;
-        (and (vector? wl-raw) (vector->list wl-raw))
-      ) ;let*
+      (let ((p-entry (pi-load-provider-entry config-dir p-id)))
+        (and p-entry (pi-provider-entry-models p-entry))
+      ) ;let
     ) ;define
 
     (define (%build-activation-writes config-dir p-id m-id)

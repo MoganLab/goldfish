@@ -16,7 +16,7 @@
   (export make-pi-web-search-config pi-web-search-config?
     pi-web-search-config-provider pi-web-search-config-raw-model
     pi-web-search-config-raw-base-url pi-web-search-config-raw-proxy
-    json->pi-web-search-config
+    json->pi-web-search-config pi-web-search-config->json
   ) ;export
   (begin
 
@@ -87,6 +87,23 @@
             ) ;
             (else #f)
       ) ;cond
+    ) ;define
+
+    (define (pi-web-search-config->json cfg)
+      (if (pair? cfg)
+        cfg
+        (let ((provider (pi-web-search-config-provider cfg))
+              (model (pi-web-search-config-raw-model cfg))
+              (base-url (pi-web-search-config-raw-base-url cfg))
+              (proxy (pi-web-search-config-raw-proxy cfg))
+             ) ;
+          (append (if (string? provider) (list (cons "provider" provider)) '())
+            (if (string? model) (list (cons "model" model)) '())
+            (if (string? base-url) (list (cons "baseUrl" base-url)) '())
+            (if (string? proxy) (list (cons "httpProxy" proxy)) '())
+          ) ;append
+        ) ;let
+      ) ;if
     ) ;define
 
   ) ;begin

@@ -80,7 +80,7 @@
       (let ((alist (%message-alist msg)))
         (if (not alist)
           ""
-          (let* ((content (cdr (or (assoc "content" alist) (assoc 'content alist) '(#f))))
+          (let* ((content (%field alist "content"))
                  (normalized (cons (cons "content" (%normalize-blocks content)) alist))
                 ) ;
             (extract-assistant-text normalized)

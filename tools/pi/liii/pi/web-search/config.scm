@@ -27,6 +27,7 @@
     pi-resolve-deepseek-api-key pi-resolve-deepseek-search-base-url
     make-pi-web-search-config pi-web-search-config?
     pi-web-search-config-provider json->pi-web-search-config
+    pi-web-search-config->json
   ) ;export
   (begin
 
@@ -38,19 +39,14 @@
             (if (string-null? trimmed) #f trimmed)
           ) ;let
          ) ;
-         ((and (pair? config)
-            (let ((p (or (assoc 'provider config) (assoc "provider" config))))
-              (or (not p) (equal? (cdr p) "google"))
+         ((and (or (pi-config? config) (pair? config))
+            (let ((p (pi-cfg-ref config 'provider #f)))
+              (or (not p) (equal? p "google"))
             ) ;let
-            (assoc 'api-key config)
+            (let ((k (pi-cfg-ref config 'api-key #f)))
+              (and (string? k) (not (string-null? (string-trim-both k))) k)
+            ) ;let
           ) ;and
-          (let ((k (cdr (assoc 'api-key config))))
-            (if
-              (and (string? k) (not (string-null? (string-trim-both k))))
-              k
-              #f
-            ) ;if
-          ) ;let
          ) ;
          ((%env-ref-str "GOOGLE_API_KEY" env))
          ((%env-ref-str "GEMINI_API_KEY" env))
@@ -78,11 +74,10 @@
        ((and (string? opt-model) (not (string-null? (string-trim-both opt-model))))
         opt-model
        ) ;
-       ((and (pair? config)
-          (assoc 'model-id config)
-          (string? (cdr (assoc 'model-id config)))
+       ((and (or (pi-config? config) (pair? config))
+          (string? (pi-cfg-ref config 'model-id #f))
         ) ;and
-        (cdr (assoc 'model-id config))
+        (pi-cfg-ref config 'model-id #f)
        ) ;
        (else "gemini-2.5-flash")
       ) ;cond

@@ -22,6 +22,7 @@
     (liii json)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
+    (liii pi code config settings)
     (liii pi code modes config json-write)
     (liii pi code modes config paths)
     (liii pi code modes config state)
@@ -153,27 +154,11 @@
       ) ;let
     ) ;define
 
-    ;; 就地替换 alist 里的某个键（不存在则追加），保持其余键顺序不变
-    (define (%set-key alist key value)
-      (let loop
-        ((rest alist) (acc '()) (seen? #f))
-        (cond
-         ((null? rest) (reverse (if seen? acc (cons (cons key value) acc))))
-         ((equal? (car (car rest)) key) (loop (cdr rest) (cons (cons key value) acc) #t))
-         (else (loop (cdr rest) (cons (car rest) acc) seen?))
-        ) ;cond
-      ) ;let
-    ) ;define
-
     ;; settings.json 的改动：把默认模型设为 provider/model
     (define (%settings-write st provider-id model-id)
-      (let* ((rel "settings.json")
-             (raw (or (pi-user-read-json (pi-config-abs st rel)) '()))
-             (new (%set-key (%set-key raw "defaultProvider" provider-id) "defaultModel" model-id)
-             ) ;new
-            ) ;
-        (cons rel (string-append (pi-config-json-pretty new) "\n"))
-      ) ;let*
+      (pi-settings-write-entry (pi-config-state-dir st)
+        (list (cons "defaultProvider" provider-id) (cons "defaultModel" model-id))
+      ) ;pi-settings-write-entry
     ) ;define
 
     ;; 纯函数：把选中模型设为默认模型（写 settings.json）

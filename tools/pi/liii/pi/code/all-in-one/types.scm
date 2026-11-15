@@ -12,6 +12,7 @@
     chain-node-model
     chain-node-thinking-level
     json->chain-node
+    chain-node->json
 
     make-chain-def
     chain-def?
@@ -19,6 +20,7 @@
     chain-def-name
     chain-def-nodes
     json->chain-def
+    chain-def->json
 
     make-all-in-one-cfg
     all-in-one-cfg?
@@ -28,6 +30,7 @@
     all-in-one-cfg-probe-timeout-ms
     all-in-one-cfg-chains
     json->all-in-one-cfg
+    all-in-one-cfg->json
   ) ;export
   (begin
     ;; 极简三元组节点
@@ -91,6 +94,16 @@
       ) ;if
     ) ;define
 
+    (define (chain-node->json node)
+      (if (pair? node)
+        node
+        (list (cons "provider" (chain-node-provider node))
+          (cons "model" (chain-node-model node))
+          (cons "thinkingLevel" (chain-node-thinking-level node))
+        ) ;list
+      ) ;if
+    ) ;define
+
     ;; 链式定义 (链式 ID 即伪模型 ID)
     (define-record-type <chain-def>
       (%make-chain-def id name nodes)
@@ -140,6 +153,16 @@
             ) ;if
           ) ;let*
         ) ;if
+      ) ;if
+    ) ;define
+
+    (define (chain-def->json chain)
+      (if (pair? chain)
+        chain
+        (list (cons "id" (chain-def-id chain))
+          (cons "name" (chain-def-name chain))
+          (cons "nodes" (list->vector (map chain-node->json (chain-def-nodes chain))))
+        ) ;list
       ) ;if
     ) ;define
 
@@ -237,6 +260,19 @@
             ) ;and
           ) ;let*
         ) ;if
+      ) ;if
+    ) ;define
+
+    (define (all-in-one-cfg->json cfg)
+      (if (pair? cfg)
+        cfg
+        (list (cons "provider" "all-in-one")
+          (cons "continuous" (if (all-in-one-cfg-continuous? cfg) 'true 'false))
+          (cons "maxWaitMs" (all-in-one-cfg-max-wait-ms cfg))
+          (cons "retryIntervalMs" (all-in-one-cfg-retry-interval-ms cfg))
+          (cons "probeTimeoutMs" (all-in-one-cfg-probe-timeout-ms cfg))
+          (cons "chains" (list->vector (map chain-def->json (all-in-one-cfg-chains cfg))))
+        ) ;list
       ) ;if
     ) ;define
   ) ;begin

@@ -94,14 +94,10 @@
     (define (%provider-proxy-from-store config provider)
       (let ((models-store (%cfg-ref config 'models-store)))
         (and (pair? models-store)
-          (let ((entry (assoc provider models-store)))
-            (and entry
-              (let ((p (or (assoc "httpProxy" (cdr entry)) (assoc 'httpProxy (cdr entry)))))
-                (and p
-                  (string? (cdr p))
-                  (not (string-null? (string-trim-both (cdr p))))
-                  (cdr p)
-                ) ;and
+          (let ((entry (%cfg-ref models-store provider)))
+            (and (pair? entry)
+              (let ((p (%cfg-ref entry "httpProxy")))
+                (and (string? p) (not (string-null? (string-trim-both p))) p)
               ) ;let
             ) ;and
           ) ;let

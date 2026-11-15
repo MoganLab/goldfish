@@ -345,7 +345,7 @@
               :provider   provider
               :provider-api
               (let ((p-entry (pi-user-provider-config models-store provider)))
-                (and p-entry (let ((v (assoc "api" p-entry))) (and v (cdr v))))
+                (and p-entry (json-dict-ref p-entry "api" #f))
               ) ;let
               :api-key                  api-key
               :model-id                 model-id
