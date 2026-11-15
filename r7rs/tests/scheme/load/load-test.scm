@@ -33,33 +33,44 @@
 ;; (load "path/to/file.scm")
 ;; (load "path/to/file.scm" (environment '(scheme base)))
 
-(import (liii check) (scheme base) (scheme file) (scheme eval) (scheme load))
+(import (liii check)
+  (liii path)
+  (liii tempfile)
+  (scheme base)
+  (scheme file)
+  (scheme eval)
+  (scheme load)
+) ;import
 (check-set-mode! 'report-failed)
 
-;; 准备被加载的文件：写入 (define loaded-value 42)
+(with-temp-dir
+  (lambda (dir)
+    (let ((tmp-file (path->string (path-join dir "test-load-target.scm"))))
+      ;; 准备被加载的文件：写入 (define loaded-value 42)
+      (with-output-to-file tmp-file
+        (lambda () (write-string "(define loaded-value 42)"))
+      ) ;with-output-to-file
 
-(define tmp-file "tests/scheme/load/test-load-target.scm")
-(with-output-to-file tmp-file
-  (lambda () (write-string "(define loaded-value 42)"))
-) ;with-output-to-file
+      ;; 1. 基本行为：顶层环境中定义的绑定在 load 后可见
+      (check-true (procedure? load))
+      (load tmp-file)
+      (check loaded-value => 42)
 
-;; 1. 基本行为：顶层环境中定义的绑定在 load 后可见
-(check-true (procedure? load))
-(load tmp-file)
-(check loaded-value => 42)
+      ;; 2. 指定 environment 参数：定义进入该环境
+      (let ((env (environment '(scheme base))))
+        (load tmp-file env)
+        (check (eval 'loaded-value env) => 42)
+      ) ;let
 
-;; 2. 指定 environment 参数：定义进入该环境
+      ;; 3. 文件不存在时抛 file error
+      (check-catch 'io-error
+        (load (path->string (path-join dir "nonexistent-load-target-1263.scm")))
+      ) ;check-catch
 
-(define env (environment '(scheme base)))
-(load tmp-file env)
-(check (eval 'loaded-value env) => 42)
-
-;; 3. 文件不存在时抛 file error
-(check-catch 'io-error
-  (load "tests/scheme/load/nonexistent-load-target-1263.scm")
-) ;check-catch
-
-;; 清理
-(delete-file tmp-file)
+      ;; 清理
+      (delete-file tmp-file)
+    ) ;let
+  ) ;lambda
+) ;with-temp-dir
 
 (check-report)

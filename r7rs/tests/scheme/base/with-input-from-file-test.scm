@@ -23,16 +23,19 @@
 ;; 1. thunk 执行期间当前输入端口指向该文件
 ;; 2. 执行结束后恢复原来的输入端口
 
-(import (liii check))
+(import (liii check) (liii tempfile))
 (import (scheme base))
 
 (check-set-mode! 'report-failed)
 
-(check (with-input-from-file "tests/scheme/base/apply-test.scm"
-         (lambda () (read-char))
-       ) ;with-input-from-file
-  =>
-  #\;
-) ;check
+(with-temp-file
+  (lambda (tmp-file)
+    (let ((out (open-output-file tmp-file)))
+      (write-string ";hello" out)
+      (close-output-port out)
+    ) ;let
+    (check (with-input-from-file tmp-file (lambda () (read-char))) => #\;)
+  ) ;lambda
+) ;with-temp-file
 
 (check-report)

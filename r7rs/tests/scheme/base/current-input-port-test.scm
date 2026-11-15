@@ -20,7 +20,7 @@
 ;; 1. 通常是标准输入
 ;; 2. 可被 with-input-from-file 临时改变
 
-(import (liii check))
+(import (liii check) (liii tempfile))
 (import (scheme base))
 
 (check-set-mode! 'report-failed)
@@ -28,18 +28,26 @@
 (check (input-port? (current-input-port)) => #t)
 (check (eq? (current-input-port) *stdin*) => #t)
 
-(check
-  (with-input-from-file "tests/scheme/base/current-input-port-test.scm"
-    (lambda ()
-      (list (input-port? (current-input-port))
-        (not (eq? (current-input-port) *stdin*))
-        (read-char)
-      ) ;list
-    ) ;lambda
-  ) ;with-input-from-file
-  =>
-  '(#t #t #\;)
-) ;check
+(with-temp-file
+  (lambda (tmp-file)
+    (let ((out (open-output-file tmp-file)))
+      (write-string ";hello" out)
+      (close-output-port out)
+    ) ;let
+    (check
+      (with-input-from-file tmp-file
+        (lambda ()
+          (list (input-port? (current-input-port))
+            (not (eq? (current-input-port) *stdin*))
+            (read-char)
+          ) ;list
+        ) ;lambda
+      ) ;with-input-from-file
+      =>
+      '(#t #t #\;)
+    ) ;check
+  ) ;lambda
+) ;with-temp-file
 
 (check (eq? (current-input-port) *stdin*) => #t)
 

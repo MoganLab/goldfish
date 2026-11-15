@@ -20,47 +20,45 @@
 ;; 1. 若文件已存在则覆盖原内容。
 ;; 2. 使用完毕后应调用 close-port 关闭端口。
 
-(import (liii check) (scheme base) (scheme file))
+(import (liii check) (liii path) (liii tempfile) (scheme base) (scheme file))
 (check-set-mode! 'report-failed)
 
-(define base-dir
-  (if (file-exists? "r7rs/tests/scheme/file")
-    "r7rs/tests/scheme/file/"
-    "tests/scheme/file/"
-  ) ;if
-) ;define
-
-(define test-file (string-append base-dir "test-binary-output.bin"))
-;; 测试 open-binary-output-file 写入二进制数据
-(let ((port (open-binary-output-file test-file)))
-  (check-true (output-port? port))
-  (check-true (binary-port? port))
-  (write-u8 0 port)
-  (write-bytevector (bytevector 1 2 255) port)
-  (close-port port)
-) ;let
-;; 验证内容
-(let ((port (open-binary-input-file test-file)))
-  (check (read-bytevector 10 port) => (bytevector 0 1 2 255))
-  (close-port port)
-) ;let
-;; 测试中文文件名
-
-(define chinese-file (string-append base-dir "中文二进制输出.bin"))
-(let ((port (open-binary-output-file chinese-file)))
-  (check-true (output-port? port))
-  (check-true (binary-port? port))
-  (write-bytevector (string->utf8 "中文输出") port)
-  ;; 验证端口隔离：二进制端口不能使用文本写入过程
-  (check-catch 'type-error (write-string "文本" port))
-  (close-port port)
-) ;let
-(let ((port (open-binary-input-file chinese-file)))
-  (check (utf8->string (read-bytevector 100 port)) => "中文输出")
-  (close-port port)
-) ;let
-(delete-file chinese-file)
-;; 清理
-(delete-file test-file)
+(with-temp-dir
+  (lambda (dir)
+    (let ((test-file (path->string (path-join dir "test-binary-output.bin")))
+          (chinese-file (path->string (path-join dir "中文二进制输出.bin")))
+         ) ;
+      ;; 测试 open-binary-output-file 写入二进制数据
+      (let ((port (open-binary-output-file test-file)))
+        (check-true (output-port? port))
+        (check-true (binary-port? port))
+        (write-u8 0 port)
+        (write-bytevector (bytevector 1 2 255) port)
+        (close-port port)
+      ) ;let
+      ;; 验证内容
+      (let ((port (open-binary-input-file test-file)))
+        (check (read-bytevector 10 port) => (bytevector 0 1 2 255))
+        (close-port port)
+      ) ;let
+      ;; 测试中文文件名
+      (let ((port (open-binary-output-file chinese-file)))
+        (check-true (output-port? port))
+        (check-true (binary-port? port))
+        (write-bytevector (string->utf8 "中文输出") port)
+        ;; 验证端口隔离：二进制端口不能使用文本写入过程
+        (check-catch 'type-error (write-string "文本" port))
+        (close-port port)
+      ) ;let
+      (let ((port (open-binary-input-file chinese-file)))
+        (check (utf8->string (read-bytevector 100 port)) => "中文输出")
+        (close-port port)
+      ) ;let
+      (delete-file chinese-file)
+      ;; 清理
+      (delete-file test-file)
+    ) ;let
+  ) ;lambda
+) ;with-temp-dir
 
 (check-report)

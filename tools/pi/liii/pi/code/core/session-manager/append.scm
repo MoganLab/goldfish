@@ -15,6 +15,7 @@
     (liii uuid)
     (liii time)
     (liii pi ai time)
+    (liii pi code core session-entry)
   ) ;import
   (export append-session-entry!
     find-last-session-message-id
@@ -99,19 +100,9 @@
       (let* ((sid (uuid4))
              (parent-id (find-last-session-message-id sfile))
              (now-iso (pi-iso-8601-utc-now))
-             (entry
-               (json->string
-                 (append (list (cons "type" type)
-                           (cons "id" sid)
-                           (cons "parentId" (if parent-id parent-id 'null))
-                           (cons "timestamp" now-iso)
-                         ) ;list
-                   fields
-                 ) ;append
-               ) ;json->string
-             ) ;entry
+             (entry (pi-session-state-entry type sid parent-id now-iso fields))
             ) ;
-        (append-session-entry! sfile entry)
+        (append-session-entry! sfile (json->string (pi-session-entry->json entry)))
         sid
       ) ;let*
     ) ;define
