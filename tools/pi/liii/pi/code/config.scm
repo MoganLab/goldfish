@@ -32,11 +32,11 @@
     (liii pi code core extensions registry)
     (liii pi code core extensions event)
   ) ;import
-  (export pi-resolve-config-value json-dict-ref pi-get-agent-dir pi-cfg-ref
-    pi-cfg-set pi-cfg-merge gf-get-config-dir pi-cfg-config-dir
-    pi-read-json-file pi-load-settings pi-save-default-thinking-level!
-    pi-save-hide-thinking-block! pi-save-default-model!
-    pi-model-supports-thinking? pi-cfg-provider-proxy
+  (export pi-resolve-config-value json-dict-ref pi-get-agent-dir pi-config?
+    make-pi-config pi-cfg-ref pi-cfg-set pi-cfg-merge pi-cfg->alist
+    gf-get-config-dir pi-cfg-config-dir pi-read-json-file pi-load-settings
+    pi-save-default-thinking-level! pi-save-hide-thinking-block!
+    pi-save-default-model! pi-model-supports-thinking? pi-cfg-provider-proxy
     pi-model-available-thinking-levels pi-cfg-provider-api
     pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
     pi-resolve-provider-key pi-resolve-model-metadata resolve-pi-config
@@ -76,10 +76,7 @@
     ;; 从 cfg 中取 JSON 配置文件目录（path 对象）：
     ;; 优先 config-dir，缺失时回退 agent-dir
     (define (pi-cfg-config-dir cfg)
-      (if (pair? cfg)
-        (cdr (or (assoc 'config-dir cfg) (assoc 'agent-dir cfg) '(#f . #f)))
-        #f
-      ) ;if
+      (or (pi-cfg-ref cfg 'config-dir) (pi-cfg-ref cfg 'agent-dir))
     ) ;define
 
     ;; 从用户配置目录取 provider 层声明的 httpProxy（models/<provider>.json）
@@ -224,7 +221,7 @@
     ;; 按指定 provider 取协议标识（会话内 /model 切换后调用）。
     ;; 缺失时回退注册表内置值，保证分发不沿用旧 provider 的实现。
     (define (pi-cfg-provider-api cfg provider)
-      (let* ((catalog (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+      (let* ((catalog (pi-cfg-ref cfg 'models-store '()))
              (entry (and (pair? catalog) (assoc provider catalog)))
              (declared
                (and entry (let ((v (assoc "api" entry))) (and v (cdr v))))
@@ -236,9 +233,9 @@
 
     ;; 按指定 provider 重算生效代理（会话内 /model 切换后调用）
     (define (pi-cfg-provider-proxy cfg provider)
-      (let ((catalog (cdr (or (assoc 'models-store cfg) (cons #f '()))))
-            (settings (cdr (or (assoc 'settings cfg) (cons #f '()))))
-            (cli (cdr (or (assoc 'cli-proxy cfg) (cons #f '()))))
+      (let ((catalog (pi-cfg-ref cfg 'models-store '()))
+            (settings (pi-cfg-ref cfg 'settings '()))
+            (cli (pi-cfg-ref cfg 'cli-proxy))
            ) ;
         (pi-resolve-effective-proxy cli catalog provider settings)
       ) ;let
@@ -342,30 +339,30 @@
                  ) ;thinking-level
                  (supports-thinking (%model-supports-thinking? models-store provider model-id))
                 ) ;
-            (list (cons 'agent-dir agent-dir)
-              (cons 'config-dir config-dir)
-              (cons 'provider provider)
-              (cons 'provider-api
-                (let ((p-entry (pi-user-provider-config models-store provider)))
-                  (and p-entry (let ((v (assoc "api" p-entry))) (and v (cdr v))))
-                ) ;let
-              ) ;cons
-              (cons 'api-key api-key)
-              (cons 'model-id model-id)
-              (cons 'model-meta meta)
-              (cons 'models-store models-store)
-              (cons 'thinking-level thinking-level)
-              (cons 'thinking-level-explicit? cli-thinking-explicit?)
-              (cons 'thinking-level-source (if cli-thinking-explicit? 'cli 'default))
-              (cons 'supports-thinking supports-thinking)
-              (cons 'cli-proxy cli-proxy)
-              (cons 'proxy-url proxy-url)
-              (cons 'tools tools)
-              (cons 'tool-resolver get-tool-definition)
-              (cons 'execute-tool-call execute-tool-call)
-              (cons 'emit-extension-event (%make-extension-emitter))
-              (cons 'settings settings)
-            ) ;list
+            (make-pi-config
+              :agent-dir  agent-dir
+              :config-dir config-dir
+              :provider   provider
+              :provider-api
+              (let ((p-entry (pi-user-provider-config models-store provider)))
+                (and p-entry (let ((v (assoc "api" p-entry))) (and v (cdr v))))
+              ) ;let
+              :api-key                  api-key
+              :model-id                 model-id
+              :model-meta               meta
+              :models-store             models-store
+              :thinking-level           thinking-level
+              :thinking-level-explicit? cli-thinking-explicit?
+              :thinking-level-source (if cli-thinking-explicit? 'cli 'default)
+              :supports-thinking     supports-thinking
+              :cli-proxy             cli-proxy
+              :proxy-url             proxy-url
+              :tools                 tools
+              :tool-resolver         get-tool-definition
+              :execute-tool-call     execute-tool-call
+              :emit-extension-event  (%make-extension-emitter)
+              :settings              settings
+            ) ;make-pi-config
           ) ;let*
         ) ;let-values
       ) ;let*
@@ -382,8 +379,8 @@
 
     ;; 凭证缺失时返回用户可读提示消息，否则返回 #f（CLI 报错与 TUI 卡片共用）
     (define (pi-missing-credential-msg cfg)
-      (let ((provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
-            (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
+      (let ((provider (pi-cfg-ref cfg 'provider "google"))
+            (api-key (pi-cfg-ref cfg 'api-key))
            ) ;
         (cond ((member provider '("ollama" "all-in-one")) #f)
               ((or (not api-key) (and (string? api-key) (string-null? api-key)))

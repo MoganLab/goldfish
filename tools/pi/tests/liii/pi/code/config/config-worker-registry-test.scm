@@ -55,7 +55,7 @@
            (let* ((parsed (parse-pi-args '()))
                   (cfg (resolve-pi-config parsed (get-environment-variables)))
                  ) ;
-             (cdr (assoc 'tools cfg))
+             (pi-cfg-ref cfg 'tools)
            ) ;let*
          ) ;go-result
        ) ;ch

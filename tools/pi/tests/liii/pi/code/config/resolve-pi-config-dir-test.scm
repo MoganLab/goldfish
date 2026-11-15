@@ -83,8 +83,8 @@
     (putenv "USERPROFILE" (path->string HOME_DIR))
   ) ;when
   (let* ((cfg (resolve-pi-config args '()))
-         (config-dir (cdr (assoc 'config-dir cfg)))
-         (agent-dir (cdr (assoc 'agent-dir cfg)))
+         (config-dir (pi-cfg-ref cfg 'config-dir))
+         (agent-dir (pi-cfg-ref cfg 'agent-dir))
          (sdir (resolve-session-dir args cfg cwd))
         ) ;
     ;; 1. 配置目录固定 ~/.gf/agent，agent 目录仍是 ~/.pi/agent
@@ -94,8 +94,8 @@
     ) ;check-true
 
     ;; 2. settings.json / auth.json 从 ~/.gf/agent 读取
-    (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-flash")
-    (check (cdr (assoc 'api-key cfg)) => "gf-agent-key")
+    (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-flash")
+    (check (pi-cfg-ref cfg 'api-key) => "gf-agent-key")
 
     ;; 3. 会话目录仍归属 ~/.pi/agent/sessions
     (check-true (string-contains? (%normalize sdir)
@@ -131,7 +131,7 @@
   (when (os-windows?)
     (putenv "USERPROFILE" (path->string home))
   ) ;when
-  (let* ((cfg (resolve-pi-config args '())) (config-dir (cdr (assoc 'config-dir cfg))))
+  (let* ((cfg (resolve-pi-config args '())) (config-dir (pi-cfg-ref cfg 'config-dir)))
     (check-true (string-ends? (%normalize config-dir)
                   "pi-config-dir-resolve-home-fallback/.gf/agent"
                 ) ;string-ends?

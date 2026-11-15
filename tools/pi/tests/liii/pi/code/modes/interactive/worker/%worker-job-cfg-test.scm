@@ -52,17 +52,17 @@
       ) ;
   ;; 4 元素 job 应用 model + thinking 覆盖
   (let ((cfg* (%worker-job-cfg cfg (list "hi" "high" "anthropic" "claude-haiku-4-5"))))
-    (check (cdr (assoc 'thinking-level cfg*)) => "high")
-    (check (cdr (assoc 'provider cfg*)) => "anthropic")
-    (check (cdr (assoc 'model-id cfg*)) => "claude-haiku-4-5")
-    (check (cdr (assoc 'api-key cfg*)) => "fixture-anthropic-key")
+    (check (pi-cfg-ref cfg* 'thinking-level) => "high")
+    (check (pi-cfg-ref cfg* 'provider) => "anthropic")
+    (check (pi-cfg-ref cfg* 'model-id) => "claude-haiku-4-5")
+    (check (pi-cfg-ref cfg* 'api-key) => "fixture-anthropic-key")
   ) ;let
 
   ;; 旧 2 元素 job 格式向后兼容：仅覆盖 thinking
   (let ((cfg* (%worker-job-cfg cfg (list "hi" "high"))))
-    (check (cdr (assoc 'thinking-level cfg*)) => "high")
-    (check (cdr (assoc 'provider cfg*)) => "google")
-    (check (cdr (assoc 'model-id cfg*)) => (cdr (assoc 'model-id cfg)))
+    (check (pi-cfg-ref cfg* 'thinking-level) => "high")
+    (check (pi-cfg-ref cfg* 'provider) => "google")
+    (check (pi-cfg-ref cfg* 'model-id) => (pi-cfg-ref cfg 'model-id))
   ) ;let
 ) ;let*
 

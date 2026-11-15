@@ -48,24 +48,24 @@
   ;; 跨 provider 切换：
   ;; 覆盖 provider/model-id/model-meta/api-key/supports-thinking，其余键不变
   (let ((cfg* (pi-cfg-with-model cfg "anthropic" "claude-haiku-4-5")))
-    (check (cdr (assoc 'provider cfg*)) => "anthropic")
-    (check (cdr (assoc 'model-id cfg*)) => "claude-haiku-4-5")
-    (check (cdr (assoc 'api-key cfg*)) => "fixture-anthropic-key")
-    (check-true (pi-model-metadata? (cdr (assoc 'model-meta cfg*))))
-    (check (pi-model-metadata-id (cdr (assoc 'model-meta cfg*)))
+    (check (pi-cfg-ref cfg* 'provider) => "anthropic")
+    (check (pi-cfg-ref cfg* 'model-id) => "claude-haiku-4-5")
+    (check (pi-cfg-ref cfg* 'api-key) => "fixture-anthropic-key")
+    (check-true (pi-model-metadata? (pi-cfg-ref cfg* 'model-meta)))
+    (check (pi-model-metadata-id (pi-cfg-ref cfg* 'model-meta))
       =>
       "claude-haiku-4-5"
     ) ;check
     ;; 原 cfg 不被破坏
-    (check (cdr (assoc 'provider cfg)) => "google")
-    (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
+    (check (pi-cfg-ref cfg 'provider) => "google")
+    (check (pi-cfg-ref cfg 'model-id) => "gemini-3.8-flash")
   ) ;let
 
   ;; 同 provider 内切换：仅覆盖 model-id/model-meta
   (let ((cfg* (pi-cfg-with-model cfg "google" "gemini-2.5-pro")))
-    (check (cdr (assoc 'provider cfg*)) => "google")
-    (check (cdr (assoc 'model-id cfg*)) => "gemini-2.5-pro")
-    (check (cdr (assoc 'api-key cfg*)) => "fixture-google-key")
+    (check (pi-cfg-ref cfg* 'provider) => "google")
+    (check (pi-cfg-ref cfg* 'model-id) => "gemini-2.5-pro")
+    (check (pi-cfg-ref cfg* 'api-key) => "fixture-google-key")
   ) ;let
 ) ;let*
 
@@ -83,25 +83,25 @@
     "[\"google\", \"zai-coding-cn\"]"
   ) ;path-write-text
   (let* ((cfg (resolve-pi-config (parse-pi-args '()) env))
-         (api-before (cdr (assoc 'provider-api cfg)))
+         (api-before (pi-cfg-ref cfg 'provider-api))
         ) ;
     ;; 默认 provider 为 google
-    (check (cdr (assoc 'provider cfg)) => "google")
+    (check (pi-cfg-ref cfg 'provider) => "google")
     (check api-before => "google-generative-ai")
     ;; 切到 openai-completions 协议的 provider
     (let ((cfg* (pi-cfg-with-model cfg "zai-coding-cn" "glm-5.3")))
-      (check (cdr (assoc 'provider cfg*)) => "zai-coding-cn")
-      (check (cdr (assoc 'provider-api cfg*)) => "openai-completions")
-      (check (pi-model-metadata-base-url (cdr (assoc 'model-meta cfg*)))
+      (check (pi-cfg-ref cfg* 'provider) => "zai-coding-cn")
+      (check (pi-cfg-ref cfg* 'provider-api) => "openai-completions")
+      (check (pi-model-metadata-base-url (pi-cfg-ref cfg* 'model-meta))
         =>
         "https://open.bigmodel.cn/api/coding/paas/v4"
       ) ;check
       ;; 原 cfg 的 provider-api 不被破坏
-      (check (cdr (assoc 'provider-api cfg)) => "google-generative-ai")
+      (check (pi-cfg-ref cfg 'provider-api) => "google-generative-ai")
     ) ;let
     ;; 再切回 google：api 回到 google-generative-ai
     (let ((cfg* (pi-cfg-with-model cfg "google" "gemini-3.8-flash")))
-      (check (cdr (assoc 'provider-api cfg*)) => "google-generative-ai")
+      (check (pi-cfg-ref cfg* 'provider-api) => "google-generative-ai")
     ) ;let
   ) ;let*
   (rmtree agent-dir)

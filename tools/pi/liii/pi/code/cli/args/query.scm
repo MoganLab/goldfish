@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi code cli args query)
-  (import (scheme base) (liii base) (liii list))
+  (import (scheme base) (liii base) (liii list) (liii pi code config query))
   (export pi-cli-args? make-pi-cli-args pi-args-ref pi-args-set
     pi-resolve-timeout
   ) ;export
@@ -213,7 +213,7 @@
       (let ((t (pi-args-ref parsed 'timeout)))
         (if (and (number? t) (> t 0))
           t
-          (let ((cfg-t (cdr (or (assoc 'timeout cfg) '(#f . 600)))))
+          (let ((cfg-t (pi-cfg-ref cfg 'timeout 600)))
             (if (and (number? cfg-t) (> cfg-t 0)) cfg-t 600)
           ) ;let
         ) ;if

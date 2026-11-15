@@ -146,7 +146,7 @@
              ) ;session-timeout
             ) ;
         (let ((all-in-one? (equal? (pi-cfg-ref cfg 'provider) "all-in-one")))
-          (run-agent-loop cfg
+          (run-agent-loop (pi-cfg->alist cfg)
             init-msgs
             system-prompt
             emit

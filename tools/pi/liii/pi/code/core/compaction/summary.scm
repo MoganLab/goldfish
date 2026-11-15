@@ -11,6 +11,7 @@
     (liii pi ai message)
     (liii pi ai dispatch)
     (liii pi agent tools)
+    (liii pi code config query)
     (liii pi code all-in-one request)
     (liii pi code core compaction serialize)
     (liii pi code core compaction prompt)
@@ -62,7 +63,8 @@
     ) ;define
 
     (define* (pi-generate-summary config msgs previous-summary (timeout 600) (request-fn #f))
-      (let* ((provider (or (%ref config 'provider) "google"))
+      (let* ((config (pi-cfg->alist config))
+             (provider (or (%ref config 'provider) "google"))
              (conversation (pi-serialize-conversation msgs))
              (prompt (pi-build-summarization-prompt conversation previous-summary))
              (user-msg (pi-user-message prompt))

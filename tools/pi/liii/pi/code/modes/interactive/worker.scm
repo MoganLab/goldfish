@@ -38,9 +38,7 @@
   (begin
 
     (define (%cfg-override cfg pairs)
-      (let ((keys (map car pairs)))
-        (append pairs (filter (lambda (p) (not (memq (car p) keys))) cfg))
-      ) ;let
+      (pi-cfg-merge cfg pairs)
     ) ;define
 
     ;; 轮询一条注入消息：非阻塞拉取并同步回发事件
@@ -143,7 +141,7 @@
     ) ;define
 
     (define (%cfg-context-window cfg)
-      (let ((meta (cdr (or (assoc 'model-meta cfg) '(#f . #f)))))
+      (let ((meta (pi-cfg-ref cfg 'model-meta)))
         (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
               ((pair? meta)
                (let ((pair (assoc 'context-window meta)))
@@ -207,7 +205,7 @@
                (if (and (> (length job) 1) (cadr job)) (cadr job) (pi-cfg-config-dir cfg))
              ) ;dir
              (dir-str (if (string? dir) dir (path->string dir)))
-             (cur-p (cdr (or (assoc 'provider cfg) '(#f . #f))))
+             (cur-p (pi-cfg-ref cfg 'provider))
              (new-key (and cur-p (pi-resolve-provider-key cur-p (pi-load-auth dir-str))))
             ) ;
         (%cfg-override cfg

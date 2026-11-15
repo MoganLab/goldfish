@@ -50,10 +50,10 @@
               ("KIMI_API_KEY" . "kimi-key-test")))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "kimi-coding")
-  (check (cdr (assoc 'model-id cfg)) => "k3.1-pro")
-  (check (cdr (assoc 'api-key cfg)) => "kimi-key-test")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "kimi-coding")
+  (check (pi-cfg-ref cfg 'model-id) => "k3.1-pro")
+  (check (pi-cfg-ref cfg 'api-key) => "kimi-key-test")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (pi-model-metadata-matched? meta) => #t)
     ;; provider 文件写的 baseUrl（models/kimi-coding.json）
     (check (pi-model-metadata-base-url meta) => "https://api.kimi.com/coding/v1")
@@ -76,7 +76,7 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
+  (check (pi-cfg-ref cfg 'provider) => "google")
 ) ;let*
 
 ;; 3. 白名单外的 provider 不可路由（deepseek 有内置定义，但不在 providers.json）
@@ -91,9 +91,9 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "custom-kimi")
-  (check (cdr (assoc 'model-id cfg)) => "m1")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "custom-kimi")
+  (check (pi-cfg-ref cfg 'model-id) => "m1")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (pi-model-metadata-matched? meta) => #t)
     (check (pi-model-metadata-base-url meta) => "https://mirror.example.com/coding")
     (check (pi-model-metadata-context-window meta) => 262144)
@@ -106,9 +106,9 @@
        (env `(("PI_CODING_AGENT_DIR" . ,EMPTY-DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-pro")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (pi-model-metadata-matched? meta) => #t)
   ) ;let
 ) ;let*
@@ -118,9 +118,9 @@
        (env `(("PI_CODING_AGENT_DIR" . ,EMPTY-ARRAY-DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "google")
+  (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-pro")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (pi-model-metadata-matched? meta) => #t)
   ) ;let
 ) ;let*
@@ -144,7 +144,7 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'proxy-url cfg)) => "http://127.0.0.1:7890")
+  (check (pi-cfg-ref cfg 'proxy-url) => "http://127.0.0.1:7890")
 ) ;let*
 
 ;; 8. CLI --proxy 覆盖 provider 文件的 httpProxy
@@ -156,8 +156,8 @@
               ("KIMI_API_KEY" . "kimi-key-test")))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "kimi-coding")
-  (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080")
+  (check (pi-cfg-ref cfg 'provider) => "kimi-coding")
+  (check (pi-cfg-ref cfg 'proxy-url) => "socks5h://127.0.0.1:1080")
 ) ;let*
 
 ;; 9. provider 未声明 httpProxy 时回退 settings.json 全局值
@@ -168,8 +168,8 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "custom-kimi")
-  (check (cdr (assoc 'proxy-url cfg)) => "http://global-proxy:8080")
+  (check (pi-cfg-ref cfg 'provider) => "custom-kimi")
+  (check (pi-cfg-ref cfg 'proxy-url) => "http://global-proxy:8080")
 ) ;let*
 
 ;; 10. 环境变量优先于 settings.json 全局值（provider 未声明时）
@@ -179,7 +179,7 @@
        ) ;env
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'proxy-url cfg)) => "http://env-proxy:3128")
+  (check (pi-cfg-ref cfg 'proxy-url) => "http://env-proxy:3128")
 ) ;let*
 
 ;; 11. ollama 免密解析：无需配置 auth 亦可解析端点与模型
@@ -187,10 +187,10 @@
        (env `(("PI_CODING_AGENT_DIR" . ,EMPTY-DIR)))
        (cfg (resolve-pi-config args env))
       ) ;
-  (check (cdr (assoc 'provider cfg)) => "ollama")
-  (check (cdr (assoc 'model-id cfg)) => "qwen2.5-coder:latest")
-  (check (cdr (assoc 'api-key cfg)) => "ollama")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
+  (check (pi-cfg-ref cfg 'provider) => "ollama")
+  (check (pi-cfg-ref cfg 'model-id) => "qwen2.5-coder:latest")
+  (check (pi-cfg-ref cfg 'api-key) => "ollama")
+  (let ((meta (pi-cfg-ref cfg 'model-meta)))
     (check (pi-model-metadata-matched? meta) => #t)
     (check (pi-model-metadata-base-url meta) => "http://localhost:11434/v1")
   ) ;let
