@@ -70,6 +70,10 @@
       {
         "path": "goldfish/liii/decimal/",
         "reason": "decimal 聚合子模块由顶层库统一承载单测"
+      },
+      {
+        "path": "library/tests/srfi/srfi-64/",
+        "reason": "SRFI-64 单元测试使用 (srfi srfi-64) 自身而非 (liii check)，不以 (check-report) 结尾"
       }
     ],
     "define-record-type": [
