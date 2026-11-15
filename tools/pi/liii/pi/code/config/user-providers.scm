@@ -22,6 +22,11 @@
   (export pi-load-providers-whitelist pi-providers-whitelist-path
     pi-user-provider-file pi-user-normalize-api pi-alist-set-key
     pi-providers-json pi-providers-write-writes pi-provider-file-with-models
+    make-pi-provider-entry pi-provider-entry? pi-provider-entry-schema
+    pi-provider-entry-name pi-provider-entry-base-url pi-provider-entry-api
+    pi-provider-entry-http-proxy pi-provider-entry-models
+    pi-provider-entry-extras json->pi-provider-entry pi-provider-entry->json
+    pi-load-provider-entry
   ) ;export
   (begin
 
@@ -109,6 +114,107 @@
 
     (define %provider-schema "https://case-lambda.org/agent/provider.schema.json")
 
+    (define-record-type <pi-provider-entry>
+      (%make-pi-provider-entry schema name base-url api http-proxy models extras)
+      pi-provider-entry?
+      (schema pi-provider-entry-schema)
+      (name pi-provider-entry-name)
+      (base-url pi-provider-entry-base-url)
+      (api pi-provider-entry-api)
+      (http-proxy pi-provider-entry-http-proxy)
+      (models pi-provider-entry-models)
+      (extras pi-provider-entry-extras)
+    ) ;define-record-type
+
+    (define* (make-pi-provider-entry (schema #f)
+               (name #f)
+               (base-url #f)
+               (api #f)
+               (http-proxy #f)
+               (models #f)
+               (extras '())
+             ) ;make-pi-provider-entry
+      (%make-pi-provider-entry schema name base-url api http-proxy models extras)
+    ) ;define*
+
+    (define (%provider-known-key? k)
+      (let ((s (if (symbol? k) (symbol->string k) k)))
+        (member s '("$schema" "name" "baseUrl" "api" "httpProxy" "models"))
+      ) ;let
+    ) ;define
+
+    (define (%provider-extras obj)
+      (if (not (pair? obj))
+        '()
+        (filter
+          (lambda (entry) (and (pair? entry) (not (%provider-known-key? (car entry)))))
+          obj
+        ) ;filter
+      ) ;if
+    ) ;define
+
+    (define (%provider-models-field raw)
+      (cond ((vector? raw) (vector->list raw))
+            ((list? raw) raw)
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (json->pi-provider-entry obj)
+      (cond ((pi-provider-entry? obj) obj)
+            ((not (pair? obj)) #f)
+            (else
+              (let ((schema (pi-user-dict-ref obj "$schema" #f))
+                    (name (pi-user-dict-ref obj "name" #f))
+                    (base-url (pi-user-dict-ref obj "baseUrl" #f))
+                    (api (pi-user-dict-ref obj "api" #f))
+                    (http-proxy (pi-user-dict-ref obj "httpProxy" #f))
+                    (models (%provider-models-field (pi-user-dict-ref obj "models" #f)))
+                    (extras (%provider-extras obj))
+                   ) ;
+                (%make-pi-provider-entry (and (string? schema) schema)
+                  (and (string? name) name)
+                  (and (string? base-url) base-url)
+                  (and (string? api) api)
+                  (and (string? http-proxy) http-proxy)
+                  models
+                  extras
+                ) ;%make-pi-provider-entry
+              ) ;let
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (pi-provider-entry->json entry)
+      (if (pair? entry)
+        entry
+        (let ((schema (pi-provider-entry-schema entry))
+              (name (pi-provider-entry-name entry))
+              (base-url (pi-provider-entry-base-url entry))
+              (api (pi-provider-entry-api entry))
+              (http-proxy (pi-provider-entry-http-proxy entry))
+              (models (pi-provider-entry-models entry))
+              (extras (pi-provider-entry-extras entry))
+             ) ;
+          (append (if (string? schema) (list (cons "$schema" schema)) '())
+            (if (string? name) (list (cons "name" name)) '())
+            (if (string? base-url) (list (cons "baseUrl" base-url)) '())
+            (if (string? api) (list (cons "api" api)) '())
+            (if (string? http-proxy) (list (cons "httpProxy" http-proxy)) '())
+            (if (list? models) (list (cons "models" (list->vector models))) '())
+            (if (pair? extras) extras '())
+          ) ;append
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 读 models/<id>.json 并解析为 <pi-provider-entry>；缺失或解析失败返回 #f
+    (define (pi-load-provider-entry config-dir p-id)
+      (let ((data (pi-user-provider-file config-dir p-id)))
+        (and data (json->pi-provider-entry data))
+      ) ;let
+    ) ;define
+
     ;; 就地替换 alist 里的某个键（不存在则追加），保持其余键顺序不变
     (define (pi-alist-set-key alist key value)
       (let loop
@@ -130,14 +236,26 @@
       (list (cons "models/providers.json" (pi-providers-json ids)))
     ) ;define
 
-    ;; 白名单数组重写：保留其它键的顺序，models 就地替换（原本没有则追加）
+    ;; 白名单数组重写：保留其它键，models 替换为新的 id 列表
     (define (pi-provider-file-with-models config-dir p-id ids)
       (let* ((rel (string-append "models/" p-id ".json"))
-             (raw (or (pi-user-read-json (pi-user-config-path config-dir rel)) '()))
-             (base (if (pair? raw) raw (list (cons "$schema" %provider-schema))))
-             (new (pi-alist-set-key base "models" (list->vector ids)))
+             (existing (pi-load-provider-entry config-dir p-id))
+             (updated (if existing
+                        (make-pi-provider-entry (pi-provider-entry-schema existing)
+                          (pi-provider-entry-name existing)
+                          (pi-provider-entry-base-url existing)
+                          (pi-provider-entry-api existing)
+                          (pi-provider-entry-http-proxy existing)
+                          ids
+                          (pi-provider-entry-extras existing)
+                        ) ;make-pi-provider-entry
+                        (make-pi-provider-entry %provider-schema #f #f #f #f ids '())
+                      ) ;if
+             ) ;updated
             ) ;
-        (cons rel (string-append (pi-config-json-pretty new) "\n"))
+        (cons rel
+          (string-append (pi-config-json-pretty (pi-provider-entry->json updated)) "\n")
+        ) ;cons
       ) ;let*
     ) ;define
 

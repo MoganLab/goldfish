@@ -18,6 +18,7 @@
     (liii pi code core compaction tokens)
   ) ;import
   (export json-dict-ref pi-read-json-file pi-load-settings
+    pi-settings-write-entry pi-save-settings-patch!
     pi-save-default-thinking-level! pi-save-default-model!
     pi-save-hide-thinking-block! pi-load-compaction-settings
   ) ;export
@@ -68,78 +69,85 @@
       ) ;let*
     ) ;define
 
-    (define (pi-save-default-thinking-level! config-dir level)
+    (define (%json-alist-or-empty obj)
+      (if (or (not (pair? obj)) (equal? obj '(()))) '() (filter pair? obj))
+    ) ;define
+
+    (define (%same-json-key? a b)
+      (let ((sa (if (symbol? a) (symbol->string a) a))
+            (sb (if (symbol? b) (symbol->string b) b))
+           ) ;
+        (equal? sa sb)
+      ) ;let
+    ) ;define
+
+    (define (%set-settings-key alist key val)
+      (let loop
+        ((rest alist) (acc '()) (seen? #f))
+        (cond
+         ((null? rest)
+          (let ((ordered (reverse acc)))
+            (if seen? ordered (cons (cons key val) ordered))
+          ) ;let
+         ) ;
+         ((%same-json-key? (car (car rest)) key)
+          (loop (cdr rest) (cons (cons key val) acc) #t)
+         ) ;
+         (else (loop (cdr rest) (cons (car rest) acc) seen?))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%apply-settings-patch alist patch)
+      (let loop
+        ((rest (reverse patch)) (acc alist))
+        (if (null? rest)
+          acc
+          (loop (cdr rest) (%set-settings-key acc (caar rest) (cdar rest)))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (pi-settings-write-entry config-dir patch-or-settings)
       (let* ((filepath (path-join config-dir "settings.json"))
-             (settings (or (pi-read-json-file filepath) '()))
-             (updated
-               (cons (cons "defaultThinkingLevel" level)
-                 (filter
-                   (lambda (entry)
-                     (not (or (equal? (car entry) "defaultThinkingLevel")
-                            (equal? (car entry) 'defaultThinkingLevel)
-                          ) ;or
-                     ) ;not
-                   ) ;lambda
-                   settings
-                 ) ;filter
-               ) ;cons
-             ) ;updated
+             (existing (%json-alist-or-empty (pi-read-json-file filepath)))
+             (patch (if (pi-settings? patch-or-settings)
+                      (pi-settings->json patch-or-settings)
+                      patch-or-settings
+                    ) ;if
+             ) ;patch
+             (updated (%apply-settings-patch existing patch))
             ) ;
-        (path-mkdir config-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (pi-config-json-pretty updated) "\n"))
-        level
+        (cons "settings.json" (string-append (pi-config-json-pretty updated) "\n"))
       ) ;let*
+    ) ;define
+
+    (define (pi-save-settings-patch! config-dir patch-or-settings)
+      (let ((entry (pi-settings-write-entry config-dir patch-or-settings)))
+        (pi-apply-writes config-dir (list entry))
+      ) ;let
+    ) ;define
+
+    (define (pi-save-default-thinking-level! config-dir level)
+      (pi-save-settings-patch! config-dir (list (cons "defaultThinkingLevel" level)))
+      level
     ) ;define
 
     ;; /model Ctrl+S 持久化：只更新 defaultProvider/defaultModel，保留其他设置
     (define (pi-save-default-model! config-dir provider model-id)
-      (let* ((filepath (path-join config-dir "settings.json"))
-             (settings (or (pi-read-json-file filepath) '()))
-             (updated
-               (append (list (cons "defaultProvider" provider) (cons "defaultModel" model-id))
-                 (filter
-                   (lambda (entry)
-                     (not (or (equal? (car entry) "defaultProvider")
-                            (equal? (car entry) 'defaultProvider)
-                            (equal? (car entry) "defaultModel")
-                            (equal? (car entry) 'defaultModel)
-                          ) ;or
-                     ) ;not
-                   ) ;lambda
-                   settings
-                 ) ;filter
-               ) ;append
-             ) ;updated
-            ) ;
-        (path-mkdir config-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (pi-config-json-pretty updated) "\n"))
-        (list provider model-id)
-      ) ;let*
+      (pi-save-settings-patch! config-dir
+        (list (cons "defaultProvider" provider) (cons "defaultModel" model-id))
+      ) ;pi-save-settings-patch!
+      (list provider model-id)
     ) ;define
 
     ;; Ctrl+T 切换思考块显隐后持久化：只更新 hideThinkingBlock，保留其他设置
     ;; （对齐上游 setHideThinkingBlock；JSON 布尔值为符号 true/false）
     (define (pi-save-hide-thinking-block! config-dir hide)
-      (let* ((filepath (path-join config-dir "settings.json"))
-             (settings (or (pi-read-json-file filepath) '()))
-             (updated
-               (cons (cons "hideThinkingBlock" (if hide 'true 'false))
-                 (filter
-                   (lambda (entry)
-                     (not (or (equal? (car entry) "hideThinkingBlock")
-                            (equal? (car entry) 'hideThinkingBlock)
-                          ) ;or
-                     ) ;not
-                   ) ;lambda
-                   settings
-                 ) ;filter
-               ) ;cons
-             ) ;updated
-            ) ;
-        (path-mkdir config-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (pi-config-json-pretty updated) "\n"))
-        (and hide #t)
-      ) ;let*
+      (pi-save-settings-patch! config-dir
+        (list (cons "hideThinkingBlock" (if hide 'true 'false)))
+      ) ;pi-save-settings-patch!
+      (and hide #t)
     ) ;define
 
     (define (pi-load-compaction-settings config-dir)

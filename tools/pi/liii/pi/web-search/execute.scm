@@ -49,22 +49,16 @@
     ) ;define
 
     (define (%extract-answer-text json-data)
-      (let ((cands (cdr (or (assoc "candidates" json-data) '(#f . #f)))))
+      (let ((cands (json-ref json-data "candidates")))
         (if (or (not (vector? cands)) (zero? (vector-length cands)))
           ""
           (let* ((c0 (vector-ref cands 0))
-                 (content-obj (cdr (or (assoc "content" c0) '(#f . #f))))
-                 (parts
-                   (if (pair? content-obj) (cdr (or (assoc "parts" content-obj) '(#f
-                                                                                  . #()))) #())
-                 ) ;parts
+                 (content-obj (json-ref c0 "content"))
+                 (parts (if (pair? content-obj) (or (json-ref content-obj "parts") #()) #()))
                 ) ;
             (string-join
               (filter string?
-                (map
-                  (lambda (p) (cdr (or (assoc "text" p) '(#f . #f))))
-                  (vector->list parts)
-                ) ;map
+                (map (lambda (p) (and (pair? p) (json-ref p "text"))) (vector->list parts))
               ) ;filter
               ""
             ) ;string-join
@@ -96,7 +90,7 @@
         (unless (pair? json-data)
           (error 'error "web_search: Invalid JSON response from Gemini API")
         ) ;unless
-        (let ((cands (cdr (or (assoc "candidates" json-data) '(#f . #f)))))
+        (let ((cands (json-ref json-data "candidates")))
           (if (or (not (vector? cands)) (zero? (vector-length cands)))
             (pi-format-web-search-result "No search results or candidates returned"
               '()
@@ -245,7 +239,7 @@
         (if (null? url-list)
           res
           (let* ((fetched (%deepseek-fetch-pages url-list base-url api-key proxy-alist timeout))
-                 (orig-text (cdr (assoc 'text res)))
+                 (orig-text (or (%resp-field res 'text) ""))
                  (new-text (if (string-null? (string-trim-both orig-text))
                              fetched
                              (string-append orig-text "\n\n" fetched)
@@ -255,8 +249,8 @@
             (list
               (cons 'content (vector (list (cons 'type "text") (cons 'text new-text))))
               (cons 'text new-text)
-              (cons 'sources (cdr (assoc 'sources res)))
-              (cons 'details (cdr (assoc 'details res)))
+              (cons 'sources (%resp-field res 'sources))
+              (cons 'details (%resp-field res 'details))
               (cons 'isError #f)
             ) ;list
           ) ;let*

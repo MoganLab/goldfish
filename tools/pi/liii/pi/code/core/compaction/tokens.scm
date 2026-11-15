@@ -16,8 +16,9 @@
     make-pi-compaction-settings pi-compaction-settings?
     pi-compaction-settings-enabled pi-compaction-settings-reserve-tokens
     pi-compaction-settings-keep-recent-tokens json->pi-compaction-settings
-    make-pi-context-token-estimate pi-context-token-estimate?
-    pi-context-token-estimate-tokens pi-context-token-estimate-usage-tokens
+    pi-compaction-settings->json make-pi-context-token-estimate
+    pi-context-token-estimate? pi-context-token-estimate-tokens
+    pi-context-token-estimate-usage-tokens
     pi-context-token-estimate-trailing-tokens
   ) ;export
   (begin
@@ -98,6 +99,16 @@
             ) ;%json-dict-ref
           ) ;make-pi-compaction-settings
         ) ;let
+      ) ;if
+    ) ;define
+
+    (define (pi-compaction-settings->json s)
+      (if (pair? s)
+        s
+        (list (cons "enabled" (if (pi-compaction-settings-enabled s) 'true 'false))
+          (cons "reserveTokens" (pi-compaction-settings-reserve-tokens s))
+          (cons "keepRecentTokens" (pi-compaction-settings-keep-recent-tokens s))
+        ) ;list
       ) ;if
     ) ;define
 
