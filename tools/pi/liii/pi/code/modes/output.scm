@@ -23,13 +23,13 @@
       ) ;let
     ) ;define
 
-    (define (%block-alist blk)
-      (if (pi-block? blk) (pi-block->alist blk) blk)
+    (define (%normalize-block blk)
+      (or (json->pi-block blk) blk)
     ) ;define
 
     (define (%to-block-list blks)
-      (cond ((vector? blks) (map %block-alist (vector->list blks)))
-            ((list? blks) (map %block-alist blks))
+      (cond ((vector? blks) (map %normalize-block (vector->list blks)))
+            ((list? blks) (map %normalize-block blks))
             (else '())
       ) ;cond
     ) ;define
@@ -39,12 +39,11 @@
         (and (pair? lst)
           (any
             (lambda (blk)
-              (let ((t (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))))
-                    (text (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f
-                                                                          . ""))))
-                   ) ;
-                (and (equal? t "text") (not (string-null? text)))
-              ) ;let
+              (and (pi-text-block? blk)
+                (let ((text (pi-text-block-text blk)))
+                  (and (string? text) (not (string-null? text)))
+                ) ;let
+              ) ;and
             ) ;lambda
             lst
           ) ;any
@@ -55,10 +54,13 @@
     (define (%print-text-blocks blks)
       (for-each
         (lambda (blk)
-          (when
-            (equal? (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))) "text")
-            (display (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f . ""))))
-            (newline)
+          (when (pi-text-block? blk)
+            (let ((text (pi-text-block-text blk)))
+              (when (string? text)
+                (display text)
+                (newline)
+              ) ;when
+            ) ;let
           ) ;when
         ) ;lambda
         (%to-block-list blks)
@@ -80,21 +82,61 @@
       ) ;let
     ) ;define
 
+    (define (%message-record-field msg key default)
+      (let ((k (if (symbol? key) (symbol->string key) key)))
+        (cond ((string=? k "role") (pi-message-role msg))
+              ((string=? k "content")
+               (cond ((pi-user-message? msg) (pi-user-message-content msg))
+                     ((pi-assistant-message? msg) (pi-assistant-message-content msg))
+                     ((pi-tool-result-message? msg) (pi-tool-result-message-content msg))
+                     (else default)
+               ) ;cond
+              ) ;
+              ((and (pi-assistant-message? msg) (string=? k "stopReason"))
+               (pi-assistant-message-stop-reason msg)
+              ) ;
+              ((and (pi-assistant-message? msg) (string=? k "errorMessage"))
+               (pi-assistant-message-error-message msg)
+              ) ;
+              ((and (pi-assistant-message? msg) (string=? k "usage"))
+               (pi-assistant-message-usage msg)
+              ) ;
+              ((and (pi-assistant-message? msg) (string=? k "provider"))
+               (pi-assistant-message-provider msg)
+              ) ;
+              ((and (pi-assistant-message? msg) (string=? k "model"))
+               (pi-assistant-message-model msg)
+              ) ;
+              ((and (pi-assistant-message? msg) (string=? k "api"))
+               (pi-assistant-message-api msg)
+              ) ;
+              ((and (pi-tool-result-message? msg) (string=? k "toolCallId"))
+               (pi-tool-result-message-tool-call-id msg)
+              ) ;
+              ((and (pi-tool-result-message? msg) (string=? k "toolName"))
+               (pi-tool-result-message-tool-name msg)
+              ) ;
+              ((and (pi-tool-result-message? msg) (string=? k "isError"))
+               (pi-tool-result-message-is-error msg)
+              ) ;
+              (else default)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (pi-message-field msg key default)
-      (let ((alist (cond ((pi-message? msg) (pi-message->alist msg))
-                         ((pair? msg) msg)
-                         (else #f)
-                   ) ;cond
-            ) ;alist
-           ) ;
-        (if alist (%assoc-field alist key default) default)
+      (let ((m (or (json->pi-message msg) msg)))
+        (cond ((pi-message? m) (%message-record-field m key default))
+              ((pair? m) (%assoc-field m key default))
+              (else default)
+        ) ;cond
       ) ;let
     ) ;define
 
     (define (%block-text blk)
-      (let ((b (if (pi-block? blk) (pi-block->alist blk) blk)))
-        (if (and (pair? b) (equal? (%assoc-field b 'type "") "text"))
-          (let ((text (%assoc-field b 'text "")))
+      (let ((b (%normalize-block blk)))
+        (if (pi-text-block? b)
+          (let ((text (pi-text-block-text b)))
             (if (string? text) text "")
           ) ;let
           ""
@@ -131,15 +173,11 @@
           (display-stderr "Warning: No assistant response received")
           0
         ) ;begin
-        (let* ((msg (if (pi-message? last-msg) (pi-message->alist last-msg) last-msg))
-               (raw-stop-reason (cdr (or (assoc 'stopReason msg) (assoc "stopReason" msg) '(#f
-                                                                                            . "stop")))
-               ) ;raw-stop-reason
+        (let* ((msg (or (json->pi-message last-msg) last-msg))
+               (raw-stop-reason (pi-message-field msg 'stopReason "stop"))
                (stop-reason (if (string? raw-stop-reason) raw-stop-reason "stop"))
-               (content (cdr (or (assoc 'content msg) (assoc "content" msg) '(#f))))
-               (err-msg (cdr (or (assoc 'errorMessage msg) (assoc "errorMessage" msg) '(#f
-                                                                                        . #f)))
-               ) ;err-msg
+               (content (pi-message-field msg 'content '()))
+               (err-msg (pi-message-field msg 'errorMessage #f))
               ) ;
           (cond
            ((or (string=? stop-reason "error") (string=? stop-reason "aborted"))

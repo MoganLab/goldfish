@@ -74,13 +74,10 @@
         (pi-summarize-session-cost cost-rates
           (filter pair?
             (map
-              (lambda (m)
-                (cond ((pi-assistant-message? m) (pi-assistant-message-usage m))
-                      ((and (pair? m) (equal? (pi-agent-assoc-val 'role "role" m "") "assistant"))
-                       (pi-agent-assoc-val 'usage "usage" m #f)
-                      ) ;
-                      (else #f)
-                ) ;cond
+              (lambda (raw)
+                (let ((m (or (json->pi-message raw) raw)))
+                  (and (pi-assistant-message? m) (pi-assistant-message-usage m))
+                ) ;let
               ) ;lambda
               msgs
             ) ;map
