@@ -75,27 +75,14 @@
       ) ;list
     ) ;define
 
+    (define (%convert-block x)
+      (if (and (not (pi-block? x)) (json-object? x)) (or (json->pi-block x) x) x)
+    ) ;define
+
     (define (%tool-convert-content c)
-      (cond
-       ((vector? c)
-        (vector-map
-          (lambda (x)
-            (if (or (pi-block? x) (json-object? x)) (or (json->pi-block x) x) x)
-          ) ;lambda
-          c
-        ) ;vector-map
-       ) ;
-       ((pair? c)
-        (list->vector
-          (map
-            (lambda (x)
-              (if (or (pi-block? x) (json-object? x)) (or (json->pi-block x) x) x)
-            ) ;lambda
-            c
-          ) ;map
-        ) ;list->vector
-       ) ;
-       (else #())
+      (cond ((vector? c) (vector-map %convert-block c))
+            ((pair? c) (list->vector (map %convert-block c)))
+            (else #())
       ) ;cond
     ) ;define
 
