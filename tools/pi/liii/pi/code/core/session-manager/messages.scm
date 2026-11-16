@@ -95,6 +95,33 @@
                 ) ;pi-tool-result-message
               ) ;list
              ) ;
+             ((and (pair? msg) (equal? (%entry-ref msg "role") "user"))
+              (list
+                (pi-user-message (%lax-content "user" (%to-list-content (%entry-ref msg "content")))
+                ) ;pi-user-message
+              ) ;list
+             ) ;
+             ((and (pair? msg) (equal? (%entry-ref msg "role") "assistant"))
+              (list
+                (pi-assistant-message (%lax-content "assistant" (%to-list-content (%entry-ref msg "content")))
+                  :stop-reason   (or (%entry-ref msg "stopReason") "stop")
+                  :error-message (%entry-ref msg "errorMessage")
+                  :usage         (%entry-ref msg "usage")
+                  :provider      (%entry-ref msg "provider")
+                  :model         (%entry-ref msg "model")
+                  :api           (%entry-ref msg "api")
+                ) ;pi-assistant-message
+              ) ;list
+             ) ;
+             ((and (pair? msg) (equal? (%entry-ref msg "role") "toolResult"))
+              (list
+                (pi-tool-result-message (or (%entry-ref msg "toolCallId") "")
+                  (or (%entry-ref msg "toolName") "")
+                  (%lax-content "toolResult" (%to-list-content (%entry-ref msg "content")))
+                  (%json-true? (%entry-ref msg "isError"))
+                ) ;pi-tool-result-message
+              ) ;list
+             ) ;
              ((and (pair? msg) (equal? (%entry-ref msg "role") "bashExecution"))
               (if (%json-true? (%entry-ref msg "excludeFromContext"))
                 '()
