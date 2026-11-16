@@ -116,12 +116,6 @@
       ) ;cond
     ) ;define
 
-    (define (%string-key-json-object? obj)
-      (and (json-object? obj)
-        (or (equal? obj '(())) (every (lambda (p) (and (pair? p) (string? (car p)))) obj))
-      ) ;and
-    ) ;define
-
     (define (json->pi-message obj)
       (unless (or (%string-key-json-object? obj) (null? obj))
         (type-error "json->pi-message: expected json object" obj)

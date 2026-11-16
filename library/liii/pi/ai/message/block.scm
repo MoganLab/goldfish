@@ -15,7 +15,7 @@
     (liii pi ai message image-block)
   ) ;import
   (export pi-block? pi-block-type pi-block->json json->pi-block
-    %convert-message-content %normalize-json-value
+    %convert-message-content %normalize-json-value %string-key-json-object?
   ) ;export
   (begin
 
@@ -45,15 +45,17 @@
       (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
     ) ;define
 
+    (define (%empty-json-obj? v)
+      (or (not v) (null? v) (eq? v 'null) (equal? v '(())))
+    ) ;define
+
     (define (%normalize-json-entry entry)
       (let* ((raw-k (car entry))
              (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
              (v (cdr entry))
             ) ;
         (cond ((and (string=? k "errorMessage") (not v)) #f)
-              ((and (or (string=? k "arguments") (string=? k "input"))
-                 (or (null? v) (equal? v '(())) (not v) (eq? v 'null))
-               ) ;and
+              ((and (or (string=? k "arguments") (string=? k "input")) (%empty-json-obj? v))
                (cons k '(()))
               ) ;
               (else (cons k (%normalize-json-value v)))
@@ -62,10 +64,7 @@
     ) ;define
 
     (define (%normalize-tool-args args)
-      (if (or (not args) (null? args) (eq? args 'null) (equal? args '(())))
-        '(())
-        args
-      ) ;if
+      (if (%empty-json-obj? args) '(()) args)
     ) ;define
 
     (define (%normalize-json-value x)
