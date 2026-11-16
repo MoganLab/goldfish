@@ -14,7 +14,11 @@
   (begin
 
     (define*-record-type <pi-session-token-stats>
-      (make-pi-session-token-stats (input 0) (output 0) (cache-read 0) (cache-write 0))
+      (make-pi-session-token-stats (input 0)
+        (output 0)
+        (cache-read 0)
+        (cache-write 0)
+      ) ;make-pi-session-token-stats
       pi-session-token-stats?
       (input pi-session-token-stats-input pi-session-token-stats-input-set!)
       (output pi-session-token-stats-output pi-session-token-stats-output-set!)

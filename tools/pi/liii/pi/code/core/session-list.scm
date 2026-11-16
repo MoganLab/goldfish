@@ -41,10 +41,8 @@
     (define (%message-text entry)
       (let* ((message (json-ref entry "message"))
              (role (json-ref-string message "role" ""))
-             (raw-text
-               (pi-content->text
-                 (if (json-contains-key? message "content") (json-ref message "content") "")
-               ) ;pi-content->text
+             (raw-text (pi-content->text (if (json-contains-key? message "content") (json-ref message "content") "")
+                       ) ;pi-content->text
              ) ;raw-text
             ) ;
         (and (member role '("user" "assistant"))
@@ -117,11 +115,7 @@
       (let* ((info-entry (if (string? last-info) (%parse-line last-info) last-info))
              (raw-name
                (and info-entry
-                 (pi-normalize-session-name
-                   (if (json-contains-key? info-entry "name")
-                     (json-ref info-entry "name")
-                     #f
-                   ) ;if
+                 (pi-normalize-session-name (if (json-contains-key? info-entry "name") (json-ref info-entry "name") #f)
                  ) ;pi-normalize-session-name
                ) ;and
              ) ;raw-name
