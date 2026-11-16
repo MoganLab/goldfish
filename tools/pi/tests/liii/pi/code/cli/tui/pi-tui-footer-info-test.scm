@@ -27,6 +27,7 @@
 (import (liii check)
   (liii os)
   (liii path)
+  (liii tempfile)
   (liii pi code cli args)
   (liii pi code cli tui)
 ) ;import
@@ -43,18 +44,45 @@
 ;; 用 putenv 让 pi-tui-footer-info 内部的 get-environment-variables 命中 fixture；
 ;; 结束时还原，避免污染同进程内后续测试
 
+(define (copy-dir-contents src-dir dst-dir)
+  (vector-for-each
+    (lambda (name)
+      (let ((src (path->string (path-join src-dir name)))
+            (dst (path->string (path-join dst-dir name)))
+           ) ;
+        (if (path-dir? src)
+          (begin
+            (path-mkdir dst)
+            (copy-dir-contents src dst)
+          ) ;begin
+          (path-copy src dst)
+        ) ;if
+      ) ;let
+    ) ;lambda
+    (listdir src-dir)
+  ) ;vector-for-each
+) ;define
+
 (define (with-config-dir thunk)
-  (let ((saved (getenv "GF_CONFIG_DIR")) (saved-pi (getenv "PI_CODING_AGENT_DIR")))
-    (putenv "GF_CONFIG_DIR" (path->string (path-absolute (path FIXTURE-DIR))))
-    (unsetenv "PI_CODING_AGENT_DIR")
-    (let ((result (thunk)))
-      (if saved (putenv "GF_CONFIG_DIR" saved) (unsetenv "GF_CONFIG_DIR"))
-      (when saved-pi
-        (putenv "PI_CODING_AGENT_DIR" saved-pi)
-      ) ;when
-      result
-    ) ;let
-  ) ;let
+  (with-temp-dir
+    (lambda (tmp-dir)
+      (copy-dir-contents (path->string (path-absolute (path FIXTURE-DIR))) tmp-dir)
+      (let ((saved (getenv "GF_CONFIG_DIR")) (saved-pi (getenv "PI_CODING_AGENT_DIR")))
+        (putenv "GF_CONFIG_DIR" tmp-dir)
+        (unsetenv "PI_CODING_AGENT_DIR")
+        (dynamic-wind (lambda () #f)
+          thunk
+          (lambda ()
+            (if saved (putenv "GF_CONFIG_DIR" saved) (unsetenv "GF_CONFIG_DIR"))
+            (when saved-pi
+              (putenv "PI_CODING_AGENT_DIR" saved-pi)
+            ) ;when
+          ) ;lambda
+        ) ;dynamic-wind
+      ) ;let
+    ) ;lambda
+    "gf-tui-footer-test-"
+  ) ;with-temp-dir
 ) ;define
 
 ;; 1. provider / model 来自 settings.json（不是兜底的 google/gemini-3.8-flash）
