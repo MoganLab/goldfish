@@ -168,3 +168,8 @@ tools/ → library/ → goldfish/ → r7rs/
 - 当前重点是逐步将 `goldfish/` 和 `tools/pi/` 中属于标准库职责的代码迁移到 `library/`。
 - 迁移应小步进行，不批量移动无关代码；每次迁移配套回归测试。
 - 测试、构建配置和基础设施服务于上述板块，不单独构成第五层。
+
+## 3. Record 定义规范
+
+- 定义带默认值或关键字参数的 record 类型时，应使用 `(liii base)` 提供的 `define*-record-type`，直接生成对外构造器（如 `pi-retry-config`），避免在 `types.scm` 中定义并导出 `%make-xxx` 内部构造器后再在 `record.scm` 中二次包装。
+- 推荐一个 record 对应一个 Scheme 文件，并将该 record 的定义以及对应的 `xxx->alist`、`xxx->json`、`json->xxx` 等序列化与反序列化函数放在同一文件中（例如 `library/liii/pi/ai/config/retry.scm`、`settings.scm`、`credential.scm`、`model-metadata.scm`）。
