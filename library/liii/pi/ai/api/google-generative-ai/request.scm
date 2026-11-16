@@ -20,7 +20,7 @@
     (liii pi ai retry)
     (liii pi ai limits)
     (liii pi ai log)
-    (liii pi ai tools types)
+    (liii pi ai tools definition)
     (liii pi ai message)
     (liii pi ai keyring)
     (liii pi ai api google-generative-ai core)

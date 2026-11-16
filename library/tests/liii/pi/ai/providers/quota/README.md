@@ -19,6 +19,7 @@ gf doc pi-quota-error-result
 ## 函数分类索引
 
 ### 结构与结果判定
+- `pi-quota-limit` - 构造配额限制判定结果
 - `pi-quota-limit?` - 判断是否为配额限制判定结果
 - `pi-quota-error-result` - 通用状态码与码表配额错误匹配判定
 - `set-pi-quota-error-logger!` - 设置配额解析异常日志记录器

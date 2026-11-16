@@ -17,8 +17,9 @@
     (liii pi ai message)
 
     (liii pi ai config credential)
-    (liii pi ai tools types)
-    (liii pi ai tools record)
+    (liii pi ai tools definition)
+    (liii pi ai tools result)
+    (liii pi ai tools trunc-result)
   ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
     pi-event? pi-event-type pi-event->alist pi-event->json json->pi-event
@@ -102,9 +103,42 @@
       (cond ((pi-event? obj) (%find-assoc key (pi-event->alist obj)))
             ((pi-message? obj) (%find-assoc key (pi-message->alist obj)))
             ((pi-block? obj) (%find-assoc key (pi-block->alist obj)))
-            ((pi-tool-definition? obj) (%find-assoc key (pi-tool-definition->alist obj)))
-            ((pi-tool-result? obj) (%find-assoc key (pi-tool-result->alist obj)))
-            ((pi-trunc-result? obj) (%find-assoc key (pi-trunc-result->alist obj)))
+            ((pi-tool-definition? obj)
+             (%find-assoc key
+               (list (cons 'name (pi-tool-definition-name obj))
+                 (cons 'description (pi-tool-definition-description obj))
+                 (cons 'parameters (pi-tool-definition-parameters obj))
+                 (cons 'execute (pi-tool-definition-execute obj))
+                 (cons 'snippet (pi-tool-definition-snippet obj))
+                 (cons 'guidelines (pi-tool-definition-guidelines obj))
+               ) ;list
+             ) ;%find-assoc
+            ) ;
+            ((pi-tool-result? obj)
+             (%find-assoc key
+               (list (cons 'content (pi-tool-result-content obj))
+                 (cons 'isError (pi-tool-result-is-error obj))
+               ) ;list
+             ) ;%find-assoc
+            ) ;
+            ((pi-trunc-result? obj)
+             (%find-assoc key
+               (list (cons 'content (pi-trunc-result-content obj))
+                 (cons 'truncated (pi-trunc-result-truncated obj))
+                 (cons 'truncated-by (pi-trunc-result-truncated-by obj))
+                 (cons 'total-lines (pi-trunc-result-total-lines obj))
+                 (cons 'total-bytes (pi-trunc-result-total-bytes obj))
+                 (cons 'output-lines (pi-trunc-result-output-lines obj))
+                 (cons 'output-bytes (pi-trunc-result-output-bytes obj))
+                 (cons 'first-line-exceeds-limit?
+                   (pi-trunc-result-first-line-exceeds-limit? obj)
+                 ) ;cons
+                 (cons 'first-line-truncated (pi-trunc-result-first-line-exceeds-limit? obj))
+                 (cons 'last-line-partial? (pi-trunc-result-last-line-partial? obj))
+                 (cons 'last-line-truncated (pi-trunc-result-last-line-partial? obj))
+               ) ;list
+             ) ;%find-assoc
+            ) ;
             ((pair? obj) (%find-assoc key obj))
             (else (%orig-assoc key obj))
       ) ;cond

@@ -18,7 +18,7 @@
 (import (liii check)
   (liii pi ai api anthropic-messages core)
   (liii pi ai event)
-  (liii pi ai tools record)
+  (liii pi ai tools definition)
 ) ;import
 
 (check-set-mode! 'report-failed)

@@ -17,10 +17,10 @@
 ;;   error.code（智谱）、code、error.name、type、error.type（kimi）
 
 (define-library (liii pi ai providers quota)
-  (import (scheme base) (scheme char) (liii string) (liii json))
+  (import (scheme base) (scheme char) (liii base) (liii string) (liii json))
   (export pi-quota-json-fields pi-quota-match-codes
     pi-quota-message-trailing-code pi-quota-error-message
-    set-pi-quota-error-logger! %make-pi-quota-limit pi-quota-limit?
+    set-pi-quota-error-logger! pi-quota-limit pi-quota-limit?
     pi-quota-limit-kind pi-quota-limit-code pi-quota-limit-message
     pi-quota-error-result
   ) ;export
@@ -30,13 +30,13 @@
     ;;   kind    —— 额度窗口类型（five-hour / weekly / quota，由 provider 定义）
     ;;   code    —— 命中的错误标识（如 "1310"、"exceeded_current_quota_error"）
     ;;   message —— 服务商官方消息原文（可能 #f）
-    (define-record-type <pi-quota-limit>
-      (%make-pi-quota-limit kind code message)
+    (define*-record-type <pi-quota-limit>
+      (pi-quota-limit kind code (message #f))
       pi-quota-limit?
       (kind pi-quota-limit-kind)
       (code pi-quota-limit-code)
       (message pi-quota-limit-message)
-    ) ;define-record-type
+    ) ;define*-record-type
 
     ;; 判断是否为形如 ((k . v) ...) 的关联表
     (define (%alist? obj)
@@ -214,7 +214,7 @@
         (let* ((fields (pi-quota-json-fields body-str))
                (hit (pi-quota-match-codes (car fields) table))
               ) ;
-          (if (pair? hit) (%make-pi-quota-limit (cdr hit) (car hit) (cdr fields)) #f)
+          (if (pair? hit) (pi-quota-limit (cdr hit) (car hit) (cdr fields)) #f)
         ) ;let*
         #f
       ) ;if

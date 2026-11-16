@@ -40,7 +40,7 @@
                  ) ;pi-quota-match-codes
                ) ;hit
               ) ;
-          (if (pair? hit) (%make-pi-quota-limit (cdr hit) (car hit) msg) #f)
+          (if (pair? hit) (pi-quota-limit (cdr hit) (car hit) msg) #f)
         ) ;let*
         #f
       ) ;if

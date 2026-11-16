@@ -7,14 +7,15 @@
 (define-library (liii pi agent tools)
   (import (scheme base)
     (scheme time)
+    (liii json)
     (liii string)
     (liii list)
     (liii pi ai abort)
     (liii pi ai config runtime)
     (liii pi ai event)
     (liii pi ai message)
-    (liii pi ai tools types)
-    (liii pi ai tools record)
+    (liii pi ai tools definition)
+    (liii pi ai tools result)
   ) ;import
   (export pi-agent-assoc-val pi-first-block-from-content
     pi-extract-tool-result-text pi-make-tool-result-msg pi-execute-one-tool-call
@@ -39,10 +40,9 @@
     ) ;define
 
     (define (pi-extract-tool-result-text res)
-      (let* ((tr (or (json->pi-tool-result res) res))
-             (c (cond ((pi-tool-result? tr) (pi-tool-result-content tr))
-                      ((pi-tool-result-message? tr) (pi-tool-result-message-content tr))
-                      ((pair? tr) (pi-agent-assoc-val 'content "content" tr #()))
+      (let* ((c (cond ((pi-tool-result? res) (pi-tool-result-content res))
+                      ((pi-tool-result-message? res) (pi-tool-result-message-content res))
+                      ((pair? res) (pi-agent-assoc-val 'content "content" res #()))
                       (else #())
                 ) ;cond
              ) ;c
@@ -74,13 +74,11 @@
     ) ;define
 
     (define (%extract-tool-result-content-blocks res)
-      (let ((tr (or (json->pi-tool-result res) res)))
-        (%to-block-list (cond ((pi-tool-result? tr) (pi-tool-result-content tr))
-                              ((pair? tr) (pi-agent-assoc-val 'content "content" tr #()))
-                              (else tr)
-                        ) ;cond
-        ) ;%to-block-list
-      ) ;let
+      (%to-block-list (cond ((pi-tool-result? res) (pi-tool-result-content res))
+                            ((pair? res) (pi-agent-assoc-val 'content "content" res #()))
+                            (else res)
+                      ) ;cond
+      ) ;%to-block-list
     ) ;define
 
     (define (pi-make-tool-result-msg id name content is-err)
@@ -214,10 +212,9 @@
                  ) ;round
                ) ;inexact->exact
              ) ;duration-ms
-             (tr (or (json->pi-tool-result raw-res) raw-res))
-             (is-err? (if (pi-tool-result? tr)
-                        (pi-tool-result-is-error tr)
-                        (pi-agent-assoc-val 'isError "isError" tr #f)
+             (is-err? (if (pi-tool-result? raw-res)
+                        (pi-tool-result-is-error raw-res)
+                        (pi-agent-assoc-val 'isError "isError" raw-res #f)
                       ) ;if
              ) ;is-err?
              (content-blks (%extract-tool-result-content-blocks raw-res))

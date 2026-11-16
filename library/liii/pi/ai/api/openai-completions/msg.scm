@@ -11,8 +11,7 @@
     (liii list)
     (liii pi ai message)
     (liii pi ai event)
-    (liii pi ai tools types)
-    (liii pi ai tools record)
+    (liii pi ai tools definition)
   ) ;import
   (export openai-build-tool-declarations openai-build-messages
     openai-build-request-body openai-clamp-prompt-cache-key

@@ -19,8 +19,8 @@
 
 (check-set-mode! 'report-failed)
 
-(let* ((obj-a (%make-pi-quota-limit "weekly" "1310" "每周额度已用尽"))
-       (obj-b (%make-pi-quota-limit "five-hour" "exceeded_current_quota_error" #f))
+(let* ((obj-a (pi-quota-limit "weekly" "1310" "每周额度已用尽"))
+       (obj-b (pi-quota-limit "five-hour" "exceeded_current_quota_error" #f))
       ) ;
   (check (pi-quota-limit-message obj-a) => "每周额度已用尽")
   (check (pi-quota-limit-message obj-b) => #f)

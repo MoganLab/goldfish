@@ -20,7 +20,7 @@
   (liii pi ai event record)
   (liii pi ai event json)
   (liii pi ai message record)
-  (liii pi ai tools record)
+  (liii pi ai tools result)
 ) ;import
 
 (check-set-mode! 'report-failed)

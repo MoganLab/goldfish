@@ -9,8 +9,7 @@
     (scheme char)
     (liii string)
     (liii list)
-    (liii pi ai tools types)
-    (liii pi ai tools record)
+    (liii pi ai tools trunc-result)
   ) ;import
   (export PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
     pi-byte-length pi-format-size pi-truncate-line pi-split-lines
@@ -20,7 +19,7 @@
     pi-trunc-result-total-bytes pi-trunc-result-output-lines
     pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
     pi-trunc-result-first-line-truncated pi-trunc-result-last-line-partial?
-    pi-trunc-result-last-line-truncated pi-trunc-result->alist
+    pi-trunc-result-last-line-truncated
   ) ;export
   (begin
 
