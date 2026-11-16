@@ -9,7 +9,7 @@
     (liii pi ai api anthropic-messages)
     (liii pi ai api google-generative-ai)
     (liii pi ai api openai-completions)
-    (liii pi ai config types)
+
     (liii pi ai config model-metadata)
     (liii pi ai config runtime)
     (liii pi ai providers registry)

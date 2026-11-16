@@ -151,11 +151,10 @@
                  (enable-skills (if (%normalize-json-bool (%json-dict-ref obj "enableSkillCommands" #t)) #t #f)
                  ) ;enable-skills
                  (raw-retry (%json-dict-ref obj "retry" '()))
-                 (retry
-                   (if (or (pair? raw-retry) (null? raw-retry) (pi-retry-config? raw-retry))
-                     (json->pi-retry-config raw-retry)
-                     (pi-retry-config)
-                   ) ;if
+                 (retry (if (or (pair? raw-retry) (null? raw-retry) (pi-retry-config? raw-retry))
+                          (json->pi-retry-config raw-retry)
+                          (pi-retry-config)
+                        ) ;if
                  ) ;retry
                 ) ;
             (pi-settings default-provider
@@ -181,10 +180,14 @@
         (type-error "pi-settings-model-thinking-level: expected pi-settings" settings)
       ) ;unless
       (unless (or (string? provider) (symbol? provider))
-        (type-error "pi-settings-model-thinking-level: expected string or symbol provider" provider)
+        (type-error "pi-settings-model-thinking-level: expected string or symbol provider"
+          provider
+        ) ;type-error
       ) ;unless
       (unless (string? model-id)
-        (type-error "pi-settings-model-thinking-level: expected string model-id" model-id)
+        (type-error "pi-settings-model-thinking-level: expected string model-id"
+          model-id
+        ) ;type-error
       ) ;unless
       (let* ((provider-str (if (symbol? provider) (symbol->string provider) provider))
              (wanted (string-append provider-str "/" model-id))

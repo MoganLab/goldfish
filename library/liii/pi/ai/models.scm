@@ -13,7 +13,6 @@
     (liii string)
     (liii path)
     (liii json)
-    (liii pi ai config types)
 
     (liii pi ai models list)
     (liii pi ai models builtin)

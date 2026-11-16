@@ -12,7 +12,7 @@
     (liii path)
     (liii pi code core tools read)
     (liii pi code config)
-    (liii pi ai config types)
+    (liii pi ai config model-metadata)
     (liii pi web-search types)
   ) ;import
   (export pi-resolve-search-base-url
@@ -271,6 +271,5 @@
         (pi-resolve-search-base-url config opt-url ws-config "deepseek" opt-env)
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

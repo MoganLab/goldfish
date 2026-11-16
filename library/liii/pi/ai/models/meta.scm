@@ -11,7 +11,7 @@
     (liii list)
     (liii uri)
     (liii pi ai template)
-    (liii pi ai config types)
+
     (liii pi ai config model-metadata)
     (liii pi ai models builtin)
   ) ;import

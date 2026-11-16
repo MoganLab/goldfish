@@ -14,7 +14,7 @@
     (liii error)
     (liii os)
     (liii pi ai template)
-    (liii pi ai config types)
+
     (liii pi ai config credential)
     (liii pi ai event)
   ) ;import

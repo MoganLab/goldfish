@@ -19,10 +19,10 @@
 ;; string | #f
 ;; 生效的代理 URL；无代理时返回 #f。
 
-(import (liii check) (liii pi code config))
+(import (liii check) (liii pi ai config settings) (liii pi code config))
 
 (check-set-mode! 'report-failed)
-(let ((settings '((http-proxy . "http://127.0.0.1:7890")))
+(let ((settings (pi-settings :http-proxy "http://127.0.0.1:7890"))
       (clean-env '())
       (env-with-https '(("HTTPS_PROXY" . "https://corp-proxy:8080")))
       (env-with-all '(("ALL_PROXY" . "socks5h://127.0.0.1:1080")))
@@ -46,7 +46,7 @@
   (check (pi-resolve-proxy-url #f settings clean-env) => "http://127.0.0.1:7890")
   (check (pi-resolve-proxy-url "" settings clean-env) => "http://127.0.0.1:7890")
   ;; 无代理直连
-  (check (pi-resolve-proxy-url #f '((http-proxy . #f)) clean-env) => #f)
+  (check (pi-resolve-proxy-url #f (pi-settings :http-proxy #f) clean-env) => #f)
 ) ;let
 
 (check-report)

@@ -16,7 +16,8 @@
     (liii date-time)
     (liii pi ai time)
     (liii pi ai limits)
-    (liii pi ai config types)
+    (liii pi ai config retry)
+    (liii pi ai config settings)
     (liii pi ai event)
   ) ;import
   (export pi-is-retriable-error? pi-calc-retry-delay pi-resolve-retry-params
@@ -325,6 +326,5 @@
         (values max-retries base-delay max-delay provider-max-retries)
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

@@ -15,7 +15,7 @@
     (liii pi ai event record)
     (liii pi ai event json)
     (liii pi ai message)
-    (liii pi ai config types)
+
     (liii pi ai config credential)
     (liii pi ai tools types)
     (liii pi ai tools record)

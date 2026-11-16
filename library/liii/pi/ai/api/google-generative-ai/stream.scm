@@ -15,7 +15,8 @@
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai config model-metadata)
-    (liii pi ai config types)
+    (liii pi ai config retry)
+    (liii pi ai config settings)
     (liii pi ai config runtime)
     (liii pi ai retry)
     (liii pi ai limits)
@@ -377,6 +378,5 @@
         ) ;let*
       ) ;let-values
     ) ;define*
-
   ) ;begin
 ) ;define-library

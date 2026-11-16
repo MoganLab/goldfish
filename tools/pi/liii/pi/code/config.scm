@@ -22,7 +22,7 @@
     (liii pi ai models)
     (liii pi ai thinking)
     (liii pi ai providers registry)
-    (liii pi ai config types)
+
     (liii pi ai config settings)
     (liii pi ai event)
     (liii pi code config settings)

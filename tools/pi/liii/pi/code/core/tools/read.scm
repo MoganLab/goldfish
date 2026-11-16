@@ -17,7 +17,6 @@
     (liii base64)
     (liii pi ai message)
     (liii pi ai tools record)
-    (liii pi ai config types)
 
     (liii pi ai config runtime)
     (liii pi ai models)
