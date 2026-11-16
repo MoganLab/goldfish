@@ -12,13 +12,16 @@
     tool-card-set-started-at! tool-card-started-at tool-card-pending-bash?
     thinking-card-append-line! thinking-card-set-hidden!
     thinking-card-component? skill-card-component? skill-card-set-expanded!
-    pi-pending-hint-line
+    pi-pending-hint-line pi-clip-pending-lines
   ) ;export
   (import (scheme base)
+    (liii list)
     (liii os)
     (liii string)
     (liii tui component)
     (liii tui box container)
+    (liii tui text-width)
+    (liii pi code utils shell)
     (liii pi code modes interactive renderers)
     (liii pi code modes interactive views assistant)
     (liii pi code modes interactive views cache)
@@ -93,12 +96,89 @@
     ) ;define
 
     ;; 等待队列提示卡片组件 (make-queued-card text)
+    (define %queued-card-max-lines 8)
+
+    (define (%utf8-safe-prefix str max-bytes)
+      (let ((len (string-length str)))
+        (if (<= len max-bytes)
+          str
+          (let loop
+            ((i max-bytes))
+            (if (<= i 0)
+              ""
+              (let ((b (char->integer (string-ref str i))))
+                (if (and (>= b 128) (< b 192)) (loop (- i 1)) (substring str 0 i))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%queued-normalize-text text max-bytes)
+      (let* ((bounded (%utf8-safe-prefix text max-bytes))
+             (clean (sanitize-display-text bounded))
+            ) ;
+        (string-replace (string-replace (string-replace clean "\r\n" "\n") "\r" "\n")
+          "\t"
+          " "
+        ) ;string-replace
+      ) ;let*
+    ) ;define
+
     (define (%render-queued-card text width)
-      (if (<= width 0) '() (list (string-append %fg-dim "  " text %ansi-reset)))
+      (if (<= width 0)
+        '()
+        (let* ((indent (if (>= width 3) "  " ""))
+               (content-w (max 1 (- width (string-length indent))))
+               (max-bytes (max 256 (* content-w %queued-card-max-lines 4)))
+               (normalized (%queued-normalize-text text max-bytes))
+               (wrapped (wrap-text normalized content-w))
+               (truncated? (> (length wrapped) %queued-card-max-lines))
+               (visible
+                 (if truncated?
+                   (append (take wrapped (- %queued-card-max-lines 1)) (list "..."))
+                   wrapped
+                 ) ;if
+               ) ;visible
+              ) ;
+          (map (lambda (line) (string-append %fg-dim indent line %ansi-reset)) visible)
+        ) ;let*
+      ) ;if
     ) ;define
 
     (define (make-queued-card text)
       (%make-cached-component text (lambda (width) (%render-queued-card text width)))
+    ) ;define
+
+    ;; 裁剪过长的待发送队列行，保证至少留出 1 行对话区与 3 行输入区，
+    ;; 且队列区高度不超过终端高度的 1/3（最多 8 行）
+    (define (pi-clip-pending-lines lines rows footer-count menu-count width)
+      (let* ((available (max 0 (- rows footer-count menu-count 4)))
+             (max-lines
+               (min available (min 8 (max 1 (quotient rows 3))))
+             ) ;max-lines
+            ) ;
+        (cond ((<= (length lines) max-lines) lines)
+              ((<= max-lines 0) '())
+              ((= max-lines 1)
+               (let ((msg (string-append "  ... (" (number->string (length lines)) " lines queued)"))
+                    ) ;
+                 (list (string-append %fg-dim (truncate-to-width msg width "...") %ansi-reset))
+               ) ;let
+              ) ;
+              (else
+                (let* ((kept (take lines (- max-lines 1)))
+                       (hidden (- (length lines) (- max-lines 1)))
+                       (msg (string-append "  ... (+" (number->string hidden) " more lines)"))
+                       (summary (string-append %fg-dim (truncate-to-width msg width "...") %ansi-reset)
+                       ) ;summary
+                      ) ;
+                  (append kept (list summary))
+                ) ;let*
+              ) ;else
+        ) ;cond
+      ) ;let*
     ) ;define
 
     ;; 重试提示卡片组件 (make-retry-card msg)

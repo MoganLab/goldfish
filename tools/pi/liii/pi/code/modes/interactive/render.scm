@@ -125,27 +125,23 @@
              (footer-lines (%pi-split-lines (component-render (%pi-app-footer app) w)))
              (menu (and (not active-selector) (pi-app-slash-command-menu app)))
              (menu-lines (if menu (%pi-split-lines (component-render menu w)) '()))
+             (n-footer (length footer-lines))
+             (n-menu (length menu-lines))
+             (add-queued!
+               (lambda (prefix items)
+                 (for-each
+                   (lambda (t)
+                     (container-add! pending-box (make-queued-card (string-append prefix t)))
+                   ) ;lambda
+                   items
+                 ) ;for-each
+               ) ;lambda
+             ) ;add-queued!
             ) ;
         (container-clear! pending-box)
         (when (pi-queue-busy? q)
-          ;; 待处理区分组展示全部排队消息（对齐上游 updatePendingMessagesDisplay）：
-          ;; steering 组 → follow-up 组 → 撤回提示行 → 原等待队列（旧语义兼容）
-          (for-each
-            (lambda (text)
-              (container-add! pending-box
-                (make-queued-card (string-append "Steering: " text))
-              ) ;container-add!
-            ) ;lambda
-            (%pi-app-steering-pending app)
-          ) ;for-each
-          (for-each
-            (lambda (text)
-              (container-add! pending-box
-                (make-queued-card (string-append "Follow-up: " text))
-              ) ;container-add!
-            ) ;lambda
-            (%pi-app-follow-up-pending app)
-          ) ;for-each
+          (add-queued! "Steering: " (%pi-app-steering-pending app))
+          (add-queued! "Follow-up: " (%pi-app-follow-up-pending app))
           (when (or (pair? (%pi-app-steering-pending app))
                   (pair? (%pi-app-follow-up-pending app))
                 ) ;or
@@ -157,16 +153,18 @@
             ) ;unless
           ) ;let
         ) ;when
-        (let* ((pending-lines (%pi-split-lines (component-render pending-box w)))
+        (let* ((pending-lines (pi-clip-pending-lines (%pi-split-lines (component-render pending-box w))
+                                rows
+                                n-footer
+                                n-menu
+                                w
+                              ) ;pi-clip-pending-lines
+               ) ;pending-lines
                (ed-lines
                  (let* ((_
                           (unless active-selector
                             (editor-set-max-lines! ed
-                              (%pi-editor-max-lines rows
-                                (length footer-lines)
-                                (length menu-lines)
-                                (length pending-lines)
-                              ) ;%pi-editor-max-lines
+                              (%pi-editor-max-lines rows n-footer n-menu (length pending-lines))
                             ) ;editor-set-max-lines!
                           ) ;unless
                         ) ;_
