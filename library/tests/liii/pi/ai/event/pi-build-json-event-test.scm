@@ -23,7 +23,8 @@
 (check-set-mode! 'report-failed)
 
 (let ((ev (pi-build-json-event 'agent_start '())))
-  (check (cdr (assoc "type" ev)) => "agent_start")
+  (check-true (pi-event-agent-start? ev))
+  (check (pi-event-type ev) => "agent_start")
 ) ;let
 
 (check-report)

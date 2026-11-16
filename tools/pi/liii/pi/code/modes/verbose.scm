@@ -221,7 +221,7 @@
                (port (current-output-port))
              ) ;display-agent-event
       (let ((actual-ev
-              (cond ((pi-event? ev) (pi-event->alist ev))
+              (cond ((pi-event? ev) (pi-event->json ev))
                     ((string? ev) (catch #t (lambda () (string->json ev)) (lambda _ #f)))
                     ((pair? ev) ev)
                     (else #f)
@@ -258,7 +258,7 @@
         (lambda (ev-type . args)
           (let ((ev (pi-build-json-event ev-type args)) (p (or port (current-output-port))))
             (when ev
-              (display-agent-event (pi-event->alist ev) "" turn-box p)
+              (display-agent-event (pi-event->json ev) "" turn-box p)
             ) ;when
           ) ;let
         ) ;lambda

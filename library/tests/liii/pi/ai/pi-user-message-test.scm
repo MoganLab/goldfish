@@ -33,14 +33,6 @@
 
   ;; 指定 timestamp 构造
   (let ((msg2 (pi-user-message "foo" 123456789)))
-    (check (pi-user-message-timestamp msg2) => 123456789))
-
-  ;; 兼容 alist 访问
-  (check (cdr (assoc "role" msg)) => "user")
-  (check (cdr (assoc 'role msg)) => "user")
-  (check (cdr (assoc "content" msg)) => "hello goldfish")
-  (check (cdr (assoc 'content msg)) => "hello goldfish")
-  (check (cdr (assoc "timestamp" msg)) => (pi-user-message-timestamp msg))
-  (check (cdr (assoc 'timestamp msg)) => (pi-user-message-timestamp msg)))
+    (check (pi-user-message-timestamp msg2) => 123456789)))
 
 (check-report)
