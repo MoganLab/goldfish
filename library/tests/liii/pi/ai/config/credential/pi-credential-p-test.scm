@@ -15,11 +15,11 @@
 ;; boolean
 ;; 若属于服务商 API 凭据 record 实例则返回 #t，否则返回 #f。
 
-(import (liii check) (liii pi ai config types))
+(import (liii check) (liii pi ai config credential))
 
 (check-set-mode! 'report-failed)
 
-(let ((obj (%make-pi-credential "google" "secret-key" "api_key")))
+(let ((obj (pi-credential "google" "secret-key" "api_key")))
   (check-true (pi-credential? obj))
 ) ;let
 (check-false (pi-credential? '()))

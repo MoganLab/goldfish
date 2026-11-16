@@ -21,7 +21,7 @@
 ;; pi-credential?
 ;; 凭据 record 实例。
 
-(import (liii check) (liii pi ai config record))
+(import (liii check) (liii pi ai config credential))
 
 (check-set-mode! 'report-failed)
 

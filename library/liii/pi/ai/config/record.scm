@@ -10,6 +10,7 @@
     (liii string)
     (liii pi ai config retry)
     (liii pi ai config settings)
+    (liii pi ai config credential)
     (liii pi ai config types)
   ) ;import
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
@@ -31,33 +32,6 @@
     pi-model-metadata-from-alist
   ) ;export
   (begin
-
-    (define* (pi-credential provider key (type "api_key"))
-      (%make-pi-credential (if (symbol? provider) (symbol->string provider) provider)
-        key
-        type
-      ) ;%make-pi-credential
-    ) ;define*
-
-    (define (pi-credential->alist c)
-      (if (pair? c)
-        c
-        (list (cons 'provider (pi-credential-provider c))
-          (cons 'key (pi-credential-key c))
-          (cons 'type (pi-credential-type c))
-        ) ;list
-      ) ;if
-    ) ;define
-
-    (define (pi-credential->json c)
-      (if (pair? c)
-        c
-        (list (cons "provider" (pi-credential-provider c))
-          (cons "type" (pi-credential-type c))
-          (cons "key" (pi-credential-key c))
-        ) ;list
-      ) ;if
-    ) ;define
 
     (define* (pi-model-metadata id
                name

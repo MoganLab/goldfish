@@ -54,10 +54,10 @@
                   ) ;resolved
                  ) ;
               (and resolved
-                (%make-pi-credential (if (symbol? key) (symbol->string key) key)
+                (pi-credential (if (symbol? key) (symbol->string key) key)
                   resolved
                   "api_key"
-                ) ;%make-pi-credential
+                ) ;pi-credential
               ) ;and
             ) ;let
           ) ;and

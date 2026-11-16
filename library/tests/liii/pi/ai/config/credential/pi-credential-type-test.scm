@@ -15,12 +15,12 @@
 ;; string?
 ;; type 字段的值。
 
-(import (liii check) (liii pi ai config types))
+(import (liii check) (liii pi ai config credential))
 
 (check-set-mode! 'report-failed)
 
-(let* ((obj-a (%make-pi-credential "google" "secret-key" "api_key"))
-       (obj-b (%make-pi-credential "kimi-coding" "other-key" "oauth"))
+(let* ((obj-a (pi-credential "google" "secret-key" "api_key"))
+       (obj-b (pi-credential "kimi-coding" "other-key" "oauth"))
       ) ;
   (check (pi-credential-type obj-a) => "api_key")
   (check (pi-credential-type obj-b) => "oauth")

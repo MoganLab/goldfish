@@ -15,7 +15,7 @@
 ;; alist?
 ;; 包含 provider、key 与 type 字段的关联列表。
 
-(import (liii check) (liii pi ai config record))
+(import (liii check) (liii pi ai config credential))
 
 (check-set-mode! 'report-failed)
 
