@@ -29,7 +29,7 @@
 ;; pi-retry-config?
 ;; 重试配置 record 实例。
 
-(import (liii check) (liii pi ai config record))
+(import (liii check) (liii pi ai config retry))
 
 (check-set-mode! 'report-failed)
 

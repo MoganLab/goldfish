@@ -15,13 +15,13 @@
 ;; boolean?
 ;; hide-thinking-block 字段的值。
 
-(import (liii check) (liii pi ai config types))
+(import (liii check) (liii pi ai config retry) (liii pi ai config types))
 
 (check-set-mode! 'report-failed)
 
-(define retry-cfg-a (%make-pi-retry-config #t 5 1500 45000 12))
+(define retry-cfg-a (pi-retry-config #t 5 1500 45000 12))
 
-(define retry-cfg-b (%make-pi-retry-config #f 0 500 10000 3))
+(define retry-cfg-b (pi-retry-config #f 0 500 10000 3))
 (let* ((obj-a (%make-pi-settings "google"
                 "gemini-2.5-flash"
                 "medium"

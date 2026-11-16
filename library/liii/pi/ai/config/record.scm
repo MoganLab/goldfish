@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi ai config record)
-  (import (scheme base) (liii list) (liii string) (liii pi ai config types))
+  (import (scheme base)
+    (liii list)
+    (liii string)
+    (liii pi ai config retry)
+    (liii pi ai config types)
+  ) ;import
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
@@ -25,52 +30,6 @@
     pi-model-metadata-from-alist
   ) ;export
   (begin
-
-    (define* (pi-retry-config (enabled #t)
-               (max-retries 3)
-               (base-delay-ms 2000)
-               (max-agent-delay-ms 60000)
-               (provider-max-retries #f)
-             ) ;pi-retry-config
-      (%make-pi-retry-config (if enabled #t #f)
-        max-retries
-        base-delay-ms
-        max-agent-delay-ms
-        provider-max-retries
-      ) ;%make-pi-retry-config
-    ) ;define*
-
-    (define (pi-retry-config->alist r)
-      (if (pair? r)
-        r
-        (list (cons 'enabled (pi-retry-config-enabled r))
-          (cons 'max-retries (pi-retry-config-max-retries r))
-          (cons 'base-delay-ms (pi-retry-config-base-delay-ms r))
-          (cons 'max-agent-delay-ms (pi-retry-config-max-agent-delay-ms r))
-          (cons 'provider-max-retries (pi-retry-config-provider-max-retries r))
-        ) ;list
-      ) ;if
-    ) ;define
-
-    (define (pi-retry-config->json r)
-      (if (pair? r)
-        r
-        (let ((base
-                (list (cons "enabled" (if (pi-retry-config-enabled r) 'true 'false))
-                  (cons "maxRetries" (pi-retry-config-max-retries r))
-                  (cons "baseDelayMs" (pi-retry-config-base-delay-ms r))
-                  (cons "maxAgentDelayMs" (pi-retry-config-max-agent-delay-ms r))
-                ) ;list
-              ) ;base
-              (provider-max (pi-retry-config-provider-max-retries r))
-             ) ;
-          (if provider-max
-            (append base (list (cons "provider" (list (cons "maxRetries" provider-max)))))
-            base
-          ) ;if
-        ) ;let
-      ) ;if
-    ) ;define
 
     (define (%json-dict-pair obj str-key sym-key)
       (let loop
@@ -106,23 +65,6 @@
        ((false) #f)
        (else val)
       ) ;case
-    ) ;define
-
-    (define (json->pi-retry-config obj)
-      (if (pi-retry-config? obj)
-        obj
-        (let* ((provider-obj (%json-dict-ref obj "provider" '()))
-               (raw-provider-max (%json-dict-ref provider-obj "maxRetries" #f))
-               (provider-max (if (eq? raw-provider-max 'null) #f raw-provider-max))
-              ) ;
-          (%make-pi-retry-config (if (%normalize-json-bool (%json-dict-ref obj "enabled" #t)) #t #f)
-            (%json-dict-ref obj "maxRetries" 3)
-            (%json-dict-ref obj "baseDelayMs" 2000)
-            (%json-dict-ref obj "maxAgentDelayMs" 60000)
-            provider-max
-          ) ;%make-pi-retry-config
-        ) ;let*
-      ) ;if
     ) ;define
 
     (define* (pi-settings (default-provider "google")

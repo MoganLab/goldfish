@@ -15,12 +15,12 @@
 ;; number?
 ;; max-agent-delay-ms 字段的值。
 
-(import (liii check) (liii pi ai config types))
+(import (liii check) (liii pi ai config retry))
 
 (check-set-mode! 'report-failed)
 
-(let* ((obj-a (%make-pi-retry-config #t 5 1500 45000 12))
-       (obj-b (%make-pi-retry-config #f 0 500 10000 3))
+(let* ((obj-a (pi-retry-config #t 5 1500 45000 12))
+       (obj-b (pi-retry-config #f 0 500 10000 3))
       ) ;
   (check (pi-retry-config-max-agent-delay-ms obj-a) => 45000)
   (check (pi-retry-config-max-agent-delay-ms obj-b) => 10000)

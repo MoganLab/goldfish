@@ -15,11 +15,11 @@
 ;; boolean
 ;; 若属于重试策略配置 record 实例则返回 #t，否则返回 #f。
 
-(import (liii check) (liii pi ai config types))
+(import (liii check) (liii pi ai config retry))
 
 (check-set-mode! 'report-failed)
 
-(let ((obj (%make-pi-retry-config #t 5 1500 45000 12)))
+(let ((obj (pi-retry-config #t 5 1500 45000 12)))
   (check-true (pi-retry-config? obj))
 ) ;let
 (check-false (pi-retry-config? '()))
