@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldfmt args)
-  (import (liii base) (liii string) (liii list) (liii argparse) (liii goldfmt lang))
+  (import (scheme base) (liii base) (liii string) (liii list) (liii argparse) (liii goldfmt lang))
   (export normalize-extension token->extensions file-extension-match?
     parse-extensions parse-excludes make-fmt-arg-parser normalize-jobs
     parse-fmt-jobs first-positional display-help extension-option-explicit?
