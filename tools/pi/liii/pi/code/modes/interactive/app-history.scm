@@ -326,6 +326,7 @@
                   ;; 复位旧会话的引用：工具卡片索引、thinking 引用与文本选区
                   (%pi-app-tool-cards-set! app index)
                   (%pi-app-thinking-card-set! app #f)
+                  (%pi-app-assistant-card-set! app #f)
                   ;; 旧会话的 ! 命令卡片索引一并复位：历史 bash 卡片由条目重建，
                   ;; 不复用旧索引，避免后续 bash_complete 事件回填到已移除的卡片
                   (%pi-app-bash-cards-set! app '())

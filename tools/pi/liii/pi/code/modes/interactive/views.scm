@@ -6,11 +6,12 @@
 
 (define-library (liii pi code modes interactive views)
   (export make-user-card make-tool-card make-assistant-card make-queued-card
-    make-retry-card apply-card-bg format-tool-call format-tool-result-lines
-    tool-card? tool-card-component? tool-card-expanded? tool-card-set-expanded!
-    tool-card-set-output! tool-card-set-complete! make-thinking-card
-    tool-card-set-started-at! tool-card-started-at tool-card-pending-bash?
-    thinking-card-append-line! thinking-card-set-hidden!
+    assistant-card-append-text! assistant-card-text assistant-card?
+    assistant-card-component? make-retry-card apply-card-bg format-tool-call
+    format-tool-result-lines tool-card? tool-card-component? tool-card-expanded?
+    tool-card-set-expanded! tool-card-set-output! tool-card-set-complete!
+    make-thinking-card tool-card-set-started-at! tool-card-started-at
+    tool-card-pending-bash? thinking-card-append-line! thinking-card-set-hidden!
     thinking-card-component? skill-card-component? skill-card-set-expanded!
     pi-pending-hint-line pi-clip-pending-lines
   ) ;export

@@ -72,6 +72,34 @@
       (%pi-app-thinking-card-set! app #f)
     ) ;define
 
+    (define (%pi-app-close-assistant-card! app)
+      (%pi-app-assistant-card-set! app #f)
+    ) ;define
+
+    (define (%pi-app-handle-assistant-delta! app delta)
+      (when (and (string? delta) (not (string-null? delta)))
+        (let ((card (pi-app-assistant-card app)))
+          (if card
+            (begin
+              (%pi-app-invalidate-scroll! app)
+              (assistant-card-append-text! card delta)
+            ) ;begin
+            ;; 首个增量如果仅为空白（如 thinking 结束后的前导换行），暂不创建空卡片；
+            ;; 遇到实际文本时去掉前导空白再建卡，避免卡片顶部多余空行
+            (let ((trimmed (string-trim delta)))
+              (unless (string-null? trimmed)
+                (%pi-app-invalidate-scroll! app)
+                (let ((new-card (make-assistant-card trimmed)))
+                  (%pi-app-assistant-card-set! app new-card)
+                  (container-add! (%pi-app-chat app) new-card)
+                ) ;let
+              ) ;unless
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;when
+    ) ;define
+
     (define (%pi-app-handle-thinking-line! app line)
       (%pi-app-invalidate-scroll! app)
       (let ((card (pi-app-thinking-card app)))
@@ -111,8 +139,9 @@
               (if (not msg)
                 rendered
                 (begin
-                  ;; 新任务开始：关闭上一轮引用，已显示的 thinking 内容保留
+                  ;; 新任务开始：关闭上一轮引用，已显示的 thinking 与正文内容保留
                   (%pi-app-close-thinking-card! app)
+                  (%pi-app-close-assistant-card! app)
                   ;; 1. 出队并正式上屏为深蓝用户消息卡片
                   (pi-app-add-user-message! app msg)
                   ;; 2. 关键：在进入后台处理前立即渲染上屏，用户按回车瞬间看到消息已发送
@@ -248,12 +277,20 @@
              (pi-app-add-tool-result! app "session" '() 'error (cadr ev))
             ) ;
             ((branch_changed) (%pi-app-handle-branch-changed! app ev))
-            ((tool_execution_start) (%pi-app-handle-tool-start! app ev))
+            ((tool_execution_start)
+             (%pi-app-close-assistant-card! app)
+             (%pi-app-handle-tool-start! app ev)
+            ) ;
             ((tool_execution_update) (%pi-app-handle-tool-update! app ev))
             ((tool_execution_end) (%pi-app-handle-tool-end! app ev))
             ((assistant_thinking_line) (%pi-app-handle-thinking-line! app (cadr ev)))
             ((assistant_thinking_end) (%pi-app-close-thinking-card! app))
-            ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
+            ((assistant_text_delta) (%pi-app-handle-assistant-delta! app (cadr ev)))
+            ((assistant_text_end) (%pi-app-close-assistant-card! app))
+            ((assistant_text)
+             (%pi-app-close-assistant-card! app)
+             (pi-app-add-assistant-text! app (cadr ev))
+            ) ;
             ((message_usage)
              (let* ((usage (cadr ev))
                     ;; 事件负载第三项为当前模型的上下文窗口（缺省 #f）
@@ -315,6 +352,7 @@
                     ;; pi 的 Aborted 状态显示），再解除 busy 锁定
                     ((agent_settled)
                      (%pi-app-close-thinking-card! app)
+                     (%pi-app-close-assistant-card! app)
                      (pi-app-reset-recovery-card! app)
                      (when (and (> (length ev) 1) (cadr ev))
                        (pi-app-add-assistant-text! app "Aborted")
@@ -325,6 +363,7 @@
                     ) ;
                     ((error)
                      (%pi-app-close-thinking-card! app)
+                     (%pi-app-close-assistant-card! app)
                      (pi-app-add-tool-result! app "error" '() 'error (cadr ev))
                      (%pi-app-finish-pending-model-switch! app)
                      (pi-queue-finish-task! q)

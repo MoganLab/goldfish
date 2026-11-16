@@ -349,6 +349,7 @@
                     '()
                     '()
                     #f
+                    #f
                     (and hide-thinking #t)
                     on-save-hide-thinking
                     #f
@@ -395,6 +396,5 @@
         app
       ) ;let*
     ) ;define*
-
   ) ;begin
 ) ;define-library
