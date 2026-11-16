@@ -127,38 +127,50 @@
     (define (json->pi-settings obj)
       (if (pi-settings? obj)
         obj
-        (let* ((raw-provider (%json-dict-ref obj "defaultProvider" "google"))
-               (default-provider (if (string? raw-provider) raw-provider "google"))
-               (raw-model (%json-dict-ref obj "defaultModel" "gemini-3.8-flash"))
-               (default-model (if (string? raw-model) raw-model "gemini-3.8-flash"))
-               (raw-proxy (%json-dict-ref obj "httpProxy" #f))
-               (clean-proxy
-                 (and (string? raw-proxy)
-                   (not (string-null? (string-trim-both raw-proxy)))
-                   raw-proxy
-                 ) ;and
-               ) ;clean-proxy
-               (raw-thinking (%json-dict-ref obj "defaultThinkingLevel" #f))
-               (default-thinking (if (string? raw-thinking) raw-thinking #f))
-               (raw-session-dir (%json-dict-ref obj "sessionDir" #f))
-               (session-dir (if (string? raw-session-dir) raw-session-dir #f))
-               (hide-thinking (if (%normalize-json-bool (%json-dict-ref obj "hideThinkingBlock" #f)) #t #f)
-               ) ;hide-thinking
-               (enable-skills (if (%normalize-json-bool (%json-dict-ref obj "enableSkillCommands" #t)) #t #f)
-               ) ;enable-skills
-              ) ;
-          (pi-settings default-provider
-            default-model
-            default-thinking
-            clean-proxy
-            (json->pi-retry-config (%json-dict-ref obj "retry" '()))
-            (%parse-tools-list (%json-dict-ref obj "defaultTools" #f))
-            session-dir
-            hide-thinking
-            (%parse-model-thinking-levels (%json-dict-ref obj "modelThinkingLevels" '()))
-            enable-skills
-          ) ;pi-settings
-        ) ;let*
+        (begin
+          (unless (or (pair? obj) (null? obj))
+            (type-error "json->pi-settings: expected json alist or pi-settings" obj)
+          ) ;unless
+          (let* ((raw-provider (%json-dict-ref obj "defaultProvider" "google"))
+                 (default-provider (if (string? raw-provider) raw-provider "google"))
+                 (raw-model (%json-dict-ref obj "defaultModel" "gemini-3.8-flash"))
+                 (default-model (if (string? raw-model) raw-model "gemini-3.8-flash"))
+                 (raw-proxy (%json-dict-ref obj "httpProxy" #f))
+                 (clean-proxy
+                   (and (string? raw-proxy)
+                     (not (string-null? (string-trim-both raw-proxy)))
+                     raw-proxy
+                   ) ;and
+                 ) ;clean-proxy
+                 (raw-thinking (%json-dict-ref obj "defaultThinkingLevel" #f))
+                 (default-thinking (if (string? raw-thinking) raw-thinking #f))
+                 (raw-session-dir (%json-dict-ref obj "sessionDir" #f))
+                 (session-dir (if (string? raw-session-dir) raw-session-dir #f))
+                 (hide-thinking (if (%normalize-json-bool (%json-dict-ref obj "hideThinkingBlock" #f)) #t #f)
+                 ) ;hide-thinking
+                 (enable-skills (if (%normalize-json-bool (%json-dict-ref obj "enableSkillCommands" #t)) #t #f)
+                 ) ;enable-skills
+                 (raw-retry (%json-dict-ref obj "retry" '()))
+                 (retry
+                   (if (or (pair? raw-retry) (null? raw-retry) (pi-retry-config? raw-retry))
+                     (json->pi-retry-config raw-retry)
+                     (pi-retry-config)
+                   ) ;if
+                 ) ;retry
+                ) ;
+            (pi-settings default-provider
+              default-model
+              default-thinking
+              clean-proxy
+              retry
+              (%parse-tools-list (%json-dict-ref obj "defaultTools" #f))
+              session-dir
+              hide-thinking
+              (%parse-model-thinking-levels (%json-dict-ref obj "modelThinkingLevels" '()))
+              enable-skills
+            ) ;pi-settings
+          ) ;let*
+        ) ;begin
       ) ;if
     ) ;define
 
@@ -167,6 +179,12 @@
     (define (pi-settings-model-thinking-level settings provider model-id)
       (unless (pi-settings? settings)
         (type-error "pi-settings-model-thinking-level: expected pi-settings" settings)
+      ) ;unless
+      (unless (or (string? provider) (symbol? provider))
+        (type-error "pi-settings-model-thinking-level: expected string or symbol provider" provider)
+      ) ;unless
+      (unless (string? model-id)
+        (type-error "pi-settings-model-thinking-level: expected string model-id" model-id)
       ) ;unless
       (let* ((provider-str (if (symbol? provider) (symbol->string provider) provider))
              (wanted (string-append provider-str "/" model-id))

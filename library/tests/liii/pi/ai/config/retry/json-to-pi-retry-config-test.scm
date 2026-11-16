@@ -60,4 +60,7 @@
   (check (eq? out orig) => #t)
 ) ;let*
 
+(check-catch 'type-error (json->pi-retry-config "invalid"))
+(check-catch 'type-error (json->pi-retry-config 123))
+
 (check-report)

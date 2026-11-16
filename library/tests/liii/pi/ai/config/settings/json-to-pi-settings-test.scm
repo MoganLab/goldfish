@@ -67,4 +67,7 @@
   (check (eq? out orig) => #t)
 ) ;let*
 
+(check-catch 'type-error (json->pi-settings "invalid"))
+(check-catch 'type-error (json->pi-settings 123))
+
 (check-report)

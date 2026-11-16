@@ -87,17 +87,22 @@
     (define (json->pi-retry-config obj)
       (if (pi-retry-config? obj)
         obj
-        (let* ((provider-obj (%json-dict-ref obj "provider" '()))
-               (raw-provider-max (%json-dict-ref provider-obj "maxRetries" #f))
-               (provider-max (if (eq? raw-provider-max 'null) #f raw-provider-max))
-              ) ;
-          (pi-retry-config (if (%normalize-json-bool (%json-dict-ref obj "enabled" #t)) #t #f)
-            (%json-dict-ref obj "maxRetries" 3)
-            (%json-dict-ref obj "baseDelayMs" 2000)
-            (%json-dict-ref obj "maxAgentDelayMs" 60000)
-            provider-max
-          ) ;pi-retry-config
-        ) ;let*
+        (begin
+          (unless (or (pair? obj) (null? obj))
+            (type-error "json->pi-retry-config: expected json alist or pi-retry-config" obj)
+          ) ;unless
+          (let* ((provider-obj (%json-dict-ref obj "provider" '()))
+                 (raw-provider-max (%json-dict-ref provider-obj "maxRetries" #f))
+                 (provider-max (if (eq? raw-provider-max 'null) #f raw-provider-max))
+                ) ;
+            (pi-retry-config (if (%normalize-json-bool (%json-dict-ref obj "enabled" #t)) #t #f)
+              (%json-dict-ref obj "maxRetries" 3)
+              (%json-dict-ref obj "baseDelayMs" 2000)
+              (%json-dict-ref obj "maxAgentDelayMs" 60000)
+              provider-max
+            ) ;pi-retry-config
+          ) ;let*
+        ) ;begin
       ) ;if
     ) ;define
 
