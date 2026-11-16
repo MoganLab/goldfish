@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi simplify parse)
-  (import (scheme base) (liii string) (liii list) (liii json))
+  (import (scheme base) (liii base) (liii string) (liii list) (liii json))
   (export pi-parse-simplify-suggestions make-pi-simplify-suggestion
     pi-simplify-suggestion? pi-simplify-suggestion-file
     pi-simplify-suggestion-line pi-simplify-suggestion-category
@@ -13,27 +13,20 @@
   ) ;export
   (begin
 
-    (define-record-type <pi-simplify-suggestion>
-      (make-pi-simplify-suggestion file line category message suggestion)
+    (define*-record-type <pi-simplify-suggestion>
+      (make-pi-simplify-suggestion file
+        (line #f)
+        (category "")
+        (message "")
+        (suggestion #f)
+      ) ;make-pi-simplify-suggestion
       pi-simplify-suggestion?
       (file pi-simplify-suggestion-file)
       (line pi-simplify-suggestion-line)
       (category pi-simplify-suggestion-category)
       (message pi-simplify-suggestion-message)
       (suggestion pi-simplify-suggestion-suggestion)
-    ) ;define-record-type
-
-    (define (%jref obj key default)
-      (if (not (pair? obj))
-        default
-        (let* ((str-key (if (symbol? key) (symbol->string key) key))
-               (sym-key (if (string? key) (string->symbol key) key))
-               (pair (or (assoc str-key obj) (assoc sym-key obj)))
-              ) ;
-          (if pair (cdr pair) default)
-        ) ;let*
-      ) ;if
-    ) ;define
+    ) ;define*-record-type
 
     (define (%strip-fence text)
       (let ((trimmed (string-trim-both text)))
@@ -94,10 +87,10 @@
     ) ;define
 
     (define (%valid? item)
-      (and (pair? item)
-        (%non-empty-string? (%jref item "file" #f))
-        (%non-empty-string? (%jref item "category" #f))
-        (%non-empty-string? (%jref item "message" #f))
+      (and (json-object? item)
+        (%non-empty-string? (json-ref-string item "file" #f))
+        (%non-empty-string? (json-ref-string item "category" #f))
+        (%non-empty-string? (json-ref-string item "message" #f))
       ) ;and
     ) ;define
 
@@ -109,24 +102,18 @@
     ) ;define
 
     (define (%normalize item)
-      (let ((line (%normalize-line (%jref item "line" #f)))
-            (suggestion (%jref item "suggestion" #f))
-           ) ;
-        (make-pi-simplify-suggestion (%jref item "file" "")
-          line
-          (%jref item "category" "")
-          (%jref item "message" "")
-          (if (string? suggestion) suggestion #f)
-        ) ;make-pi-simplify-suggestion
-      ) ;let
+      (make-pi-simplify-suggestion (json-ref-string item "file" "")
+        (%normalize-line (json-ref item "line"))
+        (json-ref-string item "category" "")
+        (json-ref-string item "message" "")
+        (json-ref-string item "suggestion" #f)
+      ) ;make-pi-simplify-suggestion
     ) ;define
 
     (define (%raw-suggestions parsed)
       (cond ((vector? parsed) parsed)
-            ((and (list? parsed)
-               (or (assoc "suggestions" parsed) (assoc 'suggestions parsed))
-             ) ;and
-             (%jref parsed "suggestions" #f)
+            ((and (json-object? parsed) (json-contains-key? parsed "suggestions"))
+             (json-ref parsed "suggestions")
             ) ;
             ((and (pair? parsed) (or (string? (caar parsed)) (symbol? (caar parsed)))) #f)
             ((list? parsed) parsed)

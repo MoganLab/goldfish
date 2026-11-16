@@ -7,25 +7,25 @@
 ;;
 
 (define-library (liii pi code core skills types)
-  (export %make-pi-skill pi-skill? pi-skill-name pi-skill-description
+  (export pi-skill pi-skill? pi-skill-name pi-skill-description
     pi-skill-file-path pi-skill-base-dir pi-skill-disable-model-invocation?
     pi-validate-skill-name pi-validate-skill-description
   ) ;export
-  (import (scheme base) (scheme char) (liii string) (liii list))
+  (import (scheme base) (scheme char) (liii base) (liii string) (liii list))
   (begin
 
     (define %max-name-length 64)
     (define %max-description-length 1024)
 
-    (define-record-type <pi-skill>
-      (%make-pi-skill name description file-path base-dir disable-model-invocation?)
+    (define*-record-type <pi-skill>
+      (pi-skill name description file-path base-dir (disable-model-invocation? #f))
       pi-skill?
       (name pi-skill-name)
       (description pi-skill-description)
       (file-path pi-skill-file-path)
       (base-dir pi-skill-base-dir)
       (disable-model-invocation? pi-skill-disable-model-invocation?)
-    ) ;define-record-type
+    ) ;define*-record-type
 
     ;; 验证技能名称是否符合 Agent Skills 规范
     ;; 仅允许小写 a-z、数字 0-9、短横线 -；长度在 1 到 64 字符；

@@ -7,7 +7,7 @@
 ;;
 
 (define-library (liii pi code core skills)
-  (export %make-pi-skill pi-skill? pi-skill-name pi-skill-description
+  (export pi-skill pi-skill? pi-skill-name pi-skill-description
     pi-skill-file-path pi-skill-base-dir pi-skill-disable-model-invocation?
     pi-validate-skill-name pi-validate-skill-description parse-frontmatter
     strip-frontmatter pi-load-skills format-skills-for-prompt

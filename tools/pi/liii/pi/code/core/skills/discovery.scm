@@ -50,7 +50,7 @@
              (disable? (and dis-entry (eq? (cdr dis-entry) #t)))
             ) ;
         (%emit-warnings norm-file name-errs)
-        (%make-pi-skill name raw-desc norm-file norm-base disable?)
+        (pi-skill name raw-desc norm-file norm-base disable?)
       ) ;let*
     ) ;define
 

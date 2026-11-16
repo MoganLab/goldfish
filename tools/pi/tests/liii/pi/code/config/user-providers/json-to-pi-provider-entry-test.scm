@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (json->pi-provider-entry obj) -> pi-provider-entry? | #f
+;; (json->pi-provider-entry obj) -> pi-provider-entry?
 
 ;;
 ;; 参数
@@ -36,6 +36,7 @@
   (check-true (eq? (json->pi-provider-entry e) e))
 ) ;let*
 
-(check-false (json->pi-provider-entry "not-object"))
+(check-catch 'type-error (json->pi-provider-entry "not-object"))
+(check-catch 'type-error (json->pi-provider-entry 123))
 
 (check-report)

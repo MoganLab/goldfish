@@ -16,7 +16,7 @@ bin/gf test tools/pi/tests/liii/pi/code/core/skills/types/
 
 ## 测试文件索引
 
-- `%make-pi-skill-test.scm` — `%make-pi-skill`：记录构造
+- `pi-skill-test.scm` — `pi-skill`：记录构造
 - `pi-skill-p-test.scm` — `pi-skill?`：类型谓词
 - `pi-skill-name-test.scm` — `pi-skill-name`：名称读取
 - `pi-skill-description-test.scm` — `pi-skill-description`：描述读取

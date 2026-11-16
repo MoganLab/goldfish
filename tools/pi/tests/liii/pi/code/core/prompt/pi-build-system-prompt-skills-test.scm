@@ -31,9 +31,9 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 传入技能列表时渲染包含 <skills> 区块
-(let* ((s1 (%make-pi-skill "pdf-tools" "PDF 提取" "/path/pdf/SKILL.md" "/path/pdf" #f)
+(let* ((s1 (pi-skill "pdf-tools" "PDF 提取" "/path/pdf/SKILL.md" "/path/pdf" #f)
        ) ;s1
-       (s2 (%make-pi-skill "secret" "私有" "/path/secret/SKILL.md" "/path/secret" #t)
+       (s2 (pi-skill "secret" "私有" "/path/secret/SKILL.md" "/path/secret" #t)
        ) ;s2
        (sp (pi-build-system-prompt :skills (list s1 s2)))
       ) ;
@@ -51,7 +51,7 @@
 ) ;let*
 
 ;; 2. system-prompt-override 时静默排除 <skills>
-(let* ((s1 (%make-pi-skill "pdf-tools" "PDF" "/path/SKILL.md" "/path" #f))
+(let* ((s1 (pi-skill "pdf-tools" "PDF" "/path/SKILL.md" "/path" #f))
        (sp (pi-build-system-prompt
              :system-prompt-override "Custom system prompt"
              :skills                 (list s1)
@@ -67,7 +67,7 @@
   (check-false (string-contains? sp "<skills>"))
 ) ;let*
 
-(let* ((s-hidden (%make-pi-skill "secret" "私有" "/path/SKILL.md" "/path" #t))
+(let* ((s-hidden (pi-skill "secret" "私有" "/path/SKILL.md" "/path" #t))
        (sp (pi-build-system-prompt :skills (list s-hidden)))
       ) ;
   (check-false (string-contains? sp "<skills>"))

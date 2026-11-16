@@ -19,7 +19,7 @@
 
 (check-set-mode! 'report-failed)
 
-(check-true (pi-skill? (%make-pi-skill "a" "d" "/f" "/b" #f)))
+(check-true (pi-skill? (pi-skill "a" "d" "/f" "/b" #f)))
 (check-false (pi-skill? "not-a-skill"))
 (check-false (pi-skill? '()))
 (check-false (pi-skill? #f))

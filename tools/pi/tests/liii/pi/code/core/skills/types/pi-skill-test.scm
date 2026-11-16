@@ -1,10 +1,10 @@
-;; %make-pi-skill
+;; pi-skill
 ;; 构造 <pi-skill> 技能记录（name、description、file-path、base-dir 与
 ;; disable-model-invocation? 五字段）。
 ;;
 ;; 语法
 ;; ----
-;; (%make-pi-skill name description file-path base-dir disable?) -> pi-skill?
+;; (pi-skill name description file-path base-dir [disable?]) -> pi-skill?
 ;;
 ;; 参数
 ;; ----
@@ -28,13 +28,18 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((skill (%make-pi-skill "pdf-tools" "Extract text from PDF files"
+(let ((skill (pi-skill "pdf-tools" "Extract text from PDF files"
                "/path/pdf/SKILL.md" "/path/pdf" #f
-             ) ;%make-pi-skill
+             ) ;pi-skill
       ) ;skill
      ) ;
   (check-true (pi-skill? skill))
   (check (pi-skill-name skill) => "pdf-tools")
+) ;let
+
+(let ((skill (pi-skill "pdf-tools" "Extract text" "/path/pdf/SKILL.md" "/path/pdf")))
+  (check-true (pi-skill? skill))
+  (check-false (pi-skill-disable-model-invocation? skill))
 ) ;let
 
 (check-report)

@@ -19,7 +19,7 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((skill (%make-pi-skill "pdf-tools" "desc" "/path/pdf/SKILL.md" "/path/pdf" #f))
+(let ((skill (pi-skill "pdf-tools" "desc" "/path/pdf/SKILL.md" "/path/pdf" #f))
      ) ;
   (check (pi-skill-file-path skill) => "/path/pdf/SKILL.md")
 ) ;let

@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi review parse)
-  (import (scheme base) (liii string) (liii list) (liii json))
+  (import (scheme base) (liii base) (liii string) (liii list) (liii json))
   (export PI_REVIEW_SEVERITIES pi-parse-review-findings make-pi-review-finding
     pi-review-finding? pi-review-finding-severity pi-review-finding-file
     pi-review-finding-line pi-review-finding-category pi-review-finding-message
@@ -15,8 +15,14 @@
 
     (define PI_REVIEW_SEVERITIES '("CRITICAL" "HIGH" "MEDIUM" "INFO"))
 
-    (define-record-type <pi-review-finding>
-      (make-pi-review-finding severity file line category message suggestion)
+    (define*-record-type <pi-review-finding>
+      (make-pi-review-finding severity
+        file
+        (line #f)
+        (category "")
+        (message "")
+        (suggestion #f)
+      ) ;make-pi-review-finding
       pi-review-finding?
       (severity pi-review-finding-severity)
       (file pi-review-finding-file)
@@ -24,19 +30,7 @@
       (category pi-review-finding-category)
       (message pi-review-finding-message)
       (suggestion pi-review-finding-suggestion)
-    ) ;define-record-type
-
-    (define (%jref obj key default)
-      (if (not (pair? obj))
-        default
-        (let* ((str-key (if (symbol? key) (symbol->string key) key))
-               (sym-key (if (string? key) (string->symbol key) key))
-               (pair (or (assoc str-key obj) (assoc sym-key obj)))
-              ) ;
-          (if pair (cdr pair) default)
-        ) ;let*
-      ) ;if
-    ) ;define
+    ) ;define*-record-type
 
     (define (%strip-fence text)
       (let ((trimmed (string-trim-both text)))
@@ -91,28 +85,26 @@
     ) ;define
 
     (define (%valid-finding? item)
-      (and (pair? item)
-        (let ((severity (%jref item "severity" #f)))
-          (and (string? severity)
+      (and (json-object? item)
+        (let ((severity (json-ref-string item "severity" #f)))
+          (and severity
             (member severity PI_REVIEW_SEVERITIES)
-            (string? (%jref item "file" #f))
-            (string? (%jref item "category" #f))
-            (string? (%jref item "message" #f))
+            (string? (json-ref-string item "file" #f))
+            (string? (json-ref-string item "category" #f))
+            (string? (json-ref-string item "message" #f))
           ) ;and
         ) ;let
       ) ;and
     ) ;define
 
     (define (%normalize-finding item)
-      (let ((line (%jref item "line" #f)) (suggestion (%jref item "suggestion" #f)))
-        (make-pi-review-finding (%jref item "severity" "")
-          (%jref item "file" "")
-          (if (number? line) line #f)
-          (%jref item "category" "")
-          (%jref item "message" "")
-          (if (string? suggestion) suggestion #f)
-        ) ;make-pi-review-finding
-      ) ;let
+      (make-pi-review-finding (json-ref-string item "severity" "")
+        (json-ref-string item "file" "")
+        (json-ref-number item "line" #f)
+        (json-ref-string item "category" "")
+        (json-ref-string item "message" "")
+        (json-ref-string item "suggestion" #f)
+      ) ;make-pi-review-finding
     ) ;define
 
     (define (%extract-findings text)
@@ -125,7 +117,12 @@
            ) ;
         (if (not (pair? parsed))
           #f
-          (let ((raw (if (vector? parsed) parsed (%jref parsed "findings" #f))))
+          (let ((raw (if (vector? parsed)
+                       parsed
+                       (and (json-contains-key? parsed "findings") (json-ref parsed "findings"))
+                     ) ;if
+                ) ;raw
+               ) ;
             (if raw
               (filter (lambda (f) f)
                 (map (lambda (item) (and (%valid-finding? item) (%normalize-finding item)))

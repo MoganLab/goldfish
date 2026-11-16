@@ -19,11 +19,11 @@
 
 (check-set-mode! 'report-failed)
 
-(check-false (pi-skill-disable-model-invocation? (%make-pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f)
+(check-false (pi-skill-disable-model-invocation? (pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f)
              ) ;pi-skill-disable-model-invocation?
 ) ;check-false
 
-(check-true (pi-skill-disable-model-invocation? (%make-pi-skill "admin-task" "desc" "/a/SKILL.md" "/a" #t)
+(check-true (pi-skill-disable-model-invocation? (pi-skill "admin-task" "desc" "/a/SKILL.md" "/a" #t)
             ) ;pi-skill-disable-model-invocation?
 ) ;check-true
 

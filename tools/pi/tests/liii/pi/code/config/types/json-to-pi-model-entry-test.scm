@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (json->pi-model-entry obj) -> pi-model-entry? | #f
+;; (json->pi-model-entry obj) -> pi-model-entry?
 
 ;;
 ;; 参数
@@ -37,6 +37,7 @@
   (check-true (eq? (json->pi-model-entry e) e))
 ) ;let*
 
-(check-false (json->pi-model-entry "bad"))
+(check-catch 'type-error (json->pi-model-entry "bad"))
+(check-catch 'type-error (json->pi-model-entry 123))
 
 (check-report)
