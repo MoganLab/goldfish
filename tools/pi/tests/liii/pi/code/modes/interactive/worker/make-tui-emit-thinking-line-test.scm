@@ -98,11 +98,15 @@
   (check (recv-ev! ch) => 'none)
 ) ;let*
 
-;; 同一 message_update 通道中的正文、工具增量与 thinking_start 均不触发 thinking 行事件。
+;; 同一 message_update 通道中的 thinking_start 与 toolcall_delta 不触发事件；
+;; text_delta 触发正文增量事件而非 thinking 行事件。
 (let* ((ch (make-chan 16)) (emit (make-tui-emit ch)))
   (emit 'message_update '() (stream-event "thinking_start"))
-  (emit 'message_update '() (stream-event "text_delta" '(delta . "正文\n")))
+  (check (recv-ev! ch) => 'none)
   (emit 'message_update '() (stream-event "toolcall_delta" '(delta . "参数\n")))
+  (check (recv-ev! ch) => 'none)
+  (emit 'message_update '() (stream-event "text_delta" '(delta . "正文\n")))
+  (check (recv-ev! ch) => '(assistant_text_delta "正文\n"))
   (check (recv-ev! ch) => 'none)
 ) ;let*
 

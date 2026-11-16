@@ -78,11 +78,45 @@
       ""
     ) ;define
 
-    (define (%message-update event-chan buffer ev)
+    (define (%text-delta event-chan text-streamed? ev)
+      (let ((delta-entry (assoc 'delta ev)))
+        (if
+          (and delta-entry
+            (string? (cdr delta-entry))
+            (not (string-null? (cdr delta-entry)))
+          ) ;and
+          (let ((delta (cdr delta-entry)))
+            (pi-tui-send-event! event-chan (list 'assistant_text_delta delta))
+            (or text-streamed? (not (string-null? (string-trim-both delta))))
+          ) ;let
+          text-streamed?
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%text-end event-chan text-streamed?)
+      (when text-streamed?
+        (pi-tui-send-event! event-chan '(assistant_text_end))
+      ) ;when
+      text-streamed?
+    ) ;define
+
+    ;; 返回 (新 thinking-line-buffer . 新 text-streamed?)
+    (define (%message-update event-chan buffer text-streamed? ev)
       (let* ((type-entry (assoc 'type ev)) (stream-type (and type-entry (cdr type-entry))))
-        (cond ((equal? stream-type "thinking_delta") (%thinking-delta event-chan buffer ev))
-              ((equal? stream-type "thinking_end") (%thinking-end event-chan buffer))
-              (else buffer)
+        (cond ((equal? stream-type "thinking_delta")
+               (cons (%thinking-delta event-chan buffer ev) text-streamed?)
+              ) ;
+              ((equal? stream-type "thinking_end")
+               (cons (%thinking-end event-chan buffer) text-streamed?)
+              ) ;
+              ((equal? stream-type "text_delta")
+               (cons buffer (%text-delta event-chan text-streamed? ev))
+              ) ;
+              ((equal? stream-type "text_end")
+               (cons buffer (%text-end event-chan text-streamed?))
+              ) ;
+              (else (cons buffer text-streamed?))
         ) ;cond
       ) ;let*
     ) ;define
@@ -94,15 +128,20 @@
       (let ((context-window (if (pair? opt-window) (car opt-window) #f))
             (call-args-map '())
             (thinking-line-buffer "")
+            (text-streamed? #f)
            ) ;
         (lambda (event-type . args)
           (cond
-            ;; provider 流式 thinking：跨增量缓冲，完整行立即投递；块结束冲出残余行
+            ;; provider 流式 thinking 与正文增量：
+            ;; thinking 跨增量缓冲按行投递；正文增量即时投递；块结束发结束信号
             ((eq? event-type 'message_update)
              (when (>= (length args) 2)
-               (set! thinking-line-buffer
-                 (%message-update event-chan thinking-line-buffer (cadr args))
-               ) ;set!
+               (let ((res (%message-update event-chan thinking-line-buffer text-streamed? (cadr args))
+                     ) ;res
+                    ) ;
+                 (set! thinking-line-buffer (car res))
+                 (set! text-streamed? (cdr res))
+               ) ;let
              ) ;when
             ) ;
             ;; 工具开始：立即创建 pending 卡片，并记录参数供结束事件查找
@@ -153,10 +192,20 @@
                  (when (and (equal? role "assistant") (pair? usage))
                    (pi-tui-send-event! event-chan (list 'message_usage usage context-window))
                  ) ;when
-                 (when
-                   (and (equal? role "assistant") (not (string-null? (string-trim-both text))))
-                   (pi-tui-send-event! event-chan (list 'assistant_text text))
-                 ) ;when
+                 (let ((was-streamed? (and (equal? role "assistant") text-streamed?)))
+                   (when was-streamed?
+                     (pi-tui-send-event! event-chan '(assistant_text_end))
+                     (set! text-streamed? #f)
+                   ) ;when
+                   ;; 若本条消息未通过 text_delta 流式输出（如测试或非流式返回），兜底整段投递
+                   (when
+                     (and (equal? role "assistant")
+                       (not was-streamed?)
+                       (not (string-null? (string-trim-both text)))
+                     ) ;and
+                     (pi-tui-send-event! event-chan (list 'assistant_text text))
+                   ) ;when
+                 ) ;let
                  ;; 错误结算（对齐上游 message_end 渲染 errorMessage）：
                  ;; stopReason=error 时转为 error 卡片事件，保证用户可见
                  (when (and (equal? role "assistant") err-text)
@@ -201,6 +250,7 @@
             ) ;
             ;; 任务全部结算完成：携带 aborted 标志（主线程据此上屏 Aborted 提示）
             ((eq? event-type 'agent_settled)
+             (set! text-streamed? #f)
              (pi-tui-send-event! event-chan
                (list 'agent_settled (and (pair? args) (car args)))
              ) ;pi-tui-send-event!

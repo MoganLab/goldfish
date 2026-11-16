@@ -20,16 +20,16 @@
     pi-app-bash-mode? %pi-app-bash-mode?-set! pi-app-tools-expanded?
     %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
     %pi-app-tool-cards %pi-app-tool-cards-set! pi-app-thinking-card
-    %pi-app-thinking-card-set! pi-app-bash-jobs-chan pi-app-bash-abort-chan
-    %pi-app-bash-handler %pi-app-record-sink pi-app-session-name
-    %pi-app-session-name-set! %pi-editor-top-border pi-app-provider
-    %pi-app-provider-set! pi-app-model %pi-app-model-set! pi-app-models
-    %pi-app-models-set! %pi-app-default-model %pi-app-default-model-set!
-    %pi-app-on-save-model %pi-app-supports-thinking?-set!
-    %pi-app-available-thinking-levels-set! pi-app-resume-sessions
-    %pi-app-resume-sessions-set! pi-app-no-session? pi-app-scroll-view
-    pi-app-wheel-accelerator pi-app-steering-chan pi-app-follow-up-chan
-    %pi-app-steering-pending %pi-app-steering-pending-set!
+    %pi-app-thinking-card-set! pi-app-assistant-card %pi-app-assistant-card-set!
+    pi-app-bash-jobs-chan pi-app-bash-abort-chan %pi-app-bash-handler
+    %pi-app-record-sink pi-app-session-name %pi-app-session-name-set!
+    %pi-editor-top-border pi-app-provider %pi-app-provider-set! pi-app-model
+    %pi-app-model-set! pi-app-models %pi-app-models-set! %pi-app-default-model
+    %pi-app-default-model-set! %pi-app-on-save-model
+    %pi-app-supports-thinking?-set! %pi-app-available-thinking-levels-set!
+    pi-app-resume-sessions %pi-app-resume-sessions-set! pi-app-no-session?
+    pi-app-scroll-view pi-app-wheel-accelerator pi-app-steering-chan
+    pi-app-follow-up-chan %pi-app-steering-pending %pi-app-steering-pending-set!
     %pi-app-follow-up-pending %pi-app-follow-up-pending-set!
     pi-app-hide-thinking? %pi-app-hide-thinking?-set!
     %pi-app-on-save-hide-thinking pi-app-selection %pi-app-selection-set!
@@ -63,11 +63,11 @@
         bash-handler record-sink session-name provider model models
         default-model on-save-model tool-cards resume-sessions no-session?
         scroll-view wheel-accelerator steering-chan follow-up-chan
-        steering-pending follow-up-pending thinking-card hide-thinking?
-        on-save-hide-thinking selection flash tokens rendered-frame dock-length
-        working-border-row skills enable-skill-commands scroll-hint-rect
-        thinking-level-explicit recovery-card tool-timer-last-tick
-        pending-model-switch
+        steering-pending follow-up-pending thinking-card assistant-card
+        hide-thinking? on-save-hide-thinking selection flash tokens
+        rendered-frame dock-length working-border-row skills
+        enable-skill-commands scroll-hint-rect thinking-level-explicit
+        recovery-card tool-timer-last-tick pending-model-switch
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -143,6 +143,8 @@
       (follow-up-pending %pi-app-follow-up-pending %pi-app-follow-up-pending-set!)
       ;; 当前任务的流式 thinking 卡片；结算或下一任务出队时关闭，旧卡片保留
       (thinking-card pi-app-thinking-card %pi-app-thinking-card-set!)
+      ;; 当前任务的流式 assistant 正文卡片；块结束、工具开始、结算或出队时关闭，旧卡片保留
+      (assistant-card pi-app-assistant-card %pi-app-assistant-card-set!)
       ;; Ctrl+T 思考块全局隐藏标志（对齐上游 hideThinkingBlock）
       (hide-thinking? pi-app-hide-thinking? %pi-app-hide-thinking?-set!)
       ;; 切换后持久化回调 (lambda (hide))，由 cli.scm 接 settings.json 落盘
