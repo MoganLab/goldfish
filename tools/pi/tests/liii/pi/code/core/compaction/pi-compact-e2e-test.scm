@@ -113,7 +113,7 @@
         (lambda (m)
           (let ((id (uuid4)))
             (save-session-message! sfile
-              (pi-serialize-event (pi-message->alist m))
+              (pi-serialize-event (pi-message->json m))
               id
               parent
               (pi-iso-8601-utc-now)

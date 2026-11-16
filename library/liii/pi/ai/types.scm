@@ -39,11 +39,10 @@
     pi-event-agent-settled-type pi-event-agent-settled-aborted
     pi-build-json-event pi-make-user-message pi-make-assistant-message
     pi-make-tool-result-message pi-make-usage pi-message? pi-message-role
-    pi-message->alist pi-message->json json->pi-message pi-block? pi-block-type
-    pi-block->alist pi-block->json json->pi-block pi-user-message
-    pi-user-message? pi-user-message-role pi-user-message-content
-    pi-user-message-timestamp pi-assistant-message pi-assistant-message?
-    pi-assistant-message-role pi-assistant-message-content
+    pi-message->json json->pi-message pi-block? pi-block-type pi-block->json
+    json->pi-block pi-user-message pi-user-message? pi-user-message-role
+    pi-user-message-content pi-user-message-timestamp pi-assistant-message
+    pi-assistant-message? pi-assistant-message-role pi-assistant-message-content
     pi-assistant-message-stop-reason pi-assistant-message-error-message
     pi-assistant-message-usage pi-assistant-message-timestamp
     pi-assistant-message-provider pi-assistant-message-model

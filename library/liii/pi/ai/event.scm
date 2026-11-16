@@ -101,8 +101,97 @@
 
     (define (assoc key obj)
       (cond ((pi-event? obj) (%find-assoc key (pi-event->alist obj)))
-            ((pi-message? obj) (%find-assoc key (pi-message->alist obj)))
-            ((pi-block? obj) (%find-assoc key (pi-block->alist obj)))
+            ((pi-user-message? obj)
+             (%find-assoc key
+               (let ((c (pi-user-message-content obj)) (ts (pi-user-message-timestamp obj)))
+                 (if ts
+                   (list (cons "role" "user") (cons "content" c) (cons "timestamp" ts))
+                   (list (cons "role" "user") (cons "content" c))
+                 ) ;if
+               ) ;let
+             ) ;%find-assoc
+            ) ;
+            ((pi-assistant-message? obj)
+             (%find-assoc key
+               (let* ((res (list (cons "role" "assistant")
+                             (cons "content" (pi-assistant-message-content obj))
+                             (cons "stopReason" (pi-assistant-message-stop-reason obj))
+                             (cons "errorMessage" (pi-assistant-message-error-message obj))
+                           ) ;list
+                      ) ;res
+                      (prov (pi-assistant-message-provider obj))
+                      (model (pi-assistant-message-model obj))
+                      (api (pi-assistant-message-api obj))
+                      (u (pi-assistant-message-usage obj))
+                      (ts (pi-assistant-message-timestamp obj))
+                      (res (if prov (append res (list (cons "provider" prov))) res))
+                      (res (if model (append res (list (cons "model" model))) res))
+                      (res (if api (append res (list (cons "api" api))) res))
+                      (res (if u (append res (list (cons "usage" u))) res))
+                      (res (if ts (append res (list (cons "timestamp" ts))) res))
+                     ) ;
+                 res
+               ) ;let*
+             ) ;%find-assoc
+            ) ;
+            ((pi-tool-result-message? obj)
+             (%find-assoc key
+               (let* ((res (list (cons "role" "toolResult")
+                             (cons "toolCallId" (pi-tool-result-message-tool-call-id obj))
+                             (cons "toolName" (pi-tool-result-message-tool-name obj))
+                             (cons "content" (pi-tool-result-message-content obj))
+                             (cons "isError" (if (pi-tool-result-message-is-error obj) #t #f))
+                           ) ;list
+                      ) ;res
+                      (ts (pi-tool-result-message-timestamp obj))
+                     ) ;
+                 (if ts (append res (list (cons "timestamp" ts))) res)
+               ) ;let*
+             ) ;%find-assoc
+            ) ;
+            ((pi-text-block? obj)
+             (%find-assoc key
+               (let ((sig (pi-text-block-signature obj))
+                     (base (list (cons "type" "text") (cons "text" (pi-text-block-text obj))))
+                    ) ;
+                 (if sig (append base (list (cons "textSignature" sig))) base)
+               ) ;let
+             ) ;%find-assoc
+            ) ;
+            ((pi-thinking-block? obj)
+             (%find-assoc key
+               (let ((sig (pi-thinking-block-thinking-signature obj))
+                     (base (list (cons "type" "thinking")
+                             (cons "thinking" (pi-thinking-block-thinking obj))
+                           ) ;list
+                     ) ;base
+                    ) ;
+                 (if sig (append base (list (cons "thinkingSignature" sig))) base)
+               ) ;let
+             ) ;%find-assoc
+            ) ;
+            ((pi-tool-call-block? obj)
+             (%find-assoc key
+               (let ((sig (pi-tool-call-block-thought-signature obj))
+                     (base (list (cons "type" "toolCall")
+                             (cons "id" (pi-tool-call-block-id obj))
+                             (cons "name" (pi-tool-call-block-name obj))
+                             (cons "arguments" (pi-tool-call-block-arguments obj))
+                           ) ;list
+                     ) ;base
+                    ) ;
+                 (if sig (append base (list (cons "thoughtSignature" sig))) base)
+               ) ;let
+             ) ;%find-assoc
+            ) ;
+            ((pi-image-block? obj)
+             (%find-assoc key
+               (list (cons "type" "image")
+                 (cons "data" (pi-image-block-data obj))
+                 (cons "mimeType" (pi-image-block-mime-type obj))
+               ) ;list
+             ) ;%find-assoc
+            ) ;
             ((pi-tool-definition? obj)
              (%find-assoc key
                (list (cons 'name (pi-tool-definition-name obj))

@@ -6,11 +6,13 @@
 
 (define-library (liii pi agent cost)
   (import (scheme base)
+    (liii json)
     (liii list)
     (liii pi ai config runtime)
     (liii pi ai cost)
     (liii pi ai message)
     (liii pi agent tools)
+    (liii pi agent tools-compat)
   ) ;import
   (export pi-agent-attach-cost pi-agent-session-cost-summary)
   (begin
@@ -75,8 +77,13 @@
           (filter pair?
             (map
               (lambda (raw)
-                (let ((m (or (json->pi-message raw) raw)))
-                  (and (pi-assistant-message? m) (pi-assistant-message-usage m))
+                (let ((m (%maybe-json-msg raw)))
+                  (cond ((pi-assistant-message? m) (pi-assistant-message-usage m))
+                        ((and (pair? m) (equal? (pi-agent-assoc-val 'role "role" m #f) "assistant"))
+                         (pi-agent-assoc-val 'usage "usage" m #f)
+                        ) ;
+                        (else #f)
+                  ) ;cond
                 ) ;let
               ) ;lambda
               msgs

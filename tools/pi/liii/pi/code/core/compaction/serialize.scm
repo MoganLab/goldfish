@@ -24,7 +24,7 @@
     ) ;define
 
     (define (%normalize-message msg)
-      (if (pi-message? msg) (pi-message->alist msg) msg)
+      (if (pi-message? msg) (pi-message->json msg) msg)
     ) ;define
 
     (define (%blocks content)
@@ -36,7 +36,7 @@
     ) ;define
 
     (define (%block-text blk)
-      (if (pi-block? blk) (pi-block->alist blk) blk)
+      (if (pi-block? blk) (pi-block->json blk) blk)
     ) ;define
 
     (define (pi-content->text content)

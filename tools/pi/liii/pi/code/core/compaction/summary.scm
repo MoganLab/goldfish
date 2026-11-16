@@ -29,7 +29,7 @@
     ) ;define
 
     (define (%message-alist msg)
-      (if (pi-message? msg) (pi-message->alist msg) msg)
+      (if (pi-message? msg) (pi-message->json msg) msg)
     ) ;define
 
     (define (pi-summarization-failure response label)
@@ -51,7 +51,7 @@
     (define (%has-tool-call? content)
       (any
         (lambda (block)
-          (equal? (%ref (if (pi-block? block) (pi-block->alist block) block) "type")
+          (equal? (%ref (if (pi-block? block) (pi-block->json block) block) "type")
             "toolCall"
           ) ;equal?
         ) ;lambda

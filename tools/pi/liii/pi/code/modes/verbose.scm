@@ -45,7 +45,7 @@
     ;; <pi-assistant-message>/<pi-user-message> record（JSON 序列化路径
     ;; 由 %normalize-json-value 处理，本模块需自行转换）。
     (define (%normalize-message msg)
-      (cond ((pi-message? msg) (pi-message->alist msg))
+      (cond ((pi-message? msg) (pi-message->json msg))
             ((pair? msg) msg)
             (else '())
       ) ;cond
@@ -271,7 +271,7 @@
           (display-stderr "Warning: No assistant response received")
           0
         ) ;begin
-        (let* ((msg (if (pi-message? last-msg) (pi-message->alist last-msg) last-msg))
+        (let* ((msg (if (pi-message? last-msg) (pi-message->json last-msg) last-msg))
                (stop-reason (cdr (or (assoc 'stopReason msg) (assoc "stopReason" msg) '(#f
                                                                                         . "stop")))
                ) ;stop-reason

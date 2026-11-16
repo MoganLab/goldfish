@@ -106,11 +106,51 @@
       (if (and same-model? (gemini-valid-thought-signature? sig)) sig #f)
     ) ;define
 
+    (define (%blk->raw-alist blk)
+      (cond ((pi-text-block? blk)
+             (let ((sig (pi-text-block-signature blk))
+                   (base (list (cons "type" "text") (cons "text" (pi-text-block-text blk))))
+                  ) ;
+               (if sig (append base (list (cons "textSignature" sig))) base)
+             ) ;let
+            ) ;
+            ((pi-thinking-block? blk)
+             (let ((sig (pi-thinking-block-thinking-signature blk))
+                   (base (list (cons "type" "thinking")
+                           (cons "thinking" (pi-thinking-block-thinking blk))
+                         ) ;list
+                   ) ;base
+                  ) ;
+               (if sig (append base (list (cons "thinkingSignature" sig))) base)
+             ) ;let
+            ) ;
+            ((pi-tool-call-block? blk)
+             (let ((sig (pi-tool-call-block-thought-signature blk))
+                   (base (list (cons "type" "toolCall")
+                           (cons "id" (pi-tool-call-block-id blk))
+                           (cons "name" (pi-tool-call-block-name blk))
+                           (cons "arguments" (pi-tool-call-block-arguments blk))
+                         ) ;list
+                   ) ;base
+                  ) ;
+               (if sig (append base (list (cons "thoughtSignature" sig))) base)
+             ) ;let
+            ) ;
+            ((pi-image-block? blk)
+             (list (cons "type" "image")
+               (cons "data" (pi-image-block-data blk))
+               (cons "mimeType" (pi-image-block-mime-type blk))
+             ) ;list
+            ) ;
+            (else blk)
+      ) ;cond
+    ) ;define
+
     ;; assistant 内容块转换为 Gemini part；blk 可以是内部 record 块或 alist。
     ;; same-model? 为 #f 时表示外来模型的历史：toolCall 无签名回放会被
     ;; Gemini 3+ 拒绝，由 sentinel? 决定是否补哨兵（Gemini 3+ 时应补）。
     (define* (gemini-assistant-block->part blk same-model? (model-id #f))
-      (let* ((blk (if (pi-block? blk) (pi-block->alist blk) blk))
+      (let* ((blk (%blk->raw-alist blk))
              (btype (%val 'type blk ""))
             ) ;
         (cond
