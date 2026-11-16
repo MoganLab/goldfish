@@ -43,6 +43,7 @@
     %pi-app-thinking-level-explicit?-set! pi-app-recovery-card
     %pi-app-recovery-card-set! pi-app-tool-timer-last-tick
     %pi-app-tool-timer-last-tick-set! pi-app-tool-timer-last-tick-set!
+    pi-app-pending-model-switch %pi-app-pending-model-switch-set!
   ) ;export
   (import (scheme base)
     (liii date-time)
@@ -66,6 +67,7 @@
         on-save-hide-thinking selection flash tokens rendered-frame dock-length
         working-border-row skills enable-skill-commands scroll-hint-rect
         thinking-level-explicit recovery-card tool-timer-last-tick
+        pending-model-switch
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -176,6 +178,10 @@
       (tool-timer-last-tick pi-app-tool-timer-last-tick
         %pi-app-tool-timer-last-tick-set!
       ) ;tool-timer-last-tick
+      ;; 请求进行中通过 /model 切换的目标模型标签（#f 表示无待切换模型）
+      (pending-model-switch pi-app-pending-model-switch
+        %pi-app-pending-model-switch-set!
+      ) ;pending-model-switch
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

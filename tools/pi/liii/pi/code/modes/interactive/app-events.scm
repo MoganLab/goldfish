@@ -286,6 +286,16 @@
       ) ;case
     ) ;define
 
+    (define (%pi-app-finish-pending-model-switch! app)
+      (let ((target (pi-app-pending-model-switch app)))
+        (when target
+          (%pi-app-pending-model-switch-set! app #f)
+          (pi-footer-clear-pending-model! (%pi-app-footer app))
+          (pi-app-add-assistant-text! app (string-append "已经切换到 " target))
+        ) ;when
+      ) ;let
+    ) ;define
+
     ;; 非阻塞轮询来自后台 Worker 的事件流，驱动卡片实时上屏与队列结算
     (define (pi-app-poll-events! app)
       (let ((ch (pi-app-event-chan app)) (q (pi-app-queue app)) (has-event #f))
@@ -309,12 +319,14 @@
                      (when (and (> (length ev) 1) (cadr ev))
                        (pi-app-add-assistant-text! app "Aborted")
                      ) ;when
+                     (%pi-app-finish-pending-model-switch! app)
                      (pi-queue-finish-task! q)
                      (settle!)
                     ) ;
                     ((error)
                      (%pi-app-close-thinking-card! app)
                      (pi-app-add-tool-result! app "error" '() 'error (cadr ev))
+                     (%pi-app-finish-pending-model-switch! app)
                      (pi-queue-finish-task! q)
                      (settle!)
                     ) ;

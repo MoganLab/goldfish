@@ -363,6 +363,7 @@
                     (and thinking-level-explicit #t)
                     #f
                     #f
+                    #f
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

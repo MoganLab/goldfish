@@ -17,6 +17,7 @@
     (liii list)
     (liii path)
     (liii tui)
+    (liii pi agent queue)
     (liii pi ai models)
     (liii pi ai thinking)
     (liii pi code config)
@@ -173,6 +174,13 @@
       ) ;let*
     ) ;define
 
+    (define (%model-display-label provider model-id)
+      (if (and (string? provider) (not (string-null? provider)))
+        (string-append provider "/" model-id)
+        model-id
+      ) ;if
+    ) ;define
+
     ;; 应用模型切换（对齐上游 setModel）：
     ;; - 状态与 footer 的 provider/model/supports 联动
     ;; - thinking 回退到默认级别并按模型能力收敛（不支持 reasoning 时为 off）
@@ -180,9 +188,41 @@
     (define (%apply-model! app model persist?)
       (let* ((old-provider (pi-app-provider app))
              (old-model (pi-app-model app))
+             (old-tl (pi-app-thinking-level app))
+             (old-supports? (pi-app-supports-thinking? app))
+             (footer (%pi-app-footer app))
+             (old-active-node (pi-footer-active-node footer))
+             (busy? (not (pi-queue-idle? (pi-app-queue app))))
              (provider (%model-ref model 'provider))
              (model-id (%model-ref model 'id))
+             (changed? (not (and (equal? old-provider provider) (equal? old-model model-id)))
+             ) ;changed?
+             (target-label (%model-display-label provider model-id))
             ) ;
+        (when busy?
+          (cond
+           ((and changed? (not (pi-footer-pending-model footer)))
+            (pi-footer-set-pending-model! footer old-provider old-model old-tl
+              old-supports? old-active-node
+            ) ;pi-footer-set-pending-model!
+            (%pi-app-pending-model-switch-set! app target-label)
+           ) ;
+           ((pi-footer-pending-model footer)
+            (let* ((pf (pi-footer-pending-model footer))
+                   (req-provider (car pf))
+                   (req-model (cadr pf))
+                  ) ;
+              (if (and (equal? req-provider provider) (equal? req-model model-id))
+                (begin
+                  (pi-footer-clear-pending-model! footer)
+                  (%pi-app-pending-model-switch-set! app #f)
+                ) ;begin
+                (%pi-app-pending-model-switch-set! app target-label)
+              ) ;if
+            ) ;let*
+           ) ;
+          ) ;cond
+        ) ;when
         (pi-app-apply-model-ui! app model)
         (when persist?
           (let ((save (%pi-app-on-save-model app)))
@@ -193,16 +233,20 @@
         ) ;when
         ;; 仅在模型实际变化时记录一次（Ctrl+S 保存同一模型不写）；
         ;; /model 精确引用、选择器确认与保存默认模型都收敛于此出口
-        (unless (and (equal? old-provider provider) (equal? old-model model-id))
+        (when changed?
           (%record-model-change! app provider model-id)
-        ) ;unless
+        ) ;when
         (%pi-app-active-selector-set! app #f)
         (editor-set-focused! (pi-app-editor app) #t)
+        (scroll-view-invalidate! (pi-app-scroll-view app))
         (container-add! (%pi-app-chat app)
-          (make-assistant-card (if persist?
-                                 (string-append "Default model: " provider "/" model-id)
-                                 (string-append "Model: " model-id)
-                               ) ;if
+          (make-assistant-card
+            (cond ((and busy? (pi-app-pending-model-switch app))
+                   (string-append "本轮结束之后，将会切换到 " target-label)
+                  ) ;
+                  (persist? (string-append "Default model: " provider "/" model-id))
+                  (else (string-append "Model: " model-id))
+            ) ;cond
           ) ;make-assistant-card
         ) ;container-add!
         (pi-app-render! app)
