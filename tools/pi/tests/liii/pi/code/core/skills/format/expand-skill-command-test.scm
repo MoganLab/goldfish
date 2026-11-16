@@ -47,7 +47,7 @@
 ) ;path-write-text
 
 (define skills
-  (list (%make-pi-skill "pdf-tools" "提取 PDF" (path->string skill-file) tmp-dir #f)
+  (list (pi-skill "pdf-tools" "提取 PDF" (path->string skill-file) tmp-dir #f)
   ) ;list
 ) ;define
 

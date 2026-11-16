@@ -27,13 +27,13 @@
 (check-set-mode! 'report-failed)
 
 (define pdf
-  (%make-pi-skill "pdf-tools" "提取 PDF 文本与图表 & <元数据>"
+  (pi-skill "pdf-tools" "提取 PDF 文本与图表 & <元数据>"
     "/path/pdf-tools/SKILL.md" "/path/pdf-tools" #f
-  ) ;%make-pi-skill
+  ) ;pi-skill
 ) ;define
 
 (define admin
-  (%make-pi-skill "admin-task" "仅供内部显式调用" "/a/SKILL.md" "/a" #t)
+  (pi-skill "admin-task" "仅供内部显式调用" "/a/SKILL.md" "/a" #t)
 ) ;define
 
 ;; 空列表返回空字符串

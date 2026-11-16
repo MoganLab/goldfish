@@ -47,4 +47,7 @@
   (check (pi-model-entry-extras rt) => '(("tag" . "x")))
 ) ;let*
 
+(check-catch 'type-error (pi-model-entry->json '(("id" . "x"))))
+(check-catch 'type-error (pi-model-entry->json "invalid"))
+
 (check-report)

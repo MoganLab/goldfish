@@ -44,4 +44,7 @@
   (check (pi-provider-entry-extras rt) => '(("extra" . "v")))
 ) ;let*
 
+(check-catch 'type-error (pi-provider-entry->json '(("name" . "Kimi"))))
+(check-catch 'type-error (pi-provider-entry->json "invalid"))
+
 (check-report)

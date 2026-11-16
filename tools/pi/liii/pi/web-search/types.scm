@@ -6,6 +6,8 @@
 
 (define-library (liii pi web-search types)
   (import (scheme base)
+    (liii base)
+    (liii error)
     (liii list)
     (liii path)
     (liii pi ai log)
@@ -20,14 +22,14 @@
   ) ;export
   (begin
 
-    (define-record-type <pi-web-search-config>
-      (make-pi-web-search-config provider model base-url proxy)
+    (define*-record-type <pi-web-search-config>
+      (make-pi-web-search-config (provider #f) (model #f) (base-url #f) (proxy #f))
       pi-web-search-config?
       (provider pi-web-search-config-provider)
       (model pi-web-search-config-raw-model)
       (base-url pi-web-search-config-raw-base-url)
       (proxy pi-web-search-config-raw-proxy)
-    ) ;define-record-type
+    ) ;define*-record-type
 
     (define %cached-schema #f)
     (define %cached-schema-path #f)
@@ -68,7 +70,8 @@
 
     (define (json->pi-web-search-config data)
       (cond ((pi-web-search-config? data) data)
-            ((pair? data)
+            ((or (not data) (null? data)) #f)
+            ((json-object? data)
              (let* ((schema (%web-search-schema))
                     (errs (if schema (json-schema-errors data schema) '()))
                    ) ;
@@ -85,25 +88,28 @@
                ) ;if
              ) ;let*
             ) ;
-            (else #f)
+            (else (type-error "json->pi-web-search-config: expected json object, #f, or pi-web-search-config"
+                    data
+                  ) ;type-error
+            ) ;else
       ) ;cond
     ) ;define
 
     (define (pi-web-search-config->json cfg)
-      (if (pair? cfg)
-        cfg
-        (let ((provider (pi-web-search-config-provider cfg))
-              (model (pi-web-search-config-raw-model cfg))
-              (base-url (pi-web-search-config-raw-base-url cfg))
-              (proxy (pi-web-search-config-raw-proxy cfg))
-             ) ;
-          (append (if (string? provider) (list (cons "provider" provider)) '())
-            (if (string? model) (list (cons "model" model)) '())
-            (if (string? base-url) (list (cons "baseUrl" base-url)) '())
-            (if (string? proxy) (list (cons "httpProxy" proxy)) '())
-          ) ;append
-        ) ;let
-      ) ;if
+      (unless (pi-web-search-config? cfg)
+        (type-error "pi-web-search-config->json: expected pi-web-search-config" cfg)
+      ) ;unless
+      (let ((provider (pi-web-search-config-provider cfg))
+            (model (pi-web-search-config-raw-model cfg))
+            (base-url (pi-web-search-config-raw-base-url cfg))
+            (proxy (pi-web-search-config-raw-proxy cfg))
+           ) ;
+        (append (if (string? provider) (list (cons "provider" provider)) '())
+          (if (string? model) (list (cons "model" model)) '())
+          (if (string? base-url) (list (cons "baseUrl" base-url)) '())
+          (if (string? proxy) (list (cons "httpProxy" proxy)) '())
+        ) ;append
+      ) ;let
     ) ;define
 
   ) ;begin

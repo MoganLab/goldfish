@@ -29,7 +29,7 @@
   (check (pi-app-skills app) => '())
 ) ;let
 
-(let* ((skill (%make-pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f))
+(let* ((skill (pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f))
        (app (make-pi-app
               :terminal (make-virtual-terminal :width 80 :height 24)
               :skills   (list skill)

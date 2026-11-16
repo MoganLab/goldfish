@@ -19,7 +19,7 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((skill (%make-pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f)))
+(let ((skill (pi-skill "pdf-tools" "desc" "/p/SKILL.md" "/p" #f)))
   (check (pi-skill-name skill) => "pdf-tools")
 ) ;let
 

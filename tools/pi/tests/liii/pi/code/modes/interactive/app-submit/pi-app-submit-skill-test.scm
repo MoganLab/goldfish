@@ -39,12 +39,12 @@
   (path-write-text skill-file
     "---\nname: pdf-tools\ndescription: 提取 PDF 文本\n---\n# PDF Instructions\nExtract text."
   ) ;path-write-text
-  (let* ((skill (%make-pi-skill "pdf-tools"
+  (let* ((skill (pi-skill "pdf-tools"
                   "提取 PDF 文本"
                   (path->string skill-file)
                   (path->string tmp)
                   #f
-                ) ;%make-pi-skill
+                ) ;pi-skill
          ) ;skill
          (app (make-pi-app
                 :terminal vterm

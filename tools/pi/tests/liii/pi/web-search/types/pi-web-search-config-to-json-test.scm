@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; cfg : pi-web-search-config? | alist
-;; web-search 配置 record 或已是 JSON alist。
+;; cfg : pi-web-search-config?
+;; web-search 配置 record。
 ;;
 ;; 返回值
 ;; ----
@@ -53,5 +53,8 @@
   (check (assoc "baseUrl" j) => #f)
   (check (assoc "httpProxy" j) => #f)
 ) ;let*
+
+(check-catch 'type-error (pi-web-search-config->json '(("provider" . "google"))))
+(check-catch 'type-error (pi-web-search-config->json "invalid"))
 
 (check-report)

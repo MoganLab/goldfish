@@ -19,7 +19,7 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((skill (%make-pi-skill "pdf-tools" "Extract text" "/p/SKILL.md" "/p" #f)))
+(let ((skill (pi-skill "pdf-tools" "Extract text" "/p/SKILL.md" "/p" #f)))
   (check (pi-skill-description skill) => "Extract text")
 ) ;let
 

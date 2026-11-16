@@ -12,6 +12,7 @@
   (import (scheme base)
     (scheme file)
     (liii base)
+    (liii error)
     (liii list)
     (liii string)
     (liii path)
@@ -114,8 +115,15 @@
 
     (define %provider-schema "https://case-lambda.org/agent/provider.schema.json")
 
-    (define-record-type <pi-provider-entry>
-      (%make-pi-provider-entry schema name base-url api http-proxy models extras)
+    (define*-record-type <pi-provider-entry>
+      (make-pi-provider-entry (schema #f)
+        (name #f)
+        (base-url #f)
+        (api #f)
+        (http-proxy #f)
+        (models #f)
+        (extras '())
+      ) ;make-pi-provider-entry
       pi-provider-entry?
       (schema pi-provider-entry-schema)
       (name pi-provider-entry-name)
@@ -124,18 +132,7 @@
       (http-proxy pi-provider-entry-http-proxy)
       (models pi-provider-entry-models)
       (extras pi-provider-entry-extras)
-    ) ;define-record-type
-
-    (define* (make-pi-provider-entry (schema #f)
-               (name #f)
-               (base-url #f)
-               (api #f)
-               (http-proxy #f)
-               (models #f)
-               (extras '())
-             ) ;make-pi-provider-entry
-      (%make-pi-provider-entry schema name base-url api http-proxy models extras)
-    ) ;define*
+    ) ;define*-record-type
 
     (define (%provider-known-key? k)
       (let ((s (if (symbol? k) (symbol->string k) k)))
@@ -161,51 +158,53 @@
     ) ;define
 
     (define (json->pi-provider-entry obj)
-      (cond ((pi-provider-entry? obj) obj)
-            ((not (pair? obj)) #f)
-            (else
-              (let ((schema (pi-user-dict-ref obj "$schema" #f))
-                    (name (pi-user-dict-ref obj "name" #f))
-                    (base-url (pi-user-dict-ref obj "baseUrl" #f))
-                    (api (pi-user-dict-ref obj "api" #f))
-                    (http-proxy (pi-user-dict-ref obj "httpProxy" #f))
-                    (models (%provider-models-field (pi-user-dict-ref obj "models" #f)))
-                    (extras (%provider-extras obj))
-                   ) ;
-                (%make-pi-provider-entry (and (string? schema) schema)
-                  (and (string? name) name)
-                  (and (string? base-url) base-url)
-                  (and (string? api) api)
-                  (and (string? http-proxy) http-proxy)
-                  models
-                  extras
-                ) ;%make-pi-provider-entry
-              ) ;let
-            ) ;else
-      ) ;cond
+      (if (pi-provider-entry? obj)
+        obj
+        (begin
+          (unless (or (json-object? obj) (null? obj))
+            (type-error "json->pi-provider-entry: expected json object or pi-provider-entry"
+              obj
+            ) ;type-error
+          ) ;unless
+          (if (null? obj)
+            (make-pi-provider-entry)
+            (make-pi-provider-entry (json-ref-string obj "$schema" #f)
+              (json-ref-string obj "name" #f)
+              (json-ref-string obj "baseUrl" #f)
+              (json-ref-string obj "api" #f)
+              (json-ref-string obj "httpProxy" #f)
+              (if (json-contains-key? obj "models")
+                (%provider-models-field (json-ref obj "models"))
+                #f
+              ) ;if
+              (%provider-extras obj)
+            ) ;make-pi-provider-entry
+          ) ;if
+        ) ;begin
+      ) ;if
     ) ;define
 
     (define (pi-provider-entry->json entry)
-      (if (pair? entry)
-        entry
-        (let ((schema (pi-provider-entry-schema entry))
-              (name (pi-provider-entry-name entry))
-              (base-url (pi-provider-entry-base-url entry))
-              (api (pi-provider-entry-api entry))
-              (http-proxy (pi-provider-entry-http-proxy entry))
-              (models (pi-provider-entry-models entry))
-              (extras (pi-provider-entry-extras entry))
-             ) ;
-          (append (if (string? schema) (list (cons "$schema" schema)) '())
-            (if (string? name) (list (cons "name" name)) '())
-            (if (string? base-url) (list (cons "baseUrl" base-url)) '())
-            (if (string? api) (list (cons "api" api)) '())
-            (if (string? http-proxy) (list (cons "httpProxy" http-proxy)) '())
-            (if (list? models) (list (cons "models" (list->vector models))) '())
-            (if (pair? extras) extras '())
-          ) ;append
-        ) ;let
-      ) ;if
+      (unless (pi-provider-entry? entry)
+        (type-error "pi-provider-entry->json: expected pi-provider-entry" entry)
+      ) ;unless
+      (let ((schema (pi-provider-entry-schema entry))
+            (name (pi-provider-entry-name entry))
+            (base-url (pi-provider-entry-base-url entry))
+            (api (pi-provider-entry-api entry))
+            (http-proxy (pi-provider-entry-http-proxy entry))
+            (models (pi-provider-entry-models entry))
+            (extras (pi-provider-entry-extras entry))
+           ) ;
+        (append (if (string? schema) (list (cons "$schema" schema)) '())
+          (if (string? name) (list (cons "name" name)) '())
+          (if (string? base-url) (list (cons "baseUrl" base-url)) '())
+          (if (string? api) (list (cons "api" api)) '())
+          (if (string? http-proxy) (list (cons "httpProxy" http-proxy)) '())
+          (if (list? models) (list (cons "models" (list->vector models))) '())
+          (if (pair? extras) extras '())
+        ) ;append
+      ) ;let
     ) ;define
 
     ;; 读 models/<id>.json 并解析为 <pi-provider-entry>；缺失或解析失败返回 #f

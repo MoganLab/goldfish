@@ -77,5 +77,6 @@
 ) ;let
 (check-false (json->pi-web-search-config #f))
 (check-false (json->pi-web-search-config '()))
+(check-catch 'type-error (json->pi-web-search-config "invalid"))
 
 (check-report)

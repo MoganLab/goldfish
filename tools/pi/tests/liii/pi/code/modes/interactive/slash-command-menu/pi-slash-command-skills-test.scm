@@ -30,11 +30,11 @@
 
 (check-set-mode! 'report-failed)
 
-(let* ((s1 (%make-pi-skill "pdf-tools" "PDF 提取" "/path/pdf/SKILL.md" "/path/pdf" #f)
+(let* ((s1 (pi-skill "pdf-tools" "PDF 提取" "/path/pdf/SKILL.md" "/path/pdf" #f)
        ) ;s1
-       (s2 (%make-pi-skill "admin-task" "运维指令" "/path/admin/SKILL.md"
+       (s2 (pi-skill "admin-task" "运维指令" "/path/admin/SKILL.md"
              "/path/admin" #t
-           ) ;%make-pi-skill
+           ) ;pi-skill
        ) ;s2
        (skills (list s1 s2))
       ) ;
