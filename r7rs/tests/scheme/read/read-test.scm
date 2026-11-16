@@ -126,6 +126,13 @@
   ) ;let
 ) ;check-true
 
+;; [1292] R7RS 4.1.2 / 7.1.2: 'datum 读为 (quote datum)，与 Chez Scheme 对齐
+(check-true (equal? '(quote a) ''a))
+(check (car ''a) => 'quote)
+(check (with-input-from-string "'a" read) => '(quote a))
+(check-true (equal? '''a '(quote (quote a))))
+(check-true (equal? ''(a b) '(quote (a b))))
+
 ;; read-error 测试
 (check-catch 'read-error (read (open-input-string "(1 2")))
 

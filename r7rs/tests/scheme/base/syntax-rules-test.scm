@@ -128,6 +128,17 @@
 
 (check (let ((temp 99)) (hygienic-or #f temp)) => 99)
 
+;; [1292] 卫生性 quote 隔离验证：防止调用处局部 quote 捕获宏模板中的 'x
+(define-syntax hygienic-quote
+  (syntax-rules ()
+    ((hygienic-quote) 'ok)
+    ((hygienic-quote nested) ''ok)
+  ) ;syntax-rules
+) ;define-syntax
+
+(check (let ((quote 42)) (hygienic-quote)) => 'ok)
+(check (equal? (let ((quote 42)) (hygienic-quote nested)) '(quote ok)) => #t)
+
 ;; 顺序多值绑定宏 let*-values
 (check
   (let*-values (((a b) (values 1 2)) ((sum) (values (+ a b))))
