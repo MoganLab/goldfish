@@ -54,6 +54,7 @@
   (check (json->pi-session-entry h) => h)
 ) ;let
 (check-false (json->pi-session-entry '()))
-(check-false (json->pi-session-entry "bad"))
+(check-catch 'type-error (json->pi-session-entry "bad"))
+(check-catch 'type-error (json->pi-session-entry 123))
 
 (check-report)

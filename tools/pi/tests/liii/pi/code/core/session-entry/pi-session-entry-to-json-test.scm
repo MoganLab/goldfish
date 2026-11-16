@@ -61,4 +61,7 @@
   (check (json-ref js "provider") => "google")
 ) ;let
 
+(check-catch 'type-error (pi-session-entry->json '(("type" . "session"))))
+(check-catch 'type-error (pi-session-entry->json "bad"))
+
 (check-report)

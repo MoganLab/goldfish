@@ -6,11 +6,18 @@
 
 (define-library (liii pi code core session-entry)
   (import (scheme base)
+    (liii base)
+    (liii error)
     (liii json)
     (liii list)
     (liii string)
     (liii pi ai message)
     (liii pi agent tools-compat)
+    (liii pi code core session-entry header)
+    (liii pi code core session-entry message)
+    (liii pi code core session-entry compaction)
+    (liii pi code core session-entry context-edit)
+    (liii pi code core session-entry state)
   ) ;import
   (export pi-session-header-entry pi-session-header-entry?
     pi-session-header-entry-version pi-session-header-entry-id
@@ -37,96 +44,6 @@
     json->pi-session-entry
   ) ;export
   (begin
-
-    (define-record-type <pi-session-header-entry>
-      (%make-pi-session-header-entry version id timestamp cwd)
-      pi-session-header-entry?
-      (version pi-session-header-entry-version)
-      (id pi-session-header-entry-id)
-      (timestamp pi-session-header-entry-timestamp)
-      (cwd pi-session-header-entry-cwd)
-    ) ;define-record-type
-
-    (define-record-type <pi-session-message-entry>
-      (%make-pi-session-message-entry id parent-id timestamp message)
-      pi-session-message-entry?
-      (id pi-session-message-entry-id)
-      (parent-id pi-session-message-entry-parent-id)
-      (timestamp pi-session-message-entry-timestamp)
-      (message pi-session-message-entry-message)
-    ) ;define-record-type
-
-    (define-record-type <pi-session-compaction-entry>
-      (%make-pi-session-compaction-entry id parent-id timestamp summary
-        first-kept-entry-id tokens-before details
-      ) ;%make-pi-session-compaction-entry
-      pi-session-compaction-entry?
-      (id pi-session-compaction-entry-id)
-      (parent-id pi-session-compaction-entry-parent-id)
-      (timestamp pi-session-compaction-entry-timestamp)
-      (summary pi-session-compaction-entry-summary)
-      (first-kept-entry-id pi-session-compaction-entry-first-kept-entry-id)
-      (tokens-before pi-session-compaction-entry-tokens-before)
-      (details pi-session-compaction-entry-details)
-    ) ;define-record-type
-
-    (define-record-type <pi-session-context-edit-entry>
-      (%make-pi-session-context-edit-entry id parent-id timestamp target-id
-        replacement
-      ) ;%make-pi-session-context-edit-entry
-      pi-session-context-edit-entry?
-      (id pi-session-context-edit-entry-id)
-      (parent-id pi-session-context-edit-entry-parent-id)
-      (timestamp pi-session-context-edit-entry-timestamp)
-      (target-id pi-session-context-edit-entry-target-id)
-      (replacement pi-session-context-edit-entry-replacement)
-    ) ;define-record-type
-
-    (define-record-type <pi-session-state-entry>
-      (%make-pi-session-state-entry type id parent-id timestamp fields)
-      pi-session-state-entry?
-      (type pi-session-state-entry-type)
-      (id pi-session-state-entry-id)
-      (parent-id pi-session-state-entry-parent-id)
-      (timestamp pi-session-state-entry-timestamp)
-      (fields pi-session-state-entry-fields)
-    ) ;define-record-type
-
-    (define* (pi-session-header-entry id timestamp cwd (version 3))
-      (%make-pi-session-header-entry version id timestamp cwd)
-    ) ;define*
-
-    (define (pi-session-message-entry id parent-id timestamp message)
-      (%make-pi-session-message-entry id parent-id timestamp message)
-    ) ;define
-
-    (define* (pi-session-compaction-entry id
-               parent-id
-               timestamp
-               summary
-               first-kept-entry-id
-               tokens-before
-               (details '(()))
-             ) ;pi-session-compaction-entry
-      (%make-pi-session-compaction-entry id parent-id timestamp summary
-        first-kept-entry-id tokens-before details
-      ) ;%make-pi-session-compaction-entry
-    ) ;define*
-
-    (define* (pi-session-context-edit-entry id
-               parent-id
-               timestamp
-               target-id
-               (replacement #f)
-             ) ;pi-session-context-edit-entry
-      (%make-pi-session-context-edit-entry id parent-id timestamp target-id
-        replacement
-      ) ;%make-pi-session-context-edit-entry
-    ) ;define*
-
-    (define* (pi-session-state-entry type id parent-id timestamp (fields '()))
-      (%make-pi-session-state-entry type id parent-id timestamp fields)
-    ) ;define*
 
     (define (pi-session-entry? x)
       (or (pi-session-header-entry? x)
@@ -216,6 +133,9 @@
     ) ;define
 
     (define (pi-session-entry->json e)
+      (unless (pi-session-entry? e)
+        (type-error "pi-session-entry->json: expected pi-session-entry" e)
+      ) ;unless
       (cond
        ((pi-session-header-entry? e)
         (list (cons "type" "session")
@@ -280,20 +200,17 @@
           (%normalize-json-val (pi-session-state-entry-fields e))
         ) ;append
        ) ;
-       (else e)
       ) ;cond
     ) ;define
 
-    (define (%dict-ref obj key default-val)
-      (if
-        (not (and (pair? obj) (pair? (car obj))))
-        default-val
-        (let* ((str-key (if (symbol? key) (symbol->string key) key))
-               (sym-key (if (string? key) (string->symbol key) key))
-               (pair (or (assoc str-key obj) (assoc sym-key obj)))
-              ) ;
-          (if pair (let ((v (cdr pair))) (if (eq? v 'null) default-val v)) default-val)
-        ) ;let*
+    (define (%json-opt-field obj key default-val)
+      (if (json-contains-key? obj key)
+        (let ((v (json-ref obj key)))
+          (if (json-null? v) default-val v)
+        ) ;let
+        (let ((pair (assq (string->symbol key) obj)))
+          (if pair (let ((v (cdr pair))) (if (json-null? v) default-val v)) default-val)
+        ) ;let
       ) ;if
     ) ;define
 
@@ -311,50 +228,62 @@
     ) ;define
 
     (define (json->pi-session-entry obj)
-      (cond ((pi-session-entry? obj) obj)
-            ((not (and (pair? obj) (pair? (car obj)))) #f)
-            (else
-              (let ((etype (%dict-ref obj "type" #f))
-                    (id (%dict-ref obj "id" #f))
-                    (pid (%dict-ref obj "parentId" #f))
-                    (ts (%dict-ref obj "timestamp" #f))
-                   ) ;
-                (cond ((not (string? etype)) #f)
-                      ((string=? etype "session")
-                       (pi-session-header-entry id
-                         ts
-                         (%dict-ref obj "cwd" "")
-                         (%dict-ref obj "version" 3)
-                       ) ;pi-session-header-entry
-                      ) ;
-                      ((string=? etype "message")
-                       (let ((raw-msg (%dict-ref obj "message" #f)))
-                         (pi-session-message-entry id pid ts (%maybe-json-msg raw-msg))
-                       ) ;let
-                      ) ;
-                      ((string=? etype "compaction")
-                       (pi-session-compaction-entry id
-                         pid
-                         ts
-                         (%dict-ref obj "summary" "")
-                         (%dict-ref obj "firstKeptEntryId" #f)
-                         (%dict-ref obj "tokensBefore" 0)
-                         (%dict-ref obj "details" '(()))
-                       ) ;pi-session-compaction-entry
-                      ) ;
-                      ((string=? etype "context_edit")
-                       (pi-session-context-edit-entry id
-                         pid
-                         ts
-                         (%dict-ref obj "targetId" "")
-                         (%dict-ref obj "replacement" #f)
-                       ) ;pi-session-context-edit-entry
-                      ) ;
-                      (else (pi-session-state-entry etype id pid ts (%extra-state-fields obj)))
-                ) ;cond
-              ) ;let
-            ) ;else
-      ) ;cond
+      (if (pi-session-entry? obj)
+        obj
+        (begin
+          (unless (or (json-object? obj) (null? obj))
+            (type-error "json->pi-session-entry: expected json object or pi-session-entry"
+              obj
+            ) ;type-error
+          ) ;unless
+          (if (null? obj)
+            #f
+            (let ((etype
+                    (let ((t (%json-opt-field obj "type" #f)))
+                      (and (string? t) t)
+                    ) ;let
+                  ) ;etype
+                  (id (%json-opt-field obj "id" #f))
+                  (pid (%json-opt-field obj "parentId" #f))
+                  (ts (%json-opt-field obj "timestamp" #f))
+                 ) ;
+              (cond ((not etype) #f)
+                    ((equal? etype "session")
+                     (pi-session-header-entry id
+                       ts
+                       (json-ref-string obj "cwd" "")
+                       (json-ref-number obj "version" 3)
+                     ) ;pi-session-header-entry
+                    ) ;
+                    ((equal? etype "message")
+                     (let ((raw-msg (%json-opt-field obj "message" #f)))
+                       (pi-session-message-entry id pid ts (%maybe-json-msg raw-msg))
+                     ) ;let
+                    ) ;
+                    ((equal? etype "compaction")
+                     (pi-session-compaction-entry id
+                       pid
+                       ts
+                       (json-ref-string obj "summary" "")
+                       (%json-opt-field obj "firstKeptEntryId" #f)
+                       (json-ref-number obj "tokensBefore" 0)
+                       (%json-opt-field obj "details" '(()))
+                     ) ;pi-session-compaction-entry
+                    ) ;
+                    ((equal? etype "context_edit")
+                     (pi-session-context-edit-entry id
+                       pid
+                       ts
+                       (json-ref-string obj "targetId" "")
+                       (%json-opt-field obj "replacement" #f)
+                     ) ;pi-session-context-edit-entry
+                    ) ;
+                    (else (pi-session-state-entry etype id pid ts (%extra-state-fields obj)))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;begin
+      ) ;if
     ) ;define
 
   ) ;begin

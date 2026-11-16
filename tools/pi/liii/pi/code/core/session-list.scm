@@ -18,6 +18,7 @@
     (liii unicode)
     (liii pi code cli args)
     (liii pi code core compaction serialize)
+    (liii pi code core session-list info)
   ) ;import
   (export pi-read-session-info pi-list-session-infos pi-session-info-newer?
     make-pi-session-info pi-session-info? pi-session-info-path
@@ -28,44 +29,8 @@
   ) ;export
   (begin
 
-    (define-record-type <pi-session-info>
-      (make-pi-session-info path id cwd name created modified message-count
-        first-message all-messages-text
-      ) ;make-pi-session-info
-      pi-session-info?
-      (path pi-session-info-path)
-      (id pi-session-info-id)
-      (cwd pi-session-info-cwd)
-      (name pi-session-info-name)
-      (created pi-session-info-created)
-      (modified pi-session-info-modified)
-      (message-count pi-session-info-message-count)
-      (first-message pi-session-info-first-message)
-      (all-messages-text %pi-session-info-all-messages-text-raw
-        %pi-session-info-all-messages-text-set!
-      ) ;all-messages-text
-    ) ;define-record-type
-
-    (define (pi-session-info-all-messages-text info)
-      (let ((val (%pi-session-info-all-messages-text-raw info)))
-        (if (procedure? val)
-          (let ((computed (val)))
-            (%pi-session-info-all-messages-text-set! info computed)
-            computed
-          ) ;let
-          val
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (%ref object key default)
-      (let ((pair (assoc key object)))
-        (if pair (cdr pair) default)
-      ) ;let
-    ) ;define
-
     (define (%entry-type? entry type)
-      (equal? (%ref entry "type" #f) type)
+      (equal? (json-ref-string entry "type" "") type)
     ) ;define
 
     (define (%sanitize-text str)
@@ -74,9 +39,13 @@
 
     ;; user/assistant 消息的投影文本；非文本或空文本消息返回 #f
     (define (%message-text entry)
-      (let* ((message (%ref entry "message" '()))
-             (role (%ref message "role" #f))
-             (raw-text (pi-content->text (%ref message "content" "")))
+      (let* ((message (json-ref entry "message"))
+             (role (json-ref-string message "role" ""))
+             (raw-text
+               (pi-content->text
+                 (if (json-contains-key? message "content") (json-ref message "content") "")
+               ) ;pi-content->text
+             ) ;raw-text
             ) ;
         (and (member role '("user" "assistant"))
           (not (string-null? raw-text))
@@ -146,19 +115,27 @@
 
     (define (%build-session-info path header last-info last-msg msg-count first-user)
       (let* ((info-entry (if (string? last-info) (%parse-line last-info) last-info))
-             (raw-name (and info-entry (pi-normalize-session-name (%ref info-entry "name" #f)))
+             (raw-name
+               (and info-entry
+                 (pi-normalize-session-name
+                   (if (json-contains-key? info-entry "name")
+                     (json-ref info-entry "name")
+                     #f
+                   ) ;if
+                 ) ;pi-normalize-session-name
+               ) ;and
              ) ;raw-name
              (name (and (string? raw-name) (%sanitize-text raw-name)))
              (msg-entry (if (string? last-msg) (%parse-line last-msg) last-msg))
-             (msg-ts (and msg-entry (%ref msg-entry "timestamp" #f)))
-             (created (%sanitize-text (%ref header "timestamp" "")))
+             (msg-ts (and msg-entry (json-ref-string msg-entry "timestamp" #f)))
+             (created (%sanitize-text (json-ref-string header "timestamp" "")))
             ) ;
         (make-pi-session-info path
-          (%sanitize-text (%ref header "id" ""))
-          (%sanitize-text (%ref header "cwd" ""))
+          (%sanitize-text (json-ref-string header "id" ""))
+          (%sanitize-text (json-ref-string header "cwd" ""))
           name
           created
-          (if (string? msg-ts) (%sanitize-text msg-ts) created)
+          (if msg-ts (%sanitize-text msg-ts) created)
           msg-count
           (or first-user "(no messages)")
           (lambda () (%read-all-messages-text path))
