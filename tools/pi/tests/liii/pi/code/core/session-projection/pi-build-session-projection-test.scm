@@ -129,7 +129,7 @@
               ((msgs state diag) (pi-build-session-projection entries))
              ) ;
   (check (msg-contents msgs) => '("a" "b"))
-  (check (cdr (or (assoc 'skipped-unknown-types diag) '(#f #_quote ())))
+  (check (cdr (or (assoc 'skipped-unknown-types diag) '(#f)))
     =>
     '("mystery")
   ) ;check

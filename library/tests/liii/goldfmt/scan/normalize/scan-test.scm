@@ -178,11 +178,11 @@
   (check (env-value result) => '(quote x y))
 ) ;let
 
-;; 测试语法关键字 #_quote 作为 tag-name
+;; 测试单引号 quote 作为 tag-name
 ;; quote 形式整个作为一个 env，没有 children
 (let ((result (scan ''x)))
   (check (env? result) => #t)
-  (check (env-tag-name result) => "#_quote")
+  (check (env-tag-name result) => "quote")
   (check (env-depth result) => 0)
   (check (vector-length (env-children result)) => 0)
   (check (env-value result) => ''x)

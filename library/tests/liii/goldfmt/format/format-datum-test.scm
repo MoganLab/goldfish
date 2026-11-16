@@ -93,7 +93,7 @@
 ) ;check
 
 ;; 阶段1: quote 格式测试
-;; 单引号应该输出为 'xxx 形式，而不是 (quote xxx) 或 (#_quote xxx)
+;; 单引号应该输出为 'xxx 形式，而不是 (quote xxx)
 (check (format-datum '(quote x))
   =>
   "'x"
@@ -104,40 +104,28 @@
   "'(a b c)"
 ) ;check
 
-(check (format-datum '(set! x (#_quote value)))
+(check (format-datum '(set! x (quote value)))
   =>
   "(set! x 'value)"
 ) ;check
 
-(check (format-datum '(f (#_quote a) (#_quote b))
+(check (format-datum '(f (quote a) (quote b))
        ) ;format-datum
   =>
   "(f 'a 'b)"
 ) ;check
 
-(check (format-datum '(#_quote symbol))
-  =>
-  "'symbol"
-) ;check
-
-(check (format-datum '(#_quote (a b c)))
-  =>
-  "'(a b c)"
-) ;check
-
 ;; 测试嵌套 quote 形式 '(quote define)
-;; '(quote define) 读取为 (#_quote (quote define))
-;; 内部的 (quote define) 是普通列表，不应被压缩
-;; 所以输出保持为 '(quote define)
-(check (format-datum '(#_quote (quote define)))
+;; 开启 symbol-quote? 后，(quote x) 与 'x 统一糖化为 'x
+(check (format-datum '(quote (quote define)))
   =>
-  "'(quote define)"
+  "''define"
 ) ;check
 
 ;; 测试 '(quote x) 的格式化
-(check (format-datum '(#_quote (quote x)))
+(check (format-datum '(quote (quote x)))
   =>
-  "'(quote x)"
+  "''x"
 ) ;check
 
 ;; quasiquote 内部形式应该还原为 ` , ,@ 语法

@@ -81,16 +81,16 @@
 ) ;check
 
 ;; 测试嵌套 quote 形式 '(quote define)
-;; '(quote define) 应该保持原样输出，不压缩为 ''define
+;; 开启 symbol-quote? 后，(quote x) 与 'x 统一糖化为 'x
 (check (format-string "'(quote define)")
   =>
-  "'(quote define)\n"
+  "''define\n"
 ) ;check
 
 ;; 测试 '(quote x)
 (check (format-string "'(quote x)")
   =>
-  "'(quote x)\n"
+  "''x\n"
 ) ;check
 
 ;; 测试普通 quote 列表
@@ -103,12 +103,6 @@
 (check (format-string "'(a b . c)")
   =>
   "'(a b . c)\n"
-) ;check
-
-;; bare syntax object 不应导致 formatter 崩溃
-(check (format-string "#_quote")
-  =>
-  "#_quote\n"
 ) ;check
 
 ;; quasiquote 内部形式应该还原为 ` , ,@ 语法
@@ -159,7 +153,7 @@
 (check (format-string "`(begin (define ,name ,value) ,@(map f xs) (quote done) (another-long-form alpha beta gamma delta epsilon))"
        ) ;format-string
   =>
-  "`(begin\n   (define ,name ,value)\n   ,@(map f xs)\n   (quote done)\n   (another-long-form alpha beta gamma delta epsilon))\n"
+  "`(begin\n   (define ,name ,value)\n   ,@(map f xs)\n   'done\n   (another-long-form alpha beta gamma delta epsilon))\n"
 ) ;check
 
 (let ((typed-lambda-text (format-first-node-file "007_05.scm")))

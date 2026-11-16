@@ -90,18 +90,9 @@
     ) ;define
 
     ;; 占位定义 (define <xxx> '<xxx>)：自引用 quote，用于规避导出检查。
-    ;; s7 reader 把糖 'x 读作 (#_quote x)，其 car 是稳定的 syntactic 符号，
-    ;; 不能用 'quote 比对，也不能 symbol->string；这里用新鲜读入的 'x 取样，
-    ;; 并同时接受字面 (quote x) 形式。
-    (define %reader-quote (car (read (open-input-string "'x"))))
-    (define %reader-quasiquote (car (read (open-input-string "`x"))))
-
+    ;; [1292] 开启 symbol-quote? 后 reader 将 'x 读为 (quote x)，直接与 'quote 比对。
     (define (%quoted-form? form)
-      (or (eq? (car form) 'quote)
-        (eq? (car form) 'quasiquote)
-        (eq? (car form) %reader-quote)
-        (eq? (car form) %reader-quasiquote)
-      ) ;or
+      (or (eq? (car form) 'quote) (eq? (car form) 'quasiquote))
     ) ;define
 
     (define (%type-name-violation file line name missing?)

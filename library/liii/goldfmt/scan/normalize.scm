@@ -158,9 +158,7 @@
     ) ;define
 
     (define (quote-syntax? value)
-      (or (eq? value 'quote)
-        (and (syntax? value) (string=? (object->string value #f) "#_quote"))
-      ) ;or
+      (eq? value 'quote)
     ) ;define
 
     (define (internal-quote-builder-form? value)
@@ -347,7 +345,7 @@
         (cond
          ((and (not (stem-mode?)) (quote-form? lst))
           (make-env
-            :tag-name (if (syntax? first) "#_quote" (symbol->string first))
+            :tag-name (symbol->string first)
             :depth    depth
             :children (vector)
             :value    lst

@@ -111,7 +111,7 @@
 
     (define (handle-anthropic-delta json-obj stream-state on-ev)
       (let* ((idx (cdr (or (assoc "index" json-obj) '(#f . 0))))
-             (delta (cdr (or (assoc "delta" json-obj) '(#f #_quote ()))))
+             (delta (cdr (or (assoc "delta" json-obj) '(#f))))
              (dtype (cdr (or (assoc "type" delta) '(#f . ""))))
             ) ;
         (cond
@@ -185,7 +185,7 @@
 
     (define (%handle-block-start json-obj stream-state on-ev)
       (let* ((idx (cdr (or (assoc "index" json-obj) '(#f . 0))))
-             (cb (cdr (or (assoc "content_block" json-obj) '(#f #_quote ()))))
+             (cb (cdr (or (assoc "content_block" json-obj) '(#f))))
              (cb-type (cdr (or (assoc "type" cb) '(#f . ""))))
             ) ;
         (cond
@@ -222,9 +222,9 @@
     ) ;define
 
     (define (%handle-msg-delta json-obj stream-state)
-      (let* ((delta (cdr (or (assoc "delta" json-obj) '(#f #_quote ()))))
+      (let* ((delta (cdr (or (assoc "delta" json-obj) '(#f))))
              (sr (cdr (or (assoc "stop_reason" delta) '(#f . #f))))
-             (u (cdr (or (assoc "usage" json-obj) '(#f #_quote ()))))
+             (u (cdr (or (assoc "usage" json-obj) '(#f))))
             ) ;
         (when sr
           (anthropic-stream-state-stop-reason-set! stream-state sr)
@@ -253,8 +253,8 @@
       (let ((ev-type (cdr (or (assoc "type" json-obj) '(#f . "")))))
         (cond
          ((equal? ev-type "message_start")
-          (let* ((msg (cdr (or (assoc "message" json-obj) '(#f #_quote ()))))
-                 (u (cdr (or (assoc "usage" msg) '(#f #_quote ()))))
+          (let* ((msg (cdr (or (assoc "message" json-obj) '(#f))))
+                 (u (cdr (or (assoc "usage" msg) '(#f))))
                 ) ;
             (anthropic-stream-state-usage-set! stream-state (anthropic-map-usage u))
           ) ;let*

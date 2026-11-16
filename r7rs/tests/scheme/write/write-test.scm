@@ -57,4 +57,9 @@
 
 (check (capture-output (lambda (port) (write #\中 port))) => "#\\中")
 
+;; [1292] 开启 symbol-quote? 后，''a 与 '(quote a) 均输出为 (quote a)
+(check (capture-output (lambda (port) (write ''a port))) => "(quote a)")
+(check (capture-output (lambda (port) (write '(quote a) port))) => "(quote a)")
+(check (capture-output (lambda (port) (write '''a port))) => "(quote (quote a))")
+
 (check-report)

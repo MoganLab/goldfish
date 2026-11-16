@@ -2,6 +2,11 @@
   (set! (*s7* 'scheme-version) 'r7rs)
 ) ;unless
 
+;; [1292] 开启 s7 的 symbol-quote?：reader 将 'x 读为 (quote x) 而非 (#_quote x)，
+;; 对齐 R7RS/Chez 行为；此后所有代码只需处理 (quote x) 形式。
+;; 注意：--mode=s7 不加载本文件，保持纯 s7 默认行为（#_quote）。
+(set! (*s7* 'symbol-quote?) #t)
+
 ;; [1147] 堆增长策略调优：
 ;; 1. gc-resize-heap-fraction 默认 0.8，即堆占用超过 20% 就翻倍，且堆只增
 ;;    不减；大量库 import 的瞬时峰值会把堆推到数倍于活跃集的大小，RSS 虚

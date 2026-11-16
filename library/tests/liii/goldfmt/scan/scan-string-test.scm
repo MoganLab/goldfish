@@ -209,7 +209,7 @@
 ) ;let
 
 ;; 测试 scan-string：点对表达式 '(a b . c)
-;; '(a b . c) 读取为 (#_quote (a b . c))
+;; '(a b . c) 读取为 (quote (a b . c))
 ;; quote 形式整个作为一个 env，没有 children
 (let ((results (scan-string #"CODE"'(a b . c)"CODE")))
   (check (vector? results) => #t)
@@ -217,7 +217,7 @@
   ;; 顶层是 quote env
   (let ((quote-env (vector-ref results 0)))
     (check (env? quote-env) => #t)
-    (check (env-tag-name quote-env) => "#_quote")
+    (check (env-tag-name quote-env) => "quote")
     (check (env-depth quote-env) => 0)
     ;; quote 形式没有 children
     (check (vector-length (env-children quote-env)) => 0)
@@ -227,7 +227,7 @@
 ) ;let
 
 ;; 测试 scan-string：'(quote define) 这种嵌套 quote 的情况
-;; '(quote define) 读取为 (#_quote (quote define))
+;; '(quote define) 读取为 (quote (quote define))
 ;; quote 形式整个作为一个 env，没有 children
 (let ((results (scan-string #"CODE"'(quote define)"CODE")))
   (check (vector? results) => #t)
@@ -235,7 +235,7 @@
   ;; 顶层是 quote env
   (let ((quote-env (vector-ref results 0)))
     (check (env? quote-env) => #t)
-    (check (env-tag-name quote-env) => "#_quote")
+    (check (env-tag-name quote-env) => "quote")
     (check (env-depth quote-env) => 0)
     ;; quote 形式没有 children
     (check (vector-length (env-children quote-env)) => 0)
@@ -260,17 +260,6 @@
       "\n  ;; not a comment\n  SELECT 1\n  "
     ) ;check
   ) ;let*
-) ;let
-
-;; bare syntax object 应该被当作 atom，而不是 pair
-(let ((results (scan-string "#_quote")))
-  (check (vector? results) => #t)
-  (check (vector-length results) => 1)
-  (let ((first (vector-ref results 0)))
-    (check (atom? first) => #t)
-    (check (syntax? (atom-value first)) => #t)
-    (check (object->string (atom-value first) #f) => "#_quote")
-  ) ;let
 ) ;let
 
 ;; quasiquote 的内部形式应该被正规化为 reader 语义
@@ -309,14 +298,9 @@
        (node (vector-ref results 0))
       ) ;
   (check (env? node) => #t)
-  ;; S7 将无 unquote 的 ` 读为 quote，tag-name 可能是 "quote" 或 "#_quote"
-  (check (or (string=? (env-tag-name node) "quote")
-           (string=? (env-tag-name node) "#_quote")
-           (string=? (env-tag-name node) "quasiquote")
-         ) ;or
-    =>
-    #t
-  ) ;check
+  ;; S7 对无 unquote 的 backquote 简化为 quote
+  ;; [1292] 开启 symbol-quote? 后，无 unquote 的 ` 读为 (quote x)，tag-name 为 "quote"
+  (check (string=? (env-tag-name node) "quote") => #t)
 ) ;let*
 
 ;; 测试 scan-string：字符字面量 #\: 在 quasiquote 中 (有 unquote, issue #910)
