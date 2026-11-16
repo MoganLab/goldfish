@@ -26,16 +26,16 @@
 ;;; 1. 原书使用 Guile 的 (ice-9 match)，Goldfish Scheme 使用 (liii match)。
 ;;; 2. 原书中变参 lambda 写为 `(lambda (. vals) ...)`，在标准 Scheme 与
 ;;;    Goldfish (S7) 中使用变长参数形式 `(lambda vals ...)`。
-;;; 3. 在 S7 Scheme 中，字面量引用 `'expr` 展开后首项为内置 syntax `#_quote`，
-;;;    本实现兼顾常规符号 `'quote` 与 S7 内置引用语法 `#_quote`。
+;;; 3. [1292] 开启 (*s7* 'symbol-quote?) 后，'expr 展开为 (quote expr)，
+;;;    首项是普通符号 quote，与标准 Scheme 一致。
 ;;; ====================================================================
 
 (import (scheme base) (scheme write) (liii match))
 
-;; 判断是否为引用关键字（兼容标准符号 'quote 与 S7 reader 的内置 quote syntax）
+;; 判断是否为引用关键字
 
 (define (quote-id? x)
-  (or (eq? x 'quote) (and (syntax? x) (eq? x (car ''_))))
+  (eq? x 'quote)
 ) ;define
 
 ;; 环境查找：在关联列表 env 中查找变量名 name

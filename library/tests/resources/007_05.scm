@@ -1,1 +1,1 @@
-`(lambda ,new-args ,@(map (lambda (arg) (if (pair? arg) `(unless (,(cadr arg) ,(car arg)) (error (#_quote type-error) ,"~S is not ~S~%" (quote ,(car arg)) (quote ,(cadr arg)))) (values))) args) ,@body)
+`(lambda ,new-args ,@(map (lambda (arg) (if (pair? arg) `(unless (,(cadr arg) ,(car arg)) (error (quote type-error) ,"~S is not ~S~%" (quote ,(car arg)) (quote ,(cadr arg)))) (values))) args) ,@body)

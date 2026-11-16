@@ -1,5 +1,5 @@
 ;; quote-syntax-form?
-;; 判断 value 是否为 #_quote 语法对象包裹的单参数表单。
+;; 判断 value 是否为 (quote x) 包裹的单参数表单。
 ;;
 ;; 语法
 ;; ----

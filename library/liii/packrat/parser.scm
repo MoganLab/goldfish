@@ -31,8 +31,10 @@
       ) ;let
     ) ;define
 
+    ;; ; [1292] 开启 (*s7* 'symbol-quote?) 后，reader 将 'num 读为 (quote num)，
+    ;; ; 不再支持旧的 #_quote 语法对象形式。
     (define (quote? x)
-      (and (pair? x) (not (symbol? (car x))))
+      (and (pair? x) (eq? (car x) 'quote))
     ) ;define
 
     (define-macro (packrat-parser start-nt . nonterminal-defs)

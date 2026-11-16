@@ -347,7 +347,7 @@
 
     (define-macro (define-values vars expression)
 
-      `(if (not (null? (quote ,vars)))
+      `(if (not (null? ',vars))
          (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
     ) ;define-macro
 

@@ -105,12 +105,6 @@
   "'(a b . c)\n"
 ) ;check
 
-;; bare syntax object 不应导致 formatter 崩溃
-(check (format-string "#_quote")
-  =>
-  "#_quote\n"
-) ;check
-
 ;; quasiquote 内部形式应该还原为 ` , ,@ 语法
 (check (format-string "`(a ,b)")
   =>

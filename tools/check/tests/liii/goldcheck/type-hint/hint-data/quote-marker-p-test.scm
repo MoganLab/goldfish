@@ -1,5 +1,5 @@
 ;; quote-marker?
-;; 判定对象是否为 quote 或 s7 产生的 #_quote 标记。
+;; 判定对象是否为 quote 标记。
 ;;
 ;; 语法
 ;; ----
@@ -13,6 +13,7 @@
 ;; ------
 ;; boolean
 ;; 是 quote 标记返回 #t，否则返回 #f。
+;; [1292] 开启 symbol-quote? 后，read 对 'X 产生 (quote X)，首项即普通符号 quote。
 
 (import (scheme base) (liii check) (liii goldcheck type-hint hint-data))
 

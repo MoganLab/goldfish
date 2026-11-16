@@ -1,6 +1,5 @@
 ;; quote-env?
-;; 判断 node 是否为 quote 表达式节点（tag 为 quote 或 #_quote），
-;; stem-mode 下恒为 #f。
+;; 判断 node 是否为 quote 表达式节点（tag 为 quote），stem-mode 下恒为 #f。
 ;;
 ;; 语法
 ;; ----
@@ -22,9 +21,6 @@
 
 ;; 测试：tag 为 quote 的 env 为 #t
 (check (quote-env? (make-env :tag-name "quote")) => #t)
-
-;; 测试：tag 为 #_quote 的 env 为 #t
-(check (quote-env? (make-env :tag-name "#_quote")) => #t)
 
 ;; 测试：其他 tag 为 #f
 (check (quote-env? (make-env :tag-name "define")) => #f)

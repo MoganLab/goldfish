@@ -40,9 +40,9 @@
     ;; hint 库按板块存放（r7rs/hint/ goldfish/hint/），其对应的原库可能位于任一源码根。
     (define library-source-roots '("r7rs" "goldfish" "library"))
 
-    ;; s7 的 read 对 'X 产生 #_quote 标记，用 object->string 识别
+    ;; [1292] 开启 symbol-quote? 后 read 对 'X 产生 (quote X)，首项即普通符号 quote
     (define (quote-marker? x)
-      (or (eq? x 'quote) (string=? (object->string x) "#_quote"))
+      (eq? x 'quote)
     ) ;define
 
     ;; 约定查询函数名：hint- + 原库名各部分用 / 连接

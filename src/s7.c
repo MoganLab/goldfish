@@ -3339,6 +3339,8 @@ static s7_pointer slot_expression(s7_pointer p)    \
 #define symbol_syntax_op_checked(p)    ((is_syntactic_pair(p)) ? optimize_op(p) : symbol_syntax_op(car(p)))
 #define symbol_syntax_op(p)            syntax_opcode(global_value(p))
 #define is_syntax_or_qq(p)	       ((is_syntax(p)) || ((p) == sc->quasiquote_function)) /* qq is from s7_define_macro -> T_C_MACRO */
+/* reader's quote datum head: honors (*s7* 'symbol-quote?) — #t yields the 'quote symbol, #f (s7 default) the #_quote syntax object */
+#define reader_quote_head(Sc)        ((Sc->symbol_quote) ? Sc->quote_symbol : Sc->quote_function)
 
 #define let_id(p)                      (T_Let(p))->object.let.id
 #define is_let(p)                      (type(p) == T_LET)
@@ -51817,7 +51819,7 @@ unquoted expressions are evaluated and plugged into the list, apply-values evalu
 and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -> (1 2 3 4)."
 
   if ((check_cycles) && (tree_is_cyclic(sc, form)))
-    return(list_2(sc, sc->quote_function, form));
+    return(list_2(sc, reader_quote_head(sc), form));
 
   if (is_t_vector(form))
     {
@@ -51841,7 +51843,7 @@ and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -
   if (!is_pair(form))
     {
       if (is_normal_symbol(form))
-        return(list_2(sc, sc->quote_function, form));
+        return(list_2(sc, reader_quote_head(sc), form));
       /* things that evaluate to themselves don't need to be quoted */
       return(form);
     }
@@ -51863,7 +51865,7 @@ and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -
    * if no element of the list is a list or unquote, just return the original quoted
    */
   if (is_simple_code(sc, form))
-    return(list_2(sc, sc->quote_function, form));
+    return(list_2(sc, reader_quote_head(sc), form));
 
   {
     s7_pointer orig, bq;
@@ -73001,7 +73003,7 @@ static bool op_read_quote(s7_scheme *sc) /* '<datum> -> (#_quote <datum) in s7, 
   if ((sc->safety > immutable_vector_safety) &&
       ((is_pair(sc->value)) || (is_any_vector(sc->value)) || (is_string(sc->value))))
     set_immutable(sc->value);
-  sc->value = list_2(sc, (sc->symbol_quote) ? sc->quote_symbol : sc->quote_function, sc->value);
+  sc->value = list_2(sc, reader_quote_head(sc), sc->value);
   return(stack_top_op(sc) != OP_READ_LIST);
 }
 

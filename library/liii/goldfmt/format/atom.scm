@@ -140,9 +140,7 @@
     (define (quote-env? node)
       (and (not (stem-mode?))
         (env? node)
-        (or (string=? (env-tag-name node) "quote")
-          (string=? (env-tag-name node) "#_quote")
-        ) ;or
+        (string=? (env-tag-name node) "quote")
       ) ;and
     ) ;define
 

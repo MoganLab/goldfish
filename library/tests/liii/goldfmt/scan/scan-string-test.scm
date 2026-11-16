@@ -262,17 +262,6 @@
   ) ;let*
 ) ;let
 
-;; bare syntax object 应该被当作 atom，而不是 pair
-(let ((results (scan-string "#_quote")))
-  (check (vector? results) => #t)
-  (check (vector-length results) => 1)
-  (let ((first (vector-ref results 0)))
-    (check (atom? first) => #t)
-    (check (syntax? (atom-value first)) => #t)
-    (check (object->string (atom-value first) #f) => "#_quote")
-  ) ;let
-) ;let
-
 ;; quasiquote 的内部形式应该被正规化为 reader 语义
 (let ((results (scan-string #"CODE"`(a ,@rest)"CODE")))
   (check (vector? results) => #t)
@@ -309,14 +298,9 @@
        (node (vector-ref results 0))
       ) ;
   (check (env? node) => #t)
-  ;; S7 将无 unquote 的 ` 读为 quote，tag-name 可能是 "quote" 或 "#_quote"
-  (check (or (string=? (env-tag-name node) "quote")
-           (string=? (env-tag-name node) "#_quote")
-           (string=? (env-tag-name node) "quasiquote")
-         ) ;or
-    =>
-    #t
-  ) ;check
+  ;; S7 对无 unquote 的 backquote 简化为 quote
+  ;; [1292] 开启 symbol-quote? 后，无 unquote 的 ` 读为 (quote x)，tag-name 为 "quote"
+  (check (string=? (env-tag-name node) "quote") => #t)
 ) ;let*
 
 ;; 测试 scan-string：字符字面量 #\: 在 quasiquote 中 (有 unquote, issue #910)

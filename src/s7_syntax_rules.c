@@ -257,17 +257,9 @@ typedef struct synclo_rename_entry {
 
 static bool
 is_quote_form (s7_scheme* sc, s7_pointer p) {
+  /* [1292] reader 开启 symbol-quote? 后 'x 一律读为 (quote x)，不再产生 #_quote 语法对象 */
   p= synclo_expr (sc, p);
-  if (s7_is_symbol (p)) {
-    return strcmp (s7_symbol_name (p), "quote") == 0;
-  }
-  if (s7_is_syntax (p)) {
-    char* str = s7_object_to_c_string (sc, p);
-    bool  is_q= (str && (strcmp (str, "#_quote") == 0 || strcmp (str, "quote") == 0));
-    if (str) free (str);
-    return is_q;
-  }
-  return false;
+  return s7_is_symbol (p) && (strcmp (s7_symbol_name (p), "quote") == 0);
 }
 
 static bool

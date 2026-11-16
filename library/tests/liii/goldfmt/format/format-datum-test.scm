@@ -93,7 +93,7 @@
 ) ;check
 
 ;; 阶段1: quote 格式测试
-;; 单引号应该输出为 'xxx 形式，而不是 (quote xxx) 或 (#_quote xxx)
+;; 单引号应该输出为 'xxx 形式，而不是 (quote xxx)
 (check (format-datum '(quote x))
   =>
   "'x"
@@ -104,25 +104,15 @@
   "'(a b c)"
 ) ;check
 
-(check (format-datum '(set! x (#_quote value)))
+(check (format-datum '(set! x (quote value)))
   =>
   "(set! x 'value)"
 ) ;check
 
-(check (format-datum '(f (#_quote a) (#_quote b))
+(check (format-datum '(f (quote a) (quote b))
        ) ;format-datum
   =>
   "(f 'a 'b)"
-) ;check
-
-(check (format-datum '(#_quote symbol))
-  =>
-  "'symbol"
-) ;check
-
-(check (format-datum '(#_quote (a b c)))
-  =>
-  "'(a b c)"
 ) ;check
 
 ;; 测试嵌套 quote 形式 '(quote define)

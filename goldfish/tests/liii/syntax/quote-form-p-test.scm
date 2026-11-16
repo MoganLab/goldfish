@@ -17,10 +17,9 @@
 ;;
 ;; 说明
 ;; ----
-;; quote-form? 接受两种等价的 quote 形式：
-;; - (quote x)：car 为普通符号 quote；
-;; - (#_quote x)：s7 reader 将 'x 读为 (#_quote x)，#_quote 是驻留的语法对象；
-;; - 形式必须恰好带一个参数：cdr 为 pair 且 cddr 为空列表。
+;; [1292] 开启 (*s7* 'symbol-quote?) 后，s7 reader 将 'x 读为 (quote x)，
+;; quote-form? 只接受 car 为普通符号 quote 的形式，不再支持旧的 #_quote
+;; 语法对象；形式必须恰好带一个参数：cdr 为 pair 且 cddr 为空列表。
 ;; 该函数常用于遍历代码或数据时穿透 quote 包装，如 (liii tree) 的 tree-depth。
 
 (import (liii check) (liii syntax))
@@ -33,11 +32,9 @@
 (check (quote-form? (list 'quote '(1 2 3))) => #t)
 (check (quote-form? (cons 'quote '(a))) => #t)
 
-;; 2. #_quote 语法对象形式（s7 reader 将 'x 读为 (#_quote x)）
+;; 2. reader 读入的 'x 即 (quote x)
 (check (quote-form? ''a) => #t)
 (check (quote-form? ''(1 2 3)) => #t)
-(check (quote-form? '(#_quote a)) => #t)
-(check (quote-form? '(#_quote (a b))) => #t)
 
 ;; 3. 非法结构：参数个数不符或带点对尾部
 (check (quote-form? '(quote)) => #f)

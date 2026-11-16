@@ -159,7 +159,6 @@ private:
       add_goldfish_load_paths (worker_sc, lib_dir.c_str ());
     }
     glue_for_community_edition (worker_sc);
-    s7_eval_c_string (worker_sc, "(set! (*s7* 'symbol-quote?) #t)");
     if (!lib_dir.empty ()) {
       namespace fs= std::filesystem;
       // boot.scm 位于 R7RS 板块（r7rs/scheme/）：安装布局为 <lib_dir>/r7rs/，

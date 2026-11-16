@@ -44,13 +44,8 @@
 
     (define (quote-syntax-form? value)
       (and (pair? value)
-        (not (null? value))
-        (or (eq? (car value) 'quote)
-          (and (syntax? (car value))
-            (string=? (object->string (car value) #f) "#_quote")
-          ) ;and
-        ) ;or
-        (not (null? (cdr value)))
+        (eq? (car value) 'quote)
+        (pair? (cdr value))
         (null? (cddr value))
       ) ;and
     ) ;define
@@ -105,17 +100,12 @@
 
     (define (reader-head-name head)
       (cond ((symbol? head) (symbol->string head))
-            ((syntax? head)
-             (let ((name (object->string head #f)))
-               (if (string=? name "#_quote") "quote" name)
-             ) ;let
-            ) ;
             (else "default")
       ) ;cond
     ) ;define
 
     (define (reader-rule-head? head)
-      (or (symbol? head) (syntax? head))
+      (symbol? head)
     ) ;define
 
     (define (reader-form-like? datum)

@@ -45,7 +45,7 @@
 ;; 4. 内联 assq 取值惯用法视为存在性已保证 -> unknown
 (check (infer-type '(cdr (assq 'k a)) env '()) => #f)
 
-;; 5. quote 形式（s7 read 后为 #_quote 标记，签名数据同此形态）
+;; 5. quote 形式（[1292] 开启 symbol-quote? 后 read 产生 (quote x)，签名数据同此形态）
 (check (infer-type ''sym env '()) => 'symbol?)
 (check (infer-type ''() env '()) => 'null?)
 (check (infer-type ''sym2 env '()) => 'symbol?)

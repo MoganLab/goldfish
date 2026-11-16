@@ -22,15 +22,11 @@
   ) ;export
   (import (scheme base))
   (begin
-    ;; ; quote 形式：(quote x) 或 (#_quote x)。
-    ;; ; s7 reader 会把 'x 读为 (#_quote x)，#_quote 是驻留的语法对象，
-    ;; ; 因此可以用 eq? 与源码字面量 #_quote 直接比较。
+    ;; ; quote 形式：(quote x)。
+    ;; ; [1292] 开启 (*s7* 'symbol-quote?) 后，reader 将 'x 读为 (quote x)，
+    ;; ; 不再产生旧的 #_quote 语法对象形式。
     (define (quote-form? x)
-      (and (pair? x)
-        (or (eq? (car x) 'quote) (eq? (car x) #_quote))
-        (pair? (cdr x))
-        (null? (cddr x))
-      ) ;and
+      (and (pair? x) (eq? (car x) 'quote) (pair? (cdr x)) (null? (cddr x)))
     ) ;define
 
     ;; ; unquote 形式：(unquote x) 或 (unquote-splicing x)。
