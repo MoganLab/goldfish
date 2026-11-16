@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi ai config credential)
-  (import (scheme base) (liii base))
+  (import (scheme base) (liii base) (liii error))
   (export pi-credential pi-credential? pi-credential-provider pi-credential-key
     pi-credential-type pi-credential->json
   ) ;export
@@ -20,6 +20,9 @@
     ) ;define*-record-type
 
     (define (pi-credential->json c)
+      (unless (pi-credential? c)
+        (type-error "pi-credential->json: expected pi-credential" c)
+      ) ;unless
       (list (cons "provider" (pi-credential-provider c))
         (cons "type" (pi-credential-type c))
         (cons "key" (pi-credential-key c))

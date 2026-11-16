@@ -7,6 +7,7 @@
 (define-library (liii pi ai config settings)
   (import (scheme base)
     (liii base)
+    (liii error)
     (liii list)
     (liii string)
     (liii pi ai config retry)
@@ -82,6 +83,9 @@
     ) ;define
 
     (define (pi-settings->json s)
+      (unless (pi-settings? s)
+        (type-error "pi-settings->json: expected pi-settings" s)
+      ) ;unless
       (let ((dp (pi-settings-default-provider s))
             (dm (pi-settings-default-model s))
             (dtl (pi-settings-default-thinking-level s))
@@ -161,6 +165,9 @@
     ;; per-model 思考级别覆盖：键为 "provider/modelId"（对齐上游 modelThinkingLevels）
     ;; 本实现的 assoc 对字符串键不按 equal? 比较，故自行遍历
     (define (pi-settings-model-thinking-level settings provider model-id)
+      (unless (pi-settings? settings)
+        (type-error "pi-settings-model-thinking-level: expected pi-settings" settings)
+      ) ;unless
       (let* ((provider-str (if (symbol? provider) (symbol->string provider) provider))
              (wanted (string-append provider-str "/" model-id))
              (levels (pi-settings-model-thinking-levels settings))

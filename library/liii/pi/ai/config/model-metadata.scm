@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi ai config model-metadata)
-  (import (scheme base) (liii base))
+  (import (scheme base) (liii base) (liii error))
   (export pi-model-metadata pi-model-metadata? pi-model-metadata-id
     pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
     pi-model-metadata-context-window pi-model-metadata-max-tokens
@@ -33,6 +33,9 @@
     ) ;define*-record-type
 
     (define (pi-model-metadata->json m)
+      (unless (pi-model-metadata? m)
+        (type-error "pi-model-metadata->json: expected pi-model-metadata" m)
+      ) ;unless
       (let ((base
               (list (cons "id" (pi-model-metadata-id m))
                 (cons "name" (pi-model-metadata-name m))

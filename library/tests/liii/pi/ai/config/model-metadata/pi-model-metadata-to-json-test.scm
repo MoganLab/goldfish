@@ -55,4 +55,7 @@
   (check (assoc "maxTokens" j) => #f)
 ) ;let*
 
+(check-catch 'type-error (pi-model-metadata->json '(("id" . "m"))))
+(check-catch 'type-error (pi-model-metadata->json "invalid"))
+
 (check-report)

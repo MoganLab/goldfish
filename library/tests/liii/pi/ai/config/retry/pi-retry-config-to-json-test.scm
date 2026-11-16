@@ -53,4 +53,7 @@
   (check (pi-retry-config-provider-max-retries rt) => #f)
 ) ;let*
 
+(check-catch 'type-error (pi-retry-config->json '(("enabled" . true))))
+(check-catch 'type-error (pi-retry-config->json "invalid"))
+
 (check-report)

@@ -80,4 +80,7 @@
   (check (pi-settings-enable-skill-commands rt) => #t)
 ) ;let*
 
+(check-catch 'type-error (pi-settings->json '(("defaultProvider" . "google"))))
+(check-catch 'type-error (pi-settings->json "invalid"))
+
 (check-report)

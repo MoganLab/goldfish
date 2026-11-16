@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi ai config retry)
-  (import (scheme base) (liii base))
+  (import (scheme base) (liii base) (liii error))
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
@@ -29,6 +29,9 @@
     ) ;define*-record-type
 
     (define (pi-retry-config->json r)
+      (unless (pi-retry-config? r)
+        (type-error "pi-retry-config->json: expected pi-retry-config" r)
+      ) ;unless
       (let ((base
               (list (cons "enabled" (if (pi-retry-config-enabled r) 'true 'false))
                 (cons "maxRetries" (pi-retry-config-max-retries r))

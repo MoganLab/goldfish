@@ -34,4 +34,7 @@
   (check (cdr (assoc "key" parsed)) => "secret-key")
 ) ;let*
 
+(check-catch 'type-error (pi-credential->json '(("provider" . "openai"))))
+(check-catch 'type-error (pi-credential->json "invalid"))
+
 (check-report)

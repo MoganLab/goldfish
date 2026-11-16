@@ -172,4 +172,7 @@ tools/ → library/ → goldfish/ → r7rs/
 ## 3. Record 定义规范
 
 - 定义带默认值或关键字参数的 record 类型时，应使用 `(liii base)` 提供的 `define*-record-type`，直接生成对外构造器（如 `pi-retry-config`），避免在 `types.scm` 中定义并导出 `%make-xxx` 内部构造器后再在 `record.scm` 中二次包装。
-- 推荐一个 record 对应一个 Scheme 文件，并将该 record 的定义以及对应的 `xxx->alist`、`xxx->json`、`json->xxx` 等序列化与反序列化函数放在同一文件中（例如 `library/liii/pi/ai/config/retry.scm`、`settings.scm`、`credential.scm`、`model-metadata.scm`）。
+- 推荐一个 record 对应一个 Scheme 文件，并将该 record 的定义以及对应的 `xxx->json`、`json->xxx` 等序列化与反序列化函数放在同一文件中（例如 `library/liii/pi/ai/config/retry.scm`、`settings.scm`、`credential.scm`、`model-metadata.scm`）。
+- 禁止为 record 额外提供 `xxx->alist` / `xxx-from-alist` 或在业务代码中通过 `(assoc ... record)` 访问字段；应直接使用 record 访问器。
+- `xxx->json` 必须强校验入参类型：使用 `(unless (xxx? obj) (type-error ...))` 拒绝非目标 record 的输入（如原生 alist），不保留 `pair?` 透传分支。
+- `json->xxx` 负责将 `(liii json)` 解析出的 JSON 对象（alist）规范化构造为对应的 record（缺失或非法字段应回退安全默认值；若传入已是目标 record 可幂等返回）。
