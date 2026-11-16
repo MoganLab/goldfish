@@ -34,7 +34,7 @@
 
 (import (liii check)
   (liii string)
-  (liii pi ai event)
+ 
   (liii pi ai message)
   (liii pi ai api google-generative-ai stream-result)
   (liii pi ai api google-generative-ai stream-state)
@@ -46,7 +46,7 @@
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (let ((msg (gemini-classify-stream-result stream-state #f '() 200 60 #f (vector "")))
        ) ;
-    (check (cdr (assoc 'stopReason msg)) => "stop")
+    (check (pi-assistant-message-stop-reason msg) => "stop")
   ) ;let
 ) ;let
 
@@ -54,8 +54,8 @@
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (let ((msg (gemini-classify-stream-result stream-state #t '() 200 60 #f (vector "")))
        ) ;
-    (check (cdr (assoc 'stopReason msg)) => "error")
-    (check-true (string-contains? (cdr (assoc 'errorMessage msg))
+    (check (pi-assistant-message-stop-reason msg) => "error")
+    (check-true (string-contains? (pi-assistant-message-error-message msg)
                   "Stream idle timed out after 60 seconds"
                 ) ;string-contains?
     ) ;check-true
@@ -74,8 +74,8 @@
              ) ;gemini-classify-stream-result
         ) ;msg
        ) ;
-    (check (cdr (assoc 'stopReason msg)) => "error")
-    (check-true (string-contains? (cdr (assoc 'errorMessage msg)) "Stream idle timed out")
+    (check (pi-assistant-message-stop-reason msg) => "error")
+    (check-true (string-contains? (pi-assistant-message-error-message msg) "Stream idle timed out")
     ) ;check-true
   ) ;let
 ) ;let
@@ -92,8 +92,8 @@
              ) ;gemini-classify-stream-result
         ) ;msg
        ) ;
-    (check (cdr (assoc 'stopReason msg)) => "error")
-    (check (cdr (assoc 'errorMessage msg)) => "HTTP 500: boom")
+    (check (pi-assistant-message-stop-reason msg) => "error")
+    (check (pi-assistant-message-error-message msg) => "HTTP 500: boom")
   ) ;let
 ) ;let
 
@@ -101,8 +101,8 @@
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (let ((msg (gemini-classify-stream-result stream-state #f '() 500 60 #f (vector "")))
        ) ;
-    (check (cdr (assoc 'stopReason msg)) => "error")
-    (check (cdr (assoc 'errorMessage msg)) => "HTTP 500 error")
+    (check (pi-assistant-message-stop-reason msg) => "error")
+    (check (pi-assistant-message-error-message msg) => "HTTP 500 error")
   ) ;let
 ) ;let
 
@@ -118,8 +118,8 @@
              ) ;gemini-classify-stream-result
         ) ;msg
        ) ;
-    (check (cdr (assoc 'stopReason msg)) => "error")
-    (check (cdr (assoc 'errorMessage msg)) => "Request failed: connection refused")
+    (check (pi-assistant-message-stop-reason msg) => "error")
+    (check (pi-assistant-message-error-message msg) => "Request failed: connection refused")
   ) ;let
 ) ;let
 

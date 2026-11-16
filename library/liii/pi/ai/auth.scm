@@ -16,7 +16,6 @@
     (liii pi ai template)
 
     (liii pi ai config credential)
-    (liii pi ai event)
   ) ;import
   (export pi-load-auth pi-resolve-provider-key pi-save-auth-key)
   (begin
@@ -178,11 +177,39 @@
       ) ;cond
     ) ;define
 
-    (define (%non-empty-auth-key pair)
-      (and pair
-        (string? (cdr pair))
-        (not (string-null? (string-trim-both (cdr pair))))
-        (cdr pair)
+    (define (%non-empty-auth-key val)
+      (and (string? val) (not (string-null? (string-trim-both val))) val)
+    ) ;define
+
+    (define (%find-auth-key target auth-list)
+      (and target
+        (let ((sym-target (string->symbol target)))
+          (let loop
+            ((xs auth-list))
+            (if (null? xs)
+              #f
+              (let ((item (car xs)))
+                (cond
+                 ((pi-credential? item)
+                  (if (or (equal? (pi-credential-provider item) target)
+                        (equal? (pi-credential-provider item) sym-target)
+                      ) ;or
+                    (%non-empty-auth-key (pi-credential-key item))
+                    (loop (cdr xs))
+                  ) ;if
+                 ) ;
+                 ((pair? item)
+                  (if (or (equal? (car item) target) (equal? (car item) sym-target))
+                    (%non-empty-auth-key (cdr item))
+                    (loop (cdr xs))
+                  ) ;if
+                 ) ;
+                 (else (loop (cdr xs)))
+                ) ;cond
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;let
       ) ;and
     ) ;define
 
@@ -192,22 +219,15 @@
             ) ;
         (if env-k
           env-k
-          (let* ((pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist)))
-                 (alias (%provider-alias p-str))
-                 (alias-pair
-                   (and alias
-                     (or (assoc alias auth-alist) (assoc (string->symbol alias) auth-alist))
-                   ) ;and
-                 ) ;alias-pair
-                ) ;
-            (or (%non-empty-auth-key pair)
-              (%non-empty-auth-key alias-pair)
+          (let ((alias (%provider-alias p-str)))
+            (or (%find-auth-key p-str auth-alist)
+              (%find-auth-key alias auth-alist)
               (cond ((string=? p-str "deepseek") (%resolve-deepseek-fallback opt-env))
                     ((string=? p-str "ollama") "ollama")
                     (else #f)
               ) ;cond
             ) ;or
-          ) ;let*
+          ) ;let
         ) ;if
       ) ;let*
     ) ;define

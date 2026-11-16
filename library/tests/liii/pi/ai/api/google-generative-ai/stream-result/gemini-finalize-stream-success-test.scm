@@ -23,7 +23,7 @@
 ;; finishReason 缺省时按 STOP 处理。
 
 (import (liii check)
-  (liii pi ai event)
+ 
   (liii pi ai message)
   (liii pi ai api google-generative-ai stream-result)
   (liii pi ai api google-generative-ai stream-state)
@@ -44,10 +44,10 @@
       ) ;stream-state
      ) ;
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
-    (check (cdr (assoc 'role msg)) => "assistant")
-    (check (cdr (assoc 'stopReason msg)) => "stop")
+    (check (pi-assistant-message-role msg) => "assistant")
+    (check (pi-assistant-message-stop-reason msg) => "stop")
     (check
-      (cdr (assoc 'input (cdr (assoc 'usage msg))))
+      (cdr (assoc 'input (pi-assistant-message-usage msg)))
       =>
       1
     ) ;check
@@ -57,29 +57,29 @@
 ;; 存在工具调用时 stopReason 为 toolUse
 (let ((stream-state (make-gemini-stream-state '() #f '() '(tc) "STOP" #f "" "")))
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
-    (check (cdr (assoc 'stopReason msg)) => "toolUse")
+    (check (pi-assistant-message-stop-reason msg) => "toolUse")
   ) ;let
 ) ;let
 
 ;; MAX_TOKENS 截断
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "MAX_TOKENS" #f "" "")))
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
-    (check (cdr (assoc 'stopReason msg)) => "length")
+    (check (pi-assistant-message-stop-reason msg) => "length")
   ) ;let
 ) ;let
 
 ;; 未知 finishReason 映射为 error 并带错误信息
 (let ((stream-state (make-gemini-stream-state '() #f '() '() "SAFETY" #f "" "")))
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
-    (check (cdr (assoc 'stopReason msg)) => "error")
-    (check (cdr (assoc 'errorMessage msg)) => "SAFETY")
+    (check (pi-assistant-message-stop-reason msg) => "error")
+    (check (pi-assistant-message-error-message msg) => "SAFETY")
   ) ;let
 ) ;let
 
 ;; 缺少 finishReason 时按 STOP 处理
 (let ((stream-state (make-gemini-stream-state '() #f '() '() #f #f "" "")))
   (let ((msg (gemini-finalize-stream-success stream-state #f)))
-    (check (cdr (assoc 'stopReason msg)) => "stop")
+    (check (pi-assistant-message-stop-reason msg) => "stop")
   ) ;let
 ) ;let
 

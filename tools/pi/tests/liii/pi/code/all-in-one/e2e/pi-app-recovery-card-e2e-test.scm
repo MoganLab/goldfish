@@ -27,7 +27,7 @@
   (liii go)
   (liii string)
   (liii tui)
-  (liii pi ai event)
+  (liii pi code event)
   (liii tui component)
   (liii pi code modes interactive)
   (liii pi code modes interactive worker-emit)

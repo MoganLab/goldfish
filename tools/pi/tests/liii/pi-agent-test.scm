@@ -71,8 +71,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (check (extract-assistant-text last-msg) => "Hello stream!")
   ) ;let*
 
@@ -82,8 +82,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (check (extract-assistant-text last-msg)
       =>
       "Multi-turn tool completed successfully!"
@@ -97,7 +97,7 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'stopReason last-msg)) => "length")
+    (check (pi-assistant-message-stop-reason last-msg) => "length")
     (check (extract-assistant-text last-msg) => "Partial cut")
   ) ;let*
 
@@ -107,8 +107,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'stopReason last-msg)) => "error")
-    (check (cdr (assoc 'errorMessage last-msg)) => "SAFETY")
+    (check (pi-assistant-message-stop-reason last-msg) => "error")
+    (check (pi-assistant-message-error-message last-msg) => "SAFETY")
   ) ;let*
 
   ;; 5. max-turns 超限
@@ -117,8 +117,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 1))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'stopReason last-msg)) => "error")
-    (check-true (string-contains? (cdr (assoc 'errorMessage last-msg)) "Maximum turns")
+    (check (pi-assistant-message-stop-reason last-msg) => "error")
+    (check-true (string-contains? (pi-assistant-message-error-message last-msg) "Maximum turns")
     ) ;check-true
   ) ;let*
 
@@ -159,8 +159,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" emit 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (let ((updates (filter (lambda (ev) (eq? (car ev) 'message_update)) emitted)))
       (check-true (> (length updates) 0))
     ) ;let
@@ -179,15 +179,15 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (check-true (string-contains? (extract-assistant-text last-msg)
                   "Tool executed successfully!"
                 ) ;string-contains?
     ) ;check-true
     (let ((tool-results
             (filter
-              (lambda (m) (equal? (cdr (assoc 'role m)) "toolResult"))
+              (lambda (m) (pi-tool-result-message? m))
               res-msgs
             ) ;filter
           ) ;tool-results
@@ -212,8 +212,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" emit 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (let ((updates (filter (lambda (ev) (eq? (car ev) 'message_update)) emitted)))
       (check-true (> (length updates) 0))
     ) ;let
@@ -232,15 +232,15 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (check-true (string-contains? (extract-assistant-text last-msg)
                   "Tool executed successfully!"
                 ) ;string-contains?
     ) ;check-true
     (let ((tool-results
             (filter
-              (lambda (m) (equal? (cdr (assoc 'role m)) "toolResult"))
+              (lambda (m) (pi-tool-result-message? m))
               res-msgs
             ) ;filter
           ) ;tool-results
@@ -265,8 +265,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" emit 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (let ((updates (filter (lambda (ev) (eq? (car ev) 'message_update)) emitted)))
       (check-true (> (length updates) 0))
     ) ;let
@@ -286,15 +286,15 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (check-true (string-contains? (extract-assistant-text last-msg)
                   "Tool executed successfully!"
                 ) ;string-contains?
     ) ;check-true
     (let ((tool-results
             (filter
-              (lambda (m) (equal? (cdr (assoc 'role m)) "toolResult"))
+              (lambda (m) (pi-tool-result-message? m))
               res-msgs
             ) ;filter
           ) ;tool-results
@@ -324,8 +324,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10 0))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (check (extract-assistant-text last-msg)
       =>
       "Multi-turn tool completed successfully!"
@@ -339,8 +339,8 @@
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10 60))
          (last-msg (car (reverse res-msgs)))
         ) ;
-    (check (cdr (assoc 'role last-msg)) => "assistant")
-    (check (cdr (assoc 'stopReason last-msg)) => "stop")
+    (check (pi-assistant-message-role last-msg) => "assistant")
+    (check (pi-assistant-message-stop-reason last-msg) => "stop")
     (check (extract-assistant-text last-msg)
       =>
       "Multi-turn tool completed successfully!"

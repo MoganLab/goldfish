@@ -219,7 +219,7 @@
   (let ((content (pi-assistant-message-content (car msgs))))
     (check (length content) => 1)
     (check (pi-block-type (car content)) => "text")
-    (check (cdr (assoc "text" (car content))) => "after")
+    (check (pi-text-block-text (car content)) => "after")
   ) ;let
 ) ;let*-values
 
@@ -305,8 +305,8 @@
   (check (length msgs) => 1)
   (let ((content (pi-assistant-message-content (car msgs))))
     (check (length content) => 2)
-    (check (cdr (assoc "text" (car content))) => "first")
-    (check (cdr (assoc "text" (cadr content))) => "second")
+    (check (pi-text-block-text (car content)) => "first")
+    (check (pi-text-block-text (cadr content)) => "second")
   ) ;let
   (check (diag-ref diag 'ignored-edits '()) => '())
 ) ;let*-values

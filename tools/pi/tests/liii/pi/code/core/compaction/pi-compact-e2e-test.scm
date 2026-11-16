@@ -25,7 +25,7 @@
   (liii path)
   (liii subprocess)
   (liii sys)
-  (liii pi ai event)
+  (liii pi code event)
   (liii pi ai message)
   (liii pi code core compaction session)
   (liii pi code core session-manager)

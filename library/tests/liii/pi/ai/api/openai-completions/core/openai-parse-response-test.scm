@@ -22,7 +22,7 @@
 ;; 文本和工具调用转换为内部 content block，并保持原始顺序。
 ;; API 错误响应映射为 stopReason=error。
 
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
+(import (liii check) (liii pi ai api openai-completions) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 

@@ -33,7 +33,8 @@
 ;; ----
 ;; 支持文本、工具调用和 thinking 流式块，以及重试、API key 轮换、超时和中止。
 
-(import (liii check)
+(import (liii pi ai message)
+  (liii check)
   (liii string)
   (liii path)
   (liii subprocess)
@@ -42,7 +43,7 @@
   (liii time)
   (scheme time)
   (liii pi ai abort)
-  (liii pi ai event)
+ 
   (liii pi ai log)
   (liii pi ai api google-generative-ai stream)
 ) ;import
@@ -126,17 +127,17 @@
              ) ;gemini-request-stream
            ) ;resp-stream
           ) ;
-      (check (cdr (assoc 'role resp-stream)) => "assistant")
-      (check (cdr (assoc 'stopReason resp-stream)) => "stop")
+      (check (pi-assistant-message-role resp-stream) => "assistant")
+      (check (pi-assistant-message-stop-reason resp-stream) => "stop")
       (check (reverse deltas) => '("Hello " "stream!"))
       (check
         (cdr
-          (assoc 'text (car (cdr (assoc 'content resp-stream))))
+          (cons 'text (pi-text-block-text (car (pi-assistant-message-content resp-stream))))
         ) ;cdr
         =>
         "Hello stream!"
       ) ;check
-      (let ((u (cdr (assoc 'usage resp-stream))))
+      (let ((u (pi-assistant-message-usage resp-stream)))
         (check (cdr (assoc 'input u)) => 10)
         (check (cdr (assoc 'output u)) => 6)
         (check (cdr (assoc 'totalTokens u)) => 16)
@@ -167,8 +168,8 @@
              ) ;gemini-request-stream
            ) ;resp-idle
           ) ;
-      (check (cdr (assoc 'stopReason resp-idle)) => "error")
-      (check-true (string-contains? (cdr (assoc 'errorMessage resp-idle)) "idle timed out")
+      (check (pi-assistant-message-stop-reason resp-idle) => "error")
+      (check-true (string-contains? (pi-assistant-message-error-message resp-idle) "idle timed out")
       ) ;check-true
     ) ;let*
 
@@ -193,9 +194,9 @@
              ) ;gemini-request-stream
            ) ;resp-400
           ) ;
-      (check (cdr (assoc 'stopReason resp-400)) => "error")
-      (check-true (string-contains? (cdr (assoc 'errorMessage resp-400)) "HTTP 400:"))
-      (check-true (string-contains? (cdr (assoc 'errorMessage resp-400)) "system_instruction")
+      (check (pi-assistant-message-stop-reason resp-400) => "error")
+      (check-true (string-contains? (pi-assistant-message-error-message resp-400) "HTTP 400:"))
+      (check-true (string-contains? (pi-assistant-message-error-message resp-400) "system_instruction")
       ) ;check-true
     ) ;let*
 
@@ -222,18 +223,18 @@
              ) ;gemini-request-stream
            ) ;resp-proxy
           ) ;
-      (check (cdr (assoc 'stopReason resp-proxy)) => "error")
+      (check (pi-assistant-message-stop-reason resp-proxy) => "error")
       ;; Windows 上无效代理连接可能在 timeout 内未得到 connection refused，
       ;; 而是触发客户端超时（errorMessage 为 Request timed out after Ns）；
       ;; 两种情况都应是人类可读的错误提示
       (check-true
-        (let ((msg (cdr (assoc 'errorMessage resp-proxy))))
+        (let ((msg (pi-assistant-message-error-message resp-proxy)))
           (or (string-contains? msg "Request failed:")
             (string-contains? msg "Request timed out after")
           ) ;or
         ) ;let
       ) ;check-true
-      (check-false (string=? (cdr (assoc 'errorMessage resp-proxy)) "HTTP 0 stream error")
+      (check-false (string=? (pi-assistant-message-error-message resp-proxy) "HTTP 0 stream error")
       ) ;check-false
     ) ;let*
 
@@ -269,7 +270,7 @@
            (dt (- (current-second) t0))
           ) ;
       (check-true (< dt 10))
-      (check (cdr (assoc 'stopReason resp)) => "aborted")
+      (check (pi-assistant-message-stop-reason resp) => "aborted")
       (pi-abort-reset!)
     ) ;let*
 
@@ -300,10 +301,10 @@
              ) ;gemini-request-stream
            ) ;resp-m
           ) ;
-      (check (cdr (assoc 'stopReason resp-m)) => "stop")
+      (check (pi-assistant-message-stop-reason resp-m) => "stop")
       (check
         (cdr
-          (assoc 'text (car (cdr (assoc 'content resp-m))))
+          (cons 'text (pi-text-block-text (car (pi-assistant-message-content resp-m))))
         ) ;cdr
         =>
         "Hello stream!"
@@ -337,8 +338,8 @@
              ) ;gemini-request-stream
            ) ;resp-a
           ) ;
-      (check (cdr (assoc 'stopReason resp-a)) => "error")
-      (check (cdr (assoc 'errorMessage resp-a)) => "MALFORMED_RESPONSE")
+      (check (pi-assistant-message-stop-reason resp-a) => "error")
+      (check (pi-assistant-message-error-message resp-a) => "MALFORMED_RESPONSE")
     ) ;let*
 
     ;; HTTP 200 + finishReason=SAFETY：内容判定类终态，不重试，也不因重试拖延
@@ -370,8 +371,8 @@
                ) ;gemini-request-stream
              ) ;resp-s
             ) ;
-        (check (cdr (assoc 'stopReason resp-s)) => "error")
-        (check (cdr (assoc 'errorMessage resp-s)) => "SAFETY")
+    (check (pi-assistant-message-stop-reason resp-s) => "error")
+    (check (pi-assistant-message-error-message resp-s) => "SAFETY")
         (check-true (< (- (current-second) t0-s) 5))
       ) ;let*
       (gemini-request-stream (mk-cfg "malformed-response-always" #t)
@@ -392,9 +393,7 @@
       (path-rmdir log-base)
     ) ;let*
   ) ;let*
-
-  (process-kill proc)
-  (process-wait proc)
+  (process-kill proc) (process-wait proc)
 ) ;let*
 
 (check-report)

@@ -10,7 +10,6 @@
     (liii json)
     (liii list)
     (liii pi ai message)
-    (liii pi ai event)
     (liii pi ai tools definition)
   ) ;import
   (export openai-build-tool-declarations openai-build-messages
@@ -20,14 +19,21 @@
   (begin
 
     (define (%val key obj default-val)
-      (let ((p
-              (or (assoc key obj)
-                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-              ) ;or
-            ) ;p
-           ) ;
-        (if (pair? p) (cdr p) default-val)
-      ) ;let
+      (if (not (pair? obj))
+        default-val
+        (let ((p
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+                ) ;or
+              ) ;p
+             ) ;
+          (if (pair? p) (cdr p) default-val)
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%msg-role msg)
+      (if (pi-message? msg) (pi-message-role msg) (%val 'role msg ""))
     ) ;define
 
     (define (openai-build-tool-declarations tool-defs)
@@ -183,7 +189,11 @@
     ) ;define
 
     (define (%convert-assistant-msg msg)
-      (let* ((raw-c (%val 'content msg '()))
+      (let* ((raw-c (if (pi-assistant-message? msg)
+                      (pi-assistant-message-content msg)
+                      (%val 'content msg '())
+                    ) ;if
+             ) ;raw-c
              (c-list (cond ((vector? raw-c) (vector->list raw-c))
                            ((pair? raw-c) raw-c)
                            (else '())
@@ -208,11 +218,14 @@
     ) ;define
 
     (define (%convert-message msg)
-      (let ((role (%val 'role msg "")))
+      (let ((role (%msg-role msg)))
         (cond
          ((equal? role "user")
           (list (cons "role" "user")
-            (cons "content" (%msg-text-content (%val 'content msg "")))
+            (cons "content"
+              (%msg-text-content (if (pi-user-message? msg) (pi-user-message-content msg) (%val 'content msg ""))
+              ) ;%msg-text-content
+            ) ;cons
           ) ;list
          ) ;
          ((equal? role "assistant") (%convert-assistant-msg msg))
@@ -273,7 +286,7 @@
       (let tool-loop
         ((rest cur-rest) (tool-msgs '()) (images '()))
         (if
-          (and (pair? rest) (equal? (%val 'role (car rest) "") "toolResult"))
+          (and (pair? rest) (equal? (%msg-role (car rest)) "toolResult"))
           (let-values (((tool-obj img-items) (%convert-one-tool-result (car rest) opt-model)))
             (tool-loop (cdr rest) (cons tool-obj tool-msgs) (append images img-items))
           ) ;let-values
@@ -304,7 +317,7 @@
         ((rest messages) (acc '()))
         (if (null? rest)
           (list->vector (%prepend-system-instruction (reverse acc) system-instruction))
-          (let* ((msg (car rest)) (role (%val 'role msg "")))
+          (let* ((msg (car rest)) (role (%msg-role msg)))
             (cond
              ((equal? role "toolResult")
               (let-values (((rem-rest out-tool-msgs images)

@@ -12,7 +12,6 @@
     (liii list)
     (liii pi ai abort)
     (liii pi ai config runtime)
-    (liii pi ai event)
     (liii pi ai message)
     (liii pi ai tools definition)
     (liii pi ai tools result)

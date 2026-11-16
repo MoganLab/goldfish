@@ -24,7 +24,6 @@
     (liii pi ai providers registry)
 
     (liii pi ai config settings)
-    (liii pi ai event)
     (liii pi code config settings)
     (liii pi code config query)
     (liii pi code config user-catalog)
@@ -226,7 +225,12 @@
       (let* ((catalog (pi-cfg-ref cfg 'models-store '()))
              (entry (and (pair? catalog) (assoc provider catalog)))
              (declared
-               (and entry (let ((v (assoc "api" entry))) (and v (cdr v))))
+               (and (pair? entry)
+                 (pair? (cdr entry))
+                 (let ((v (assoc "api" (cdr entry))))
+                   (and v (cdr v))
+                 ) ;let
+               ) ;and
              ) ;declared
             ) ;
         (or declared (pi-provider-api provider))

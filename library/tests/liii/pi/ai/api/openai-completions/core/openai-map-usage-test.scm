@@ -19,7 +19,7 @@
 ;; 内部标准 usage alist，包含 input、output、cacheRead、cacheWrite 与 totalTokens。
 ;; 其中 input 为扣减 cacheRead 与 cacheWrite 后的真实未缓存输入 token 数。
 
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
+(import (liii check) (liii pi ai api openai-completions) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 

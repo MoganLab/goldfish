@@ -23,7 +23,7 @@
 ;; 收到 [DONE] 时完成所有未结束的工具调用。
 
 (import (liii check)
-  (liii pi ai event)
+ 
   (liii pi ai api openai-completions)
   (liii pi ai message)
 ) ;import

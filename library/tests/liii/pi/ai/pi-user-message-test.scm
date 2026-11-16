@@ -17,7 +17,7 @@
 ;; pi-user-message
 ;; 包含 content 和 timestamp 的 user 角色消息。
 
-(import (liii check) (liii pi ai event) (liii pi ai message))
+(import (liii check) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 

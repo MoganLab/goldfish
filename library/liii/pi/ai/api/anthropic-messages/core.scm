@@ -12,7 +12,6 @@
     (liii json)
     (liii error)
     (liii pi ai message)
-    (liii pi ai event)
     (liii pi ai tools definition)
     (liii pi ai limits)
     (liii pi ai api anthropic-messages input)
@@ -27,14 +26,21 @@
   (begin
 
     (define (%val key obj default-val)
-      (let ((p
-              (or (assoc key obj)
-                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-              ) ;or
-            ) ;p
-           ) ;
-        (if (pair? p) (cdr p) default-val)
-      ) ;let
+      (if (not (pair? obj))
+        default-val
+        (let ((p
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+                ) ;or
+              ) ;p
+             ) ;
+          (if (pair? p) (cdr p) default-val)
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%msg-role msg)
+      (if (pi-message? msg) (pi-message-role msg) (%val 'role msg ""))
     ) ;define
 
     (define (anthropic-map-stop-reason reason)
@@ -96,7 +102,10 @@
     (define %assistant-blk->anthropic-blk anthropic-assistant-blk->anthropic-blk)
 
     (define (%first-blk-text blk)
-      (if (string? blk) blk (%val 'text blk ""))
+      (cond ((string? blk) blk)
+            ((pi-text-block? blk) (pi-text-block-text blk))
+            (else (%val 'text blk ""))
+      ) ;cond
     ) ;define
 
     (define (%is-image-block? b)
@@ -199,7 +208,7 @@
 
     (define (%take-tool-results rest acc)
       (if
-        (and (pair? rest) (equal? (%val 'role (car rest) "") "toolResult"))
+        (and (pair? rest) (equal? (%msg-role (car rest)) "toolResult"))
         (%take-tool-results (cdr rest)
           (cons (%tool-result->anthropic-blk (car rest)) acc)
         ) ;%take-tool-results
@@ -216,7 +225,7 @@
         ((rest messages) (acc '()))
         (if (null? rest)
           (list->vector (reverse acc))
-          (let* ((msg (car rest)) (role (%val 'role msg "")))
+          (let* ((msg (car rest)) (role (%msg-role msg)))
             (cond
              ((equal? role "toolResult")
               (let*-values (((rem rblocks) (%take-tool-results rest '()))
@@ -226,7 +235,8 @@
               ) ;let*-values
              ) ;
              ((equal? role "user")
-              (let* ((c (%val 'content msg ""))
+              (let* ((c (if (pi-user-message? msg) (pi-user-message-content msg) (%val 'content msg ""))
+                     ) ;c
                      (cvec
                        (if (vector? c) c (vector (list (cons "type" "text") (cons "text" c))))
                      ) ;cvec
@@ -235,7 +245,11 @@
               ) ;let*
              ) ;
              ((equal? role "assistant")
-              (let* ((c (%val 'content msg '()))
+              (let* ((c (if (pi-assistant-message? msg)
+                          (pi-assistant-message-content msg)
+                          (%val 'content msg '())
+                        ) ;if
+                     ) ;c
                      (c-list (cond ((vector? c) (vector->list c)) ((pair? c) c) (else '())))
                      (blks (map %assistant-blk->anthropic-blk c-list))
                     ) ;

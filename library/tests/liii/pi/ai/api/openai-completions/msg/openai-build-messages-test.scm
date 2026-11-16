@@ -25,7 +25,7 @@
 ;; 被整体跳过，不产生空 assistant API 消息（对齐上游 blocks 为空时 continue），
 ;; 跳过后允许产生连续 user 消息。
 
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
+(import (liii check) (liii pi ai api openai-completions) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 

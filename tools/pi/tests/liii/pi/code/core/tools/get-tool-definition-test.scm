@@ -145,8 +145,8 @@
 (let ((def (get-tool-definition "read")))
   (check-true (pi-tool-definition? def))
   (check (pi-tool-definition-name def) => "read")
-  (check (cdr (assoc 'name def)) => "read")
-  (check (cdr (assoc 'snippet def)) => "Read file contents")
+  (check (pi-tool-definition-name def) => "read")
+  (check (pi-tool-definition-snippet def) => "Read file contents")
 ) ;let
 
 ;; bash 支持默认与自定义超时 schema

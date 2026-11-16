@@ -20,6 +20,7 @@
     (liii pi agent loop)
     (liii pi ai dispatch)
     (liii pi ai types)
+    (liii pi code event)
     (liii pi code core compaction session)
     (liii pi code core compaction flow)
     (liii pi code core session-projection)

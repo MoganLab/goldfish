@@ -10,7 +10,6 @@
     (liii list)
     (liii json)
     (liii pi ai message)
-    (liii pi ai event)
   ) ;import
   (export anthropic-normalize-input
     anthropic-parse-tool-arguments
@@ -19,14 +18,17 @@
   (begin
 
     (define (%val key obj default-val)
-      (let ((p
-              (or (assoc key obj)
-                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-              ) ;or
-            ) ;p
-           ) ;
-        (if (pair? p) (cdr p) default-val)
-      ) ;let
+      (if (not (pair? obj))
+        default-val
+        (let ((p
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+                ) ;or
+              ) ;p
+             ) ;
+          (if (pair? p) (cdr p) default-val)
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%object-entry? x)
@@ -121,29 +123,53 @@
     ) ;define
 
     (define (anthropic-assistant-blk->anthropic-blk blk)
-      (let ((btype (%val 'type blk "")))
-        (cond
-         ((equal? btype "text")
-          (list (cons "type" "text") (cons "text" (%val 'text blk "")))
-         ) ;
-         ((equal? btype "toolCall")
-          (list (cons "type" "tool_use")
-            (cons "id" (%val 'id blk ""))
-            (cons "name" (%val 'name blk ""))
-            (cons "input" (anthropic-normalize-input (%val 'arguments blk '())))
-          ) ;list
-         ) ;
-         ((equal? btype "thinking")
-          (let ((sig (%val 'thinkingSignature blk #f)) (th (%val 'thinking blk "")))
-            (if (and (string? sig) (not (string-null? sig)))
-              (list (cons "type" "thinking") (cons "thinking" th) (cons "signature" sig))
-              (list (cons "type" "thinking") (cons "thinking" th))
-            ) ;if
-          ) ;let
-         ) ;
-         (else (list (cons "type" "text") (cons "text" "")))
-        ) ;cond
-      ) ;let
+      (cond
+       ((pi-text-block? blk)
+        (list (cons "type" "text") (cons "text" (pi-text-block-text blk)))
+       ) ;
+       ((pi-tool-call-block? blk)
+        (list (cons "type" "tool_use")
+          (cons "id" (pi-tool-call-block-id blk))
+          (cons "name" (pi-tool-call-block-name blk))
+          (cons "input" (anthropic-normalize-input (pi-tool-call-block-arguments blk)))
+        ) ;list
+       ) ;
+       ((pi-thinking-block? blk)
+        (let ((sig (pi-thinking-block-thinking-signature blk))
+              (th (pi-thinking-block-thinking blk))
+             ) ;
+          (if (and (string? sig) (not (string-null? sig)))
+            (list (cons "type" "thinking") (cons "thinking" th) (cons "signature" sig))
+            (list (cons "type" "thinking") (cons "thinking" th))
+          ) ;if
+        ) ;let
+       ) ;
+       (else
+         (let ((btype (%val 'type blk "")))
+           (cond
+            ((equal? btype "text")
+             (list (cons "type" "text") (cons "text" (%val 'text blk "")))
+            ) ;
+            ((equal? btype "toolCall")
+             (list (cons "type" "tool_use")
+               (cons "id" (%val 'id blk ""))
+               (cons "name" (%val 'name blk ""))
+               (cons "input" (anthropic-normalize-input (%val 'arguments blk '())))
+             ) ;list
+            ) ;
+            ((equal? btype "thinking")
+             (let ((sig (%val 'thinkingSignature blk #f)) (th (%val 'thinking blk "")))
+               (if (and (string? sig) (not (string-null? sig)))
+                 (list (cons "type" "thinking") (cons "thinking" th) (cons "signature" sig))
+                 (list (cons "type" "thinking") (cons "thinking" th))
+               ) ;if
+             ) ;let
+            ) ;
+            (else (list (cons "type" "text") (cons "text" "")))
+           ) ;cond
+         ) ;let
+       ) ;else
+      ) ;cond
     ) ;define
 
   ) ;begin

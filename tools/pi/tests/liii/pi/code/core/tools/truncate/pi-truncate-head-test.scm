@@ -13,7 +13,8 @@
 ;; ------
 ;; alist?，含 content/truncated 等键
 
-(import (liii check)
+(import (liii pi ai tools trunc-result)
+  (liii check)
   (liii pi code core session-manager)
   (liii pi code core tools)
 ) ;import
@@ -23,32 +24,32 @@
 ;; pi-truncate-head
 ;; 保留头部内容截断文本。
 (let ((res (pi-truncate-head "line1\nline2\nline3" 10 1000)))
-  (check (cdr (assoc 'truncated res)) => #f)
-  (check (cdr (assoc 'content res)) => "line1\nline2\nline3")
-  (check (cdr (assoc 'output-lines res)) => 3)
-  (check (cdr (assoc 'total-lines res)) => 3)
+  (check (pi-trunc-result-truncated res) => #f)
+  (check (pi-trunc-result-content res) => "line1\nline2\nline3")
+  (check (pi-trunc-result-output-lines res) => 3)
+  (check (pi-trunc-result-total-lines res) => 3)
 ) ;let
 
 (let ((res (pi-truncate-head "line1\nline2\nline3\nline4" 2 1000)))
-  (check (cdr (assoc 'truncated res)) => #t)
-  (check (cdr (assoc 'truncated-by res)) => 'lines)
-  (check (cdr (assoc 'content res)) => "line1\nline2")
-  (check (cdr (assoc 'output-lines res)) => 2)
-  (check (cdr (assoc 'total-lines res)) => 4)
+  (check (pi-trunc-result-truncated res) => #t)
+  (check (pi-trunc-result-truncated-by res) => 'lines)
+  (check (pi-trunc-result-content res) => "line1\nline2")
+  (check (pi-trunc-result-output-lines res) => 2)
+  (check (pi-trunc-result-total-lines res) => 4)
 ) ;let
 
 (let ((res (pi-truncate-head "12345\n67890\nabcde" 10 12)))
-  (check (cdr (assoc 'truncated res)) => #t)
-  (check (cdr (assoc 'truncated-by res)) => 'bytes)
-  (check (cdr (assoc 'content res)) => "12345\n67890")
-  (check (cdr (assoc 'output-lines res)) => 2)
+  (check (pi-trunc-result-truncated res) => #t)
+  (check (pi-trunc-result-truncated-by res) => 'bytes)
+  (check (pi-trunc-result-content res) => "12345\n67890")
+  (check (pi-trunc-result-output-lines res) => 2)
 ) ;let
 
 (let ((res (pi-truncate-head "1234567890\nline2" 10 5)))
-  (check (cdr (assoc 'truncated res)) => #t)
-  (check (cdr (assoc 'truncated-by res)) => 'bytes)
-  (check (cdr (assoc 'first-line-exceeds-limit? res)) => #t)
-  (check (cdr (assoc 'content res)) => "")
+  (check (pi-trunc-result-truncated res) => #t)
+  (check (pi-trunc-result-truncated-by res) => 'bytes)
+  (check (pi-trunc-result-first-line-exceeds-limit? res) => #t)
+  (check (pi-trunc-result-content res) => "")
 ) ;let
 
 (check-report)

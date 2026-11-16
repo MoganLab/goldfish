@@ -33,7 +33,8 @@
 ;; ----
 ;; 支持文本、工具调用和 thinking 流式块，以及重试、空闲超时和用户中止。
 
-(import (liii check)
+(import (liii pi ai message)
+  (liii check)
   (liii string)
   (liii list)
   (liii path)
@@ -42,7 +43,7 @@
   (liii time)
   (scheme time)
   (liii pi ai abort)
-  (liii pi ai event)
+ 
   (liii pi ai api anthropic-messages)
 ) ;import
 
@@ -118,11 +119,11 @@
              ) ;anthropic-request-stream
            ) ;resp
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "stop")
-      (let* ((content (cdr (assoc 'content resp))) (first-blk (car content)))
-        (check (cdr (assoc 'type first-blk)) => "text")
-        (check (cdr (assoc 'text first-blk)) => "Hello from Claude stream!")
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "stop")
+      (let* ((content (pi-assistant-message-content resp)) (first-blk (car content)))
+        (check (pi-block-type first-blk) => "text")
+        (check (pi-text-block-text first-blk) => "Hello from Claude stream!")
       ) ;let*
       (let ((delta-evs
               (filter
@@ -159,20 +160,20 @@
              ) ;anthropic-request-stream
            ) ;resp
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "stop")
-      (let* ((content (cdr (assoc 'content resp)))
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "stop")
+      (let* ((content (pi-assistant-message-content resp))
              (first-blk (car content))
              (second-blk (cadr content))
             ) ;
         (check (length content) => 2)
-        (check (cdr (assoc 'type first-blk)) => "thinking")
-        (check (cdr (assoc 'thinking first-blk)) => "Thinking process...")
-        (check (cdr (assoc 'thinkingSignature first-blk)) => "sig_abc")
-        (check (cdr (assoc 'type second-blk)) => "text")
-        (check (cdr (assoc 'text second-blk)) => "Hello from compatible gateway!")
+        (check (pi-block-type first-blk) => "thinking")
+        (check (pi-thinking-block-thinking first-blk) => "Thinking process...")
+        (check (pi-thinking-block-thinking-signature first-blk) => "sig_abc")
+        (check (pi-block-type second-blk) => "text")
+        (check (pi-text-block-text second-blk) => "Hello from compatible gateway!")
       ) ;let*
-      (let ((u (cdr (assoc 'usage resp))))
+      (let ((u (pi-assistant-message-usage resp)))
         (check (cdr (assoc 'input u)) => 15)
         (check (cdr (assoc 'output u)) => 8)
         (check (cdr (assoc 'cacheRead u)) => 4)
@@ -200,8 +201,8 @@
              ) ;anthropic-request-stream
            ) ;resp
           ) ;
-      (check (cdr (assoc 'stopReason resp)) => "error")
-      (check-true (string-contains? (cdr (assoc 'errorMessage resp)) "model not found")
+      (check (pi-assistant-message-stop-reason resp) => "error")
+      (check-true (string-contains? (pi-assistant-message-error-message resp) "model not found")
       ) ;check-true
     ) ;let*
 
@@ -238,7 +239,7 @@
            (dt (- (current-second) t0))
           ) ;
       (check-true (< dt 10))
-      (check (cdr (assoc 'stopReason resp)) => "aborted")
+      (check (pi-assistant-message-stop-reason resp) => "aborted")
       (pi-abort-reset!)
     ) ;let*
   ) ;let
