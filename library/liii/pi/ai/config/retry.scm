@@ -29,23 +29,20 @@
     ) ;define*-record-type
 
     (define (pi-retry-config->json r)
-      (if (pair? r)
-        r
-        (let ((base
-                (list (cons "enabled" (if (pi-retry-config-enabled r) 'true 'false))
-                  (cons "maxRetries" (pi-retry-config-max-retries r))
-                  (cons "baseDelayMs" (pi-retry-config-base-delay-ms r))
-                  (cons "maxAgentDelayMs" (pi-retry-config-max-agent-delay-ms r))
-                ) ;list
-              ) ;base
-              (provider-max (pi-retry-config-provider-max-retries r))
-             ) ;
-          (if provider-max
-            (append base (list (cons "provider" (list (cons "maxRetries" provider-max)))))
-            base
-          ) ;if
-        ) ;let
-      ) ;if
+      (let ((base
+              (list (cons "enabled" (if (pi-retry-config-enabled r) 'true 'false))
+                (cons "maxRetries" (pi-retry-config-max-retries r))
+                (cons "baseDelayMs" (pi-retry-config-base-delay-ms r))
+                (cons "maxAgentDelayMs" (pi-retry-config-max-agent-delay-ms r))
+              ) ;list
+            ) ;base
+            (provider-max (pi-retry-config-provider-max-retries r))
+           ) ;
+        (if provider-max
+          (append base (list (cons "provider" (list (cons "maxRetries" provider-max)))))
+          base
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (%json-dict-pair obj str-key sym-key)

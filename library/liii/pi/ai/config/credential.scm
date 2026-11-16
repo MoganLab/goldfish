@@ -20,13 +20,10 @@
     ) ;define*-record-type
 
     (define (pi-credential->json c)
-      (if (pair? c)
-        c
-        (list (cons "provider" (pi-credential-provider c))
-          (cons "type" (pi-credential-type c))
-          (cons "key" (pi-credential-key c))
-        ) ;list
-      ) ;if
+      (list (cons "provider" (pi-credential-provider c))
+        (cons "type" (pi-credential-type c))
+        (cons "key" (pi-credential-key c))
+      ) ;list
     ) ;define
 
   ) ;begin

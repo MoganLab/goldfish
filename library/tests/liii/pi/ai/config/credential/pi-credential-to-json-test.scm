@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; c : pi-credential? | alist
-;; 服务商凭据 record 或已是 JSON alist。
+;; c : pi-credential?
+;; 服务商凭据 record。
 ;;
 ;; 返回值
 ;; ----
@@ -33,9 +33,5 @@
   (check (cdr (assoc "type" parsed)) => "api_key")
   (check (cdr (assoc "key" parsed)) => "secret-key")
 ) ;let*
-
-(let ((al '(("provider" . "openai") ("type" . "api_key") ("key" . "k"))))
-  (check (pi-credential->json al) => al)
-) ;let
 
 (check-report)

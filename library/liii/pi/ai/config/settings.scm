@@ -82,34 +82,31 @@
     ) ;define
 
     (define (pi-settings->json s)
-      (if (pair? s)
-        s
-        (let ((dp (pi-settings-default-provider s))
-              (dm (pi-settings-default-model s))
-              (dtl (pi-settings-default-thinking-level s))
-              (proxy (pi-settings-http-proxy s))
-              (retry (pi-settings-retry s))
-              (tools (pi-settings-default-tools s))
-              (sdir (pi-settings-session-dir s))
-              (levels (pi-settings-model-thinking-levels s))
-             ) ;
-          (append (if (string? dp) (list (cons "defaultProvider" dp)) '())
-            (if (string? dm) (list (cons "defaultModel" dm)) '())
-            (if (string? dtl) (list (cons "defaultThinkingLevel" dtl)) '())
-            (if (string? proxy) (list (cons "httpProxy" proxy)) '())
-            (if retry (list (cons "retry" (pi-retry-config->json retry))) '())
-            (if (list? tools) (list (cons "defaultTools" (list->vector tools))) '())
-            (if (string? sdir) (list (cons "sessionDir" sdir)) '())
-            (list (cons "hideThinkingBlock" (if (pi-settings-hide-thinking-block s) 'true 'false))
-            ) ;list
-            (if (pair? levels) (list (cons "modelThinkingLevels" levels)) '())
-            (list (cons "enableSkillCommands"
-                    (if (pi-settings-enable-skill-commands s) 'true 'false)
-                  ) ;cons
-            ) ;list
-          ) ;append
-        ) ;let
-      ) ;if
+      (let ((dp (pi-settings-default-provider s))
+            (dm (pi-settings-default-model s))
+            (dtl (pi-settings-default-thinking-level s))
+            (proxy (pi-settings-http-proxy s))
+            (retry (pi-settings-retry s))
+            (tools (pi-settings-default-tools s))
+            (sdir (pi-settings-session-dir s))
+            (levels (pi-settings-model-thinking-levels s))
+           ) ;
+        (append (if (string? dp) (list (cons "defaultProvider" dp)) '())
+          (if (string? dm) (list (cons "defaultModel" dm)) '())
+          (if (string? dtl) (list (cons "defaultThinkingLevel" dtl)) '())
+          (if (string? proxy) (list (cons "httpProxy" proxy)) '())
+          (if retry (list (cons "retry" (pi-retry-config->json retry))) '())
+          (if (list? tools) (list (cons "defaultTools" (list->vector tools))) '())
+          (if (string? sdir) (list (cons "sessionDir" sdir)) '())
+          (list (cons "hideThinkingBlock" (if (pi-settings-hide-thinking-block s) 'true 'false))
+          ) ;list
+          (if (pair? levels) (list (cons "modelThinkingLevels" levels)) '())
+          (list (cons "enableSkillCommands"
+                  (if (pi-settings-enable-skill-commands s) 'true 'false)
+                ) ;cons
+          ) ;list
+        ) ;append
+      ) ;let
     ) ;define
 
     (define (%parse-tools-list val)

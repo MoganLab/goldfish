@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; m : pi-model-metadata? | alist
-;; 模型元数据 record 或已是 JSON alist。
+;; m : pi-model-metadata?
+;; 模型元数据 record。
 ;;
 ;; 返回值
 ;; ----

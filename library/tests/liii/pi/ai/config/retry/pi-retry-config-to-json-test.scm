@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; r : pi-retry-config? | alist
-;; 重试配置 record 或已是 JSON alist。
+;; r : pi-retry-config?
+;; 重试配置 record。
 ;;
 ;; 返回值
 ;; ----
@@ -52,10 +52,5 @@
   (check (assoc "provider" j) => #f)
   (check (pi-retry-config-provider-max-retries rt) => #f)
 ) ;let*
-
-;; 幂等性：传入 alist 原样返回
-(let ((al '(("enabled" . true))))
-  (check (pi-retry-config->json al) => al)
-) ;let
 
 (check-report)

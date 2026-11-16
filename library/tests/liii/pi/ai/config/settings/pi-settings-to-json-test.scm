@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; s : pi-settings? | alist
-;; 全局设置 record 或已是 JSON alist。
+;; s : pi-settings?
+;; 全局设置 record。
 ;;
 ;; 返回值
 ;; ----

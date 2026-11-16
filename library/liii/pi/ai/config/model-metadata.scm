@@ -33,29 +33,26 @@
     ) ;define*-record-type
 
     (define (pi-model-metadata->json m)
-      (if (pair? m)
-        m
-        (let ((base
-                (list (cons "id" (pi-model-metadata-id m))
-                  (cons "name" (pi-model-metadata-name m))
-                  (cons "provider"
-                    (let ((p (pi-model-metadata-provider m)))
-                      (if (symbol? p) (symbol->string p) p)
-                    ) ;let
-                  ) ;cons
-                  (cons "baseUrl" (pi-model-metadata-base-url m))
-                  (cons "matched" (if (pi-model-metadata-matched? m) 'true 'false))
-                ) ;list
-              ) ;base
-              (cw (pi-model-metadata-context-window m))
-              (mt (pi-model-metadata-max-tokens m))
-             ) ;
-          (append base
-            (if cw (list (cons "contextWindow" cw)) '())
-            (if mt (list (cons "maxTokens" mt)) '())
-          ) ;append
-        ) ;let
-      ) ;if
+      (let ((base
+              (list (cons "id" (pi-model-metadata-id m))
+                (cons "name" (pi-model-metadata-name m))
+                (cons "provider"
+                  (let ((p (pi-model-metadata-provider m)))
+                    (if (symbol? p) (symbol->string p) p)
+                  ) ;let
+                ) ;cons
+                (cons "baseUrl" (pi-model-metadata-base-url m))
+                (cons "matched" (if (pi-model-metadata-matched? m) 'true 'false))
+              ) ;list
+            ) ;base
+            (cw (pi-model-metadata-context-window m))
+            (mt (pi-model-metadata-max-tokens m))
+           ) ;
+        (append base
+          (if cw (list (cons "contextWindow" cw)) '())
+          (if mt (list (cons "maxTokens" mt)) '())
+        ) ;append
+      ) ;let
     ) ;define
 
   ) ;begin
