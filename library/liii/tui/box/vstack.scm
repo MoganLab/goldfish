@@ -26,7 +26,8 @@
     %vstack-render-layout %vstack-dispatch-mouse %vstack-handle-input
     %vstack-handle-mouse %vstack-invalidate
   ) ;export
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii list)
     (liii tui component)

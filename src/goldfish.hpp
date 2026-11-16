@@ -769,9 +769,24 @@ display_for_invalid_options (const std::vector<std::string>& invalid_opts) {
   display_help ();
 }
 
+static s7_pointer
+goldfish_ensure_user_environment (s7_scheme* sc) {
+  static const char* user_env_name= "*goldfish-user-environment*";
+  if (s7_is_defined (sc, user_env_name)) {
+    s7_pointer env= s7_name_to_value (sc, user_env_name);
+    if (s7_is_let (env)) {
+      return env;
+    }
+  }
+  s7_pointer user_env= s7_sublet (sc, s7_rootlet (sc), s7_nil (sc));
+  s7_define (sc, s7_rootlet (sc), s7_make_symbol (sc, user_env_name), user_env);
+  return user_env;
+}
+
 static void
 goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
-  s7_pointer result= s7_load (sc, path.c_str ());
+  s7_pointer user_env= goldfish_ensure_user_environment (sc);
+  s7_pointer result  = s7_load_with_environment (sc, path.c_str (), user_env);
   if (!result) {
     cerr << "Failed to load " << path << endl;
     exit (-1);
@@ -1068,7 +1083,8 @@ goldfish_print_scheme_error_message (s7_scheme* sc, const char* errmsg) {
 static void
 goldfish_eval_code (s7_scheme* sc, string code) {
   string     wrapped_code= "(begin " + code + " )";
-  s7_pointer x           = s7_eval_c_string (sc, wrapped_code.c_str ());
+  s7_pointer user_env    = goldfish_ensure_user_environment (sc);
+  s7_pointer x           = s7_eval_c_string_with_environment (sc, wrapped_code.c_str (), user_env);
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
@@ -1353,17 +1369,19 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_pa
     s7_load (sc, boot_file_path);
   }
 
+  s7_pointer user_env= goldfish_ensure_user_environment (sc);
+
   if (base_mode == "default" || base_mode == "liii") {
-    s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii lang))");
+    s7_eval_c_string_with_environment (sc, "(import (scheme base) (liii base) (liii error) (liii lang))", user_env);
   }
   else if (base_mode == "scheme") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error))");
+    s7_eval_c_string_with_environment (sc, "(import (liii base) (liii error))", user_env);
   }
   else if (base_mode == "sicp") {
-    s7_eval_c_string (sc, "(import (scheme base) (srfi sicp))");
+    s7_eval_c_string_with_environment (sc, "(import (scheme base) (srfi sicp))", user_env);
   }
   else if (base_mode == "r7rs") {
-    s7_eval_c_string (sc, "(import (scheme base))");
+    s7_eval_c_string_with_environment (sc, "(import (scheme base))", user_env);
   }
   else if (base_mode == "s7") {
   }
@@ -1373,7 +1391,7 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_pa
   }
 
   if (enable_bignum) {
-    s7_eval_c_string (sc, "(import (liii bignum))");
+    s7_eval_c_string_with_environment (sc, "(import (liii bignum))", user_env);
   }
 }
 
@@ -2585,7 +2603,8 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
       for (size_t i= 0; i < import_expr.length (); ++i) {
         if (import_expr[i] == '.') import_expr[i]= ' ';
       }
-      s7_eval_c_string (sc, import_expr.c_str ());
+      s7_pointer user_env= goldfish_ensure_user_environment (sc);
+      s7_eval_c_string_with_environment (sc, import_expr.c_str (), user_env);
     }
 
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
@@ -2598,7 +2617,8 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
 
     // 检查并调用 main 函数
-    s7_pointer main_func= s7_name_to_value (sc, "main");
+    s7_pointer user_env = goldfish_ensure_user_environment (sc);
+    s7_pointer main_func= s7_eval_c_string_with_environment (sc, "(if (defined? 'main (curlet)) main #f)", user_env);
     if ((!main_func) || (!s7_is_procedure (main_func))) {
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);

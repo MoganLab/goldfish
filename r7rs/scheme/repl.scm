@@ -21,7 +21,9 @@
 ;; 返回交互式求值环境说明符（environment specifier），包含实现定义的一组绑定
 ;; （通常为 REPL 默认可用的超集），可传递给 eval 或 load 在其中求值表达式。
 ;;
-;; 在 Goldfish Scheme 中，交互环境（顶层环境）即为底层 s7 的 (rootlet)。
+;; 在 Goldfish Scheme 中，交互环境（顶层环境）优先使用宿主隔离出的
+;; `*goldfish-user-environment*`（rootlet 的子环境）；若嵌入宿主（如 Mogan）
+;; 未创建该环境，则回退至底层 s7 的 (rootlet)。
 
 (define-library (scheme repl)
   (import (scheme base))
@@ -29,7 +31,10 @@
   (begin
 
     (define (interaction-environment)
-      (rootlet)
+      (if (defined? '*goldfish-user-environment* (rootlet))
+       ((rootlet) '*goldfish-user-environment*)
+       (rootlet)
+      ) ;if
     ) ;define
 
   ) ;begin

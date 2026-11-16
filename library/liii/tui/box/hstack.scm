@@ -23,7 +23,8 @@
 
 (define-library (liii tui box hstack)
   (export make-hstack hstack?)
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii list)
     (liii string)

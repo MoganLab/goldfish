@@ -6,6 +6,7 @@
 
 (define-library (liii pi code core extensions loader)
   (import (scheme base)
+    (scheme load)
     (liii string)
     (liii list)
     (liii path)

@@ -18,6 +18,7 @@
     (liii os)
     (liii string)
     (liii tui component)
+    (liii tui box container)
     (liii pi code modes interactive renderers)
     (liii pi code modes interactive views assistant)
     (liii pi code modes interactive views cache)

@@ -16,6 +16,7 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
 (import (scheme process-context)
+  (scheme load)
   (liii check)
   (liii string)
   (liii path)

@@ -18,6 +18,7 @@
   (import (scheme base)
     (scheme write)
     (scheme process-context)
+    (scheme repl)
     (liii base)
     (liii list)
     (liii string)
@@ -167,7 +168,9 @@
       (when (or (string=? mode "liii") (string=? mode "default"))
         (catch #t
           (lambda ()
-            (eval '(import (scheme base) (liii base) (liii error) (liii lang)) (rootlet))
+            (eval '(import (scheme base) (liii base) (liii error) (liii lang))
+              (interaction-environment)
+            ) ;eval
           ) ;lambda
           (lambda (tag info) #f)
         ) ;catch

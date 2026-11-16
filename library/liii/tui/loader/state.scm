@@ -35,7 +35,8 @@
     spinner-fail! spinner-error! spinner-warn! spinner-stop! spinner-tick!
     spinner-reset!
   ) ;export
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii string)
     (liii tui component)

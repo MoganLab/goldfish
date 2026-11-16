@@ -23,7 +23,7 @@
 
 (define-library (liii tui box hstack width)
   (export calculate-hstack-widths repeat-item)
-  (import (liii base) (liii error) (liii list))
+  (import (scheme base) (liii base) (liii error) (liii list))
   (begin
 
     (define (repeat-item item n)

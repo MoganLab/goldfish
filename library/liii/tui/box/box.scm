@@ -23,7 +23,8 @@
 
 (define-library (liii tui box box)
   (export make-box box?)
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii string)
     (liii tui component)

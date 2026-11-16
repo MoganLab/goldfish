@@ -26,7 +26,8 @@
     component-handle-mouse! component-invalidate! component-data
     component-data-set! make-text make-truncated-text make-spacer
   ) ;export
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii string)
     (liii tui text-width)

@@ -15,7 +15,13 @@
 ;;
 
 (define-library (liii goldrepl complete)
-  (import (scheme base) (scheme char) (liii base) (liii list) (liii string))
+  (import (scheme base)
+    (scheme char)
+    (scheme repl)
+    (liii base)
+    (liii list)
+    (liii string)
+  ) ;import
   (export *repl-symbols* %repl-symbols-list %repl-symbol-char?
     %repl-update-symbol-cache! %repl-invalidate-symbol-cache! %repl-symbol-name?
     %repl-completions %repl-word-at %repl-replace-word
@@ -69,7 +75,12 @@
             ) ;let*
           ) ;lambda
           '()
-          (let->list (rootlet))
+          (let ((env (interaction-environment)))
+            (if (eq? env (rootlet))
+              (let->list (rootlet))
+              (append (let->list env) (let->list (rootlet)))
+            ) ;if
+          ) ;let
         ) ;fold
       ) ;set!
       (set! *repl-symbol-cache-valid?* #t)

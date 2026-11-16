@@ -28,8 +28,16 @@
 ;; 可选第二参数为求值环境、文件不可读时报错误。
 
 (define-library (scheme load)
-  (import (scheme base))
+  (import (scheme base) (scheme repl))
   (export load)
   (begin
+    (define %s7-load ((rootlet) 'load))
+
+    (define (load filename . opt-env)
+      (cond ((null? opt-env) (%s7-load filename (interaction-environment)))
+            ((null? (cdr opt-env)) (%s7-load filename (car opt-env)))
+            (else (error 'wrong-number-of-args "load: expected 1 or 2 arguments"))
+      ) ;cond
+    ) ;define
   ) ;begin
 ) ;define-library

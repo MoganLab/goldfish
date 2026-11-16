@@ -16,7 +16,7 @@
 ;;
 ;; 描述
 ;; ----
-;; 1. `interaction-environment` 返回当前会话交互环境说明符（在 Goldfish 中对应全局顶层 rootlet）。
+;; 1. `interaction-environment` 返回当前会话交互环境说明符（在 Goldfish 中对应隔离的用户顶层环境，其外层 outlet 为 rootlet）。
 ;; 2. 传递给 `eval` 时，表达式将在顶层环境中求值，所定义的绑定在后续求值和当前会话中可见。
 ;; 3. 与 `(environment ...)` 返回的独立隔离环境不同，`interaction-environment` 反映交互式系统的全局环境。
 ;;
@@ -33,6 +33,7 @@
 (check-true (procedure? interaction-environment))
 
 ;; 2. 返回环境说明符（在 s7 底层是 let 对象）
+
 (define env (interaction-environment))
 (check-true (let? env))
 
@@ -44,7 +45,8 @@
 (check (eval 'repl-test-var-1263 env) => 100)
 (check repl-test-var-1263 => 100)
 
-;; 5. 交互环境与 rootlet 保持一致
-(check-true (eq? env (rootlet)))
+;; 5. 交互环境与 rootlet 保持隔离，其 outlet 指向 rootlet
+(check-true (eq? (outlet env) (rootlet)))
+(check-false (defined? 'repl-test-var-1263 (rootlet)))
 
 (check-report)

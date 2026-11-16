@@ -27,7 +27,7 @@
     border-style-v border-style-resolve border-render-top border-render-bottom
     border-render-line
   ) ;export
-  (import (liii base) (liii error) (liii string) (liii tui text-width))
+  (import (scheme base) (liii base) (liii error) (liii string) (liii tui text-width))
   (begin
 
     (define-record-type <border-style>

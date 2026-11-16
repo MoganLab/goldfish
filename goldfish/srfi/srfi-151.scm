@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-151)
-  (import (liii base) (liii error))
+  (import (scheme base) (liii base) (liii error))
   (export bitwise-not bitwise-and bitwise-ior bitwise-xor bitwise-eqv
     bitwise-nor bitwise-nand bit-count bitwise-orc1 bitwise-orc2 bitwise-andc1
     bitwise-andc2 arithmetic-shift integer-length bitwise-if bit-set? copy-bit

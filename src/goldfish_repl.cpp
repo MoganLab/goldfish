@@ -104,13 +104,14 @@ eval_string (const char* code) {
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-8.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"srfi/srfi-9.scm\")");
   }
-  s7_eval_c_string (wasm_sc, "(import (liii base))");
-  s7_eval_c_string (wasm_sc, "(import (liii error))");
+  s7_pointer user_env= goldfish::goldfish_ensure_user_environment (wasm_sc);
+  s7_eval_c_string_with_environment (wasm_sc, "(import (liii base))", user_env);
+  s7_eval_c_string_with_environment (wasm_sc, "(import (liii error))", user_env);
   OutputCatcher out_catcher (std::cout);
   OutputCatcher err_catcher (std::cerr);
   int           status= 0;
   try {
-    s7_pointer result= s7_eval_c_string (wasm_sc, code);
+    s7_pointer result= s7_eval_c_string_with_environment (wasm_sc, code, user_env);
     if (result) {
       char* result_str= s7_object_to_c_string (wasm_sc, result);
       if (result_str) {
