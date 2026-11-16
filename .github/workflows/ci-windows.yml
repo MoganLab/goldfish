@@ -43,29 +43,70 @@ jobs:
         run: xmake repo -u
       - name: git crlf
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            core:
+              - 'src/**'
+              - 'json/**'
+              - 'xmake/**'
+              - 'xmake.lua'
+              - '.github/workflows/ci-windows.yml'
+            r7rs:
+              - 'r7rs/**'
+            goldfish:
+              - 'goldfish/**'
+            library:
+              - 'library/**'
+            tools_shared:
+              - 'tools/test/**'
+              - 'tools/*.py'
+            tools_fmt:
+              - 'tools/fmt/**'
+            tools_check:
+              - 'tools/check/**'
+            tools_doc:
+              - 'tools/doc/**'
+            tools_fix:
+              - 'tools/fix/**'
+            tools_pi:
+              - 'tools/pi/**'
+            tools_repl:
+              - 'tools/repl/**'
       - name: config
         run: xmake config --yes -vD
       - name: build
         run: xmake build --yes -vD goldfish
       - name: test r7rs
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true'
         run: bin/gf test r7rs/tests/
-      - name: test library
-        run: bin/gf test library/tests/
       - name: test goldfish
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true'
         run: bin/gf test goldfish/tests/
+      - name: test library
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true'
+        run: bin/gf test library/tests/
       - name: test tools/fmt
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_fmt == 'true'
         run: bin/gf test tools/fmt/tests
       - name: test tools/check
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_check == 'true'
         run: bin/gf test tools/check/tests
       - name: test tools/doc
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_doc == 'true'
         run: bin/gf test tools/doc/tests
       - name: test tools/fix
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_fix == 'true'
         run: bin/gf test tools/fix/tests
       - name: test tools/pi
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_pi == 'true'
         run: bin/gf test tools/pi/tests
       - name: test tools/repl
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_repl == 'true'
         run: bin/gf test tools/repl/tests
 
