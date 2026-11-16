@@ -17,6 +17,7 @@
     (liii string)
     (liii pi code core session-stats)
     (liii pi code core compaction session)
+    (liii pi code core context-usage usage)
   ) ;import
   (begin
 
@@ -49,16 +50,6 @@
         ) ;string-append
       ) ;let*
     ) ;define
-
-    ;; 上下文占用 record：百分比 + 窗口容量 + 是否已知
-    ;; known? 为 #f 表示压缩后尚无新响应，占比未知（对齐上游显示 "?"）
-    (define-record-type <pi-context-usage>
-      (make-pi-context-usage percent window known?)
-      pi-context-usage?
-      (percent pi-context-usage-percent)
-      (window pi-context-usage-window)
-      (known? pi-context-usage-known?)
-    ) ;define-record-type
 
     ;; 单轮 usage 换算上下文 Token 数
     ;; （对齐上游 calculateContextTokens：totalTokens 优先，否则四项求和）

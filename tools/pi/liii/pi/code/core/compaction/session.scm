@@ -76,7 +76,9 @@
       (let ((rev-idx
               (list-index
                 (lambda (e)
-                  (equal? (pi-session-entry-type (or (json->pi-session-entry e) e)) "compaction")
+                  (and (or (pi-session-entry? e) (json-object? e))
+                    (equal? (pi-session-entry-type (or (json->pi-session-entry e) e)) "compaction")
+                  ) ;and
                 ) ;lambda
                 (reverse entries)
               ) ;list-index

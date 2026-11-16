@@ -11,6 +11,8 @@
     (liii string)
     (liii list)
     (liii pi code core compaction session)
+    (liii pi code core session-stats token-stats)
+    (liii pi code core session-stats stats)
   ) ;import
   (export pi-get-session-stats pi-format-session-stats
     make-pi-session-token-stats pi-session-token-stats?
@@ -26,50 +28,6 @@
     pi-session-token-stats-add-usage!
   ) ;export
   (begin
-
-    (define-record-type <pi-session-token-stats>
-      (make-pi-session-token-stats input output cache-read cache-write)
-      pi-session-token-stats?
-      (input pi-session-token-stats-input pi-session-token-stats-input-set!)
-      (output pi-session-token-stats-output pi-session-token-stats-output-set!)
-      (cache-read pi-session-token-stats-cache-read
-        pi-session-token-stats-cache-read-set!
-      ) ;cache-read
-      (cache-write pi-session-token-stats-cache-write
-        pi-session-token-stats-cache-write-set!
-      ) ;cache-write
-    ) ;define-record-type
-
-    (define (pi-session-token-stats-total tokens)
-      (+ (pi-session-token-stats-input tokens)
-        (pi-session-token-stats-output tokens)
-        (pi-session-token-stats-cache-read tokens)
-        (pi-session-token-stats-cache-write tokens)
-      ) ;+
-    ) ;define
-
-    (define-record-type <pi-session-stats>
-      (make-pi-session-stats session-file session-id session-name total-messages
-        user-messages assistant-messages tool-calls tool-results tokens cost
-      ) ;make-pi-session-stats
-      pi-session-stats?
-      (session-file pi-session-stats-session-file)
-      (session-id pi-session-stats-session-id pi-session-stats-session-id-set!)
-      (session-name pi-session-stats-session-name pi-session-stats-session-name-set!)
-      (total-messages pi-session-stats-total-messages
-        pi-session-stats-total-messages-set!
-      ) ;total-messages
-      (user-messages pi-session-stats-user-messages
-        pi-session-stats-user-messages-set!
-      ) ;user-messages
-      (assistant-messages pi-session-stats-assistant-messages
-        pi-session-stats-assistant-messages-set!
-      ) ;assistant-messages
-      (tool-calls pi-session-stats-tool-calls pi-session-stats-tool-calls-set!)
-      (tool-results pi-session-stats-tool-results pi-session-stats-tool-results-set!)
-      (tokens pi-session-stats-tokens)
-      (cost pi-session-stats-cost pi-session-stats-cost-set!)
-    ) ;define-record-type
 
     (define (%ref obj key default)
       (if (not (pair? obj))
@@ -88,21 +46,6 @@
             ((list? content) content)
             (else '())
       ) ;cond
-    ) ;define
-
-    (define (pi-session-token-stats-add-usage! tokens usage)
-      (pi-session-token-stats-input-set! tokens
-        (+ (pi-session-token-stats-input tokens) (%ref usage 'input 0))
-      ) ;pi-session-token-stats-input-set!
-      (pi-session-token-stats-output-set! tokens
-        (+ (pi-session-token-stats-output tokens) (%ref usage 'output 0))
-      ) ;pi-session-token-stats-output-set!
-      (pi-session-token-stats-cache-read-set! tokens
-        (+ (pi-session-token-stats-cache-read tokens) (%ref usage 'cacheRead 0))
-      ) ;pi-session-token-stats-cache-read-set!
-      (pi-session-token-stats-cache-write-set! tokens
-        (+ (pi-session-token-stats-cache-write tokens) (%ref usage 'cacheWrite 0))
-      ) ;pi-session-token-stats-cache-write-set!
     ) ;define
 
     (define (%add-usage! stats usage)
