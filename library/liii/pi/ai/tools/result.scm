@@ -10,8 +10,7 @@
     (liii error)
     (liii json)
     (liii list)
-    (liii pi ai message record)
-    (liii pi ai message json)
+    (liii pi ai message block)
   ) ;import
   (export pi-tool-result pi-tool-result? pi-tool-result-content
     pi-tool-result-is-error pi-tool-result-isError pi-tool-result->json
@@ -78,8 +77,24 @@
 
     (define (%tool-convert-content c)
       (cond
-       ((vector? c) (vector-map (lambda (x) (or (json->pi-block x) x)) c))
-       ((pair? c) (list->vector (map (lambda (x) (or (json->pi-block x) x)) c)))
+       ((vector? c)
+        (vector-map
+          (lambda (x)
+            (if (or (pi-block? x) (json-object? x)) (or (json->pi-block x) x) x)
+          ) ;lambda
+          c
+        ) ;vector-map
+       ) ;
+       ((pair? c)
+        (list->vector
+          (map
+            (lambda (x)
+              (if (or (pi-block? x) (json-object? x)) (or (json->pi-block x) x) x)
+            ) ;lambda
+            c
+          ) ;map
+        ) ;list->vector
+       ) ;
        (else #())
       ) ;cond
     ) ;define

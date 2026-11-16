@@ -10,7 +10,7 @@
     (liii list)
     (liii pi ai event types)
     (liii pi ai event record)
-    (liii pi ai message json)
+    (liii pi ai message)
     (liii pi ai tools result)
   ) ;import
   (export json->pi-event)
@@ -57,7 +57,7 @@
     ) ;define
 
     (define (%convert-msg x)
-      (or (json->pi-message x) x)
+      (if (or (pi-message? x) (json-object? x)) (or (json->pi-message x) x) x)
     ) ;define
 
     (define (%convert-result x)
@@ -65,7 +65,7 @@
             ((and (pair? x)
                (equal? (%json-key->string (%json-dict-ref x "role" #f)) "toolResult")
              ) ;and
-             (or (json->pi-message x) x)
+             (if (json-object? x) (or (json->pi-message x) x) x)
             ) ;
             ((json-object? x) (json->pi-tool-result x))
             (else x)

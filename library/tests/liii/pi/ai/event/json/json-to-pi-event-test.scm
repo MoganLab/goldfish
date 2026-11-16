@@ -19,7 +19,7 @@
   (liii json)
   (liii pi ai event record)
   (liii pi ai event json)
-  (liii pi ai message record)
+  (liii pi ai message)
   (liii pi ai tools result)
 ) ;import
 

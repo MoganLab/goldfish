@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi code core session-entry)
-  (import (scheme base) (liii list) (liii string) (liii pi ai message))
+  (import (scheme base)
+    (liii json)
+    (liii list)
+    (liii string)
+    (liii pi ai message)
+  ) ;import
   (export pi-session-header-entry pi-session-header-entry?
     pi-session-header-entry-version pi-session-header-entry-id
     pi-session-header-entry-timestamp pi-session-header-entry-cwd
@@ -323,7 +328,14 @@
                       ) ;
                       ((string=? etype "message")
                        (let ((raw-msg (%dict-ref obj "message" #f)))
-                         (pi-session-message-entry id pid ts (or (json->pi-message raw-msg) raw-msg))
+                         (pi-session-message-entry id
+                           pid
+                           ts
+                           (if (or (pi-message? raw-msg) (json-object? raw-msg))
+                             (or (json->pi-message raw-msg) raw-msg)
+                             raw-msg
+                           ) ;if
+                         ) ;pi-session-message-entry
                        ) ;let
                       ) ;
                       ((string=? etype "compaction")

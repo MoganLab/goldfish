@@ -43,7 +43,7 @@
     ) ;define
 
     (define (%normalize-message msg)
-      (if (pi-message? msg) (pi-message->alist msg) msg)
+      (if (pi-message? msg) (pi-message->json msg) msg)
     ) ;define
 
     (define (%blocks content)
@@ -54,7 +54,7 @@
     ) ;define
 
     (define (%block-alist blk)
-      (if (pi-block? blk) (pi-block->alist blk) blk)
+      (if (pi-block? blk) (pi-block->json blk) blk)
     ) ;define
 
     (define (%add-unique lst x)

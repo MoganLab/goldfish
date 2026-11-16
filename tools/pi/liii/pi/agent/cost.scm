@@ -6,6 +6,7 @@
 
 (define-library (liii pi agent cost)
   (import (scheme base)
+    (liii json)
     (liii list)
     (liii pi ai config runtime)
     (liii pi ai cost)
@@ -75,7 +76,12 @@
           (filter pair?
             (map
               (lambda (raw)
-                (let ((m (or (json->pi-message raw) raw)))
+                (let ((m (if (or (pi-message? raw) (json-object? raw))
+                           (or (json->pi-message raw) raw)
+                           raw
+                         ) ;if
+                      ) ;m
+                     ) ;
                   (and (pi-assistant-message? m) (pi-assistant-message-usage m))
                 ) ;let
               ) ;lambda

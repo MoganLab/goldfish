@@ -54,12 +54,12 @@
                    ) ;cond
             ) ;items
            ) ;
-        (map (lambda (blk) (if (pi-block? blk) (pi-block->alist blk) blk)) items)
+        (map (lambda (blk) (if (pi-block? blk) (pi-block->json blk) blk)) items)
       ) ;let
     ) ;define
 
     (define (%message-alist msg)
-      (cond ((pi-message? msg) (pi-message->alist msg))
+      (cond ((pi-message? msg) (pi-message->json msg))
             ((pair? msg) msg)
             (else #f)
       ) ;cond

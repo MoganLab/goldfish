@@ -185,11 +185,67 @@
       ) ;if
     ) ;define
 
+    (define (%msg->transcript-alist msg)
+      (cond
+       ((pi-user-message? msg)
+        (let ((c (pi-user-message-content msg)) (ts (pi-user-message-timestamp msg)))
+          (if ts
+            (list (cons "role" "user") (cons "content" c) (cons "timestamp" ts))
+            (list (cons "role" "user") (cons "content" c))
+          ) ;if
+        ) ;let
+       ) ;
+       ((pi-assistant-message? msg)
+        (let* ((res (list (cons "role" "assistant")
+                      (cons "content" (pi-assistant-message-content msg))
+                      (cons "stopReason" (pi-assistant-message-stop-reason msg))
+                      (cons "errorMessage" (pi-assistant-message-error-message msg))
+                    ) ;list
+               ) ;res
+               (prov (pi-assistant-message-provider msg))
+               (model (pi-assistant-message-model msg))
+               (api (pi-assistant-message-api msg))
+               (u (pi-assistant-message-usage msg))
+               (ts (pi-assistant-message-timestamp msg))
+               (res
+                 (if prov (append res (list (cons "provider" prov))) res)
+               ) ;res
+               (res
+                 (if model (append res (list (cons "model" model))) res)
+               ) ;res
+               (res
+                 (if api (append res (list (cons "api" api))) res)
+               ) ;res
+               (res
+                 (if u (append res (list (cons "usage" u))) res)
+               ) ;res
+               (res
+                 (if ts (append res (list (cons "timestamp" ts))) res)
+               ) ;res
+              ) ;
+          res
+        ) ;let*
+       ) ;
+       ((pi-tool-result-message? msg)
+        (let* ((res (list (cons "role" "toolResult")
+                      (cons "toolCallId" (pi-tool-result-message-tool-call-id msg))
+                      (cons "toolName" (pi-tool-result-message-tool-name msg))
+                      (cons "content" (pi-tool-result-message-content msg))
+                      (cons "isError" (pi-tool-result-message-is-error msg))
+                    ) ;list
+               ) ;res
+               (ts (pi-tool-result-message-timestamp msg))
+              ) ;
+          (if ts (append res (list (cons "timestamp" ts))) res)
+        ) ;let*
+       ) ;
+       (else msg)
+      ) ;cond
+    ) ;define
+
     ;; ---- 第一遍：error/aborted 过滤 + 跨模型转换 + toolCall id 归一化 ----
     (define (%transform-one raw-msg normalize? config id-map)
-      (let* ((msg (if (pi-message? raw-msg) (pi-message->alist raw-msg) raw-msg))
-             (role (%msg-role msg))
-            ) ;
+      (let* ((msg (%msg->transcript-alist raw-msg)) (role (%msg-role msg)))
         (cond
          ((equal? role "assistant")
           (let ((same-model? (pi-transcript-same-model? msg config)))
@@ -227,7 +283,7 @@
     ) ;define
 
     (define (%assistant-tool-calls raw-msg)
-      (let ((msg (if (pi-message? raw-msg) (pi-message->alist raw-msg) raw-msg)))
+      (let ((msg (%msg->transcript-alist raw-msg)))
         (if (equal? (%msg-role msg) "assistant")
           (let ((content (%val "content" msg '())))
             (filter

@@ -110,7 +110,7 @@
     ;; same-model? 为 #f 时表示外来模型的历史：toolCall 无签名回放会被
     ;; Gemini 3+ 拒绝，由 sentinel? 决定是否补哨兵（Gemini 3+ 时应补）。
     (define* (gemini-assistant-block->part blk same-model? (model-id #f))
-      (let* ((blk (if (pi-block? blk) (pi-block->alist blk) blk))
+      (let* ((blk (if (pi-block? blk) (pi-block->json blk) blk))
              (btype (%val 'type blk ""))
             ) ;
         (cond

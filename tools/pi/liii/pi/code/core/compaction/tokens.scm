@@ -122,11 +122,11 @@
     ) ;define
 
     (define (%normalize-message msg)
-      (if (pi-message? msg) (pi-message->alist msg) msg)
+      (if (pi-message? msg) (pi-message->json msg) msg)
     ) ;define
 
     (define (%block-chars blk)
-      (cond ((pi-block? blk) (%block-chars (pi-block->alist blk)))
+      (cond ((pi-block? blk) (%block-chars (pi-block->json blk)))
             ((not (pair? blk)) 0)
             (else
               (let ((type (%ref blk "type")))

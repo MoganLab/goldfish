@@ -119,7 +119,7 @@
     ;; 内容块净化：跨模型时丢弃思维链并剥离私有签名
     ;; 返回新的块 alist；丢弃时返回 #f
     (define (pi-transcript-normalize-block blk same-model?)
-      (let ((b (if (pi-block? blk) (pi-block->alist blk) blk)))
+      (let ((b (if (pi-block? blk) (pi-block->json blk) blk)))
         (if (not (pair? b))
           b
           (let ((btype (%val "type" b "")))

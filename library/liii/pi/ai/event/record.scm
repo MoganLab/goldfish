@@ -11,7 +11,7 @@
     (liii uuid)
     (liii pi ai time)
     (liii pi ai event types)
-    (liii pi ai message record)
+    (liii pi ai message)
     (liii pi ai tools definition)
     (liii pi ai tools result)
     (liii pi ai tools trunc-result)

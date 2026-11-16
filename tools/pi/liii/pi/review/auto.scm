@@ -9,7 +9,7 @@
     (liii string)
     (liii list)
     (liii pi code core tools read)
-    (liii pi ai message types)
+    (liii pi ai message)
     (liii pi review language)
   ) ;import
   (export pi-build-review-injection pi-edited-files-from-tool-calls)

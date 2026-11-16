@@ -39,6 +39,13 @@
       ) ;cond
     ) ;define
 
+    (define (%maybe-json-block x)
+      (if (json-object? x) (or (json->pi-block x) x) x)
+    ) ;define
+    (define (%maybe-json-msg x)
+      (if (json-object? x) (or (json->pi-message x) x) x)
+    ) ;define
+
     (define (pi-extract-tool-result-text res)
       (let* ((c (cond ((pi-tool-result? res) (pi-tool-result-content res))
                       ((pi-tool-result-message? res) (pi-tool-result-message-content res))
@@ -47,17 +54,13 @@
                 ) ;cond
              ) ;c
              (first-blk (pi-first-block-from-content c))
-             (blk (or (json->pi-block first-blk) first-blk))
+             (blk (%maybe-json-block first-blk))
             ) ;
         (if (pi-text-block? blk)
           (pi-text-block-text blk)
           (pi-agent-assoc-val 'text "text" first-blk "")
         ) ;if
       ) ;let*
-    ) ;define
-
-    (define (%normalize-one-block b)
-      (or (json->pi-block b) b)
     ) ;define
 
     (define (%to-block-list c)
@@ -69,7 +72,7 @@
               ) ;cond
             ) ;lst
            ) ;
-        (map %normalize-one-block lst)
+        (map %maybe-json-block lst)
       ) ;let
     ) ;define
 
@@ -88,7 +91,7 @@
                   (not (pi-block? (car content)))
                   (not (pair? (car content)))
                 ) ;and
-                (list (%normalize-one-block content))
+                (list (%maybe-json-block content))
                 (%to-block-list content)
               ) ;if
             ) ;blks
@@ -118,7 +121,7 @@
     ) ;define
 
     (define (extract-assistant-text msg)
-      (let* ((m (or (json->pi-message msg) msg))
+      (let* ((m (%maybe-json-msg msg))
              (content (cond ((pi-assistant-message? m) (pi-assistant-message-content m))
                             ((pi-user-message? m) (pi-user-message-content m))
                             ((pi-tool-result-message? m) (pi-tool-result-message-content m))
@@ -132,7 +135,7 @@
     ) ;define
 
     (define (%tool-call-fields call)
-      (let ((c (or (json->pi-block call) call)))
+      (let ((c (%maybe-json-block call)))
         (if (pi-tool-call-block? c)
           (values (pi-tool-call-block-id c)
             (pi-tool-call-block-name c)
@@ -365,7 +368,7 @@
                  ) ;cond
             ) ;lst
            ) ;
-        (filter (lambda (c) (pi-tool-call-block? (%normalize-one-block c))) lst)
+        (filter (lambda (c) (pi-tool-call-block? (%maybe-json-block c))) lst)
       ) ;let
     ) ;define
 
@@ -373,7 +376,7 @@
       (list->vector
         (map
           (lambda (raw)
-            (let ((m (or (json->pi-message raw) raw)))
+            (let ((m (%maybe-json-msg raw)))
               (if (pi-tool-result-message? m)
                 (pi-tool-result-message (pi-tool-result-message-tool-call-id m)
                   (pi-tool-result-message-tool-name m)

@@ -101,8 +101,8 @@
 
     (define (assoc key obj)
       (cond ((pi-event? obj) (%find-assoc key (pi-event->alist obj)))
-            ((pi-message? obj) (%find-assoc key (pi-message->alist obj)))
-            ((pi-block? obj) (%find-assoc key (pi-block->alist obj)))
+            ((pi-message? obj) (%find-assoc key (pi-message->json obj)))
+            ((pi-block? obj) (%find-assoc key (pi-block->json obj)))
             ((pi-tool-definition? obj)
              (%find-assoc key
                (list (cons 'name (pi-tool-definition-name obj))
