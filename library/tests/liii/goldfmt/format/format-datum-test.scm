@@ -126,18 +126,16 @@
 ) ;check
 
 ;; 测试嵌套 quote 形式 '(quote define)
-;; '(quote define) 读取为 (#_quote (quote define))
-;; 内部的 (quote define) 是普通列表，不应被压缩
-;; 所以输出保持为 '(quote define)
-(check (format-datum '(#_quote (quote define)))
+;; 开启 symbol-quote? 后，(quote x) 与 'x 统一糖化为 'x
+(check (format-datum '(quote (quote define)))
   =>
-  "'(quote define)"
+  "''define"
 ) ;check
 
 ;; 测试 '(quote x) 的格式化
-(check (format-datum '(#_quote (quote x)))
+(check (format-datum '(quote (quote x)))
   =>
-  "'(quote x)"
+  "''x"
 ) ;check
 
 ;; quasiquote 内部形式应该还原为 ` , ,@ 语法

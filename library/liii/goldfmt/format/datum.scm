@@ -45,8 +45,11 @@
     (define (quote-syntax-form? value)
       (and (pair? value)
         (not (null? value))
-        (syntax? (car value))
-        (string=? (object->string (car value) #f) "#_quote")
+        (or (eq? (car value) 'quote)
+          (and (syntax? (car value))
+            (string=? (object->string (car value) #f) "#_quote")
+          ) ;and
+        ) ;or
         (not (null? (cdr value)))
         (null? (cddr value))
       ) ;and

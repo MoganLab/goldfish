@@ -209,7 +209,7 @@
 ) ;let
 
 ;; 测试 scan-string：点对表达式 '(a b . c)
-;; '(a b . c) 读取为 (#_quote (a b . c))
+;; '(a b . c) 读取为 (quote (a b . c))
 ;; quote 形式整个作为一个 env，没有 children
 (let ((results (scan-string #"CODE"'(a b . c)"CODE")))
   (check (vector? results) => #t)
@@ -217,7 +217,7 @@
   ;; 顶层是 quote env
   (let ((quote-env (vector-ref results 0)))
     (check (env? quote-env) => #t)
-    (check (env-tag-name quote-env) => "#_quote")
+    (check (env-tag-name quote-env) => "quote")
     (check (env-depth quote-env) => 0)
     ;; quote 形式没有 children
     (check (vector-length (env-children quote-env)) => 0)
@@ -227,7 +227,7 @@
 ) ;let
 
 ;; 测试 scan-string：'(quote define) 这种嵌套 quote 的情况
-;; '(quote define) 读取为 (#_quote (quote define))
+;; '(quote define) 读取为 (quote (quote define))
 ;; quote 形式整个作为一个 env，没有 children
 (let ((results (scan-string #"CODE"'(quote define)"CODE")))
   (check (vector? results) => #t)
@@ -235,7 +235,7 @@
   ;; 顶层是 quote env
   (let ((quote-env (vector-ref results 0)))
     (check (env? quote-env) => #t)
-    (check (env-tag-name quote-env) => "#_quote")
+    (check (env-tag-name quote-env) => "quote")
     (check (env-depth quote-env) => 0)
     ;; quote 形式没有 children
     (check (vector-length (env-children quote-env)) => 0)
