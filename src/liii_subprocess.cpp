@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <tbox/tbox.h>
@@ -58,6 +59,36 @@ set_pipe_pair_cloexec (tb_pipe_file_ref_t pipe[2]) {
   set_pipe_cloexec (pipe[0]);
   set_pipe_cloexec (pipe[1]);
 }
+
+// tbox (tb_init) sets SIGPIPE to SIG_IGN, which child processes would otherwise
+// inherit across fork/exec and fail to terminate on broken pipes (e.g. `cmd | head`).
+// Temporarily restore SIG_DFL around process creation under a mutex.
+struct ScopedSigpipeDefault {
+  std::unique_lock<std::mutex> lock;
+  struct sigaction             old_act;
+  bool                         restored= false;
+
+  static std::mutex& sigpipe_mutex () {
+    static std::mutex m;
+    return m;
+  }
+
+  ScopedSigpipeDefault () : lock (sigpipe_mutex ()) {
+    struct sigaction dfl;
+    std::memset (&dfl, 0, sizeof (dfl));
+    dfl.sa_handler= SIG_DFL;
+    sigemptyset (&dfl.sa_mask);
+    if (sigaction (SIGPIPE, &dfl, &old_act) == 0) {
+      restored= true;
+    }
+  }
+
+  ~ScopedSigpipeDefault () {
+    if (restored) {
+      sigaction (SIGPIPE, &old_act, nullptr);
+    }
+  }
+};
 #endif
 
 #if !defined(TB_CONFIG_OS_WINDOWS) && !defined(__EMSCRIPTEN__)
@@ -1072,37 +1103,42 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
 
   tb_process_ref_t process= tb_null;
-  if (s7_is_string (cmd_arg)) {
-    const char* cmd_c= s7_string (cmd_arg);
-#ifdef TB_CONFIG_OS_WINDOWS
-    process= tb_process_init_cmd (cmd_c, &attr);
-#elif !defined(__EMSCRIPTEN__)
-    wordexp_t p;
-    int       ret= wordexp (cmd_c, &p, 0);
-    if (ret == 0 && p.we_wordc > 0) {
-      process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv, &attr);
-      wordfree (&p);
-    }
-    else {
-      process= tb_process_init_cmd (cmd_c, &attr);
-    }
-#else
-    process= tb_process_init_cmd (cmd_c, &attr);
+  {
+#ifndef TB_CONFIG_OS_WINDOWS
+    ScopedSigpipeDefault sigpipe_guard;
 #endif
-  }
-  else if (s7_is_pair (cmd_arg)) {
-    vector<const char*> argv;
-    s7_pointer          p= cmd_arg;
-    while (s7_is_pair (p)) {
-      s7_pointer item= s7_car (p);
-      if (s7_is_string (item)) {
-        argv.push_back (s7_string (item));
+    if (s7_is_string (cmd_arg)) {
+      const char* cmd_c= s7_string (cmd_arg);
+#ifdef TB_CONFIG_OS_WINDOWS
+      process= tb_process_init_cmd (cmd_c, &attr);
+#elif !defined(__EMSCRIPTEN__)
+      wordexp_t p;
+      int       ret= wordexp (cmd_c, &p, 0);
+      if (ret == 0 && p.we_wordc > 0) {
+        process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv, &attr);
+        wordfree (&p);
       }
-      p= s7_cdr (p);
+      else {
+        process= tb_process_init_cmd (cmd_c, &attr);
+      }
+#else
+      process= tb_process_init_cmd (cmd_c, &attr);
+#endif
     }
-    if (!argv.empty ()) {
-      argv.push_back (nullptr);
-      process= tb_process_init (argv[0], argv.data (), &attr);
+    else if (s7_is_pair (cmd_arg)) {
+      vector<const char*> argv;
+      s7_pointer          p= cmd_arg;
+      while (s7_is_pair (p)) {
+        s7_pointer item= s7_car (p);
+        if (s7_is_string (item)) {
+          argv.push_back (s7_string (item));
+        }
+        p= s7_cdr (p);
+      }
+      if (!argv.empty ()) {
+        argv.push_back (nullptr);
+        process= tb_process_init (argv[0], argv.data (), &attr);
+      }
     }
   }
 
@@ -1642,37 +1678,42 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
 #endif
 
   tb_process_ref_t process= tb_null;
-  if (s7_is_string (cmd_arg)) {
-    const char* cmd_c= s7_string (cmd_arg);
-#ifdef TB_CONFIG_OS_WINDOWS
-    process= tb_process_init_cmd (cmd_c, &attr);
-#elif !defined(__EMSCRIPTEN__)
-    wordexp_t p;
-    int       ret= wordexp (cmd_c, &p, 0);
-    if (ret == 0 && p.we_wordc > 0) {
-      process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv, &attr);
-      wordfree (&p);
-    }
-    else {
-      process= tb_process_init_cmd (cmd_c, &attr);
-    }
-#else
-    process= tb_process_init_cmd (cmd_c, &attr);
+  {
+#ifndef TB_CONFIG_OS_WINDOWS
+    ScopedSigpipeDefault sigpipe_guard;
 #endif
-  }
-  else if (s7_is_pair (cmd_arg)) {
-    vector<const char*> argv;
-    s7_pointer          p= cmd_arg;
-    while (s7_is_pair (p)) {
-      s7_pointer item= s7_car (p);
-      if (s7_is_string (item)) {
-        argv.push_back (s7_string (item));
+    if (s7_is_string (cmd_arg)) {
+      const char* cmd_c= s7_string (cmd_arg);
+#ifdef TB_CONFIG_OS_WINDOWS
+      process= tb_process_init_cmd (cmd_c, &attr);
+#elif !defined(__EMSCRIPTEN__)
+      wordexp_t p;
+      int       ret= wordexp (cmd_c, &p, 0);
+      if (ret == 0 && p.we_wordc > 0) {
+        process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv, &attr);
+        wordfree (&p);
       }
-      p= s7_cdr (p);
+      else {
+        process= tb_process_init_cmd (cmd_c, &attr);
+      }
+#else
+      process= tb_process_init_cmd (cmd_c, &attr);
+#endif
     }
-    if (!argv.empty ()) {
-      argv.push_back (nullptr);
-      process= tb_process_init (argv[0], argv.data (), &attr);
+    else if (s7_is_pair (cmd_arg)) {
+      vector<const char*> argv;
+      s7_pointer          p= cmd_arg;
+      while (s7_is_pair (p)) {
+        s7_pointer item= s7_car (p);
+        if (s7_is_string (item)) {
+          argv.push_back (s7_string (item));
+        }
+        p= s7_cdr (p);
+      }
+      if (!argv.empty ()) {
+        argv.push_back (nullptr);
+        process= tb_process_init (argv[0], argv.data (), &attr);
+      }
     }
   }
 
