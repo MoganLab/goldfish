@@ -8,7 +8,7 @@
 ;; all-in-one 伪模型精简为 all-in-one/<chain-id>，实际节点追加 -> 节点。
 ;; 纯函数层：只依赖入参，不依赖页脚状态记录，避免与 footer 循环依赖。
 (define-library (liii pi code modes interactive footer-model)
-  (export pi-footer-model-label pi-footer-model-part)
+  (export pi-footer-model-label pi-footer-model-part pi-footer-right-part)
   (import (scheme base) (liii string))
   (begin
 
@@ -48,6 +48,32 @@
             ) ;
         (if node (string-append base " -> " node) base)
       ) ;let*
+    ) ;define
+
+    ;; 右侧模型串（含请求进行中切换模型时的 "正在请求 -> 新切换" 双段展示）：
+    ;; 若正在请求的是 all-in-one 且已有实际节点，左侧直接展示实际节点，不出现 all-in-one/<chain-id>
+    (define (pi-footer-right-part provider model thinking-level
+              supports-thinking? active-node pending-from
+            ) ;pi-footer-right-part
+      (let ((new-part (pi-footer-model-part provider model thinking-level
+                        supports-thinking? active-node
+                      ) ;pi-footer-model-part
+            ) ;new-part
+           ) ;
+        (if (pair? pending-from)
+          (let* ((fp (list-ref pending-from 0))
+                 (fm (list-ref pending-from 1))
+                 (ftl (list-ref pending-from 2))
+                 (fs? (list-ref pending-from 3))
+                 (fnode (list-ref pending-from 4))
+                 (aio-node (and (equal? fp "all-in-one") (%active-node-label fnode)))
+                 (from-part (or aio-node (pi-footer-model-part fp fm ftl fs? fnode)))
+                ) ;
+            (string-append from-part " -> " new-part)
+          ) ;let*
+          new-part
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (%provider-prefix provider)

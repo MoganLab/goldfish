@@ -16,11 +16,15 @@
 
 (import (scheme base)
   (liii check)
+  (liii go)
   (liii string)
   (liii tui)
+  (liii pi agent queue)
   (liii pi code modes interactive app)
   (liii pi code modes interactive app-model)
+  (liii pi code modes interactive app-events)
   (liii pi code modes interactive model-selector)
+  (liii pi code modes interactive state)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -185,6 +189,92 @@
 (let ((app (make-test-app)))
   (pi-app-submit! app "/model text-bison-99")
   (check (pi-app-cycle-thinking! app) => #f)
+) ;let
+
+;; 请求进行中通过 /model 切换模型：
+;; - TUI 正文先显示“本轮结束之后，将会切换到 zai/glm-5”
+;; - 右下角左边为正在请求的模型，右边为新切换的模型
+;; - 请求结束后（agent_settled），正文再显示“已经切换到 zai/glm-5”，右下角恢复为新模型
+(let ((app (make-test-app :supports-thinking #t)))
+  (pi-queue-set-busy! (pi-app-queue app))
+  (pi-app-submit! app "/model zai/glm-5")
+  (check (pi-app-pending-model-switch app) => "zai/glm-5")
+  (pi-app-render! app)
+  (let ((plain
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;plain
+       ) ;
+    (check-true (string-contains? plain "本轮结束之后，将会切换到 zai/glm-5"))
+    (check-true
+      (string-contains? plain "(google) gemini-2.5-pro • high -> (zai) glm-5 • medium")
+    ) ;check-true
+  ) ;let
+  (chan-send! (pi-app-event-chan app) '(agent_settled #f) 1000)
+  (pi-app-poll-events! app)
+  (check (pi-app-pending-model-switch app) => #f)
+  (let ((plain
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;plain
+       ) ;
+    (check-true (string-contains? plain "已经切换到 zai/glm-5"))
+    (check-true (string-contains? plain "(zai) glm-5 • medium"))
+    (check-false (string-contains? plain "->"))
+  ) ;let
+) ;let
+
+;; 请求进行中连续两次切换模型（A -> B -> C）：
+;; 右下角左侧始终保持正在请求的模型 A，右侧更新为 C，结束后提示已经切换到 C
+(let ((app (make-test-app :supports-thinking #t)))
+  (pi-queue-set-busy! (pi-app-queue app))
+  (pi-app-submit! app "/model zai/glm-5")
+  (pi-app-submit! app "/model google/gemini-3-flash-preview")
+  (check (pi-app-pending-model-switch app) => "google/gemini-3-flash-preview")
+  (pi-app-render! app)
+  (let ((plain
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;plain
+       ) ;
+    (check-true
+      (string-contains? plain "本轮结束之后，将会切换到 google/gemini-3-flash-preview")
+    ) ;check-true
+    (check-true
+      (string-contains? plain
+        "(google) gemini-2.5-pro • high -> (google) gemini-3-flash-preview • medium"
+      ) ;string-contains?
+    ) ;check-true
+  ) ;let
+  (chan-send! (pi-app-event-chan app) '(agent_settled #f) 1000)
+  (pi-app-poll-events! app)
+  (let ((plain
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;plain
+       ) ;
+    (check-true (string-contains? plain "已经切换到 google/gemini-3-flash-preview"))
+    (check-false (string-contains? plain "->"))
+  ) ;let
+) ;let
+
+;; 请求进行中切换后再切回原请求模型（A -> B -> A）：清除待切换状态，不显示箭头
+(let ((app (make-test-app :supports-thinking #t)))
+  (pi-queue-set-busy! (pi-app-queue app))
+  (pi-app-submit! app "/model zai/glm-5")
+  (pi-app-submit! app "/model google/gemini-2.5-pro")
+  (check (pi-app-pending-model-switch app) => #f)
+  (pi-app-render! app)
+  (let ((plain
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;plain
+       ) ;
+    (check-false (string-contains? plain "->"))
+  ) ;let
+  (chan-send! (pi-app-event-chan app) '(agent_settled #f) 1000)
+  (pi-app-poll-events! app)
+  (let ((plain
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;plain
+       ) ;
+    (check-false (string-contains? plain "已经切换到"))
+  ) ;let
 ) ;let
 
 (check-report)
