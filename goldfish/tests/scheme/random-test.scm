@@ -1,3 +1,29 @@
+;; random
+;; 验证 s7 内置 random、random-state、random-state? 与 random-state->list 的基本行为、边界条件与优化器路径。
+;;
+;; 语法
+;; ----
+;; (random num)
+;; (random num state)
+;; (random-state)
+;; (random-state seed)
+;; (random-state seed carry)
+;; (random-state? obj)
+;; (random-state->list)
+;; (random-state->list state)
+;;
+;; 参数
+;; ----
+;; num : number
+;; 生成随机数的上界（整数、实数、有理数或复数）。
+;;
+;; state : random-state
+;; 可选的随机数状态对象。
+;;
+;; 返回值
+;; ----
+;; random 返回与 num 同类型的随机数；random-state 返回状态对象；random-state? 返回布尔值；random-state->list 返回包含 seed 与 carry 的列表。
+
 (import (liii check))
 
 (check-set-mode! 'report-failed)
