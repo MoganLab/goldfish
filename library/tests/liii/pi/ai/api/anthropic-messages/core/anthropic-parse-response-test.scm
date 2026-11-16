@@ -19,7 +19,7 @@
 
 (import (liii check)
   (liii pi ai api anthropic-messages core)
-  (liii pi ai event)
+ 
   (liii pi ai message)
 ) ;import
 
@@ -34,10 +34,10 @@
                     ("stop_reason" . "end_turn")
                     ("usage" . (("input_tokens" . 10) ("output_tokens" . 5)))))
        (parsed (anthropic-parse-response json-resp 200)))
-  (check (cdr (assoc 'role parsed)) => "assistant")
-  (check (cdr (assoc 'stopReason parsed)) => "stop")
-  (let ((content (cdr (assoc 'content parsed))))
-    (check (cdr (assoc 'text (car content))) => "Done!")))
+  (check (pi-assistant-message-role parsed) => "assistant")
+  (check (pi-assistant-message-stop-reason parsed) => "stop")
+  (let ((content (pi-assistant-message-content parsed)))
+    (check (pi-text-block-text (car content)) => "Done!")))
 
 ;; 工具调用 input 为空对象 {} 时解析为 '()
 (let* ((json-resp '(("id" . "msg_tc1")
@@ -50,8 +50,8 @@
                     ("stop_reason" . "tool_use")
                     ("usage" . (("input_tokens" . 10) ("output_tokens" . 5)))))
        (parsed (anthropic-parse-response json-resp 200)))
-  (check (cdr (assoc 'stopReason parsed)) => "toolUse")
-  (let* ((content (cdr (assoc 'content parsed)))
+  (check (pi-assistant-message-stop-reason parsed) => "toolUse")
+  (let* ((content (pi-assistant-message-content parsed))
          (blk (car content)))
     (check (pi-tool-call-block? blk) => #t)
     (check (pi-tool-call-block-arguments blk) => '())))
@@ -67,8 +67,8 @@
                     ("stop_reason" . "tool_use")
                     ("usage" . (("input_tokens" . 10) ("output_tokens" . 5)))))
        (parsed (anthropic-parse-response json-resp 200)))
-  (check (cdr (assoc 'stopReason parsed)) => "toolUse")
-  (let* ((content (cdr (assoc 'content parsed)))
+  (check (pi-assistant-message-stop-reason parsed) => "toolUse")
+  (let* ((content (pi-assistant-message-content parsed))
          (blk (car content)))
     (check (pi-tool-call-block? blk) => #t)
     (check (cdr (assoc "command" (pi-tool-call-block-arguments blk))) => "pwd")))
@@ -78,12 +78,12 @@
                     ("error" . (("type" . "invalid_request_error")
                                 ("message" . "model not found")))))
        (parsed (anthropic-parse-response json-resp 404)))
-  (check (cdr (assoc 'stopReason parsed)) => "error")
-  (check (cdr (assoc 'errorMessage parsed)) => "model not found"))
+  (check (pi-assistant-message-stop-reason parsed) => "error")
+  (check (pi-assistant-message-error-message parsed) => "model not found"))
 
 ;; 非 JSON 对象响应
 (let ((parsed (anthropic-parse-response "not-an-object" 200)))
-  (check (cdr (assoc 'stopReason parsed)) => "error")
-  (check (cdr (assoc 'errorMessage parsed)) => "Invalid JSON response from Anthropic API"))
+  (check (pi-assistant-message-stop-reason parsed) => "error")
+  (check (pi-assistant-message-error-message parsed) => "Invalid JSON response from Anthropic API"))
 
 (check-report)

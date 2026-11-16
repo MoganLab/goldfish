@@ -22,7 +22,7 @@
 ;; 可由 Anthropic、OpenAI 和 Gemini 协议转换器处理的消息。
 
 (import (liii check)
-        (liii pi ai api anthropic-messages) (liii pi ai event) (liii pi ai api google-generative-ai) (liii pi ai api openai-completions) (liii pi ai message))
+        (liii pi ai api anthropic-messages) (liii pi ai api google-generative-ai) (liii pi ai api openai-completions) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 

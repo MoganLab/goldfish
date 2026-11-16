@@ -180,8 +180,8 @@
 (let ((res (execute-tool-call "unknown_tool" '())))
   (check-true (pi-tool-result? res))
   (check (pi-tool-result-is-error res) => #t)
-  (check (cdr (assoc 'isError res)) => #t)
-  (check (vector-ref (cdr (assoc 'content res)) 0)
+  (check (pi-tool-result-is-error res) => #t)
+  (check (vector-ref (pi-tool-result-content res) 0)
     =>
     '((type . "text") (text . "Tool unknown_tool not found"))
   ) ;check
@@ -191,8 +191,8 @@
 (let ((res (execute-tool-call "read" '(("path" . "non_existent_file.xyz")))))
   (check-true (pi-tool-result? res))
   (check (pi-tool-result-is-error res) => #t)
-  (check (cdr (assoc 'isError res)) => #t)
-  (let ((text (cdr (assoc 'text (vector-ref (cdr (assoc 'content res)) 0)))))
+  (check (pi-tool-result-is-error res) => #t)
+  (let ((text (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))))
     (check-true (string-contains? text "Path not found"))
   ) ;let
 ) ;let
@@ -208,7 +208,7 @@
        ) ;
     (check-true (pi-tool-result? res))
     (check (pi-tool-result-is-error res) => #f)
-    (check (cdr (assoc 'isError res)) => #f)
+    (check (pi-tool-result-is-error res) => #f)
   ) ;let
 ) ;let
 

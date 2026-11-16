@@ -26,7 +26,7 @@
 ;; alist
 ;; OpenAI API 请求体 alist。
 
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
+(import (liii check) (liii pi ai api openai-completions) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 

@@ -18,7 +18,8 @@
 ;; 不返回
 ;; 直接向会话文件写入初始消息条目。
 
-(import (scheme base)
+(import (liii pi ai message)
+  (scheme base)
   (liii check)
   (liii path)
   (liii shutil)
@@ -62,7 +63,7 @@
   ;; 无恢复来源：仅本轮输入
   (let ((messages (setup-initial-messages '() "next prompt" sdir)))
     (check (length messages) => 1)
-    (check (cdr (assoc "content" (car messages))) => "next prompt")
+    (check (pi-user-message-content (car messages)) => "next prompt")
   ) ;let
   (rmtree tmp-agent-dir)
 ) ;let*
@@ -80,7 +81,7 @@
               ) ;
     (let ((init-msgs (setup-initial-messages '((continue . #f)) "first query" sdir)))
       (check (length init-msgs) => 1)
-      (check (cdr (assoc 'content (car init-msgs))) => "first query")
+      (check (pi-user-message-content (car init-msgs)) => "first query")
     ) ;let
     (save-session-message! sfile
       "{\"role\":\"user\",\"content\":\"first query\"}" "msg-1" #f
@@ -94,7 +95,7 @@
       (check (length init-msgs) => 3)
       (check (cdr (assoc "content" (car init-msgs))) => "first query")
       (check (cdr (assoc "content" (cadr init-msgs))) => "first response")
-      (check (cdr (assoc 'content (caddr init-msgs))) => "second query")
+      (check (pi-user-message-content (caddr init-msgs)) => "second query")
     ) ;let
   ) ;let-values
   (rmtree tmp-agent-dir)

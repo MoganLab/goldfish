@@ -12,21 +12,23 @@
     (liii json)
     (liii error)
     (liii pi ai message)
-    (liii pi ai event)
     (liii pi ai api google-generative-ai thought-signature)
   ) ;import
   (export gemini-build-contents gemini-build-request-body)
   (begin
 
     (define* (%val key obj (default-val #f))
-      (let ((p
-              (or (assoc key obj)
-                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-              ) ;or
-            ) ;p
-           ) ;
-        (if (pair? p) (cdr p) default-val)
-      ) ;let
+      (if (not (pair? obj))
+        default-val
+        (let ((p
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+                ) ;or
+              ) ;p
+             ) ;
+          (if (pair? p) (cdr p) default-val)
+        ) ;let
+      ) ;if
     ) ;define*
 
     (define (%to-str x)
@@ -178,7 +180,10 @@
     ) ;define
 
     (define (%first-blk-text blk)
-      (if (string? blk) blk (%val 'text blk ""))
+      (cond ((string? blk) blk)
+            ((pi-text-block? blk) (pi-text-block-text blk))
+            (else (%val 'text blk ""))
+      ) ;cond
     ) ;define
 
     (define (%tool-result-text content)

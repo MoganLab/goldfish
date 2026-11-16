@@ -15,7 +15,6 @@
     (liii uuid)
     (liii error)
     (liii time)
-    (liii pi ai event)
     (liii pi ai config model-metadata)
     (liii pi ai config runtime)
     (liii pi ai message)
@@ -189,8 +188,11 @@
                     ((base-url)
                      (cond ((pi-model-metadata? model-meta) (pi-model-metadata-base-url model-meta))
                            ((pair? model-meta)
-                            (cdr (or (assoc 'base-url model-meta) '(#f
-                                                                    . "https://api.openai.com/v1")))
+                            (cdr (or (assoc 'base-url model-meta)
+                                   (assoc "base-url" model-meta)
+                                   '(#f . "https://api.openai.com/v1")
+                                 ) ;or
+                            ) ;cdr
                            ) ;
                            (else "https://api.openai.com/v1")
                      ) ;cond
@@ -199,8 +201,11 @@
                      (cond ((pi-model-metadata? model-meta)
                             (or (pi-model-metadata-max-tokens model-meta) 8192)
                            ) ;
-                           ((pair? model-meta) (cdr (or (assoc 'max-tokens model-meta) '(#f
-                                                                                         . 8192))))
+                           ((pair? model-meta)
+                            (cdr (or (assoc 'max-tokens model-meta) (assoc "max-tokens" model-meta) '(#f
+                                                                                                      . 8192))
+                            ) ;cdr
+                           ) ;
                            (else 8192)
                      ) ;cond
                     ) ;

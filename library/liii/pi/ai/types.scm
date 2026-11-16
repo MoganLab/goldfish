@@ -5,58 +5,28 @@
 ;;
 
 (define-library (liii pi ai types)
-  (import (scheme base) (liii base) (liii pi ai event) (liii pi ai message))
-  (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
-    pi-event? pi-event-type pi-event->alist pi-event->json json->pi-event
-    pi-event-session pi-event-session? pi-event-session-type
-    pi-event-session-version pi-event-session-id pi-event-session-timestamp
-    pi-event-session-cwd pi-event-agent-start pi-event-agent-start?
-    pi-event-agent-start-type pi-event-turn-start pi-event-turn-start?
-    pi-event-turn-start-type pi-event-message-start pi-event-message-start?
-    pi-event-message-start-type pi-event-message-start-message
-    pi-event-message-update pi-event-message-update?
-    pi-event-message-update-type pi-event-message-update-usage
-    pi-event-message-update-assistant-message-event pi-event-message-end
-    pi-event-message-end? pi-event-message-end-type pi-event-message-end-message
-    pi-event-tool-execution-start pi-event-tool-execution-start?
-    pi-event-tool-execution-start-type
-    pi-event-tool-execution-start-tool-call-id
-    pi-event-tool-execution-start-tool-name pi-event-tool-execution-start-args
-    pi-event-tool-execution-update pi-event-tool-execution-update?
-    pi-event-tool-execution-update-type
-    pi-event-tool-execution-update-tool-call-id
-    pi-event-tool-execution-update-tool-name pi-event-tool-execution-update-args
-    pi-event-tool-execution-update-partial-result pi-event-tool-execution-end
-    pi-event-tool-execution-end? pi-event-tool-execution-end-type
-    pi-event-tool-execution-end-tool-call-id
-    pi-event-tool-execution-end-tool-name pi-event-tool-execution-end-result
-    pi-event-tool-execution-end-is-error pi-event-turn-end pi-event-turn-end?
-    pi-event-turn-end-type pi-event-turn-end-message
-    pi-event-turn-end-tool-results pi-event-agent-end pi-event-agent-end?
-    pi-event-agent-end-type pi-event-agent-end-messages
-    pi-event-agent-end-will-retry pi-event-agent-end-cost
-    pi-event-agent-end-savings pi-event-agent-settled pi-event-agent-settled?
-    pi-event-agent-settled-type pi-event-agent-settled-aborted
-    pi-build-json-event pi-make-user-message pi-make-assistant-message
-    pi-make-tool-result-message pi-make-usage pi-message? pi-message-role
-    pi-message->json json->pi-message pi-block? pi-block-type pi-block->json
-    json->pi-block pi-user-message pi-user-message? pi-user-message-role
-    pi-user-message-content pi-user-message-timestamp pi-assistant-message
-    pi-assistant-message? pi-assistant-message-role pi-assistant-message-content
-    pi-assistant-message-stop-reason pi-assistant-message-error-message
-    pi-assistant-message-usage pi-assistant-message-timestamp
-    pi-assistant-message-provider pi-assistant-message-model
-    pi-assistant-message-api pi-tool-result-message pi-tool-result-message?
-    pi-tool-result-message-role pi-tool-result-message-tool-call-id
-    pi-tool-result-message-tool-name pi-tool-result-message-content
-    pi-tool-result-message-is-error pi-tool-result-message-timestamp
-    pi-text-block pi-text-block? pi-text-block-type pi-text-block-text
-    pi-thinking-block pi-thinking-block? pi-thinking-block-type
-    pi-thinking-block-thinking pi-thinking-block-thinking-signature
-    pi-tool-call-block pi-tool-call-block? pi-tool-call-block-type
-    pi-tool-call-block-id pi-tool-call-block-name pi-tool-call-block-arguments
-    pi-tool-call-block-thought-signature pi-image-block pi-image-block?
-    pi-image-block-type pi-image-block-data pi-image-block-mime-type
+  (import (scheme base) (liii base) (liii pi ai time) (liii pi ai message))
+  (export pi-iso-8601-utc-now pi-current-time-millis pi-make-user-message
+    pi-make-assistant-message pi-make-tool-result-message pi-make-usage
+    pi-message? pi-message-role pi-message->json json->pi-message pi-block?
+    pi-block-type pi-block->json json->pi-block pi-user-message pi-user-message?
+    pi-user-message-role pi-user-message-content pi-user-message-timestamp
+    pi-assistant-message pi-assistant-message? pi-assistant-message-role
+    pi-assistant-message-content pi-assistant-message-stop-reason
+    pi-assistant-message-error-message pi-assistant-message-usage
+    pi-assistant-message-timestamp pi-assistant-message-provider
+    pi-assistant-message-model pi-assistant-message-api pi-tool-result-message
+    pi-tool-result-message? pi-tool-result-message-role
+    pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
+    pi-tool-result-message-content pi-tool-result-message-is-error
+    pi-tool-result-message-timestamp pi-text-block pi-text-block?
+    pi-text-block-type pi-text-block-text pi-thinking-block pi-thinking-block?
+    pi-thinking-block-type pi-thinking-block-thinking
+    pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
+    pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
+    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    pi-image-block pi-image-block? pi-image-block-type pi-image-block-data
+    pi-image-block-mime-type
   ) ;export
   (begin
 

@@ -14,7 +14,6 @@
     (liii http)
     (liii error)
     (liii time)
-    (liii pi ai event)
     (liii pi ai config model-metadata)
     (liii pi ai config runtime)
     (liii pi ai message)

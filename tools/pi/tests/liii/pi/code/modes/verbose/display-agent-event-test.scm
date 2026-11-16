@@ -27,7 +27,7 @@
   (liii check)
   (liii json)
   (liii string)
-  (liii pi ai event)
+  (liii pi code event)
   (liii pi code modes verbose)
 ) ;import
 

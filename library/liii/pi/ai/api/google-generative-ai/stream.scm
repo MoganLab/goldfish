@@ -13,7 +13,6 @@
     (liii time)
     (liii pi ai abort)
     (liii pi ai time)
-    (liii pi ai event)
     (liii pi ai config model-metadata)
     (liii pi ai config retry)
     (liii pi ai config settings)
@@ -132,38 +131,24 @@
       ) ;let*
     ) ;define
 
-    (define (%perform-http-stream url req-json-str headers proxy-alist stream-cb
-              progress timeout eff-idle
-            ) ;%perform-http-stream
-      (catch #t
-        (lambda ()
-          (http-post url
-            :data         req-json-str
-            :headers      headers
-            :proxy        proxy-alist
-            :stream       #t
-            :callback     stream-cb
-            :timeout      timeout
-            :idle-timeout eff-idle
-            :progress     progress
-          ) ;http-post
-        ) ;lambda
-        (lambda (tag . args)
-          (if (eq? tag 'http-client-timeout-error)
-            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
-              (list (cons 'status-code 0)
-                (cons 'reason msg)
-                (cons 'text "")
-                (cons 'timeout #t)
-                (cons 'timeout-sec timeout)
-              ) ;list
-            ) ;let
-            (let ((err-msg (if (pair? args) (car args) "Network error")))
-              (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
-            ) ;let
-          ) ;if
-        ) ;lambda
-      ) ;catch
+    (define (%handle-http-stream-error tag args timeout eff-idle start-sec on-idle-timeout)
+      (if (not (eq? tag 'http-client-timeout-error))
+        (list (cons 'status-code 0) (cons 'reason (if (pair? args) (car args) "Network error")) (cons 'text ""))
+        (let* ((raw (if (and (pair? args) (string? (car args))) (car args) ""))
+               (idle? (and eff-idle (or (string-contains? (string-downcase raw) "too slow") (and (< eff-idle timeout) (< (- (pi-current-monotonic-seconds) start-sec) (- timeout 0.5))))))
+               (msg (if idle? (begin (when (procedure? on-idle-timeout) (on-idle-timeout)) (string-append "Stream idle timed out after " (number->string eff-idle) "s")) (string-append "Request timed out after " (number->string timeout) "s"))))
+          (list (cons 'status-code 0) (cons 'reason msg) (cons 'text "") (cons 'timeout #t) (cons 'timeout-sec (if idle? eff-idle timeout)))
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%perform-http-stream url req-json-str headers proxy-alist stream-cb progress timeout eff-idle on-idle-timeout)
+      (let ((start-sec (pi-current-monotonic-seconds)))
+        (catch #t
+          (lambda () (http-post url :data req-json-str :headers headers :proxy proxy-alist :stream #t :callback stream-cb :timeout timeout :idle-timeout eff-idle :progress progress))
+          (lambda (tag . args) (%handle-http-stream-error tag args timeout eff-idle start-sec on-idle-timeout))
+        ) ;catch
+      ) ;let
     ) ;define
 
     ;; 重试用尽后的错误结果：额度耗尽时给出 provider 官方消息，否则用状态码描述
@@ -280,9 +265,15 @@
                      (progress
                        (lambda (dlt dln ult uln) (if (pi-aborted?) (begin (set! aborted? #t) #f) #t))
                      ) ;progress
-                     (resp (%perform-http-stream url req-json-str eff-headers
-                             proxy-alist stream-cb progress timeout
+                     (resp (%perform-http-stream url
+                             req-json-str
+                             eff-headers
+                             proxy-alist
+                             stream-cb
+                             progress
+                             timeout
                              effective-idle
+                             (lambda () (set! idle-timed-out? #t))
                            ) ;%perform-http-stream
                      ) ;resp
                      (status (or (%resp-field resp 'status-code) 0))

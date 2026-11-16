@@ -24,7 +24,7 @@
 
 (import (liii check)
   (liii pi ai api google-generative-ai request)
-  (liii pi ai event)
+ 
   (liii pi ai message)
 ) ;import
 
@@ -43,13 +43,13 @@
        ) ;resp-json
        (parsed (gemini-parse-response resp-json 200))
       ) ;
-  (check (cdr (assoc 'role parsed)) => "assistant")
-  (check (cdr (assoc 'stopReason parsed)) => "stop")
-  (let ((content (cdr (assoc 'content parsed))))
+  (check (pi-assistant-message-role parsed) => "assistant")
+  (check (pi-assistant-message-stop-reason parsed) => "stop")
+  (let ((content (pi-assistant-message-content parsed)))
     (check (length content) => 1)
-    (check (cdr (assoc 'text (car content))) => "Hello world")
+    (check (pi-text-block-text (car content)) => "Hello world")
   ) ;let
-  (let ((u (cdr (assoc 'usage parsed))))
+  (let ((u (pi-assistant-message-usage parsed)))
     (check (cdr (assoc 'input u)) => 10)
     (check (cdr (assoc 'output u)) => 5)
   ) ;let
@@ -71,15 +71,15 @@
        ) ;resp-json
        (parsed (gemini-parse-response resp-json 200))
       ) ;
-  (check (cdr (assoc 'stopReason parsed)) => "toolUse")
-  (let ((content (cdr (assoc 'content parsed))))
+  (check (pi-assistant-message-stop-reason parsed) => "toolUse")
+  (let ((content (pi-assistant-message-content parsed)))
     (check (length content) => 1)
     (let ((blk (car content)))
-      (check (cdr (assoc 'type blk)) => "toolCall")
-      (check (cdr (assoc 'id blk)) => "call_123")
-      (check (cdr (assoc 'name blk)) => "bash")
+      (check (pi-block-type blk) => "toolCall")
+      (check (pi-tool-call-block-id blk) => "call_123")
+      (check (pi-tool-call-block-name blk) => "bash")
       (check
-        (cdr (assoc "command" (cdr (assoc 'arguments blk))))
+        (cdr (assoc "command" (pi-tool-call-block-arguments blk)))
         =>
         "ls"
       ) ;check
@@ -96,7 +96,7 @@
        ) ;resp-json
        (parsed (gemini-parse-response resp-json 200))
       ) ;
-  (check (cdr (assoc 'stopReason parsed)) => "length")
+  (check (pi-assistant-message-stop-reason parsed) => "length")
 ) ;let*
 
 ;; SAFETY 报错
@@ -108,8 +108,8 @@
        ) ;resp-json
        (parsed (gemini-parse-response resp-json 200))
       ) ;
-  (check (cdr (assoc 'stopReason parsed)) => "error")
-  (check (cdr (assoc 'errorMessage parsed)) => "SAFETY")
+  (check (pi-assistant-message-stop-reason parsed) => "error")
+  (check (pi-assistant-message-error-message parsed) => "SAFETY")
 ) ;let*
 
 ;; 带有 thinking part 的响应解析
@@ -128,16 +128,16 @@
        ) ;resp-json
        (parsed (gemini-parse-response resp-json 200))
       ) ;
-  (check (cdr (assoc 'role parsed)) => "assistant")
-  (check (cdr (assoc 'stopReason parsed)) => "stop")
-  (let ((content (cdr (assoc 'content parsed))))
+  (check (pi-assistant-message-role parsed) => "assistant")
+  (check (pi-assistant-message-stop-reason parsed) => "stop")
+  (let ((content (pi-assistant-message-content parsed)))
     (check (length content) => 2)
     (let ((b1 (car content)) (b2 (cadr content)))
-      (check (cdr (assoc 'type b1)) => "thinking")
-      (check (cdr (assoc 'thinking b1)) => "Let me ponder...")
-      (check (cdr (assoc 'thinkingSignature b1)) => "sig-abc")
-      (check (cdr (assoc 'type b2)) => "text")
-      (check (cdr (assoc 'text b2)) => "The final answer.")
+      (check (pi-block-type b1) => "thinking")
+      (check (pi-thinking-block-thinking b1) => "Let me ponder...")
+      (check (pi-thinking-block-thinking-signature b1) => "sig-abc")
+      (check (pi-block-type b2) => "text")
+      (check (pi-text-block-text b2) => "The final answer.")
     ) ;let
   ) ;let
 ) ;let*
@@ -157,15 +157,15 @@
        ) ;resp-json
        (parsed (gemini-parse-response resp-json 200))
       ) ;
-  (check (cdr (assoc 'stopReason parsed)) => "toolUse")
-  (let ((content (cdr (assoc 'content parsed))))
+  (check (pi-assistant-message-stop-reason parsed) => "toolUse")
+  (let ((content (pi-assistant-message-content parsed)))
     (check (length content) => 1)
     (let ((blk (car content)))
-      (check (cdr (assoc 'type blk)) => "toolCall")
-      (check (cdr (assoc 'name blk)) => "bash")
-      (check-true (string? (cdr (assoc 'id blk))))
+      (check (pi-block-type blk) => "toolCall")
+      (check (pi-tool-call-block-name blk) => "bash")
+      (check-true (string? (pi-tool-call-block-id blk)))
       (check-true
-        (> (string-length (cdr (assoc 'id blk))) 0)
+        (> (string-length (pi-tool-call-block-id blk)) 0)
       ) ;check-true
     ) ;let
   ) ;let

@@ -10,7 +10,6 @@
     (liii json)
     (liii error)
     (liii pi ai message)
-    (liii pi ai event)
     (liii pi ai limits)
   ) ;import
   (export openai-map-stop-reason openai-map-usage openai-parse-response

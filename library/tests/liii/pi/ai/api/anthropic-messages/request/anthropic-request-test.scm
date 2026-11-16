@@ -25,11 +25,12 @@
 ;; alist
 ;; 包含 content、stopReason 和 usage 的 assistant 消息；失败时包含 errorMessage。
 
-(import (liii check)
+(import (liii pi ai message)
+  (liii check)
   (liii string)
   (liii path)
   (liii subprocess)
-  (liii pi ai event)
+ 
   (liii pi ai api anthropic-messages)
 ) ;import
 
@@ -79,11 +80,11 @@
     (let* ((msgs '(((role . "user") (content . "hello claude"))))
            (resp (anthropic-request config msgs "You are pi" '("bash") 10))
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "stop")
-      (let* ((content (cdr (assoc 'content resp))) (first-blk (car content)))
-        (check (cdr (assoc 'type first-blk)) => "text")
-        (check (cdr (assoc 'text first-blk)) => "Hello from Claude stub!")
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "stop")
+      (let* ((content (pi-assistant-message-content resp)) (first-blk (car content)))
+        (check (pi-block-type first-blk) => "text")
+        (check (pi-text-block-text first-blk) => "Hello from Claude stub!")
       ) ;let*
     ) ;let*
 
@@ -101,12 +102,12 @@
            (msgs '(((role . "user") (content . "run echo"))))
            (resp (anthropic-request call-cfg msgs #f '("bash") 10))
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "toolUse")
-      (let* ((content (cdr (assoc 'content resp))) (first-blk (car content)))
-        (check (cdr (assoc 'type first-blk)) => "toolCall")
-        (check (cdr (assoc 'id first-blk)) => "ant_call_1")
-        (check (cdr (assoc 'name first-blk)) => "bash")
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "toolUse")
+      (let* ((content (pi-assistant-message-content resp)) (first-blk (car content)))
+        (check (pi-block-type first-blk) => "toolCall")
+        (check (pi-tool-call-block-id first-blk) => "ant_call_1")
+        (check (pi-tool-call-block-name first-blk) => "bash")
       ) ;let*
     ) ;let*
 
@@ -130,8 +131,8 @@
              ) ;anthropic-request
            ) ;resp
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "length")
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "length")
     ) ;let*
 
     ;; HTTP 429 退避重试成功
@@ -157,8 +158,8 @@
              ) ;anthropic-request
            ) ;resp
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "stop")
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "stop")
     ) ;let*
 
     ;; HTTP 500 超过重试次数返回 error
@@ -184,8 +185,8 @@
              ) ;anthropic-request
            ) ;resp
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "error")
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "error")
     ) ;let*
 
     ;; Anthropic 兼容网关非流式（含 thinking 块）
@@ -209,23 +210,23 @@
              ) ;anthropic-request
            ) ;resp
           ) ;
-      (check (cdr (assoc 'role resp)) => "assistant")
-      (check (cdr (assoc 'stopReason resp)) => "stop")
-      (let* ((content (cdr (assoc 'content resp)))
+      (check (pi-assistant-message-role resp) => "assistant")
+      (check (pi-assistant-message-stop-reason resp) => "stop")
+      (let* ((content (pi-assistant-message-content resp))
              (first-blk (car content))
              (second-blk (cadr content))
             ) ;
         (check (length content) => 2)
-        (check (cdr (assoc 'type first-blk)) => "thinking")
-        (check (cdr (assoc 'thinking first-blk)) => "Thinking non-stream")
-        (check (cdr (assoc 'thinkingSignature first-blk)) => "sig_1")
-        (check (cdr (assoc 'type second-blk)) => "text")
-        (check (cdr (assoc 'text second-blk))
+        (check (pi-block-type first-blk) => "thinking")
+        (check (pi-thinking-block-thinking first-blk) => "Thinking non-stream")
+        (check (pi-thinking-block-thinking-signature first-blk) => "sig_1")
+        (check (pi-block-type second-blk) => "text")
+        (check (pi-text-block-text second-blk)
           =>
           "Hello from compatible gateway non-stream!"
         ) ;check
       ) ;let*
-      (let ((u (cdr (assoc 'usage resp))))
+      (let ((u (pi-assistant-message-usage resp)))
         (check (cdr (assoc 'input u)) => 15)
         (check (cdr (assoc 'output u)) => 8)
         (check (cdr (assoc 'cacheRead u)) => 4)

@@ -19,7 +19,7 @@
 
 (set! *load-path* (append (list "../tools/pi" ".") *load-path*))
 
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi code core tools))
+(import (liii check) (liii pi ai api openai-completions) (liii pi code core tools))
 
 (check-set-mode! 'report-failed)
 

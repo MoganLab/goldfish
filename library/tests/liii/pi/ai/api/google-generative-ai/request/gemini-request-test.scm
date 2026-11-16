@@ -29,12 +29,13 @@
 ;; ----
 ;; 端点构造与响应解析均在本库完成；可重试错误按重试配置退避后重试。
 
-(import (liii check)
+(import (liii pi ai message)
+  (liii check)
   (liii string)
   (liii path)
   (liii subprocess)
   (liii tempfile)
-  (liii pi ai event)
+ 
   (liii pi ai log)
   (liii pi ai api google-generative-ai request)
 ) ;import
@@ -86,11 +87,11 @@
            ) ;gemini-request
          ) ;resp1
         ) ;
-    (check (cdr (assoc 'role resp1)) => "assistant")
-    (check (cdr (assoc 'stopReason resp1)) => "stop")
+    (check (pi-assistant-message-role resp1) => "assistant")
+    (check (pi-assistant-message-stop-reason resp1) => "stop")
     (check
       (cdr
-        (assoc 'text (car (cdr (assoc 'content resp1))))
+        (cons 'text (pi-text-block-text (car (pi-assistant-message-content resp1))))
       ) ;cdr
       =>
       "Hello from stub!"
@@ -116,10 +117,10 @@
              ) ;gemini-request
            ) ;resp-fc
           ) ;
-      (check (cdr (assoc 'stopReason resp-fc)) => "toolUse")
-      (let ((blk (car (cdr (assoc 'content resp-fc)))))
-        (check (cdr (assoc 'name blk)) => "bash")
-        (check (cdr (assoc 'id blk)) => "bash_call_1")
+      (check (pi-assistant-message-stop-reason resp-fc) => "toolUse")
+      (let ((blk (car (pi-assistant-message-content resp-fc))))
+        (check (pi-tool-call-block-name blk) => "bash")
+        (check (pi-tool-call-block-id blk) => "bash_call_1")
       ) ;let
     ) ;let*
 
@@ -138,7 +139,7 @@
              (gemini-request cfg-len (list '((role . "user") (content . "more"))) #f '() 10)
            ) ;resp-len
           ) ;
-      (check (cdr (assoc 'stopReason resp-len)) => "length")
+      (check (pi-assistant-message-stop-reason resp-len) => "length")
     ) ;let*
 
     ;; SAFETY
@@ -161,8 +162,8 @@
              ) ;gemini-request
            ) ;resp-safe
           ) ;
-      (check (cdr (assoc 'stopReason resp-safe)) => "error")
-      (check (cdr (assoc 'errorMessage resp-safe)) => "SAFETY")
+      (check (pi-assistant-message-stop-reason resp-safe) => "error")
+      (check (pi-assistant-message-error-message resp-safe) => "SAFETY")
     ) ;let*
 
     ;; 429 退避重试并最终成功
@@ -191,10 +192,10 @@
              ) ;gemini-request
            ) ;resp-retry
           ) ;
-      (check (cdr (assoc 'stopReason resp-retry)) => "stop")
+      (check (pi-assistant-message-stop-reason resp-retry) => "stop")
       (check
         (cdr
-          (assoc 'text (car (cdr (assoc 'content resp-retry))))
+          (cons 'text (pi-text-block-text (car (pi-assistant-message-content resp-retry))))
         ) ;cdr
         =>
         "Hello from stub!"
@@ -228,10 +229,10 @@
              ) ;gemini-request
            ) ;resp-retry-p
           ) ;
-      (check (cdr (assoc 'stopReason resp-retry-p)) => "stop")
+      (check (pi-assistant-message-stop-reason resp-retry-p) => "stop")
       (check
         (cdr
-          (assoc 'text (car (cdr (assoc 'content resp-retry-p))))
+          (cons 'text (pi-text-block-text (car (pi-assistant-message-content resp-retry-p))))
         ) ;cdr
         =>
         "Hello from stub!"
@@ -264,8 +265,8 @@
              ) ;gemini-request
            ) ;resp-retry-f
           ) ;
-      (check (cdr (assoc 'stopReason resp-retry-f)) => "error")
-      (check-true (string-contains? (cdr (assoc 'errorMessage resp-retry-f)) "Too Many Requests")
+      (check (pi-assistant-message-stop-reason resp-retry-f) => "error")
+      (check-true (string-contains? (pi-assistant-message-error-message resp-retry-f) "Too Many Requests")
       ) ;check-true
     ) ;let*
 
@@ -295,10 +296,10 @@
              ) ;gemini-request
            ) ;resp-m
           ) ;
-      (check (cdr (assoc 'stopReason resp-m)) => "stop")
+      (check (pi-assistant-message-stop-reason resp-m) => "stop")
       (check
         (cdr
-          (assoc 'text (car (cdr (assoc 'content resp-m))))
+          (cons 'text (pi-text-block-text (car (pi-assistant-message-content resp-m))))
         ) ;cdr
         =>
         "Hello from stub!"
@@ -331,8 +332,8 @@
              ) ;gemini-request
            ) ;resp-a
           ) ;
-      (check (cdr (assoc 'stopReason resp-a)) => "error")
-      (check (cdr (assoc 'errorMessage resp-a)) => "MALFORMED_RESPONSE")
+      (check (pi-assistant-message-stop-reason resp-a) => "error")
+      (check (pi-assistant-message-error-message resp-a) => "MALFORMED_RESPONSE")
     ) ;let*
 
     ;; 日志落盘：非流式 HTTP 200 但 finishReason 映射为 error 时同样写入 pi 日志
