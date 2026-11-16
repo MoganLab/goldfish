@@ -5,7 +5,14 @@
 ;;
 
 (define-library (liii pi code all-in-one types)
-  (import (scheme base) (liii list) (liii string) (liii pi code config user-fs))
+  (import (scheme base)
+    (liii base)
+    (liii error)
+    (liii json)
+    (liii list)
+    (liii string)
+    (liii pi code config user-fs)
+  ) ;import
   (export make-chain-node
     chain-node?
     chain-node-provider
@@ -34,40 +41,31 @@
   ) ;export
   (begin
     ;; 极简三元组节点
-    (define-record-type <chain-node>
-      (%make-chain-node provider model thinking-level)
+    (define*-record-type <chain-node>
+      (make-chain-node provider model (thinking-level "off"))
       chain-node?
       (provider chain-node-provider)
       (model chain-node-model)
       (thinking-level chain-node-thinking-level)
-    ) ;define-record-type
-
-    (define* (make-chain-node provider model (thinking-level "off"))
-      (%make-chain-node provider model thinking-level)
-    ) ;define*
+    ) ;define*-record-type
 
     (define (%non-empty-string? x)
       (and (string? x) (not (string-null? (string-trim-both x))))
-    ) ;define
-
-    (define (%json-obj obj)
-      (if (equal? obj '(())) '() obj)
     ) ;define
 
     (define (json->chain-node obj . opt-chain-id)
       (if (chain-node? obj)
         obj
         (let ((chain-id (if (pair? opt-chain-id) (car opt-chain-id) "<unknown>")))
-          (if (not (pair? obj))
+          (if (not (json-object? obj))
             (begin
               (pi-user-warn (string-append "all-in-one: chain \"" chain-id "\" 的 node 必须是对象")
               ) ;pi-user-warn
               #f
             ) ;begin
-            (let* ((data (%json-obj obj))
-                   (p (pi-user-dict-ref data "provider" #f))
-                   (m (pi-user-dict-ref data "model" #f))
-                   (tl-raw (pi-user-dict-ref data "thinkingLevel" "off"))
+            (let* ((p (json-ref-string obj "provider" #f))
+                   (m (json-ref-string obj "model" #f))
+                   (tl-raw (json-ref-string obj "thinkingLevel" "off"))
                    (tl (if (%non-empty-string? tl-raw) tl-raw "off"))
                   ) ;
               (cond ((not (%non-empty-string? p))
@@ -95,40 +93,35 @@
     ) ;define
 
     (define (chain-node->json node)
-      (if (pair? node)
-        node
-        (list (cons "provider" (chain-node-provider node))
-          (cons "model" (chain-node-model node))
-          (cons "thinkingLevel" (chain-node-thinking-level node))
-        ) ;list
-      ) ;if
+      (unless (chain-node? node)
+        (type-error "chain-node->json: expected chain-node" node)
+      ) ;unless
+      (list (cons "provider" (chain-node-provider node))
+        (cons "model" (chain-node-model node))
+        (cons "thinkingLevel" (chain-node-thinking-level node))
+      ) ;list
     ) ;define
 
     ;; 链式定义 (链式 ID 即伪模型 ID)
-    (define-record-type <chain-def>
-      (%make-chain-def id name nodes)
+    (define*-record-type <chain-def>
+      (make-chain-def id name (nodes '()))
       chain-def?
       (id chain-def-id)
       (name chain-def-name)
       (nodes chain-def-nodes)
-    ) ;define-record-type
-
-    (define (make-chain-def id name nodes)
-      (%make-chain-def id name nodes)
-    ) ;define
+    ) ;define*-record-type
 
     (define (json->chain-def obj)
       (if (chain-def? obj)
         obj
-        (if (not (pair? obj))
+        (if (not (json-object? obj))
           (begin
             (pi-user-warn "all-in-one: chain 必须是对象")
             #f
           ) ;begin
-          (let* ((data (%json-obj obj))
-                 (id (pi-user-dict-ref data "id" #f))
-                 (name (pi-user-dict-ref data "name" #f))
-                 (raw-nodes (pi-user-dict-ref data "nodes" '()))
+          (let* ((id (json-ref-string obj "id" #f))
+                 (name (json-ref-string obj "name" #f))
+                 (raw-nodes (json-ref obj "nodes"))
                  (nodes-list (pi-user-vector->list raw-nodes))
                 ) ;
             (if (not (%non-empty-string? id))
@@ -140,7 +133,7 @@
                      (valid-nodes
                        (if (not (list? nodes-list))
                          (begin
-                           (pi-user-warn (string-append "all-in-one: chain \"" id "\" 的 nodes 必须是数组")
+                           (pi-user-warn (string-append "all-in-one: chain \"" (or id "") "\" 的 nodes 必须是数组")
                            ) ;pi-user-warn
                            '()
                          ) ;begin
@@ -157,57 +150,43 @@
     ) ;define
 
     (define (chain-def->json chain)
-      (if (pair? chain)
-        chain
-        (list (cons "id" (chain-def-id chain))
-          (cons "name" (chain-def-name chain))
-          (cons "nodes" (list->vector (map chain-node->json (chain-def-nodes chain))))
-        ) ;list
-      ) ;if
+      (unless (chain-def? chain)
+        (type-error "chain-def->json: expected chain-def" chain)
+      ) ;unless
+      (list (cons "id" (chain-def-id chain))
+        (cons "name" (chain-def-name chain))
+        (cons "nodes" (list->vector (map chain-node->json (chain-def-nodes chain))))
+      ) ;list
     ) ;define
 
     ;; 全局配置
-    (define-record-type <all-in-one-cfg>
-      (%make-all-in-one-cfg continuous? max-wait-ms retry-interval-ms
-        probe-timeout-ms chains
-      ) ;%make-all-in-one-cfg
+    (define*-record-type <all-in-one-cfg>
+      (make-all-in-one-cfg (continuous? #t)
+        (max-wait-ms 3600000)
+        (retry-interval-ms 60000)
+        (probe-timeout-ms 8000)
+        (chains '())
+      ) ;make-all-in-one-cfg
       all-in-one-cfg?
       (continuous? all-in-one-cfg-continuous?)
       (max-wait-ms all-in-one-cfg-max-wait-ms)
       (retry-interval-ms all-in-one-cfg-retry-interval-ms)
       (probe-timeout-ms all-in-one-cfg-probe-timeout-ms)
       (chains all-in-one-cfg-chains)
-    ) ;define-record-type
-
-    (define (make-all-in-one-cfg continuous? max-wait-ms retry-interval-ms
-              probe-timeout-ms chains
-            ) ;make-all-in-one-cfg
-      (%make-all-in-one-cfg continuous? max-wait-ms retry-interval-ms
-        probe-timeout-ms chains
-      ) ;%make-all-in-one-cfg
-    ) ;define
-
-    ;; 解析 JSON 布尔值（支持 #t/#f 与符号 'true/'false）
-    (define (%json-boolean raw default-val)
-      (cond ((boolean? raw) raw)
-            ((eq? raw 'true) #t)
-            ((eq? raw 'false) #f)
-            (else default-val)
-      ) ;cond
-    ) ;define
+    ) ;define*-record-type
 
     ;; 解析秒或毫秒数（秒数乘以 1000 转换为内部毫秒数；支持多种秒级键名）
     (define (%parse-duration-ms data sec-keys ms-key default-ms)
       (let loop
         ((keys (if (list? sec-keys) sec-keys (list sec-keys))))
         (if (pair? keys)
-          (let ((val (pi-user-dict-ref data (car keys) #f)))
+          (let ((val (json-ref data (car keys))))
             (if (and (number? val) (> val 0))
               (inexact->exact (round (* val 1000)))
               (loop (cdr keys))
             ) ;if
           ) ;let
-          (let ((ms (pi-user-dict-ref data ms-key #f)))
+          (let ((ms (json-ref data ms-key)))
             (if (and (number? ms) (> ms 0)) ms default-ms)
           ) ;let
         ) ;if
@@ -230,29 +209,26 @@
     (define (json->all-in-one-cfg obj . opt-cfg-path)
       (if (all-in-one-cfg? obj)
         obj
-        (if (not (pair? obj))
+        (if (not (json-object? obj))
           #f
-          (let* ((data (%json-obj obj))
-                 (cfg-path (if (pair? opt-cfg-path) (car opt-cfg-path) "all-in-one.json"))
-                 (cont-raw (pi-user-dict-ref data "continuous" #t))
-                 (cont (%json-boolean cont-raw #t))
-                 (max-wait (%parse-duration-ms data '("maxWait"
-                                                      "maxWaitSeconds") "maxWaitMs" 3600000)
+          (let* ((cfg-path (if (pair? opt-cfg-path) (car opt-cfg-path) "all-in-one.json"))
+                 (cont (json-ref-boolean obj "continuous" #t))
+                 (max-wait (%parse-duration-ms obj '("maxWait" "maxWaitSeconds") "maxWaitMs" 3600000)
                  ) ;max-wait
-                 (retry-interval (%parse-duration-ms data
+                 (retry-interval (%parse-duration-ms obj
                                    '("retryInterval" "cooldown"
                                      "retryIntervalSeconds" "cooldownSeconds")
                                    "retryIntervalMs"
                                    60000
                                  ) ;%parse-duration-ms
                  ) ;retry-interval
-                 (probe-timeout (%parse-duration-ms data
+                 (probe-timeout (%parse-duration-ms obj
                                   '("probeTimeout" "probeTimeoutSeconds")
                                   "probeTimeoutMs"
                                   8000
                                 ) ;%parse-duration-ms
                  ) ;probe-timeout
-                 (raw-chains (pi-user-dict-ref data "chains" '()))
+                 (raw-chains (json-ref obj "chains"))
                  (chains (%parse-chains cfg-path raw-chains))
                 ) ;
             (and chains
@@ -264,16 +240,16 @@
     ) ;define
 
     (define (all-in-one-cfg->json cfg)
-      (if (pair? cfg)
-        cfg
-        (list (cons "provider" "all-in-one")
-          (cons "continuous" (if (all-in-one-cfg-continuous? cfg) 'true 'false))
-          (cons "maxWaitMs" (all-in-one-cfg-max-wait-ms cfg))
-          (cons "retryIntervalMs" (all-in-one-cfg-retry-interval-ms cfg))
-          (cons "probeTimeoutMs" (all-in-one-cfg-probe-timeout-ms cfg))
-          (cons "chains" (list->vector (map chain-def->json (all-in-one-cfg-chains cfg))))
-        ) ;list
-      ) ;if
+      (unless (all-in-one-cfg? cfg)
+        (type-error "all-in-one-cfg->json: expected all-in-one-cfg" cfg)
+      ) ;unless
+      (list (cons "provider" "all-in-one")
+        (cons "continuous" (if (all-in-one-cfg-continuous? cfg) 'true 'false))
+        (cons "maxWaitMs" (all-in-one-cfg-max-wait-ms cfg))
+        (cons "retryIntervalMs" (all-in-one-cfg-retry-interval-ms cfg))
+        (cons "probeTimeoutMs" (all-in-one-cfg-probe-timeout-ms cfg))
+        (cons "chains" (list->vector (map chain-def->json (all-in-one-cfg-chains cfg))))
+      ) ;list
     ) ;define
   ) ;begin
 ) ;define-library
