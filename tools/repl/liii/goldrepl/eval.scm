@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldrepl eval)
-  (import (scheme base) (scheme write) (liii base) (liii string))
+  (import (scheme base) (scheme write) (scheme repl) (liii base) (liii string))
   (export %repl-missing-parens *repl-eval-error* %repl-eval *repl-value-count*
     %repl-register-value!
   ) ;export
@@ -65,7 +65,7 @@
       (string-append (object->string tag) ": " (%repl-format-error-info info))
     ) ;define
     (define (%repl-collect-values text)
-      (call-with-values (lambda () (eval-string text (rootlet)))
+      (call-with-values (lambda () (eval-string text (interaction-environment)))
         (lambda results
           (cond ((null? results) (if #f #f))
                 ((null? (cdr results)) (car results))
@@ -108,7 +108,7 @@
       (set! *repl-value-count* (+ *repl-value-count* 1))
       (let ((name (string->symbol (string-append "$" (number->string *repl-value-count*))))
            ) ;
-        (varlet (rootlet) name result)
+        (varlet (interaction-environment) name result)
         name
       ) ;let
     ) ;define

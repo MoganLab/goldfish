@@ -26,7 +26,8 @@
     virtual-terminal-raw virtual-terminal-resize! virtual-terminal-push-key!
     virtual-terminal-pop-key! virtual-terminal-unshift-key!
   ) ;export
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii vector)
     (liii date-time)

@@ -43,6 +43,7 @@
     ascii-string-ci<=?
     ascii-string-ci>=?
   ) ;export
+  (import (scheme base))
   (begin
     (define (ensure-int x)
       (if (char? x) (char->integer x) x)

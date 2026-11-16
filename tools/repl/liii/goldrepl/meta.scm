@@ -17,6 +17,7 @@
 (define-library (liii goldrepl meta)
   (import (scheme base)
     (scheme write)
+    (scheme repl)
     (liii base)
     (liii list)
     (liii string)
@@ -138,12 +139,12 @@
        ((or (not arg) (string-null? arg))
         (list (string-append (%repl-styled "bold" "Usage:") " ,describe <symbol>"))
        ) ;
-       ((not (defined? (string->symbol arg) (rootlet)))
+       ((not (defined? (string->symbol arg) (interaction-environment)))
         (list (%repl-styled "dim" (string-append "Symbol not defined: " arg)))
        ) ;
        (else
          (let* ((sym (string->symbol arg))
-                (val (eval sym (rootlet)))
+                (val (eval sym (interaction-environment)))
                 (type-str (object->string (type-of val)))
                 (header (string-append (%repl-styled "bold" arg)
                           " "
