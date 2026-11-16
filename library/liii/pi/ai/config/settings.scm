@@ -8,6 +8,7 @@
   (import (scheme base)
     (liii base)
     (liii error)
+    (liii json)
     (liii list)
     (liii string)
     (liii pi ai config retry)
@@ -45,42 +46,6 @@
       (model-thinking-levels pi-settings-model-thinking-levels)
       (enable-skill-commands pi-settings-enable-skill-commands)
     ) ;define*-record-type
-
-    (define (%json-dict-pair obj str-key sym-key)
-      (let loop
-        ((rest obj))
-        (cond ((not (pair? rest)) #f)
-              ((and (pair? (car rest))
-                 (let ((k (car (car rest))))
-                   (or (equal? k str-key) (equal? k sym-key))
-                 ) ;let
-               ) ;and
-               (car rest)
-              ) ;
-              (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (%json-dict-ref obj key default-val)
-      (if (not (pair? obj))
-        default-val
-        (let* ((str-key (if (symbol? key) (symbol->string key) key))
-               (sym-key (if (string? key) (string->symbol key) key))
-               (pair (%json-dict-pair obj str-key sym-key))
-              ) ;
-          (if pair (cdr pair) default-val)
-        ) ;let*
-      ) ;if
-    ) ;define
-
-    (define (%normalize-json-bool val)
-      (case val
-       ((true) #t)
-       ((false) #f)
-       (else val)
-      ) ;case
-    ) ;define
 
     (define (pi-settings->json s)
       (unless (pi-settings? s)
@@ -128,47 +93,44 @@
       (if (pi-settings? obj)
         obj
         (begin
-          (unless (or (pair? obj) (null? obj))
-            (type-error "json->pi-settings: expected json alist or pi-settings" obj)
+          (unless (or (json-object? obj) (null? obj))
+            (type-error "json->pi-settings: expected json object or pi-settings" obj)
           ) ;unless
-          (let* ((raw-provider (%json-dict-ref obj "defaultProvider" "google"))
-                 (default-provider (if (string? raw-provider) raw-provider "google"))
-                 (raw-model (%json-dict-ref obj "defaultModel" "gemini-3.8-flash"))
-                 (default-model (if (string? raw-model) raw-model "gemini-3.8-flash"))
-                 (raw-proxy (%json-dict-ref obj "httpProxy" #f))
-                 (clean-proxy
-                   (and (string? raw-proxy)
-                     (not (string-null? (string-trim-both raw-proxy)))
-                     raw-proxy
-                   ) ;and
-                 ) ;clean-proxy
-                 (raw-thinking (%json-dict-ref obj "defaultThinkingLevel" #f))
-                 (default-thinking (if (string? raw-thinking) raw-thinking #f))
-                 (raw-session-dir (%json-dict-ref obj "sessionDir" #f))
-                 (session-dir (if (string? raw-session-dir) raw-session-dir #f))
-                 (hide-thinking (if (%normalize-json-bool (%json-dict-ref obj "hideThinkingBlock" #f)) #t #f)
-                 ) ;hide-thinking
-                 (enable-skills (if (%normalize-json-bool (%json-dict-ref obj "enableSkillCommands" #t)) #t #f)
-                 ) ;enable-skills
-                 (raw-retry (%json-dict-ref obj "retry" '()))
-                 (retry (if (or (pair? raw-retry) (null? raw-retry) (pi-retry-config? raw-retry))
-                          (json->pi-retry-config raw-retry)
-                          (pi-retry-config)
-                        ) ;if
-                 ) ;retry
-                ) ;
-            (pi-settings default-provider
-              default-model
-              default-thinking
-              clean-proxy
-              retry
-              (%parse-tools-list (%json-dict-ref obj "defaultTools" #f))
-              session-dir
-              hide-thinking
-              (%parse-model-thinking-levels (%json-dict-ref obj "modelThinkingLevels" '()))
-              enable-skills
-            ) ;pi-settings
-          ) ;let*
+          (if (null? obj)
+            (pi-settings)
+            (let* ((raw-proxy (json-ref-string obj "httpProxy" ""))
+                   (clean-proxy
+                     (and (not (string-null? (string-trim-both raw-proxy)))
+                       raw-proxy
+                     ) ;and
+                   ) ;clean-proxy
+                   (raw-thinking (json-ref obj "defaultThinkingLevel"))
+                   (default-thinking (if (string? raw-thinking) raw-thinking #f))
+                   (raw-session-dir (json-ref obj "sessionDir"))
+                   (session-dir (if (string? raw-session-dir) raw-session-dir #f))
+                   (raw-retry (json-ref obj "retry"))
+                   (retry
+                     (if (or (json-object? raw-retry) (pi-retry-config? raw-retry))
+                       (json->pi-retry-config raw-retry)
+                       (pi-retry-config)
+                     ) ;if
+                   ) ;retry
+                  ) ;
+              (pi-settings (json-ref-string obj "defaultProvider" "google")
+                (json-ref-string obj "defaultModel" "gemini-3.8-flash")
+                default-thinking
+                clean-proxy
+                retry
+                (and (json-contains-key? obj "defaultTools")
+                  (%parse-tools-list (json-ref obj "defaultTools"))
+                ) ;and
+                session-dir
+                (json-ref-boolean obj "hideThinkingBlock" #f)
+                (%parse-model-thinking-levels (json-ref obj "modelThinkingLevels"))
+                (json-ref-boolean obj "enableSkillCommands" #t)
+              ) ;pi-settings
+            ) ;let*
+          ) ;if
         ) ;begin
       ) ;if
     ) ;define
