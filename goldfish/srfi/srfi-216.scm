@@ -16,7 +16,7 @@
 
 (define-library (srfi srfi-216)
   (export true false nil runtime)
-  (import (scheme time))
+  (import (scheme base) (scheme time))
   (begin
 
     (define true #t)

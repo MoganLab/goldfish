@@ -37,7 +37,7 @@
 ;; SOFTWARE.
 
 (define-library (srfi srfi-158)
-  (import (srfi srfi-16))
+  (import (scheme base) (srfi srfi-16))
   (export generator
     circular-generator
     make-iota-generator

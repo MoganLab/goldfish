@@ -520,7 +520,7 @@
             (cond
              ((and (pair? x) (eq? (car x) 'quote)) #f)
              ((symbol? x)
-              (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
+              (when (and (not (memq x params)) (not (assq x bindings)))
                 (catch #t
                   (lambda ()
                     (let ((val (let-ref env x)))
