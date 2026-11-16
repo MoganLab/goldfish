@@ -23,7 +23,8 @@
     last-line-column reader-fill-atom? reader-fill-eligible? reader-append-close
     reader-vector-prefix format-reader-pair-fill reader-keyword-block-info
   ) ;export
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii string)
     (liii list)
     (srfi srfi-13)

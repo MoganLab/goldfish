@@ -29,7 +29,7 @@
     scroll-up-one-line! advance-cursor-line! put-char! copy-row-chars!
     %skip-ansi-csi %vt-handle-char!
   ) ;export
-  (import (liii base) (liii error) (liii vector))
+  (import (scheme base) (liii base) (liii error) (liii vector))
   (begin
 
     (define-record-type <virtual-terminal-state>

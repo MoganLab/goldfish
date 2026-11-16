@@ -20,7 +20,8 @@
     quote-env-content keyword-node? keyword-node-len keyword-block-prefix
     no-keyword-args-form? fill-min-children let-form?
   ) ;export
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii vector)
     (liii goldfmt record)
     (liii goldfmt rule)

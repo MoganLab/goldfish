@@ -30,7 +30,7 @@
     terminal-enter-raw-mode! terminal-exit-raw-mode! terminal-max-y
     terminal-mouse-mode! terminal-enter-alt-screen! terminal-exit-alt-screen!
   ) ;export
-  (import (liii base) (liii error) (liii os))
+  (import (scheme base) (liii base) (liii error) (liii os))
   (begin
 
     (define-record-type <terminal>

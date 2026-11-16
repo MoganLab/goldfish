@@ -21,7 +21,7 @@
     make-char-literal char-literal? char-literal-source char-literal-value
     make-dotted-tail dotted-tail? dotted-tail-form good-env? assert-env
   ) ;export
-  (import (liii base) (liii error) (liii vector))
+  (import (scheme base) (liii base) (liii error) (liii vector))
   (begin
     (define-record-type <env>
       (%make-env tag-name depth indent children left-line right-line value)

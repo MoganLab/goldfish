@@ -8,17 +8,13 @@
   ) ;import
   (begin
 
-    (define-syntax check-true
-      (syntax-rules ()
-        ((check-true body) (check body => #t))
-      ) ;syntax-rules
-    ) ;define-syntax
+    (define-macro (check-true body)
+      `(check ,body => #t)
+    ) ;define-macro
 
-    (define-syntax check-false
-      (syntax-rules ()
-        ((check-false body) (check body => #f))
-      ) ;syntax-rules
-    ) ;define-syntax
+    (define-macro (check-false body)
+      `(check ,body => #f)
+    ) ;define-macro
 
     (define default-check-approx-rel-tol 1e-12)
     (define default-check-approx-abs-tol 1e-12)
