@@ -27,7 +27,16 @@
 (check (pi-resolve-stream-idle-timeout '() #f 0) => #f)
 (check (pi-resolve-stream-idle-timeout '() #f "disabled") => #f)
 (check (pi-resolve-stream-idle-timeout '() 12 #f) => 12)
-(check (pi-resolve-stream-idle-timeout (pi-settings :http-idle-timeout-ms 60000) #f #f) => 60.0)
-(check (pi-resolve-stream-idle-timeout (pi-settings :http-idle-timeout-ms "disabled") #f #f) => #f)
+(check (pi-resolve-stream-idle-timeout (pi-settings :http-idle-timeout-ms 60000) #f #f)
+  =>
+  60.0
+) ;check
+(check (pi-resolve-stream-idle-timeout (pi-settings :http-idle-timeout-ms "disabled")
+         #f
+         #f
+       ) ;pi-resolve-stream-idle-timeout
+  =>
+  #f
+) ;check
 
 (check-report)

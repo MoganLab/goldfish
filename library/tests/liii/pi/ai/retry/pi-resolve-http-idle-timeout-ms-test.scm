@@ -20,8 +20,17 @@
 (check-set-mode! 'report-failed)
 
 (check (pi-resolve-http-idle-timeout-ms '()) => 300000)
-(check (pi-resolve-http-idle-timeout-ms (pi-settings :http-idle-timeout-ms 45000)) => 45000)
-(check (pi-resolve-http-idle-timeout-ms (pi-settings :http-idle-timeout-ms 0)) => 0)
-(check (pi-resolve-http-idle-timeout-ms (pi-settings :http-idle-timeout-ms "disabled")) => 0)
+(check (pi-resolve-http-idle-timeout-ms (pi-settings :http-idle-timeout-ms 45000))
+  =>
+  45000
+) ;check
+(check (pi-resolve-http-idle-timeout-ms (pi-settings :http-idle-timeout-ms 0))
+  =>
+  0
+) ;check
+(check (pi-resolve-http-idle-timeout-ms (pi-settings :http-idle-timeout-ms "disabled"))
+  =>
+  0
+) ;check
 
 (check-report)

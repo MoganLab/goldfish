@@ -19,8 +19,31 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((s1 (%make-pi-settings "google" "m" #f #f (%make-pi-retry-config #t 3 2000 60000 #f) #f #f #f '() #t))
-      (s2 (%make-pi-settings "google" "m" #f #f (%make-pi-retry-config #t 3 2000 60000 #f) #f #f #f '() #t 120000))
+(let ((s1 (%make-pi-settings "google"
+            "m"
+            #f
+            #f
+            (%make-pi-retry-config #t 3 2000 60000 #f)
+            #f
+            #f
+            #f
+            '()
+            #t
+          ) ;%make-pi-settings
+      ) ;s1
+      (s2 (%make-pi-settings "google"
+            "m"
+            #f
+            #f
+            (%make-pi-retry-config #t 3 2000 60000 #f)
+            #f
+            #f
+            #f
+            '()
+            #t
+            120000
+          ) ;%make-pi-settings
+      ) ;s2
      ) ;
   (check (pi-settings-http-idle-timeout-ms s1) => 300000)
   (check (pi-settings-http-idle-timeout-ms s2) => 120000)

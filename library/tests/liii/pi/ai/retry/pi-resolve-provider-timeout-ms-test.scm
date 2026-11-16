@@ -22,24 +22,32 @@
 (check-set-mode! 'report-failed)
 
 (check (pi-resolve-provider-timeout-ms '()) => 300000)
-(check (pi-resolve-provider-timeout-ms (pi-settings :http-idle-timeout-ms 120000)) => 120000)
-(check (pi-resolve-provider-timeout-ms
-         (pi-settings :http-idle-timeout-ms 120000
-           :retry (pi-retry-config :provider-timeout-ms 90000)
-         ) ;pi-settings
+(check (pi-resolve-provider-timeout-ms (pi-settings :http-idle-timeout-ms 120000))
+  =>
+  120000
+) ;check
+(check (pi-resolve-provider-timeout-ms (pi-settings
+                                         :http-idle-timeout-ms 120000
+                                         :retry
+                                         (pi-retry-config :provider-timeout-ms 90000)
+                                       ) ;pi-settings
        ) ;pi-resolve-provider-timeout-ms
   =>
   90000
 ) ;check
-(check (pi-resolve-provider-timeout-ms
-         (pi-settings :http-idle-timeout-ms 120000
-           :retry (pi-retry-config :provider-timeout-ms 90000)
-         ) ;pi-settings
+(check (pi-resolve-provider-timeout-ms (pi-settings
+                                         :http-idle-timeout-ms 120000
+                                         :retry
+                                         (pi-retry-config :provider-timeout-ms 90000)
+                                       ) ;pi-settings
          15000
        ) ;pi-resolve-provider-timeout-ms
   =>
   15000
 ) ;check
-(check (pi-resolve-provider-timeout-ms (pi-settings :http-idle-timeout-ms "disabled")) => #f)
+(check (pi-resolve-provider-timeout-ms (pi-settings :http-idle-timeout-ms "disabled"))
+  =>
+  #f
+) ;check
 
 (check-report)

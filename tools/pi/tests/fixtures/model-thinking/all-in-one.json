@@ -1,0 +1,27 @@
+{
+  "provider": "all-in-one",
+  "name": "高可用长程推进总线",
+  "continuous": true,
+  "maxWait": 3600,
+  "retryInterval": 60,
+  "probeTimeout": 8,
+  "chains": [
+    {
+      "id": "coding-fast",
+      "name": "快速",
+      "nodes": [
+        {"provider": "google", "model": "gemini-3.8-flash", "thinkingLevel": "medium"},
+        {"provider": "minimax-cn", "model": "MiniMax-M3.1-Flash", "thinkingLevel": "medium"},
+        {"provider": "deepseek", "model": "deepseek-v4-pro", "thinkingLevel": "high"}
+      ]
+    },
+    {
+      "id": "coding-high-quality",
+      "name": "高质量",
+      "nodes": [
+        {"provider": "kimi-coding", "model": "k3.1-pro", "thinkingLevel": "high"},
+        {"provider": "zai-coding-cn", "model": "glm-5.3", "thinkingLevel": "high"}
+      ]
+    }
+  ]
+}

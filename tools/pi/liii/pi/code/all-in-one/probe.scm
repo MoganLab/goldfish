@@ -64,6 +64,7 @@
         (if enabled?
           (list (cons 'enabled #t)
             (cons 'max-retries 3)
+            (cons 'provider-max-retries 3)
             (cons 'base-delay-ms eff-base)
             (cons 'max-agent-delay-ms 10000)
           ) ;list

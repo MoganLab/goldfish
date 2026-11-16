@@ -21,8 +21,12 @@
 
 (check-set-mode! 'report-failed)
 
-(check-true (string-contains? (pi-format-timeout-reason "Operation timed out" 5) "timed out"))
-(check-true (string-contains? (pi-format-timeout-reason "Operation too slow" 5) "timed out"))
+(check-true (string-contains? (pi-format-timeout-reason "Operation timed out" 5)
+              "timed out"
+            ) ;string-contains?
+) ;check-true
+(check-true (string-contains? (pi-format-timeout-reason "Operation too slow" 5) "timed out")
+) ;check-true
 (check-true (string-contains? (pi-format-timeout-reason "" #f) "timed out"))
 
 (check-report)

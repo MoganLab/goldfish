@@ -156,10 +156,7 @@
        (t-prop (cdr (assoc "timeout" props)))
       ) ;
   (check-true (pi-tool-definition? def))
-  (check (cdr (assoc "description" t-prop))
-    =>
-    "Timeout in seconds (optional, defaults to 600s)"
-  ) ;check
+  (check (cdr (assoc "description" t-prop)) => "Timeout in seconds (optional)")
 ) ;let*
 
 (let* ((def (get-tool-definition "bash" 300))
