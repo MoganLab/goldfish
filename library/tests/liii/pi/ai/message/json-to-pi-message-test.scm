@@ -21,9 +21,9 @@
 
 (check-true (procedure? json->pi-message))
 
-;; 1. 幂等：已是 pi-message 直接返回
+;; 1. 非标准 JSON 对象（含 pi-message record）抛出 type-error
 (let ((m (pi-user-message "hi" 100)))
-  (check (json->pi-message m) => m)
+  (check-catch 'type-error (json->pi-message m))
 ) ;let
 
 ;; 2. user message round-trip（文本与 block 数组）

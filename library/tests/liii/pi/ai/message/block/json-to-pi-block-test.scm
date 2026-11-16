@@ -21,9 +21,9 @@
 
 (check-true (procedure? json->pi-block))
 
-;; 1. 幂等：已是 pi-block 直接返回
+;; 1. 非标准 JSON 对象（含 pi-block record）抛出 type-error
 (let ((b (pi-text-block "hi" "s1")))
-  (check (json->pi-block b) => b)
+  (check-catch 'type-error (json->pi-block b))
 ) ;let
 
 ;; 2. text / thinking / toolCall / image round-trip

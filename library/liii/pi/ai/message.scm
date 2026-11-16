@@ -123,60 +123,54 @@
     ) ;define
 
     (define (json->pi-message obj)
-      (if (pi-message? obj)
-        obj
-        (begin
-          (unless (or (%string-key-json-object? obj) (null? obj))
-            (type-error "json->pi-message: expected json object or pi-message" obj)
-          ) ;unless
-          (if (null? obj)
-            #f
-            (let ((role (json-ref obj "role")))
-              (cond
-               ((equal? role "user")
-                (let ((raw-content (json-ref obj "content")) (raw-ts (json-ref obj "timestamp")))
-                  (pi-user-message
-                    (%convert-message-content (if (null? raw-content) "" raw-content))
-                    :timestamp (if (null? raw-ts) (pi-current-time-millis) raw-ts)
-                  ) ;pi-user-message
-                ) ;let
-               ) ;
-               ((equal? role "assistant")
-                (let ((raw-content (json-ref obj "content"))
-                      (raw-err (json-ref obj "errorMessage"))
-                      (raw-usage (json-ref obj "usage"))
-                      (raw-ts (json-ref obj "timestamp"))
-                      (raw-prov (json-ref obj "provider"))
-                      (raw-model (json-ref obj "model"))
-                      (raw-api (json-ref obj "api"))
-                     ) ;
-                  (pi-assistant-message
-                    (%convert-message-content (if (null? raw-content) #() raw-content))
-                    :stop-reason   (json-ref-string obj "stopReason" "stop")
-                    :error-message (if (string? raw-err) raw-err #f)
-                    :usage         (if (null? raw-usage) #f raw-usage)
-                    :timestamp     (if (null? raw-ts) (pi-current-time-millis) raw-ts)
-                    :provider      (if (string? raw-prov) raw-prov #f)
-                    :model         (if (string? raw-model) raw-model #f)
-                    :api           (if (string? raw-api) raw-api #f)
-                  ) ;pi-assistant-message
-                ) ;let
-               ) ;
-               ((equal? role "toolResult")
-                (let ((raw-content (json-ref obj "content")) (raw-ts (json-ref obj "timestamp")))
-                  (pi-tool-result-message (json-ref-string obj "toolCallId" "")
-                    (json-ref-string obj "toolName" "")
-                    (%convert-message-content (if (null? raw-content) #() raw-content))
-                    :is-error  (json-ref-boolean obj "isError" #f)
-                    :timestamp (if (null? raw-ts) (pi-current-time-millis) raw-ts)
-                  ) ;pi-tool-result-message
-                ) ;let
-               ) ;
-               (else #f)
-              ) ;cond
+      (unless (or (%string-key-json-object? obj) (null? obj))
+        (type-error "json->pi-message: expected json object" obj)
+      ) ;unless
+      (if (null? obj)
+        #f
+        (let ((role (json-ref obj "role")))
+          (cond
+           ((equal? role "user")
+            (let ((raw-content (json-ref obj "content")) (raw-ts (json-ref obj "timestamp")))
+              (pi-user-message (%convert-message-content (if (null? raw-content) "" raw-content))
+                :timestamp (if (null? raw-ts) (pi-current-time-millis) raw-ts)
+              ) ;pi-user-message
             ) ;let
-          ) ;if
-        ) ;begin
+           ) ;
+           ((equal? role "assistant")
+            (let ((raw-content (json-ref obj "content"))
+                  (raw-err (json-ref obj "errorMessage"))
+                  (raw-usage (json-ref obj "usage"))
+                  (raw-ts (json-ref obj "timestamp"))
+                  (raw-prov (json-ref obj "provider"))
+                  (raw-model (json-ref obj "model"))
+                  (raw-api (json-ref obj "api"))
+                 ) ;
+              (pi-assistant-message
+                (%convert-message-content (if (null? raw-content) #() raw-content))
+                :stop-reason   (json-ref-string obj "stopReason" "stop")
+                :error-message (if (string? raw-err) raw-err #f)
+                :usage         (if (null? raw-usage) #f raw-usage)
+                :timestamp     (if (null? raw-ts) (pi-current-time-millis) raw-ts)
+                :provider      (if (string? raw-prov) raw-prov #f)
+                :model         (if (string? raw-model) raw-model #f)
+                :api           (if (string? raw-api) raw-api #f)
+              ) ;pi-assistant-message
+            ) ;let
+           ) ;
+           ((equal? role "toolResult")
+            (let ((raw-content (json-ref obj "content")) (raw-ts (json-ref obj "timestamp")))
+              (pi-tool-result-message (json-ref-string obj "toolCallId" "")
+                (json-ref-string obj "toolName" "")
+                (%convert-message-content (if (null? raw-content) #() raw-content))
+                :is-error  (json-ref-boolean obj "isError" #f)
+                :timestamp (if (null? raw-ts) (pi-current-time-millis) raw-ts)
+              ) ;pi-tool-result-message
+            ) ;let
+           ) ;
+           (else #f)
+          ) ;cond
+        ) ;let
       ) ;if
     ) ;define
 

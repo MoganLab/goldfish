@@ -57,7 +57,7 @@
     ) ;define
 
     (define (%convert-msg x)
-      (if (or (pi-message? x) (json-object? x)) (or (json->pi-message x) x) x)
+      (if (json-object? x) (or (json->pi-message x) x) x)
     ) ;define
 
     (define (%convert-result x)

@@ -136,60 +136,53 @@
     ) ;define
 
     (define (json->pi-block obj)
-      (if (pi-block? obj)
-        obj
-        (begin
-          (unless (or (%string-key-json-object? obj) (null? obj))
-            (type-error "json->pi-block: expected json object or pi-block" obj)
-          ) ;unless
-          (if (null? obj)
-            #f
-            (let ((btype (json-ref obj "type")))
-              (cond
-               ((equal? btype "text")
-                (let ((raw-sig (json-ref obj "textSignature")))
-                  (pi-text-block (json-ref-string obj "text" "")
-                    (if (string? raw-sig) raw-sig #f)
-                  ) ;pi-text-block
-                ) ;let
-               ) ;
-               ((equal? btype "thinking")
-                (let ((raw-sig (json-ref obj "thinkingSignature")))
-                  (pi-thinking-block (json-ref-string obj "thinking" "")
-                    (if (string? raw-sig) raw-sig #f)
-                  ) ;pi-thinking-block
-                ) ;let
-               ) ;
-               ((equal? btype "toolCall")
-                (let ((raw-args (json-ref obj "arguments"))
-                      (raw-sig (json-ref obj "thoughtSignature"))
-                     ) ;
-                  (pi-tool-call-block (json-ref-string obj "id" "")
-                    (json-ref-string obj "name" "")
-                    (%normalize-tool-args (if (null? raw-args) '() raw-args))
-                    (if (string? raw-sig) raw-sig #f)
-                  ) ;pi-tool-call-block
-                ) ;let
-               ) ;
-               ((equal? btype "image")
-                (let ((m (json-ref-string obj "media_type" "image/png"))
-                      (m2 (json-ref obj "mimeType"))
-                     ) ;
-                  (pi-image-block (json-ref-string obj "data" "")
-                    (if (string? m2) (if (string=? m2 "") m m2) m)
-                  ) ;pi-image-block
-                ) ;let
-               ) ;
-               (else #f)
-              ) ;cond
+      (unless (or (%string-key-json-object? obj) (null? obj))
+        (type-error "json->pi-block: expected json object" obj)
+      ) ;unless
+      (if (null? obj)
+        #f
+        (let ((btype (json-ref obj "type")))
+          (cond
+           ((equal? btype "text")
+            (let ((raw-sig (json-ref obj "textSignature")))
+              (pi-text-block (json-ref-string obj "text" "")
+                (if (string? raw-sig) raw-sig #f)
+              ) ;pi-text-block
             ) ;let
-          ) ;if
-        ) ;begin
+           ) ;
+           ((equal? btype "thinking")
+            (let ((raw-sig (json-ref obj "thinkingSignature")))
+              (pi-thinking-block (json-ref-string obj "thinking" "")
+                (if (string? raw-sig) raw-sig #f)
+              ) ;pi-thinking-block
+            ) ;let
+           ) ;
+           ((equal? btype "toolCall")
+            (let ((raw-args (json-ref obj "arguments")) (raw-sig (json-ref obj "thoughtSignature")))
+              (pi-tool-call-block (json-ref-string obj "id" "")
+                (json-ref-string obj "name" "")
+                (%normalize-tool-args (if (null? raw-args) '() raw-args))
+                (if (string? raw-sig) raw-sig #f)
+              ) ;pi-tool-call-block
+            ) ;let
+           ) ;
+           ((equal? btype "image")
+            (let ((m (json-ref-string obj "media_type" "image/png"))
+                  (m2 (json-ref obj "mimeType"))
+                 ) ;
+              (pi-image-block (json-ref-string obj "data" "")
+                (if (string? m2) (if (string=? m2 "") m m2) m)
+              ) ;pi-image-block
+            ) ;let
+           ) ;
+           (else #f)
+          ) ;cond
+        ) ;let
       ) ;if
     ) ;define
 
     (define (%convert-block-elem x)
-      (if (or (pi-block? x) (%string-key-json-object? x)) (or (json->pi-block x) x) x)
+      (if (%string-key-json-object? x) (or (json->pi-block x) x) x)
     ) ;define
 
     (define (%convert-message-content c)
