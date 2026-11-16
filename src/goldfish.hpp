@@ -1344,6 +1344,7 @@ init_goldfish_scheme (const char* gf_lib) {
   if (!tb_init (tb_null, tb_null)) exit (-1);
 
   glue_for_community_edition (sc);
+  s7_eval_c_string (sc, "(set! (*s7* 'symbol-quote?) #t)");
   return sc;
 }
 
