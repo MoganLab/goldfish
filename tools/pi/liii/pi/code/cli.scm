@@ -26,7 +26,7 @@
     (liii pi code core session-manager)
     (liii pi code cli help)
     (liii pi ai models)
-    (liii pi ai config record)
+
     (liii pi code modes interactive)
     (liii pi code modes interactive app-history)
     (liii pi code modes interactive resume)
@@ -392,6 +392,5 @@
     (define (main)
       (exit (run-pi (command-line)))
     ) ;define
-
   ) ;begin
 ) ;define-library

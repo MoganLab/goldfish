@@ -308,10 +308,7 @@
                        (let* ((ra-raw (pi-extract-retry-after resp))
                               (ra-sec (pi-parse-retry-after ra-raw))
                               (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
-                              (retry-status (if (%resp-field resp 'timeout)
-                                              (%resp-field resp 'reason)
-                                              status
-                                            ) ;if
+                              (retry-status (if (%resp-field resp 'timeout) (%resp-field resp 'reason) status)
                               ) ;retry-status
                              ) ;
                          (pi-log-retry retry-status attempt provider-r delay-sec ra-sec)
@@ -345,14 +342,10 @@
              (model-meta (pi-cfg-ref config 'model-meta))
              (proxy-url (pi-cfg-ref config 'proxy-url))
              (base-url
-               (cond ((pi-model-metadata? model-meta)
-                      (pi-model-metadata-base-url model-meta)
-                     ) ;
+               (cond ((pi-model-metadata? model-meta) (pi-model-metadata-base-url model-meta))
                      ((pair? model-meta)
-                      (cdr (or (assoc 'base-url model-meta)
-                             '(#f . "https://api.openai.com/v1")
-                           ) ;or
-                      ) ;cdr
+                      (cdr (or (assoc 'base-url model-meta) '(#f
+                                                              . "https://api.openai.com/v1")))
                      ) ;
                      (else "https://api.openai.com/v1")
                ) ;cond
@@ -361,20 +354,17 @@
                (cond ((pi-model-metadata? model-meta)
                       (or (pi-model-metadata-max-tokens model-meta) 8192)
                      ) ;
-                     ((pair? model-meta)
-                      (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192)))
-                     ) ;
+                     ((pair? model-meta) (cdr (or (assoc 'max-tokens model-meta) '(#f
+                                                                                   . 8192))))
                      (else 8192)
                ) ;cond
              ) ;max-tokens
              (url (openai-build-endpoint base-url))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
-             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-             ) ;tool-resolver
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
              (tool-decls (openai-build-tool-declarations-from-names eff-tool-names tool-resolver)
              ) ;tool-decls
-             (prompt-cache-key
-               (openai-resolve-prompt-cache-key base-url (pi-cfg-ref config 'session-id))
+             (prompt-cache-key (openai-resolve-prompt-cache-key base-url (pi-cfg-ref config 'session-id))
              ) ;prompt-cache-key
              (openai-msgs (openai-build-messages messages system-instruction))
              (req-body (openai-build-request-body model-id openai-msgs #t

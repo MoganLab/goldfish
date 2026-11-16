@@ -22,7 +22,7 @@
 (import (liii check)
   (liii path)
   (liii tempfile)
-  (liii pi ai config record)
+  (liii pi ai config credential)
   (liii pi ai auth)
 ) ;import
 

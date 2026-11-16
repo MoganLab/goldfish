@@ -19,7 +19,7 @@
   (liii check)
   (liii path)
   (liii shutil)
-  (liii pi ai config record)
+  (liii pi ai config model-metadata)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code modes interactive worker)

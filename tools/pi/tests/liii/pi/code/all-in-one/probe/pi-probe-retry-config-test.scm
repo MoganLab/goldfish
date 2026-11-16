@@ -19,7 +19,8 @@
 
 (import (scheme base)
   (liii check)
-  (liii pi ai config record)
+  (liii pi ai config retry)
+    (liii pi ai config settings)
   (liii pi code all-in-one probe)
 ) ;import
 

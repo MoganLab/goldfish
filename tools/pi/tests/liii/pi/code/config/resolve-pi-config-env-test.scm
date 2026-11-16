@@ -23,6 +23,7 @@
   (liii check)
   (liii string)
   (liii os)
+  (liii pi ai config model-metadata)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)
@@ -98,10 +99,10 @@
   (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
     ;; fixture 中 baseUrl 为 https://api.deepseek.com，生产语义归一化为 /anthropic
-    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
-    (check (cdr (assoc 'name meta)) => "DeepSeek V4 Pro (fixture)")
-    (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 384000)
+    (check (pi-model-metadata-base-url meta) => "https://api.deepseek.com/anthropic")
+    (check (pi-model-metadata-name meta) => "DeepSeek V4 Pro (fixture)")
+    (check (pi-model-metadata-context-window meta) => 1000000)
+    (check (pi-model-metadata-max-tokens meta) => 384000)
   ) ;let
 ) ;let*
 
@@ -116,8 +117,8 @@
   (check (pi-cfg-ref cfg 'model-id) => "glm-5.3")
   (check (pi-cfg-ref cfg 'api-key) => "glm-token-xyz-123")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-    (check (cdr (assoc 'name meta)) => "GLM 5.3 (fixture)")
+    (check (pi-model-metadata-base-url meta) => "https://open.bigmodel.cn/api/anthropic")
+    (check (pi-model-metadata-name meta) => "GLM 5.3 (fixture)")
   ) ;let
 ) ;let*
 
@@ -132,8 +133,8 @@
   (check (pi-cfg-ref cfg 'model-id) => "kimi-for-coding")
   (check (pi-cfg-ref cfg 'api-key) => "kimi-key-xyz-123")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
-    (check (cdr (assoc 'name meta)) => "Kimi K2.7 Code (fixture)")
+    (check (pi-model-metadata-base-url meta) => "https://api.kimi.com/coding/v1")
+    (check (pi-model-metadata-name meta) => "Kimi K2.7 Code (fixture)")
   ) ;let
 ) ;let*
 
@@ -146,8 +147,8 @@
   (check (pi-cfg-ref cfg 'model-id) => "gemini-3.8-flash")
   (check (pi-cfg-ref cfg 'api-key) => "fixture-google-key-051")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'name meta)) => "Gemini 3.8 Flash (fixture)")
-    (check (cdr (assoc 'base-url meta))
+    (check (pi-model-metadata-name meta) => "Gemini 3.8 Flash (fixture)")
+    (check (pi-model-metadata-base-url meta)
       =>
       "https://generativelanguage.googleapis.com/v1beta"
     ) ;check
@@ -181,10 +182,10 @@
   (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-pro")
   (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
-    (check (cdr (assoc 'name meta)) => "DeepSeek V4 Pro (fixture)")
-    (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 384000)
+    (check (pi-model-metadata-base-url meta) => "https://api.deepseek.com/anthropic")
+    (check (pi-model-metadata-name meta) => "DeepSeek V4 Pro (fixture)")
+    (check (pi-model-metadata-context-window meta) => 1000000)
+    (check (pi-model-metadata-max-tokens meta) => 384000)
   ) ;let
 ) ;let
 

@@ -20,7 +20,7 @@
     (liii sort)
     (liii pi ai models builtin)
     (liii pi ai providers registry)
-    (liii pi ai config record)
+    (liii pi ai config settings)
     (liii pi code all-in-one provider)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
@@ -240,6 +240,5 @@
         ) ;if
       ) ;let-values
     ) ;define
-
   ) ;begin
 ) ;define-library

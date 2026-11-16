@@ -155,14 +155,10 @@
                      (%resolve-retry-params settings opt-retry)
                     ) ;
                     ((base-url)
-                     (cond ((pi-model-metadata? model-meta)
-                            (pi-model-metadata-base-url model-meta)
-                           ) ;
+                     (cond ((pi-model-metadata? model-meta) (pi-model-metadata-base-url model-meta))
                            ((pair? model-meta)
-                            (cdr (or (assoc 'base-url model-meta)
-                                   '(#f . "https://api.anthropic.com")
-                                 ) ;or
-                            ) ;cdr
+                            (cdr (or (assoc 'base-url model-meta) '(#f
+                                                                    . "https://api.anthropic.com")))
                            ) ;
                            (else "https://api.anthropic.com")
                      ) ;cond
@@ -171,17 +167,14 @@
                      (cond ((pi-model-metadata? model-meta)
                             (or (pi-model-metadata-max-tokens model-meta) 8192)
                            ) ;
-                           ((pair? model-meta)
-                            (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192)))
-                           ) ;
+                           ((pair? model-meta) (cdr (or (assoc 'max-tokens model-meta) '(#f
+                                                                                         . 8192))))
                            (else 8192)
                      ) ;cond
                     ) ;
                     ((url) (anthropic-build-endpoint base-url))
                     ((eff-tool-names) (or tool-names (pi-cfg-ref config 'tools '())))
-                    ((tool-resolver)
-                     (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-                    ) ;
+                    ((tool-resolver) (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
                     ((tool-decls)
                      (anthropic-build-tool-declarations-from-names eff-tool-names tool-resolver)
                     ) ;

@@ -19,8 +19,8 @@
     (liii pi ai providers quota)
   ) ;import
   (export PI_PROVIDERS PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
-    PI_ALL_IN_ONE_PROVIDER PI_ALL_IN_ONE_BUILTIN_MODELS
-    pi-provider-record pi-provider-api pi-provider-base-url pi-provider-env-keys
+    PI_ALL_IN_ONE_PROVIDER PI_ALL_IN_ONE_BUILTIN_MODELS pi-provider-record
+    pi-provider-api pi-provider-base-url pi-provider-env-keys
     pi-provider-builtin-models pi-provider-quota-error-handler
     pi-provider-quota-error
   ) ;export
@@ -46,7 +46,8 @@
     ;; Anthropic 兼容端点，由 zai-coding-cn / minimax-cn / deepseek 覆盖；
     ;; 需要其它端点时用自定义 provider：models/<id>.json）
     (define PI_SUPPORTED_PROVIDERS
-      '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama" "opencode")
+      '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama"
+        "opencode")
     ) ;define
 
     ;; 各 provider 的内置模型目录（id -> models），与 PI_PROVIDERS 同源

@@ -25,7 +25,7 @@
   (liii shutil)
   (liii pi ai message)
   (liii pi ai models)
-  (liii pi ai config record)
+  (liii pi ai config settings)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)

@@ -18,7 +18,7 @@
 
 (import (scheme base)
   (liii check)
-  (liii pi ai config record)
+  (liii pi ai config model-metadata)
   (liii pi code all-in-one probe)
 ) ;import
 

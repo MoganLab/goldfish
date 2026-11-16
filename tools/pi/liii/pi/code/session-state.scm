@@ -18,7 +18,7 @@
     (liii pi code config)
     (liii pi ai models)
     (liii pi ai thinking)
-    (liii pi ai config record)
+    (liii pi ai config model-metadata)
     (liii pi code core session-manager)
     (liii pi code core compaction session)
     (liii pi code core session-projection)
@@ -246,6 +246,5 @@
         #f
       ) ;if
     ) ;define
-
   ) ;begin
 ) ;define-library

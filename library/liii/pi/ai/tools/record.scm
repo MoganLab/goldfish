@@ -18,9 +18,8 @@
     pi-tool-definition-guidelines pi-tool-definition->alist pi-tool-result
     pi-tool-result? pi-tool-result-content pi-tool-result-is-error
     pi-tool-result-isError pi-tool-result->alist pi-tool-result->json
-    json->pi-tool-result
-    pi-trunc-result pi-trunc-result? pi-trunc-result-content
-    pi-trunc-result-truncated pi-trunc-result-truncated?
+    json->pi-tool-result pi-trunc-result pi-trunc-result?
+    pi-trunc-result-content pi-trunc-result-truncated pi-trunc-result-truncated?
     pi-trunc-result-truncated-by pi-trunc-result-total-lines
     pi-trunc-result-total-bytes pi-trunc-result-output-lines
     pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
@@ -115,7 +114,11 @@
                (sym-key (if (string? key) (string->symbol key) key))
                (pair (or (assoc str-key obj) (assoc sym-key obj)))
               ) ;
-          (if (and pair (not (eq? (cdr pair) 'null))) (cdr pair) default-val)
+          (if
+            (and pair (not (eq? (cdr pair) 'null)))
+            (cdr pair)
+            default-val
+          ) ;if
         ) ;let*
       ) ;if
     ) ;define
@@ -129,19 +132,19 @@
     ) ;define
 
     (define (%tool-convert-content c)
-      (cond ((vector? c) (vector-map (lambda (x) (or (json->pi-block x) x)) c))
-            ((pair? c) (list->vector (map (lambda (x) (or (json->pi-block x) x)) c)))
-            (else c)
+      (cond
+       ((vector? c) (vector-map (lambda (x) (or (json->pi-block x) x)) c))
+       ((pair? c) (list->vector (map (lambda (x) (or (json->pi-block x) x)) c)))
+       (else c)
       ) ;cond
     ) ;define
 
     (define (json->pi-tool-result obj)
       (cond ((pi-tool-result? obj) obj)
             ((not (pair? obj)) #f)
-            (else
-             (pi-tool-result (%tool-convert-content (%tool-dict-ref obj "content" #()))
-               (%tool-json-bool (%tool-dict-ref obj "isError" #f))
-             ) ;pi-tool-result
+            (else (pi-tool-result (%tool-convert-content (%tool-dict-ref obj "content" #()))
+                    (%tool-json-bool (%tool-dict-ref obj "isError" #f))
+                  ) ;pi-tool-result
             ) ;else
       ) ;cond
     ) ;define

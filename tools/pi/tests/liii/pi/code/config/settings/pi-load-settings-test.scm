@@ -16,7 +16,8 @@
 ;; 全局设置 record；文件缺失或字段缺省时回退默认值。
 
 (import (liii check)
-  (liii pi ai config record)
+  (liii pi ai config retry)
+    (liii pi ai config settings)
   (liii pi ai retry)
   (liii pi code config settings)
   (liii pi code core session-manager)

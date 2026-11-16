@@ -10,7 +10,7 @@
     (liii pi ai api google-generative-ai)
     (liii pi ai api openai-completions)
     (liii pi ai config types)
-    (liii pi ai config record)
+    (liii pi ai config model-metadata)
     (liii pi ai config runtime)
     (liii pi ai providers registry)
     (liii pi ai transcript)
@@ -70,19 +70,19 @@
              ;; 缺失时用注册表默认值补齐；不再把 record 降级为 alist
              (c6
                (let ((m
-                      (if (pi-model-metadata? raw-meta)
-                        raw-meta
-                        (pi-model-metadata ""
-                          ""
-                          provider
-                          (or (pi-provider-base-url provider) "")
-                          #f
-                          4096
-                          #t
-                        ) ;pi-model-metadata
-                      ) ;if
-                    ) ;m
-                   ) ;
+                       (if (pi-model-metadata? raw-meta)
+                         raw-meta
+                         (pi-model-metadata ""
+                           ""
+                           provider
+                           (or (pi-provider-base-url provider) "")
+                           #f
+                           4096
+                           #t
+                         ) ;pi-model-metadata
+                       ) ;if
+                     ) ;m
+                    ) ;
                  (pi-cfg-set c5 'model-meta m)
                ) ;let
              ) ;c6
@@ -150,6 +150,5 @@
         ) ;cond
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

@@ -14,6 +14,7 @@
     (liii pi ai abort)
     (liii pi ai time)
     (liii pi ai event)
+    (liii pi ai config model-metadata)
     (liii pi ai config types)
     (liii pi ai config runtime)
     (liii pi ai retry)
@@ -95,8 +96,11 @@
     ) ;define
 
     (define (%build-stream-url model-meta model-id)
-      (gemini-build-stream-endpoint (cdr (or (%safe-assoc 'base-url model-meta) '(#f
-                                                                                  . #f)))
+      (gemini-build-stream-endpoint
+        (if (pi-model-metadata? model-meta)
+          (pi-model-metadata-base-url model-meta)
+          (cdr (or (%safe-assoc 'base-url model-meta) '(#f . #f)))
+        ) ;if
         model-id
       ) ;gemini-build-stream-endpoint
     ) ;define
@@ -107,8 +111,7 @@
              (proxy-url (pi-cfg-ref config 'proxy-url))
              (provider (pi-cfg-ref config 'provider "google"))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
-             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-             ) ;tool-resolver
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
              (contents (gemini-build-contents messages model-id (or provider "google")))
              (raw-req-body (gemini-build-request-body contents sys-inst tool-decls))

@@ -25,7 +25,7 @@
   (liii path)
   (liii shutil)
   (liii pi code config settings)
-  (liii pi ai config record)
+  (liii pi ai config settings)
 ) ;import
 
 (check-set-mode! 'report-failed)

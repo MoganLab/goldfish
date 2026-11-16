@@ -29,7 +29,7 @@
 ;; alist?
 ;; 符合下游协议流式请求规范的配置关联表。
 
-(import (liii check) (liii pi ai dispatch) (liii pi ai config record))
+(import (liii check) (liii pi ai dispatch) (liii pi ai config model-metadata))
 
 (check-set-mode! 'report-failed)
 

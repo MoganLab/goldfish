@@ -18,7 +18,7 @@
     (liii pi ai message)
     (liii pi ai tools record)
     (liii pi ai config types)
-    (liii pi ai config record)
+
     (liii pi ai config runtime)
     (liii pi ai models)
     (liii pi code core tools truncate)
@@ -392,6 +392,5 @@
         ) ;let
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

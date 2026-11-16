@@ -55,20 +55,21 @@
              (details-cached (%num-val "cached_tokens" details #f))
              (hit-tokens (%num-val "prompt_cache_hit_tokens" usage-meta #f))
              (top-cached (%num-val "cached_tokens" usage-meta #f))
-             (c-read
-               (cond ((number? details-cached) details-cached)
-                     ((number? hit-tokens) hit-tokens)
-                     ((number? top-cached) top-cached)
-                     (else 0)
-               ) ;cond
+             (c-read (cond ((number? details-cached) details-cached)
+                           ((number? hit-tokens) hit-tokens)
+                           ((number? top-cached) top-cached)
+                           (else 0)
+                     ) ;cond
              ) ;c-read
              (c-write (%num-val "cache_write_tokens" details 0))
              (in-tok (max 0 (- prompt-tokens c-read c-write)))
              (out-tok completion-tokens)
              (tot-tok (+ in-tok out-tok c-read c-write))
              ;; reasoning 为 output 的子集（completion_tokens 已含 reasoning_tokens）
-             (reasoning-tok
-               (%num-val "reasoning_tokens" (%val "completion_tokens_details" usage-meta '()) 0)
+             (reasoning-tok (%num-val "reasoning_tokens"
+                              (%val "completion_tokens_details" usage-meta '())
+                              0
+                            ) ;%num-val
              ) ;reasoning-tok
             ) ;
         (list (cons 'input in-tok)

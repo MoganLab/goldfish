@@ -261,14 +261,16 @@
              ) ;retry-cfg
              (enabled?
                (cond ((pi-retry-config? retry-cfg) (pi-retry-config-enabled retry-cfg))
-                     ((pair? retry-cfg) (cdr (or (%safe-assoc 'enabled retry-cfg) '(#f . #t))))
+                     ((pair? retry-cfg) (cdr (or (%safe-assoc 'enabled retry-cfg) '(#f
+                                                                                    . #t))))
                      (else #t)
                ) ;cond
              ) ;enabled?
              (max-retries
                (if enabled?
                  (cond ((pi-retry-config? retry-cfg) (pi-retry-config-max-retries retry-cfg))
-                       ((pair? retry-cfg) (cdr (or (%safe-assoc 'max-retries retry-cfg) '(#f . 3))))
+                       ((pair? retry-cfg) (cdr (or (%safe-assoc 'max-retries retry-cfg) '(#f
+                                                                                          . 3))))
                        (else 3)
                  ) ;cond
                  0
@@ -276,26 +278,37 @@
              ) ;max-retries
              (base-delay
                (cond ((pi-retry-config? retry-cfg) (pi-retry-config-base-delay-ms retry-cfg))
-                     ((pair? retry-cfg) (cdr (or (%safe-assoc 'base-delay-ms retry-cfg) '(#f . 2000))))
+                     ((pair? retry-cfg)
+                      (cdr (or (%safe-assoc 'base-delay-ms retry-cfg) '(#f
+                                                                        . 2000)))
+                     ) ;
                      (else 2000)
                ) ;cond
              ) ;base-delay
              (max-delay
                (cond ((pi-retry-config? retry-cfg) (pi-retry-config-max-agent-delay-ms retry-cfg))
-                     ((pair? retry-cfg) (cdr (or (%safe-assoc 'max-agent-delay-ms retry-cfg) '(#f . 60000))))
+                     ((pair? retry-cfg)
+                      (cdr (or (%safe-assoc 'max-agent-delay-ms retry-cfg) '(#f
+                                                                             . 60000)))
+                     ) ;
                      (else 60000)
                ) ;cond
              ) ;max-delay
              (provider-raw
                (cond ((pi-retry-config? retry-cfg) (pi-retry-config-provider-max-retries retry-cfg))
-                     ((pair? retry-cfg) (cdr (or (%safe-assoc 'provider-max-retries retry-cfg) '(#f . #f))))
+                     ((pair? retry-cfg)
+                      (cdr (or (%safe-assoc 'provider-max-retries retry-cfg) '(#f
+                                                                               . #f)))
+                     ) ;
                      (else #f)
                ) ;cond
              ) ;provider-raw
              (provider-nested
                (and (pair? retry-cfg)
-                 (let ((section (cdr (or (%safe-assoc 'provider retry-cfg) '(#f . #f)))))
-                   (and (pair? section) (cdr (or (%safe-assoc 'max-retries section) '(#f . #f))))
+                 (let ((section (cdr (or (%safe-assoc 'provider retry-cfg) '(#f
+                                                                             . #f)))))
+                   (and (pair? section) (cdr (or (%safe-assoc 'max-retries section) '(#f
+                                                                                      . #f))))
                  ) ;let
                ) ;and
              ) ;provider-nested

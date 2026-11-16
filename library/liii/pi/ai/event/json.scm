@@ -38,12 +38,7 @@
                (sym-key (if (string? key) (string->symbol key) key))
                (pair (%json-dict-pair obj str-key sym-key))
               ) ;
-          (if pair
-            (let ((v (cdr pair)))
-              (if (eq? v 'null) default-val v)
-            ) ;let
-            default-val
-          ) ;if
+          (if pair (let ((v (cdr pair))) (if (eq? v 'null) default-val v)) default-val)
         ) ;let*
       ) ;if
     ) ;define
@@ -66,7 +61,9 @@
 
     (define (%convert-result x)
       (cond ((pi-tool-result? x) x)
-            ((and (pair? x) (equal? (%json-key->string (%json-dict-ref x "role" #f)) "toolResult"))
+            ((and (pair? x)
+               (equal? (%json-key->string (%json-dict-ref x "role" #f)) "toolResult")
+             ) ;and
              (or (json->pi-message x) x)
             ) ;
             ((pair? x) (or (json->pi-tool-result x) x))
@@ -117,50 +114,48 @@
       (cond ((pi-event? obj) obj)
             ((not (pair? obj)) #f)
             (else
-             (let ((etype (%json-key->string (%json-dict-ref obj "type" #f))))
-               (cond
-                ((equal? etype "session") (%decode-session obj))
-                ((equal? etype "agent_start") (pi-event-agent-start))
-                ((equal? etype "turn_start") (pi-event-turn-start))
-                ((equal? etype "message_start")
-                 (pi-event-message-start (%convert-msg (%json-dict-ref obj "message" #f)))
-                ) ;
-                ((equal? etype "message_update")
-                 (pi-event-message-update (%json-dict-ref obj "usage" #f)
-                   (%json-dict-ref obj "assistantMessageEvent" #f)
-                 ) ;pi-event-message-update
-                ) ;
-                ((equal? etype "message_end")
-                 (pi-event-message-end (%convert-msg (%json-dict-ref obj "message" #f)))
-                ) ;
-                ((equal? etype "tool_execution_start")
-                 (pi-event-tool-execution-start (%json-dict-ref obj "toolCallId" "")
-                   (%json-dict-ref obj "toolName" "")
-                   (%json-dict-ref obj "args" '(()))
-                 ) ;pi-event-tool-execution-start
-                ) ;
-                ((equal? etype "tool_execution_update")
-                 (pi-event-tool-execution-update (%json-dict-ref obj "toolCallId" "")
-                   (%json-dict-ref obj "toolName" "")
-                   (%json-dict-ref obj "args" '(()))
-                   (%convert-result (%json-dict-ref obj "partialResult" #f))
-                 ) ;pi-event-tool-execution-update
-                ) ;
-                ((equal? etype "tool_execution_end") (%decode-tool-execution-end obj))
-                ((equal? etype "turn_end")
-                 (pi-event-turn-end (%convert-msg (%json-dict-ref obj "message" #f))
-                   (%convert-list %convert-result (%json-dict-ref obj "toolResults" '()))
-                 ) ;pi-event-turn-end
-                ) ;
-                ((equal? etype "agent_end") (%decode-agent-end obj))
-                ((equal? etype "agent_settled")
-                 (pi-event-agent-settled
-                   (%normalize-json-bool (%json-dict-ref obj "aborted" #f))
-                 ) ;pi-event-agent-settled
-                ) ;
-                (else #f)
-               ) ;cond
-             ) ;let
+              (let ((etype (%json-key->string (%json-dict-ref obj "type" #f))))
+                (cond ((equal? etype "session") (%decode-session obj))
+                      ((equal? etype "agent_start") (pi-event-agent-start))
+                      ((equal? etype "turn_start") (pi-event-turn-start))
+                      ((equal? etype "message_start")
+                       (pi-event-message-start (%convert-msg (%json-dict-ref obj "message" #f)))
+                      ) ;
+                      ((equal? etype "message_update")
+                       (pi-event-message-update (%json-dict-ref obj "usage" #f)
+                         (%json-dict-ref obj "assistantMessageEvent" #f)
+                       ) ;pi-event-message-update
+                      ) ;
+                      ((equal? etype "message_end")
+                       (pi-event-message-end (%convert-msg (%json-dict-ref obj "message" #f)))
+                      ) ;
+                      ((equal? etype "tool_execution_start")
+                       (pi-event-tool-execution-start (%json-dict-ref obj "toolCallId" "")
+                         (%json-dict-ref obj "toolName" "")
+                         (%json-dict-ref obj "args" '(()))
+                       ) ;pi-event-tool-execution-start
+                      ) ;
+                      ((equal? etype "tool_execution_update")
+                       (pi-event-tool-execution-update (%json-dict-ref obj "toolCallId" "")
+                         (%json-dict-ref obj "toolName" "")
+                         (%json-dict-ref obj "args" '(()))
+                         (%convert-result (%json-dict-ref obj "partialResult" #f))
+                       ) ;pi-event-tool-execution-update
+                      ) ;
+                      ((equal? etype "tool_execution_end") (%decode-tool-execution-end obj))
+                      ((equal? etype "turn_end")
+                       (pi-event-turn-end (%convert-msg (%json-dict-ref obj "message" #f))
+                         (%convert-list %convert-result (%json-dict-ref obj "toolResults" '()))
+                       ) ;pi-event-turn-end
+                      ) ;
+                      ((equal? etype "agent_end") (%decode-agent-end obj))
+                      ((equal? etype "agent_settled")
+                       (pi-event-agent-settled (%normalize-json-bool (%json-dict-ref obj "aborted" #f))
+                       ) ;pi-event-agent-settled
+                      ) ;
+                      (else #f)
+                ) ;cond
+              ) ;let
             ) ;else
       ) ;cond
     ) ;define

@@ -17,7 +17,7 @@
     (liii tui)
     (liii tui component)
     (liii pi ai auth)
-    (liii pi ai config record)
+    (liii pi ai config credential)
     (liii pi ai providers registry)
     (liii pi code config)
   ) ;import
@@ -224,6 +224,5 @@
         comp
       ) ;let*
     ) ;define*
-
   ) ;begin
 ) ;define-library

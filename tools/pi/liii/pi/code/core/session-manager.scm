@@ -20,6 +20,7 @@
     (liii pi code config query)
     (liii pi code core tools bash)
     (liii pi code core tools read)
+    (liii pi ai config settings)
     (liii pi ai template)
     (liii pi ai types)
     (liii pi ai message)
@@ -212,6 +213,7 @@
              (settings (pi-cfg-ref cfg 'settings))
              (settings-dir
                (%non-empty-session-path (cond ((not settings) #f)
+                                              ((pi-settings? settings) (pi-settings-session-dir settings))
                                               ((assoc 'session-dir settings) => cdr)
                                               (else #f)
                                         ) ;cond

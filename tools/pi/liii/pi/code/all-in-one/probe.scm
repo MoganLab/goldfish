@@ -14,7 +14,9 @@
     (liii string)
     (liii pi ai dispatch)
     (liii pi ai message)
-    (liii pi ai config record)
+    (liii pi ai config retry)
+    (liii pi ai config settings)
+    (liii pi ai config model-metadata)
     (liii pi agent tools)
     (liii pi code all-in-one alarm)
     (liii pi code all-in-one types)
@@ -282,6 +284,5 @@
         (not failure)
       ) ;let*
     ) ;define*
-
   ) ;begin
 ) ;define-library

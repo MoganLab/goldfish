@@ -15,7 +15,7 @@
     (liii os)
     (liii pi ai template)
     (liii pi ai config types)
-    (liii pi ai config record)
+    (liii pi ai config credential)
     (liii pi ai event)
   ) ;import
   (export pi-load-auth pi-resolve-provider-key pi-save-auth-key)
@@ -54,10 +54,7 @@
                   ) ;resolved
                  ) ;
               (and resolved
-                (pi-credential (if (symbol? key) (symbol->string key) key)
-                  resolved
-                  "api_key"
-                ) ;pi-credential
+                (pi-credential (if (symbol? key) (symbol->string key) key) resolved "api_key")
               ) ;and
             ) ;let
           ) ;and
@@ -300,6 +297,5 @@
         auth-file-str
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

@@ -12,7 +12,7 @@
     (liii uri)
     (liii pi ai template)
     (liii pi ai config types)
-    (liii pi ai config record)
+    (liii pi ai config model-metadata)
     (liii pi ai models builtin)
   ) ;import
   (export pi-resolve-model-metadata)
@@ -181,6 +181,5 @@
         ) ;let-values
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

@@ -296,15 +296,16 @@
              (base-url
                (if (pi-model-metadata? model-meta)
                  (pi-model-metadata-base-url model-meta)
-                 (or (and (pair? model-meta) (cdr (or (assoc 'base-url model-meta) '(#f . #f))))
+                 (or
+                   (and (pair? model-meta) (cdr (or (assoc 'base-url model-meta) '(#f
+                                                                                   . #f))))
                    "https://generativelanguage.googleapis.com/v1beta"
                  ) ;or
                ) ;if
              ) ;base-url
              (url (gemini-build-endpoint base-url model-id))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
-             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-             ) ;tool-resolver
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
              (contents (gemini-build-contents messages model-id (or provider "google")))
              (raw-req-body (gemini-build-request-body contents system-instruction tool-decls)
