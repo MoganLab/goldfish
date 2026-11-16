@@ -38,4 +38,7 @@
   (check (chain-node-thinking-level rt) => "high")
 ) ;let*
 
+(check-catch 'type-error (chain-node->json '(("provider" . "x"))))
+(check-catch 'type-error (chain-node->json "invalid"))
+
 (check-report)

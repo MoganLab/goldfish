@@ -6,8 +6,13 @@
 
 (define-library (liii pi code core extensions types)
   (import (scheme base)
-    (liii pi code core extensions types core)
-    (liii pi code core extensions types defs)
+    (liii pi code core extensions extension-registry)
+    (liii pi code core extensions api)
+    (liii pi code core extensions context)
+    (liii pi code core extensions tool-def)
+    (liii pi code core extensions flag-def)
+    (liii pi code core extensions command-def)
+    (liii pi code core extensions flow-def)
   ) ;import
   (export
     ;; ExtensionRegistry

@@ -46,4 +46,7 @@
   (check (chain-node-thinking-level (car (chain-def-nodes rt))) => "medium")
 ) ;let*
 
+(check-catch 'type-error (chain-def->json '(("id" . "x"))))
+(check-catch 'type-error (chain-def->json "invalid"))
+
 (check-report)

@@ -52,4 +52,7 @@
   (check (length (all-in-one-cfg-chains rt)) => 1)
 ) ;let*
 
+(check-catch 'type-error (all-in-one-cfg->json '(("provider" . "all-in-one"))))
+(check-catch 'type-error (all-in-one-cfg->json "invalid"))
+
 (check-report)
