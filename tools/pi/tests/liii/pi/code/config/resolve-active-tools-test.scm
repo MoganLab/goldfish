@@ -20,6 +20,7 @@
 ;; 去重且保持顺序的工具名列表。
 
 (import (liii check)
+  (liii pi ai config settings)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core extensions)
@@ -54,7 +55,7 @@
 ;; => '("read" "bash")
 
 ;; 工具增量配置：delta 基于内置默认 + 扩展 default-active 声明
-(let* ((settings-with-delta '((default-tools "+grep" "-write")))
+(let* ((settings-with-delta (pi-settings :default-tools '("+grep" "-write")))
        (args-empty (parse-pi-args '()))
        (args-override (parse-pi-args '("--tools" "read,bash")))
        (api-ws (make-extension-api))
@@ -91,7 +92,7 @@
       ) ;args-both
       (args-unknown (parse-pi-args '("--exclude-tools" "foo,bash")))
       (args-spaces (parse-pi-args '("--exclude-tools" " bash , edit ")))
-      (settings '((default-tools "read" "bash" "edit" "write")))
+      (settings (pi-settings :default-tools '("read" "bash" "edit" "write")))
      ) ;
   (check (resolve-active-tools args-ex settings) => '("read"))
   (check (resolve-active-tools args-both settings) => '("read" "edit"))
@@ -115,7 +116,7 @@
       (args-override-all (parse-pi-args '("--tools" "read,bash"
                                           "--exclude-tools" "bash" "--no-tools"))
       ) ;args-override-all
-      (settings '((default-tools "read" "bash" "edit" "write")))
+      (settings (pi-settings :default-tools '("read" "bash" "edit" "write")))
      ) ;
   (check (resolve-active-tools args-no-tools settings) => '())
   (check (resolve-active-tools args-no-builtin settings) => '())

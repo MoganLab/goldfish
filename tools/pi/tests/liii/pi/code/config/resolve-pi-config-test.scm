@@ -18,6 +18,7 @@
 ;; 解析后的运行配置。
 
 (import (liii check)
+  (liii pi ai config model-metadata)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)
@@ -66,9 +67,9 @@
   (check (pi-cfg-ref cfg 'proxy-url) => "http://127.0.0.1:7890")
   (check (pi-cfg-ref cfg 'tools) => '("read" "bash" "edit" "write"))
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'context-window meta)) => 1048576)
-    (check (cdr (assoc 'max-tokens meta)) => 65536)
+    (check (pi-model-metadata-matched? meta) => #t)
+    (check (pi-model-metadata-context-window meta) => 1048576)
+    (check (pi-model-metadata-max-tokens meta) => 65536)
   ) ;let
 ) ;let*
 
@@ -81,9 +82,9 @@
       ) ;
   (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-pro")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'matched? meta)) => #t)
+    (check (pi-model-metadata-matched? meta) => #t)
     ;; models-store.json 不再参与合并，取内置目录值
-    (check (cdr (assoc 'context-window meta)) => 1048576)
+    (check (pi-model-metadata-context-window meta) => 1048576)
   ) ;let
 ) ;let*
 
@@ -116,13 +117,13 @@
   (check (pi-cfg-ref cfg 'model-id) => "glm-5.3")
   (check (pi-cfg-ref cfg 'api-key) => "zai-key-987654321")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'base-url meta))
+    (check (pi-model-metadata-matched? meta) => #t)
+    (check (pi-model-metadata-base-url meta)
       =>
       "https://open.bigmodel.cn/api/coding/paas/v4"
     ) ;check
-    (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 131072)
+    (check (pi-model-metadata-context-window meta) => 1000000)
+    (check (pi-model-metadata-max-tokens meta) => 131072)
   ) ;let
 ) ;let*
 
@@ -190,8 +191,8 @@
   (check (pi-cfg-ref cfg 'model-id) => "glm-5.3")
   (check (pi-cfg-ref cfg 'api-key) => "glm-key-456")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'context-window meta)) => 1000000)
+    (check (pi-model-metadata-matched? meta) => #t)
+    (check (pi-model-metadata-context-window meta) => 1000000)
   ) ;let
 ) ;let*
 
@@ -215,9 +216,9 @@
   (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-pro")
   (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
-    (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 384000)
+    (check (pi-model-metadata-base-url meta) => "https://api.deepseek.com/anthropic")
+    (check (pi-model-metadata-context-window meta) => 1000000)
+    (check (pi-model-metadata-max-tokens meta) => 384000)
   ) ;let
 ) ;let*
 
@@ -233,8 +234,8 @@
   (check (pi-cfg-ref cfg 'model-id) => "deepseek-v4-flash")
   (check (pi-cfg-ref cfg 'api-key) => "ds-key-xyz-789")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'context-window meta)) => 1000000)
+    (check (pi-model-metadata-matched? meta) => #t)
+    (check (pi-model-metadata-context-window meta) => 1000000)
   ) ;let
 ) ;let*
 
@@ -256,9 +257,9 @@
   (check (pi-cfg-ref cfg 'provider) => "kimi-coding")
   (check (pi-cfg-ref cfg 'model-id) => "k3")
   (let ((meta (pi-cfg-ref cfg 'model-meta)))
-    (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
-    (check (cdr (assoc 'context-window meta)) => 1048576)
+    (check (pi-model-metadata-matched? meta) => #t)
+    (check (pi-model-metadata-base-url meta) => "https://api.kimi.com/coding/v1")
+    (check (pi-model-metadata-context-window meta) => 1048576)
   ) ;let
 ) ;let*
 
@@ -360,7 +361,7 @@
   (check (pi-cfg-ref cfg 'provider) => "google")
   (check (pi-cfg-ref cfg 'model-id) => "gemini-2.5-flash")
   (check
-    (cdr (assoc 'matched? (pi-cfg-ref cfg 'model-meta)))
+    (pi-model-metadata-matched? (pi-cfg-ref cfg 'model-meta))
     =>
     #t
   ) ;check

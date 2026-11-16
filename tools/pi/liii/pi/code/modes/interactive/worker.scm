@@ -20,7 +20,7 @@
     (liii path)
     (liii pi ai abort)
     (liii pi ai auth)
-    (liii pi ai config record)
+    (liii pi ai config model-metadata)
     (liii pi ai models meta)
     (liii pi ai models route)
     (liii pi code cli args)
@@ -392,6 +392,5 @@
         ) ;let
       ) ;let*
     ) ;define*
-
   ) ;begin
 ) ;define-library

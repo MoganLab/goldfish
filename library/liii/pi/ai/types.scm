@@ -8,15 +8,14 @@
   (import (scheme base) (liii base) (liii pi ai event) (liii pi ai message))
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
     pi-event? pi-event-type pi-event->alist pi-event->json json->pi-event
-    pi-event-session pi-event-session?
-    pi-event-session-type pi-event-session-version pi-event-session-id
-    pi-event-session-timestamp pi-event-session-cwd pi-event-agent-start
-    pi-event-agent-start? pi-event-agent-start-type pi-event-turn-start
-    pi-event-turn-start? pi-event-turn-start-type pi-event-message-start
-    pi-event-message-start? pi-event-message-start-type
-    pi-event-message-start-message pi-event-message-update
-    pi-event-message-update? pi-event-message-update-type
-    pi-event-message-update-usage
+    pi-event-session pi-event-session? pi-event-session-type
+    pi-event-session-version pi-event-session-id pi-event-session-timestamp
+    pi-event-session-cwd pi-event-agent-start pi-event-agent-start?
+    pi-event-agent-start-type pi-event-turn-start pi-event-turn-start?
+    pi-event-turn-start-type pi-event-message-start pi-event-message-start?
+    pi-event-message-start-type pi-event-message-start-message
+    pi-event-message-update pi-event-message-update?
+    pi-event-message-update-type pi-event-message-update-usage
     pi-event-message-update-assistant-message-event pi-event-message-end
     pi-event-message-end? pi-event-message-end-type pi-event-message-end-message
     pi-event-tool-execution-start pi-event-tool-execution-start?
@@ -41,8 +40,7 @@
     pi-build-json-event pi-make-user-message pi-make-assistant-message
     pi-make-tool-result-message pi-make-usage pi-message? pi-message-role
     pi-message->alist pi-message->json json->pi-message pi-block? pi-block-type
-    pi-block->alist pi-block->json json->pi-block
-    pi-user-message
+    pi-block->alist pi-block->json json->pi-block pi-user-message
     pi-user-message? pi-user-message-role pi-user-message-content
     pi-user-message-timestamp pi-assistant-message pi-assistant-message?
     pi-assistant-message-role pi-assistant-message-content

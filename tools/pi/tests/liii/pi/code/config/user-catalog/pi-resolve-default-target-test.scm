@@ -16,7 +16,7 @@
 ;; 两个值：生效的 provider 与模型 id。
 
 (import (liii check)
-  (liii pi ai config record)
+  (liii pi ai config settings)
   (liii pi code config user-catalog)
 ) ;import
 

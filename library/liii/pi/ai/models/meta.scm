@@ -11,8 +11,8 @@
     (liii list)
     (liii uri)
     (liii pi ai template)
-    (liii pi ai config types)
-    (liii pi ai config record)
+
+    (liii pi ai config model-metadata)
     (liii pi ai models builtin)
   ) ;import
   (export pi-resolve-model-metadata)
@@ -170,17 +170,16 @@
              (mt (if m (%dict-ref m "maxTokens" def-mt) def-mt))
             ) ;
         (let-values (((f-url f-cw f-mt) (%apply-meta-env-overrides norm-url cw mt opt-env p-str)))
-          (%make-pi-model-metadata model-id
+          (pi-model-metadata model-id
             (if m (%dict-ref m "name" model-id) model-id)
             p-str
             f-url
             f-cw
             f-mt
             (if m #t #f)
-          ) ;%make-pi-model-metadata
+          ) ;pi-model-metadata
         ) ;let-values
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

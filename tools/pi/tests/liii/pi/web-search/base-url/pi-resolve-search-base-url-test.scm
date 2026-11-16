@@ -21,7 +21,7 @@
 (import (scheme base)
   (liii check)
   (liii path)
-  (liii pi ai config types)
+  (liii pi ai config model-metadata)
   (liii pi web-search types)
   (liii pi web-search base-url)
 ) ;import
@@ -60,14 +60,14 @@
   (check
     (pi-resolve-search-base-url
       `((provider . "google")
-        (model-meta . ,(%make-pi-model-metadata "gemini-2.5-flash"
+        (model-meta . ,(pi-model-metadata "gemini-2.5-flash"
                           "Gemini 2.5 Flash"
                           "google"
                           "http://record-meta-base:8080"
                           1048576
                           8192
                           #t
-                        ) ;%make-pi-model-metadata
+                        ) ;pi-model-metadata
          ) ;model-meta
       ) ;config
       #f
@@ -83,14 +83,14 @@
   (check
     (pi-resolve-search-base-url
       `((provider . "google")
-        (model-meta . ,(%make-pi-model-metadata "gemini-2.5-flash"
+        (model-meta . ,(pi-model-metadata "gemini-2.5-flash"
                           "Gemini 2.5 Flash"
                           "google"
                           "   "
                           1048576
                           8192
                           #t
-                        ) ;%make-pi-model-metadata
+                        ) ;pi-model-metadata
          ) ;model-meta
       ) ;config
       #f

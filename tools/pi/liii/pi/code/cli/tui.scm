@@ -13,7 +13,8 @@
     (liii pi code config)
     (liii pi code session-state)
     (liii pi ai models)
-    (liii pi ai config record)
+    (liii pi ai config settings)
+    (liii pi ai config model-metadata)
   ) ;import
   (begin
 
@@ -107,6 +108,5 @@
         ) ;lambda
       ) ;catch
     ) ;define
-
   ) ;begin
 ) ;define-library

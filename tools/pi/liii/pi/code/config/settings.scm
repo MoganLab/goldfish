@@ -12,8 +12,8 @@
     (liii list)
     (liii path)
     (liii json)
-    (liii pi ai config types)
-    (liii pi ai config record)
+
+    (liii pi ai config settings)
     (liii pi code config json-write)
     (liii pi code core compaction tokens)
   ) ;import
@@ -157,6 +157,5 @@
         (json->pi-compaction-settings (json-dict-ref obj "compaction" '()))
       ) ;let*
     ) ;define
-
   ) ;begin
 ) ;define-library

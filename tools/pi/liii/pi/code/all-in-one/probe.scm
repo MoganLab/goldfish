@@ -14,7 +14,9 @@
     (liii string)
     (liii pi ai dispatch)
     (liii pi ai message)
-    (liii pi ai config record)
+    (liii pi ai config retry)
+    (liii pi ai config settings)
+    (liii pi ai config model-metadata)
     (liii pi agent tools)
     (liii pi code all-in-one alarm)
     (liii pi code all-in-one types)
@@ -125,20 +127,17 @@
                          (else #f)
                    ) ;cond
                  ) ;base-url
-                 (probe-meta
-                   (pi-model-metadata-from-alist
-                     (append (list (cons 'base-url (or base-url "")) (cons 'max-tokens %probe-max-tokens))
-                       (if (pi-model-metadata? meta)
-                         (list (cons 'id (pi-model-metadata-id meta))
-                           (cons 'name (pi-model-metadata-name meta))
-                           (cons 'provider (pi-model-metadata-provider meta))
-                           (cons 'context-window (pi-model-metadata-context-window meta))
-                           (cons 'matched? (pi-model-metadata-matched? meta))
-                         ) ;list
-                         (if (pair? meta) meta '())
-                       ) ;if
-                     ) ;append
-                   ) ;pi-model-metadata-from-alist
+                 (probe-meta (if (pi-model-metadata? meta)
+                               (pi-model-metadata (pi-model-metadata-id meta)
+                                 (pi-model-metadata-name meta)
+                                 (pi-model-metadata-provider meta)
+                                 (or base-url "")
+                                 (pi-model-metadata-context-window meta)
+                                 %probe-max-tokens
+                                 (pi-model-metadata-matched? meta)
+                               ) ;pi-model-metadata
+                               (pi-model-metadata "" "" "" (or base-url "") #f %probe-max-tokens #t)
+                             ) ;if
                  ) ;probe-meta
                 ) ;
             (pi-cfg-set cfg 'model-meta probe-meta)
@@ -150,13 +149,14 @@
             :model-id       (chain-node-model node)
             :thinking-level (chain-node-thinking-level node)
             :model-meta
-            (pi-model-metadata-from-alist (list (cons 'id (chain-node-model node))
-                                            (cons 'name (chain-node-model node))
-                                            (cons 'provider (chain-node-provider node))
-                                            (cons 'base-url "")
-                                            (cons 'max-tokens %probe-max-tokens)
-                                          ) ;list
-            ) ;pi-model-metadata-from-alist
+            (pi-model-metadata (chain-node-model node)
+              (chain-node-model node)
+              (chain-node-provider node)
+              ""
+              #f
+              %probe-max-tokens
+              #t
+            ) ;pi-model-metadata
             :config-dir (path dir-str)
           ) ;make-pi-config
         ) ;lambda
@@ -284,6 +284,5 @@
         (not failure)
       ) ;let*
     ) ;define*
-
   ) ;begin
 ) ;define-library

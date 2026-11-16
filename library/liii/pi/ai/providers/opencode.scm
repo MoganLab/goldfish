@@ -6,10 +6,7 @@
 
 (define-library (liii pi ai providers opencode)
   (import (scheme base) (liii pi ai providers quota))
-  (export PI_OPENCODE_PROVIDER
-    PI_OPENCODE_BUILTIN_MODELS
-    PI_OPENCODE_QUOTA_ERROR
-  ) ;export
+  (export PI_OPENCODE_PROVIDER PI_OPENCODE_BUILTIN_MODELS PI_OPENCODE_QUOTA_ERROR)
   (begin
 
     ;; Provider 配置：api 为协议实现标识（OpenAI Chat Completions 兼容），

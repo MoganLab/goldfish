@@ -12,7 +12,7 @@
     (liii string)
     (liii pi ai dispatch)
     (liii pi ai message)
-    (liii pi ai config record)
+    (liii pi ai config model-metadata)
     (liii pi ai thinking)
     (liii pi code cli args query)
     (liii pi code config)
@@ -356,6 +356,5 @@
         ) ;if
       ) ;let*
     ) ;define*
-
   ) ;begin
 ) ;define-library

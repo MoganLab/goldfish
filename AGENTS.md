@@ -168,3 +168,13 @@ tools/ → library/ → goldfish/ → r7rs/
 - 当前重点是逐步将 `goldfish/` 和 `tools/pi/` 中属于标准库职责的代码迁移到 `library/`。
 - 迁移应小步进行，不批量移动无关代码；每次迁移配套回归测试。
 - 测试、构建配置和基础设施服务于上述板块，不单独构成第五层。
+
+## 3. Record 定义规范
+
+- 定义带默认值或关键字参数的 record 类型时，应使用 `(liii base)` 提供的 `define*-record-type`，直接生成对外构造器（如 `pi-retry-config`），避免在 `types.scm` 中定义并导出 `%make-xxx` 内部构造器后再在 `record.scm` 中二次包装。
+- 推荐一个 record 对应一个 Scheme 文件，并将该 record 的定义以及对应的 `xxx->json`、`json->xxx` 等序列化与反序列化函数放在同一文件中（例如 `library/liii/pi/ai/config/retry.scm`、`settings.scm`、`credential.scm`、`model-metadata.scm`）。
+- 禁止为 record 额外提供 `xxx->alist` / `xxx-from-alist` 或在业务代码中通过 `(assoc ... record)` 访问字段；应直接使用 record 访问器。
+- `xxx->json` 必须强校验入参类型：使用 `(unless (xxx? obj) (type-error ...))` 拒绝非目标 record 的输入（如原生 alist），不保留 `pair?` 透传分支。
+- `json->xxx` 负责将 `(liii json)` 解析出的 JSON 对象规范化构造为对应的 record：
+  - 优先使用 `(liii json)` 提供的成熟接口（`json-object?`、`json-ref`、`json-ref-string`、`json-ref-integer`、`json-ref-boolean`、`json-null?` 等），避免在业务模块中重复手写 `%json-dict-ref` / `%normalize-json-bool` 等 alist 检索或布尔归一化辅助函数；
+  - 缺失或非法字段应回退安全默认值；入参非 `json-object?` / `'()`（且非目标 record）时使用 `(unless ... (type-error ...))` 报错，若传入已是目标 record 可幂等返回。

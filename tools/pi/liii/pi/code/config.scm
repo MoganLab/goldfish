@@ -22,8 +22,8 @@
     (liii pi ai models)
     (liii pi ai thinking)
     (liii pi ai providers registry)
-    (liii pi ai config types)
-    (liii pi ai config record)
+
+    (liii pi ai config settings)
     (liii pi ai event)
     (liii pi code config settings)
     (liii pi code config query)
@@ -110,7 +110,7 @@
     (define (pi-resolve-proxy-url cli-proxy settings . opt-env)
       (let ((env-https (lookup-env-var "HTTPS_PROXY" opt-env))
             (env-all (lookup-env-var "ALL_PROXY" opt-env))
-            (sp (and (assoc 'http-proxy settings) (cdr (assoc 'http-proxy settings))))
+            (sp (and (pi-settings? settings) (pi-settings-http-proxy settings)))
            ) ;
         (cond
          ((and (string? cli-proxy) (not (string-null? (string-trim-both cli-proxy))))
@@ -146,7 +146,8 @@
         '()
         (let* ((cli-tools (pi-args-ref parsed-args 'tools))
                (cli-exclude (pi-args-ref parsed-args 'exclude-tools))
-               (settings-tools (cdr (assoc 'default-tools settings)))
+               (settings-tools (and (pi-settings? settings) (pi-settings-default-tools settings))
+               ) ;settings-tools
                (base-tools (%effective-base-tools reg))
                (base-tools
                  (cond
@@ -391,6 +392,5 @@
         ) ;cond
       ) ;let
     ) ;define
-
   ) ;begin
 ) ;define-library

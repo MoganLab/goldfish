@@ -9,8 +9,9 @@
     (scheme process-context)
     (liii string)
     (liii list)
-    (liii pi ai config types)
-    (liii pi ai config record)
+
+    (liii pi ai config settings)
+    (liii pi ai config model-metadata)
     (liii pi ai models builtin)
     (liii pi ai providers registry)
   ) ;import
@@ -57,7 +58,9 @@
     ) ;define
 
     (define (pi-provider-default-model provider)
-      (let ((p (%canonical-provider (if (symbol? provider) (symbol->string provider) provider))))
+      (let ((p (%canonical-provider (if (symbol? provider) (symbol->string provider) provider))
+            ) ;p
+           ) ;
         (cond ((equal? p "all-in-one") "coding-fast")
               ((equal? p "anthropic") "claude-opus-4-8")
               ((equal? p "kimi-coding") "kimi-for-coding")
@@ -76,7 +79,8 @@
     ;; 不再回退到内置目录，否则 providers.json / models 白名单会形同虚设。
     ;; 本地 ollama 服务由本地动态加载模型，允许任意模型 id。
     (define (pi-provider-has-model? provider model-id models-store)
-      (let* ((p-str (%canonical-provider (if (symbol? provider) (symbol->string provider) provider)))
+      (let* ((p-str (%canonical-provider (if (symbol? provider) (symbol->string provider) provider))
+             ) ;p-str
              (store-models (%get-provider-models models-store p-str))
             ) ;
         (or (equal? p-str "ollama")
@@ -88,7 +92,8 @@
     ;; 按目录取模型条目（alist，含 "input" 等原始字段）；未命中返回 #f。
     ;; 供视觉能力等需要目录原始字段的消费方使用（model-meta record 不含这些字段）
     (define (pi-provider-model-entry provider model-id models-store)
-      (let* ((p-str (%canonical-provider (if (symbol? provider) (symbol->string provider) provider)))
+      (let* ((p-str (%canonical-provider (if (symbol? provider) (symbol->string provider) provider))
+             ) ;p-str
              (store-models (%get-provider-models models-store p-str))
             ) ;
         (%find-model-in-list store-models model-id)
@@ -133,15 +138,12 @@
       (let* ((pref (and (pair? opt-pref) (car opt-pref)))
              (pref-str (and (string? pref) (not (string-null? pref)) pref))
              (names (%catalog-provider-names models-store))
-             (candidates
-               (filter (lambda (p) (%provider-contains-model? p model-id models-store)) names)
+             (candidates (filter (lambda (p) (%provider-contains-model? p model-id models-store)) names)
              ) ;candidates
             ) ;
         (cond
           ;; 1. preferred-provider 命中优先
-          ((and pref-str (member pref-str candidates))
-           pref-str
-          ) ;
+          ((and pref-str (member pref-str candidates)) pref-str)
           ;; 2. 唯一命中或未命中
           ((null? candidates) #f)
           ((null? (cdr candidates)) (car candidates))
@@ -340,17 +342,16 @@
       (if (and (not (pi-model-metadata-matched? meta))
             (pi-provider-has-model? provider model-id models-store)
           ) ;and
-        (%make-pi-model-metadata (pi-model-metadata-id meta)
+        (pi-model-metadata (pi-model-metadata-id meta)
           (pi-model-metadata-name meta)
           (pi-model-metadata-provider meta)
           (pi-model-metadata-base-url meta)
           (pi-model-metadata-context-window meta)
           (pi-model-metadata-max-tokens meta)
           #t
-        ) ;%make-pi-model-metadata
+        ) ;pi-model-metadata
         meta
       ) ;if
     ) ;define
-
   ) ;begin
 ) ;define-library

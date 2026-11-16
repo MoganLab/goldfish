@@ -24,7 +24,7 @@
   (liii string)
   (liii path)
   (liii os)
-  (liii pi ai config record)
+  (liii pi ai config settings)
   (liii pi code cli args)
   (liii pi code core tools read)
   (liii pi code core session-manager)

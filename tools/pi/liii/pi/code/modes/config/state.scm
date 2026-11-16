@@ -23,7 +23,7 @@
     (liii json)
     (liii pi ai providers registry)
     (liii pi ai thinking)
-    (liii pi ai config record)
+    (liii pi ai config settings)
     (liii pi code config settings)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
@@ -333,6 +333,5 @@
         (list "file" (or (pi-config-model-file m) "(builtin)"))
       ) ;list
     ) ;define
-
   ) ;begin
 ) ;define-library

@@ -10,7 +10,7 @@
     (liii list)
     (liii date-time)
     (liii string)
-    (liii pi ai config record)
+    (liii pi ai config model-metadata)
     (liii pi ai models)
     (liii pi ai models meta)
     (liii pi ai providers registry)

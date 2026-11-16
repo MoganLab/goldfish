@@ -22,7 +22,7 @@
   (liii path)
   (liii shutil)
   (liii string)
-  (liii pi ai config record)
+  (liii pi ai config settings)
   (liii pi code config user-catalog)
 ) ;import
 

@@ -25,7 +25,7 @@
 ;; pi-model-metadata?
 ;; 包含模型名称、provider、base-url、context-window 和 max-tokens 的 record。
 
-(import (liii check) (liii pi ai config record) (liii pi ai models meta))
+(import (liii check) (liii pi ai config model-metadata) (liii pi ai models meta))
 
 (check-set-mode! 'report-failed)
 

@@ -23,7 +23,7 @@
 
 (import (liii check)
         (liii pi ai models)
-        (liii pi ai config record))
+        (liii pi ai config model-metadata))
 
 (check-set-mode! 'report-failed)
 
