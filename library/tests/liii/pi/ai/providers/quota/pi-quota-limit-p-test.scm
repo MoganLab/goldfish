@@ -19,7 +19,7 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((obj (%make-pi-quota-limit "weekly" "1310" "每周额度已用尽")))
+(let ((obj (pi-quota-limit "weekly" "1310" "每周额度已用尽")))
   (check-true (pi-quota-limit? obj))
 ) ;let
 (check-false (pi-quota-limit? '()))

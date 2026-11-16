@@ -16,7 +16,7 @@
 (import (liii check)
   (liii string)
   (liii pi code core tools)
-  (liii pi ai tools record)
+  (liii pi ai tools result)
   (liii pi code core extensions)
   (liii pi ai types)
 ) ;import

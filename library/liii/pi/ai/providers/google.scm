@@ -29,7 +29,7 @@
               (string? msg)
               (string-contains? (string-downcase msg) "spending cap")
             ) ;and
-          (%make-pi-quota-limit "monthly" "spending-cap" msg)
+          (pi-quota-limit "monthly" "spending-cap" msg)
           #f
         ) ;if
       ) ;let

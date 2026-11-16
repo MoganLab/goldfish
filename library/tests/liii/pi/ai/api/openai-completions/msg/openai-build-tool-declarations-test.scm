@@ -15,7 +15,7 @@
 ;; list
 ;; OpenAI 格式的 tools 声明列表，每项包含 type="function" 与 function 描述。
 
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai tools record))
+(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai tools definition))
 
 (check-set-mode! 'report-failed)
 

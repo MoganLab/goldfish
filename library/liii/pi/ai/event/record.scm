@@ -12,7 +12,9 @@
     (liii pi ai time)
     (liii pi ai event types)
     (liii pi ai message record)
-    (liii pi ai tools record)
+    (liii pi ai tools definition)
+    (liii pi ai tools result)
+    (liii pi ai tools trunc-result)
   ) ;import
   (export pi-event? pi-event-type pi-event->alist pi-event->json
     pi-event-session pi-event-session? pi-event-session-type
@@ -235,8 +237,31 @@
             ((pi-message? x) (pi-message->json x))
             ((pi-block? x) (pi-block->json x))
             ((pi-tool-result? x) (pi-tool-result->json x))
-            ((pi-tool-definition? x) (%normalize-json-value (pi-tool-definition->alist x)))
-            ((pi-trunc-result? x) (%normalize-json-value (pi-trunc-result->alist x)))
+            ((pi-tool-definition? x)
+             (%normalize-json-value (list (cons 'name (pi-tool-definition-name x))
+                                      (cons 'description (pi-tool-definition-description x))
+                                      (cons 'parameters (pi-tool-definition-parameters x))
+                                      (cons 'execute (pi-tool-definition-execute x))
+                                      (cons 'snippet (pi-tool-definition-snippet x))
+                                      (cons 'guidelines (pi-tool-definition-guidelines x))
+                                    ) ;list
+             ) ;%normalize-json-value
+            ) ;
+            ((pi-trunc-result? x)
+             (%normalize-json-value (list (cons 'content (pi-trunc-result-content x))
+                                      (cons 'truncated (pi-trunc-result-truncated x))
+                                      (cons 'truncated-by (pi-trunc-result-truncated-by x))
+                                      (cons 'total-lines (pi-trunc-result-total-lines x))
+                                      (cons 'total-bytes (pi-trunc-result-total-bytes x))
+                                      (cons 'output-lines (pi-trunc-result-output-lines x))
+                                      (cons 'output-bytes (pi-trunc-result-output-bytes x))
+                                      (cons 'first-line-exceeds-limit? (pi-trunc-result-first-line-exceeds-limit? x))
+                                      (cons 'first-line-truncated (pi-trunc-result-first-line-exceeds-limit? x))
+                                      (cons 'last-line-partial? (pi-trunc-result-last-line-partial? x))
+                                      (cons 'last-line-truncated (pi-trunc-result-last-line-partial? x))
+                                    ) ;list
+             ) ;%normalize-json-value
+            ) ;
             ((vector? x) (vector-map %normalize-json-value x))
             ((and (pair? x) (every %json-object-entry? x))
              (filter (lambda (entry) entry) (map %normalize-json-entry x))

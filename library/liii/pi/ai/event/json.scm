@@ -6,11 +6,12 @@
 
 (define-library (liii pi ai event json)
   (import (scheme base)
+    (liii json)
     (liii list)
     (liii pi ai event types)
     (liii pi ai event record)
     (liii pi ai message json)
-    (liii pi ai tools record)
+    (liii pi ai tools result)
   ) ;import
   (export json->pi-event)
   (begin
@@ -66,7 +67,7 @@
              ) ;and
              (or (json->pi-message x) x)
             ) ;
-            ((pair? x) (or (json->pi-tool-result x) x))
+            ((json-object? x) (json->pi-tool-result x))
             (else x)
       ) ;cond
     ) ;define

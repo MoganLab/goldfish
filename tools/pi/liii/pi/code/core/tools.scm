@@ -11,8 +11,9 @@
     (liii string)
     (liii list)
     (liii pi code core tools truncate)
-    (liii pi ai tools types)
-    (liii pi ai tools record)
+    (liii pi ai tools definition)
+    (liii pi ai tools result)
+    (liii pi ai tools trunc-result)
     (liii pi code core tools read)
     (liii pi code core tools write)
     (liii pi code core tools edit)
@@ -32,16 +33,15 @@
     PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH pi-tool-definition
     pi-tool-definition? pi-tool-definition-name pi-tool-definition-description
     pi-tool-definition-parameters pi-tool-definition-execute
-    pi-tool-definition-snippet pi-tool-definition-guidelines
-    pi-tool-definition->alist pi-tool-result pi-tool-result?
-    pi-tool-result-content pi-tool-result-is-error pi-tool-result-isError
-    pi-tool-result->alist pi-trunc-result pi-trunc-result?
+    pi-tool-definition-snippet pi-tool-definition-guidelines pi-tool-result
+    pi-tool-result? pi-tool-result-content pi-tool-result-is-error
+    pi-tool-result-isError pi-trunc-result pi-trunc-result?
     pi-trunc-result-content pi-trunc-result-truncated pi-trunc-result-truncated?
     pi-trunc-result-truncated-by pi-trunc-result-total-lines
     pi-trunc-result-total-bytes pi-trunc-result-output-lines
     pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
     pi-trunc-result-first-line-truncated pi-trunc-result-last-line-partial?
-    pi-trunc-result-last-line-truncated pi-trunc-result->alist
+    pi-trunc-result-last-line-truncated
   ) ;export
   (begin
 

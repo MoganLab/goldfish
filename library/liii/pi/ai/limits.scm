@@ -50,13 +50,13 @@
         (if (pi-quota-limit? limit)
           (if (pi-quota-limit-message limit)
             limit
-            (%make-pi-quota-limit (pi-quota-limit-kind limit)
+            (pi-quota-limit (pi-quota-limit-kind limit)
               (pi-quota-limit-code limit)
               (if (number? status-code)
                 (string-append "HTTP " (number->string status-code))
                 "usage limit reached"
               ) ;if
-            ) ;%make-pi-quota-limit
+            ) ;pi-quota-limit
           ) ;if
           #f
         ) ;if
