@@ -20,9 +20,11 @@
     (liii pi ai event)
   ) ;import
   (export pi-is-retriable-error? pi-calc-retry-delay pi-resolve-retry-params
-    gemini-is-retriable-error? anthropic-is-retriable-error?
-    pi-extract-retry-after pi-parse-retry-after pi-log-retry
-    set-pi-retry-logger! pi-ai-log!
+    pi-resolve-http-idle-timeout-ms pi-resolve-provider-timeout-ms
+    pi-ms->timeout-seconds pi-resolve-stream-idle-timeout
+    PI_DEFAULT_CONNECT_TIMEOUT_SECONDS gemini-is-retriable-error?
+    anthropic-is-retriable-error? pi-extract-retry-after pi-parse-retry-after
+    pi-log-retry set-pi-retry-logger! pi-ai-log!
   ) ;export
   (begin
 
@@ -277,7 +279,7 @@
                (if enabled?
                  (cond ((number? provider-raw) provider-raw)
                        ((number? provider-nested) provider-nested)
-                       (else max-retries)
+                       (else 0)
                  ) ;cond
                  0
                ) ;if
@@ -285,6 +287,90 @@
             ) ;
         (values max-retries base-delay max-delay provider-max-retries)
       ) ;let*
+    ) ;define
+
+    (define PI_DEFAULT_CONNECT_TIMEOUT_SECONDS 10)
+
+    (define (%normalize-idle-timeout-ms raw)
+      (cond
+       ((and (string? raw)
+          (string=? (string-downcase (string-trim-both raw)) "disabled")
+        ) ;and
+        0
+       ) ;
+       ((and (number? raw) (>= raw 0)) raw)
+       (else 300000)
+      ) ;cond
+    ) ;define
+
+    (define (pi-resolve-http-idle-timeout-ms settings)
+      (cond ((pi-settings? settings)
+             (%normalize-idle-timeout-ms (pi-settings-http-idle-timeout-ms settings))
+            ) ;
+            ((pair? settings)
+             (let ((p (or (%safe-assoc 'http-idle-timeout-ms settings)
+                        (%safe-assoc "httpIdleTimeoutMs" settings)
+                      ) ;or
+                   ) ;p
+                  ) ;
+               (if p (%normalize-idle-timeout-ms (cdr p)) 300000)
+             ) ;let
+            ) ;
+            (else 300000)
+      ) ;cond
+    ) ;define
+
+    (define* (pi-resolve-provider-timeout-ms settings (opt-timeout-ms #f))
+      (let* ((retry-cfg
+               (cond ((pi-settings? settings) (pi-settings-retry settings))
+                     ((pair? settings) (cdr (or (%safe-assoc 'retry settings) '(#f))))
+                     (else #f)
+               ) ;cond
+             ) ;retry-cfg
+             (provider-raw
+               (cond ((pi-retry-config? retry-cfg) (pi-retry-config-provider-timeout-ms retry-cfg))
+                     ((pair? retry-cfg)
+                      (or (cdr (or (%safe-assoc 'provider-timeout-ms retry-cfg) '(#f
+                                                                                  . #f)))
+                        (let ((sec (cdr (or (%safe-assoc 'provider retry-cfg) '(#f
+                                                                                . #f)))))
+                          (and (pair? sec)
+                            (or (cdr (or (%safe-assoc 'timeout-ms sec) '(#f
+                                                                         . #f)))
+                              (cdr (or (%safe-assoc 'timeoutMs sec) '(#f . #f)))
+                            ) ;or
+                          ) ;and
+                        ) ;let
+                      ) ;or
+                     ) ;
+                     (else #f)
+               ) ;cond
+             ) ;provider-raw
+             (idle-ms (pi-resolve-http-idle-timeout-ms settings))
+            ) ;
+        (cond ((number? opt-timeout-ms) (if (> opt-timeout-ms 0) opt-timeout-ms #f))
+              ((number? provider-raw) (if (> provider-raw 0) provider-raw #f))
+              ((and (number? idle-ms) (> idle-ms 0)) idle-ms)
+              (else #f)
+        ) ;cond
+      ) ;let*
+    ) ;define*
+
+    (define (pi-ms->timeout-seconds ms)
+      (if (and (number? ms) (> ms 0)) (/ ms 1000.0) #f)
+    ) ;define
+
+    (define (pi-resolve-stream-idle-timeout settings timeout idle-timeout)
+      (cond ((number? idle-timeout) (if (> idle-timeout 0) idle-timeout #f))
+            ((eq? idle-timeout 'disabled) #f)
+            ((and (string? idle-timeout)
+               (string=? (string-downcase (string-trim-both idle-timeout)) "disabled")
+             ) ;and
+             #f
+            ) ;
+            ((number? timeout) (if (> timeout 0) timeout #f))
+            (else (pi-ms->timeout-seconds (pi-resolve-http-idle-timeout-ms settings)))
+      ) ;cond
     ) ;define
 
   ) ;begin

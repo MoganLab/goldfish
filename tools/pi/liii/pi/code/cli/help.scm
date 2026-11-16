@@ -29,7 +29,7 @@
                 --no-tools                 Disable all tools
                 --no-builtin-tools         Alias for --no-tools
                 --max-turns <n>            Maximum turns limit (0 or unset for unlimited)
-                --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 600)
+                --timeout <seconds>        HTTP idle timeout in seconds (overrides httpIdleTimeoutMs, default: 300; 0 or disabled to disable)
                 --session-timeout <seconds>
                                            Total session timeout in seconds (default: 0, unlimited)
             -c, --continue                 Continue previous session

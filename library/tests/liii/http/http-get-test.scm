@@ -71,8 +71,16 @@
 (check-catch 'value-error (http-get "http://x/" :idle-timeout 0.0))
 (check-catch 'value-error (http-get "http://x/" :idle-timeout -1))
 (check-catch 'value-error (http-get "http://x/" :idle-timeout -0.5))
+(check-catch 'type-error (http-get "http://x/" :connect-timeout "5"))
+(check-catch 'type-error (http-get "http://x/" :connect-timeout 'fast))
+(check-catch 'type-error (http-get "http://x/" :connect-timeout #t))
+(check-catch 'type-error (http-get "http://x/" :connect-timeout '()))
+(check-catch 'value-error (http-get "http://x/" :connect-timeout 0))
+(check-catch 'value-error (http-get "http://x/" :connect-timeout 0.0))
+(check-catch 'value-error (http-get "http://x/" :connect-timeout -1))
+(check-catch 'value-error (http-get "http://x/" :connect-timeout -0.5))
 
-;; C 层入口 g_http-get 的 timeout 与 idle-timeout 参数类型测试
+;; C 层入口 g_http-get 的 timeout、idle-timeout 与 connect-timeout 参数类型测试
 (check-catch 'type-error (g_http-get "http://x/" '() '() '() #f "5"))
 (check-catch 'type-error (g_http-get "http://x/" '() '() '() #f 'fast))
 (check-catch 'value-error (g_http-get "http://x/" '() '() '() #f 0))
@@ -81,6 +89,9 @@
 (check-catch 'type-error (g_http-get "http://x/" '() '() '() #f #f 'fast))
 (check-catch 'value-error (g_http-get "http://x/" '() '() '() #f #f 0))
 (check-catch 'value-error (g_http-get "http://x/" '() '() '() #f #f -1))
+(check-catch 'type-error (g_http-get "http://x/" '() '() '() #f #f #f #f "5"))
+(check-catch 'value-error (g_http-get "http://x/" '() '() '() #f #f #f #f 0))
+(check-catch 'value-error (g_http-get "http://x/" '() '() '() #f #f #f #f -1))
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))

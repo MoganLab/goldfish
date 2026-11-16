@@ -22,7 +22,9 @@
 (check-true (procedure? json->pi-retry-config))
 
 ;; 1. 完整 JSON 解析（含 provider.maxRetries 与 JSON 布尔 true/false）
-(let* ((j (string->json "{\"enabled\":false,\"maxRetries\":5,\"baseDelayMs\":1500,\"maxAgentDelayMs\":30000,\"provider\":{\"maxRetries\":2}}"))
+(let* ((j (string->json "{\"enabled\":false,\"maxRetries\":5,\"baseDelayMs\":1500,\"maxAgentDelayMs\":30000,\"provider\":{\"maxRetries\":2}}"
+          ) ;string->json
+       ) ;j
        (r (json->pi-retry-config j))
       ) ;
   (check-true (pi-retry-config? r))
@@ -48,16 +50,33 @@
 ) ;let
 
 ;; 3. provider.maxRetries 为 null 时归一为 #f
-(let ((r (json->pi-retry-config (string->json "{\"enabled\":true,\"provider\":{\"maxRetries\":null}}"))))
+(let ((r (json->pi-retry-config (string->json "{\"enabled\":true,\"provider\":{\"maxRetries\":null}}")
+         ) ;json->pi-retry-config
+      ) ;r
+     ) ;
   (check (pi-retry-config-enabled r) => #t)
   (check (pi-retry-config-provider-max-retries r) => #f)
 ) ;let
 
 ;; 4. 已是 record 原样返回
-(let* ((orig (pi-retry-config #f 7 1000 20000 1))
-       (out (json->pi-retry-config orig))
-      ) ;
+(let* ((orig (pi-retry-config #f 7 1000 20000 1)) (out (json->pi-retry-config orig)))
   (check (eq? out orig) => #t)
+) ;let*
+
+;; 5. provider.timeoutMs 解析与往返
+(let* ((r (json->pi-retry-config (string->json "{\"enabled\":true,\"provider\":{\"maxRetries\":2,\"timeoutMs\":45000}}"
+                                 ) ;string->json
+          ) ;json->pi-retry-config
+       ) ;r
+       (j (pi-retry-config->json r))
+      ) ;
+  (check (pi-retry-config-provider-max-retries r) => 2)
+  (check (pi-retry-config-provider-timeout-ms r) => 45000)
+  (check
+    (cdr (assoc "timeoutMs" (cdr (assoc "provider" j))))
+    =>
+    45000
+  ) ;check
 ) ;let*
 
 (check-report)

@@ -133,7 +133,7 @@ response2hashtable (s7_scheme* sc, cpr::Response r) {
 static inline bool
 extract_timeout_or_response (s7_scheme* sc, const cpr::Response& r, s7_pointer* out_result, char* out_reason,
                              size_t reason_size) {
-  if (r.error.code == cpr::ErrorCode::OPERATION_TIMEDOUT && r.error.message.find ("too slow") == std::string::npos) {
+  if (r.error.code == cpr::ErrorCode::OPERATION_TIMEDOUT) {
     const std::string& msg= r.error.message.empty () ? "Operation timed out" : r.error.message;
     std::strncpy (out_reason, msg.c_str (), reason_size - 1);
     out_reason[reason_size - 1]= '\0';
@@ -329,11 +329,21 @@ parse_timeout_ms (s7_scheme* sc, const char* who, s7_pointer timeout_arg, long* 
   return parse_positive_duration (sc, who, "timeout", timeout_arg, 1000.0, timeout_ms);
 }
 
+static s7_pointer
+parse_connect_timeout_ms (s7_scheme* sc, const char* who, s7_pointer connect_timeout_arg, long* connect_timeout_ms) {
+  return parse_positive_duration (sc, who, "connect-timeout", connect_timeout_arg, 1000.0, connect_timeout_ms);
+}
+
 static void
-apply_session_timeout (cpr::Session& session, long timeout_ms) {
+apply_session_timeout (cpr::Session& session, long timeout_ms, long connect_timeout_ms= 0) {
   if (timeout_ms > 0) {
     session.SetTimeout (cpr::Timeout{std::chrono::milliseconds (timeout_ms)});
-    session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (timeout_ms)});
+    if (connect_timeout_ms <= 0) {
+      session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (timeout_ms)});
+    }
+  }
+  if (connect_timeout_ms > 0) {
+    session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (connect_timeout_ms)});
   }
 }
 
@@ -431,6 +441,11 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   if (err) {
     return err;
   }
+  long connect_timeout_ms= 0;
+  err                    = parse_connect_timeout_ms (sc, "http-get", optional_arg (sc, args, 8), &connect_timeout_ms);
+  if (err) {
+    return err;
+  }
 
   char       timeout_reason[256]= {0};
   bool       is_timeout         = false;
@@ -449,7 +464,7 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
     if (!s7_is_null (sc, proxy)) {
       session.SetProxies (cpr_proxies);
     }
-    apply_session_timeout (session, timeout_ms);
+    apply_session_timeout (session, timeout_ms, connect_timeout_ms);
     apply_session_idle_timeout (session, idle_timeout_sec);
     apply_session_progress_callback (sc, session, progress);
 
@@ -492,11 +507,11 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
 
 inline void
 glue_http_get (s7_scheme* sc) {
-  s7_pointer  cur_env   = s7_curlet (sc);
-  const char* s_http_get= "g_http-get";
-  const char* d_http_get=
-      "(g_http-get url params headers proxy callback [timeout] [idle-timeout] [progress]) => hash-table? | undefined";
-  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 3, false, d_http_get, NULL);
+  s7_pointer  cur_env      = s7_curlet (sc);
+  const char* s_http_get   = "g_http-get";
+  const char* d_http_get   = "(g_http-get url params headers proxy callback [timeout] [idle-timeout] [progress] "
+                             "[connect-timeout]) => hash-table? | undefined";
+  auto        func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 4, false, d_http_get, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
 }
 
@@ -587,6 +602,11 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   if (err) {
     return err;
   }
+  long connect_timeout_ms= 0;
+  err                    = parse_connect_timeout_ms (sc, "http-post", optional_arg (sc, args, 10), &connect_timeout_ms);
+  if (err) {
+    return err;
+  }
 
   if (!s7_is_null (sc, files)) {
     if (!check_multipart_files (sc, files)) {
@@ -621,7 +641,7 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
     if (!s7_is_null (sc, proxy)) {
       session.SetProxies (cpr_proxies);
     }
-    apply_session_timeout (session, timeout_ms);
+    apply_session_timeout (session, timeout_ms, connect_timeout_ms);
     apply_session_idle_timeout (session, idle_timeout_sec);
     apply_session_progress_callback (sc, session, progress);
 
@@ -668,8 +688,8 @@ glue_http_post (s7_scheme* sc) {
   s7_pointer  cur_env= s7_curlet (sc);
   const char* name   = "g_http-post";
   const char* doc    = "(g_http-post url params body-or-data headers proxy files callback [timeout] [idle-timeout] "
-                       "[progress]) => hash-table? | undefined";
-  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 3, false, doc, NULL);
+                       "[progress] [connect-timeout]) => hash-table? | undefined";
+  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 4, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
 }
 

@@ -64,7 +64,6 @@
         :api           "google-generative-ai"
       ) ;pi-assistant-message
     ) ;define
-
     (define (%part->content-block part i)
       (cond
        ((assoc "text" part)
@@ -115,7 +114,6 @@
         (values blocks (any pi-tool-call-block? blocks))
       ) ;let
     ) ;define
-
     (define* (gemini-parse-response json-data
                status-code
                (provider "google")
@@ -205,21 +203,23 @@
       ) ;or
     ) ;define
 
-    (define (%http-post-safe url req-json-str headers proxy-alist timeout)
+    (define (%http-post-safe url req-json-str headers proxy-alist timeout idle-timeout)
       (catch #t
         (lambda ()
           (http-post url
-            :data    req-json-str
-            :headers headers
-            :proxy   proxy-alist
-            :timeout timeout
+            :data            req-json-str
+            :headers         headers
+            :proxy           proxy-alist
+            :timeout         timeout
+            :idle-timeout    idle-timeout
+            :connect-timeout PI_DEFAULT_CONNECT_TIMEOUT_SECONDS
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
           (if (eq? tag 'http-client-timeout-error)
             (list (cons 'status-code 0)
               (cons 'reason
-                (string-append "Request timed out after " (number->string timeout) "s")
+                (pi-format-timeout-reason (if (pair? args) (car args) "") timeout)
               ) ;cons
               (cons 'text "")
               (cons 'timeout #t)
@@ -248,7 +248,6 @@
         ) ;if
       ) ;let
     ) ;define
-
     (define (%log-request-failure! status resp body-str parsed-msg provider
               model-id url attempt max-attempts
             ) ;%log-request-failure!
@@ -283,13 +282,19 @@
                messages
                (system-instruction #f)
                (tool-names #f)
-               (timeout 300)
+               (timeout #f)
                (opt-retry #f)
              ) ;gemini-request
       (let* ((model-id (pi-cfg-ref config 'model-id))
              (model-meta (pi-cfg-ref config 'model-meta))
              (proxy-url (pi-cfg-ref config 'proxy-url))
              (settings (pi-cfg-ref config 'settings))
+             (eff-timeout (if (number? timeout)
+                            (if (> timeout 0) timeout #f)
+                            (pi-ms->timeout-seconds (pi-resolve-provider-timeout-ms settings))
+                          ) ;if
+             ) ;eff-timeout
+             (eff-idle (pi-ms->timeout-seconds (pi-resolve-http-idle-timeout-ms settings)))
              (provider (pi-cfg-ref config 'provider "google"))
              (key-rotation? (pi-key-rotation? config))
              (base-url (cdr (or (assoc 'base-url model-meta)
@@ -300,8 +305,7 @@
              ) ;base-url
              (url (gemini-build-endpoint base-url model-id))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
-             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-             ) ;tool-resolver
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
              (contents (gemini-build-contents messages model-id (or provider "google")))
              (raw-req-body (gemini-build-request-body contents system-instruction tool-decls)
@@ -326,7 +330,8 @@
                               (cons "x-goog-api-key" (or api-key ""))
                             ) ;list
                    ) ;headers
-                   (resp (%http-post-safe url req-json-str headers proxy-alist timeout))
+                   (resp (%http-post-safe url req-json-str headers proxy-alist eff-timeout eff-idle)
+                   ) ;resp
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                    (parsed-msg (%parse-non-stream-msg status body-str provider model-id))

@@ -142,19 +142,26 @@
       ) ;let
     ) ;define
 
-    (define (%post-openai url req-json-str headers proxy-alist timeout)
+    (define (%post-openai url req-json-str headers proxy-alist timeout idle-timeout)
       (catch #t
         (lambda ()
           (http-post url
-            :data    req-json-str
-            :headers headers
-            :proxy   proxy-alist
-            :timeout timeout
+            :data            req-json-str
+            :headers         headers
+            :proxy           proxy-alist
+            :timeout         timeout
+            :idle-timeout    idle-timeout
+            :connect-timeout PI_DEFAULT_CONNECT_TIMEOUT_SECONDS
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
           (if (eq? tag 'http-client-timeout-error)
-            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+            (let ((msg
+                    (string-append "Request timed out"
+                      (if (number? timeout) (string-append " after " (number->string timeout) "s") "")
+                    ) ;string-append
+                  ) ;msg
+                 ) ;
               (list (cons 'status-code 0)
                 (cons 'reason msg)
                 (cons 'text "")
@@ -174,13 +181,20 @@
                messages
                (system-instruction #f)
                (tool-names #f)
-               (timeout 300)
+               (timeout #f)
                (opt-retry #f)
              ) ;openai-request
       (let*-values (((model-id) (pi-cfg-ref config 'model-id))
                     ((model-meta) (pi-cfg-ref config 'model-meta))
                     ((proxy-url) (pi-cfg-ref config 'proxy-url))
                     ((settings) (pi-cfg-ref config 'settings))
+                    ((eff-timeout)
+                     (if (number? timeout)
+                       (if (> timeout 0) timeout #f)
+                       (pi-ms->timeout-seconds (pi-resolve-provider-timeout-ms settings))
+                     ) ;if
+                    ) ;
+                    ((eff-idle) (pi-ms->timeout-seconds (pi-resolve-http-idle-timeout-ms settings)))
                     ((provider) (pi-cfg-ref config 'provider))
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
@@ -193,16 +207,12 @@
                                                                             . 8192))))
                     ((url) (openai-build-endpoint base-url))
                     ((eff-tool-names) (or tool-names (pi-cfg-ref config 'tools '())))
-                    ((tool-resolver)
-                     (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-                    ) ;
+                    ((tool-resolver) (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
                     ((tool-decls)
                      (openai-build-tool-declarations-from-names eff-tool-names tool-resolver)
                     ) ;
                     ((prompt-cache-key)
-                     (openai-resolve-prompt-cache-key base-url
-                       (pi-cfg-ref config 'session-id)
-                     ) ;openai-resolve-prompt-cache-key
+                     (openai-resolve-prompt-cache-key base-url (pi-cfg-ref config 'session-id))
                     ) ;
                     ((openai-msgs) (openai-build-messages messages system-instruction))
                     ((req-body)
@@ -214,15 +224,13 @@
                     ((proxy-alist) (openai-build-proxy-alist proxy-url))
                    ) ;
         (let ((key-rotation? (pi-key-rotation? config))
-              (session-id
-                (pi-cfg-ref config 'session-id)
-              ) ;session-id
+              (session-id (pi-cfg-ref config 'session-id))
              ) ;
           (let loop
             ((attempt 1) (api-key (pi-request-api-key config)))
             (let* ((extra-hdrs (%opencode-extra-headers url provider session-id))
                    (headers (openai-build-headers api-key extra-hdrs))
-                   (resp (%post-openai url req-json-str headers proxy-alist timeout))
+                   (resp (%post-openai url req-json-str headers proxy-alist eff-timeout eff-idle))
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
@@ -260,10 +268,7 @@
                   (let* ((ra-raw (pi-extract-retry-after resp))
                          (ra-sec (pi-parse-retry-after ra-raw))
                          (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
-                         (retry-status (if (%resp-field resp 'timeout)
-                                         (%resp-field resp 'reason)
-                                         status
-                                       ) ;if
+                         (retry-status (if (%resp-field resp 'timeout) (%resp-field resp 'reason) status)
                          ) ;retry-status
                         ) ;
                     (pi-log-retry retry-status attempt provider-max-retries delay-sec ra-sec)

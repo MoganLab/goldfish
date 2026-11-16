@@ -138,8 +138,9 @@
     ) ;define
 
     (define (pi-handle-tool-use new-msgs tool-calls emit timeout config resp)
+      ;; LLM 请求超时与工具执行超时解耦：工具执行默认无超时（#f），不继承 LLM 空闲超时
       (let*-values (((tools-res terminated?)
-                     (pi-execute-tool-calls-with-status tool-calls emit timeout config)
+                     (pi-execute-tool-calls-with-status tool-calls emit #f config)
                     ) ;
                    ) ;
         (let* ((all-msgs (append new-msgs tools-res))
@@ -267,7 +268,7 @@
                initial-messages
                system-prompt
                (emit #f)
-               (timeout 600)
+               (timeout 300)
                (max-turns 0)
                (session-timeout 0)
                (compaction #f)

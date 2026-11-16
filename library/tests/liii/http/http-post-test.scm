@@ -108,6 +108,19 @@
 (check-catch 'value-error (g_http-post "http://x/" '() "" '() '() '() #f 0))
 (check-catch 'type-error (g_http-post "http://x/" '() "" '() '() '() #f #f "5"))
 (check-catch 'value-error (g_http-post "http://x/" '() "" '() '() '() #f #f 0))
+(check-catch 'type-error (http-post "http://x/" :connect-timeout "5"))
+(check-catch 'type-error (http-post "http://x/" :connect-timeout 'fast))
+(check-catch 'value-error (http-post "http://x/" :connect-timeout 0))
+(check-catch 'value-error (http-post "http://x/" :connect-timeout -1))
+(check-catch 'type-error
+  (g_http-post "http://x/" '() "" '() '() '() #f #f #f #f "5")
+) ;check-catch
+(check-catch 'value-error
+  (g_http-post "http://x/" '() "" '() '() '() #f #f #f #f 0)
+) ;check-catch
+(check-catch 'value-error
+  (g_http-post "http://x/" '() "" '() '() '() #f #f #f #f -1)
+) ;check-catch
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))

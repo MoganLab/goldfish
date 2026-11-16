@@ -109,19 +109,26 @@
       ) ;let
     ) ;define
 
-    (define (%post-anthropic url req-json-str headers proxy-alist timeout)
+    (define (%post-anthropic url req-json-str headers proxy-alist timeout idle-timeout)
       (catch #t
         (lambda ()
           (http-post url
-            :data    req-json-str
-            :headers headers
-            :proxy   proxy-alist
-            :timeout timeout
+            :data            req-json-str
+            :headers         headers
+            :proxy           proxy-alist
+            :timeout         timeout
+            :idle-timeout    idle-timeout
+            :connect-timeout PI_DEFAULT_CONNECT_TIMEOUT_SECONDS
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
           (if (eq? tag 'http-client-timeout-error)
-            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+            (let ((msg
+                    (string-append "Request timed out"
+                      (if (number? timeout) (string-append " after " (number->string timeout) "s") "")
+                    ) ;string-append
+                  ) ;msg
+                 ) ;
               (list (cons 'status-code 0)
                 (cons 'reason msg)
                 (cons 'text "")
@@ -141,7 +148,7 @@
                messages
                (system-instruction #f)
                (tool-names #f)
-               (timeout 300)
+               (timeout #f)
                (opt-retry #f)
              ) ;anthropic-request
       (let*-values (((model-id) (pi-cfg-ref config 'model-id))
@@ -149,6 +156,13 @@
                     ((api-key) (pi-cfg-ref config 'api-key))
                     ((proxy-url) (pi-cfg-ref config 'proxy-url))
                     ((settings) (pi-cfg-ref config 'settings))
+                    ((eff-timeout)
+                     (if (number? timeout)
+                       (if (> timeout 0) timeout #f)
+                       (pi-ms->timeout-seconds (pi-resolve-provider-timeout-ms settings))
+                     ) ;if
+                    ) ;
+                    ((eff-idle) (pi-ms->timeout-seconds (pi-resolve-http-idle-timeout-ms settings)))
                     ((provider) (pi-cfg-ref config 'provider))
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
@@ -161,9 +175,7 @@
                                                                             . 8192))))
                     ((url) (anthropic-build-endpoint base-url))
                     ((eff-tool-names) (or tool-names (pi-cfg-ref config 'tools '())))
-                    ((tool-resolver)
-                     (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-                    ) ;
+                    ((tool-resolver) (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
                     ((tool-decls)
                      (anthropic-build-tool-declarations-from-names eff-tool-names tool-resolver)
                     ) ;
@@ -181,7 +193,8 @@
                    ) ;
         (let loop
           ((attempt 1))
-          (let* ((resp (%post-anthropic url req-json-str headers proxy-alist timeout))
+          (let* ((resp (%post-anthropic url req-json-str headers proxy-alist eff-timeout eff-idle)
+                 ) ;resp
                  (status (or (%resp-field resp 'status-code) 0))
                  (body-str (or (%resp-field resp 'text) ""))
                 ) ;

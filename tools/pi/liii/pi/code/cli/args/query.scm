@@ -5,7 +5,14 @@
 ;;
 
 (define-library (liii pi code cli args query)
-  (import (scheme base) (liii base) (liii list) (liii pi code config query))
+  (import (scheme base)
+    (scheme char)
+    (liii base)
+    (liii list)
+    (liii string)
+    (liii pi ai retry)
+    (liii pi code config query)
+  ) ;import
   (export pi-cli-args? make-pi-cli-args pi-args-ref pi-args-set
     pi-resolve-timeout
   ) ;export
@@ -209,14 +216,32 @@
       ) ;let
     ) ;define
 
+    ;; 解析会话级 HTTP 空闲超时（单位：秒；0 表示关闭空闲超时）。
+    ;; 优先级：CLI --timeout（秒，0/disabled 表示关闭）
+    ;;       > cfg.timeout（兼容入口，秒）
+    ;;       > settings.httpIdleTimeoutMs（毫秒转秒，默认 300s；0/disabled 表示关闭）。
     (define (pi-resolve-timeout parsed cfg)
       (let ((t (pi-args-ref parsed 'timeout)))
-        (if (and (number? t) (> t 0))
-          t
-          (let ((cfg-t (pi-cfg-ref cfg 'timeout 600)))
-            (if (and (number? cfg-t) (> cfg-t 0)) cfg-t 600)
-          ) ;let
-        ) ;if
+        (cond
+         ((and (string? t) (string=? (string-downcase (string-trim-both t)) "disabled"))
+          0
+         ) ;
+         ((and (number? t) (>= t 0)) t)
+         (else
+           (let ((cfg-t (pi-cfg-ref cfg 'timeout #f)) (settings (pi-cfg-ref cfg 'settings #f)))
+             (cond
+              ((and (string? cfg-t)
+                 (string=? (string-downcase (string-trim-both cfg-t)) "disabled")
+               ) ;and
+               0
+              ) ;
+              ((and (number? cfg-t) (>= cfg-t 0)) cfg-t)
+              (settings (/ (pi-resolve-http-idle-timeout-ms settings) 1000.0))
+              (else 300)
+             ) ;cond
+           ) ;let
+         ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 

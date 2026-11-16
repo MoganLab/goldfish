@@ -70,22 +70,19 @@
              ;; 缺失时用注册表默认值补齐；不再把 record 降级为 alist
              (c6
                (let ((m
-                      (cond (raw-meta
-                             (pi-model-metadata-from-alist raw-meta)
-                            ) ;
-                            (else
-                              (pi-model-metadata ""
-                                ""
-                                provider
-                                (or (pi-provider-base-url provider) "")
-                                #f
-                                4096
-                                #t
-                              ) ;pi-model-metadata
-                            ) ;else
-                      ) ;cond
-                    ) ;m
-                   ) ;
+                       (cond (raw-meta (pi-model-metadata-from-alist raw-meta))
+                             (else (pi-model-metadata ""
+                                     ""
+                                     provider
+                                     (or (pi-provider-base-url provider) "")
+                                     #f
+                                     4096
+                                     #t
+                                   ) ;pi-model-metadata
+                             ) ;else
+                       ) ;cond
+                     ) ;m
+                    ) ;
                  (pi-cfg-set c5 'model-meta m)
                ) ;let
              ) ;c6
@@ -106,7 +103,7 @@
                msgs
                sys-prompt
                tools
-               timeout
+               (timeout #f)
                (opt-retry #f)
              ) ;pi-request-provider
       (let* ((cfg-p (pi-cfg-ref config 'provider))
@@ -129,7 +126,14 @@
       ) ;let*
     ) ;define*
 
-    (define (pi-request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
+    (define* (pi-request-provider-stream provider
+               config
+               msgs
+               sys-prompt
+               tools
+               on-ev
+               (timeout #f)
+             ) ;pi-request-provider-stream
       (let* ((cfg-p (pi-cfg-ref config 'provider))
              (eff-provider (or provider cfg-p "google"))
              (eff-p-str (if (symbol? eff-provider) (symbol->string eff-provider) eff-provider)
@@ -152,7 +156,7 @@
               ) ;else
         ) ;cond
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

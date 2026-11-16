@@ -5,14 +5,20 @@
 ;;
 
 (define-library (liii pi ai config record)
-  (import (scheme base) (liii list) (liii string) (liii pi ai config types))
+  (import (scheme base)
+    (scheme char)
+    (liii list)
+    (liii string)
+    (liii pi ai config types)
+  ) ;import
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
-    pi-retry-config->alist pi-retry-config->json json->pi-retry-config
-    pi-settings pi-settings? pi-settings-default-provider
-    pi-settings-default-model pi-settings-default-thinking-level
-    pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
+    pi-retry-config-provider-timeout-ms pi-retry-config->alist
+    pi-retry-config->json json->pi-retry-config pi-settings pi-settings?
+    pi-settings-default-provider pi-settings-default-model
+    pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
+    pi-settings-default-tools pi-settings-http-idle-timeout-ms
     pi-settings->alist pi-settings->json json->pi-settings pi-credential
     pi-credential? pi-credential-provider pi-settings-hide-thinking-block
     pi-settings-session-dir pi-credential-key pi-settings-model-thinking-level
@@ -31,12 +37,14 @@
                (base-delay-ms 2000)
                (max-agent-delay-ms 60000)
                (provider-max-retries #f)
+               (provider-timeout-ms #f)
              ) ;pi-retry-config
       (%make-pi-retry-config (if enabled #t #f)
         max-retries
         base-delay-ms
         max-agent-delay-ms
         provider-max-retries
+        provider-timeout-ms
       ) ;%make-pi-retry-config
     ) ;define*
 
@@ -48,27 +56,31 @@
           (cons 'base-delay-ms (pi-retry-config-base-delay-ms r))
           (cons 'max-agent-delay-ms (pi-retry-config-max-agent-delay-ms r))
           (cons 'provider-max-retries (pi-retry-config-provider-max-retries r))
+          (cons 'provider-timeout-ms (pi-retry-config-provider-timeout-ms r))
         ) ;list
       ) ;if
     ) ;define
-
     (define (pi-retry-config->json r)
       (if (pair? r)
         r
-        (let ((base
-                (list (cons "enabled" (if (pi-retry-config-enabled r) 'true 'false))
-                  (cons "maxRetries" (pi-retry-config-max-retries r))
-                  (cons "baseDelayMs" (pi-retry-config-base-delay-ms r))
-                  (cons "maxAgentDelayMs" (pi-retry-config-max-agent-delay-ms r))
-                ) ;list
-              ) ;base
-              (provider-max (pi-retry-config-provider-max-retries r))
-             ) ;
-          (if provider-max
-            (append base (list (cons "provider" (list (cons "maxRetries" provider-max)))))
-            base
-          ) ;if
-        ) ;let
+        (let* ((base
+                 (list (cons "enabled" (if (pi-retry-config-enabled r) 'true 'false))
+                   (cons "maxRetries" (pi-retry-config-max-retries r))
+                   (cons "baseDelayMs" (pi-retry-config-base-delay-ms r))
+                   (cons "maxAgentDelayMs" (pi-retry-config-max-agent-delay-ms r))
+                 ) ;list
+               ) ;base
+               (pm (pi-retry-config-provider-max-retries r))
+               (pt (pi-retry-config-provider-timeout-ms r))
+               (pa
+                 (append
+                   (if pm `(("maxRetries" . ,pm)) '())
+                   (if pt `(("timeoutMs" . ,pt)) '())
+                 ) ;append
+               ) ;pa
+              ) ;
+          (if (pair? pa) (append base (list (cons "provider" pa))) base)
+        ) ;let*
       ) ;if
     ) ;define
 
@@ -99,7 +111,6 @@
         ) ;let*
       ) ;if
     ) ;define
-
     (define (%normalize-json-bool val)
       (case val
        ((true) #t)
@@ -107,19 +118,19 @@
        (else val)
       ) ;case
     ) ;define
-
     (define (json->pi-retry-config obj)
       (if (pi-retry-config? obj)
         obj
-        (let* ((provider-obj (%json-dict-ref obj "provider" '()))
-               (raw-provider-max (%json-dict-ref provider-obj "maxRetries" #f))
-               (provider-max (if (eq? raw-provider-max 'null) #f raw-provider-max))
+        (let* ((p (%json-dict-ref obj "provider" '()))
+               (rm (%json-dict-ref p "maxRetries" #f))
+               (rt (%json-dict-ref p "timeoutMs" #f))
               ) ;
           (%make-pi-retry-config (if (%normalize-json-bool (%json-dict-ref obj "enabled" #t)) #t #f)
             (%json-dict-ref obj "maxRetries" 3)
             (%json-dict-ref obj "baseDelayMs" 2000)
             (%json-dict-ref obj "maxAgentDelayMs" 60000)
-            provider-max
+            (if (eq? rm 'null) #f rm)
+            (if (and (number? rt) (>= rt 0)) rt #f)
           ) ;%make-pi-retry-config
         ) ;let*
       ) ;if
@@ -135,6 +146,7 @@
                (hide-thinking-block #f)
                (model-thinking-levels '())
                (enable-skill-commands #t)
+               (http-idle-timeout-ms 300000)
              ) ;pi-settings
       (%make-pi-settings default-provider
         default-model
@@ -146,9 +158,9 @@
         (and hide-thinking-block #t)
         model-thinking-levels
         (and enable-skill-commands #t)
+        http-idle-timeout-ms
       ) ;%make-pi-settings
     ) ;define*
-
     (define (pi-settings->alist s)
       (if (pair? s)
         s
@@ -162,6 +174,7 @@
           (cons 'hide-thinking-block (pi-settings-hide-thinking-block s))
           (cons 'model-thinking-levels (pi-settings-model-thinking-levels s))
           (cons 'enable-skill-commands (pi-settings-enable-skill-commands s))
+          (cons 'http-idle-timeout-ms (pi-settings-http-idle-timeout-ms s))
         ) ;list
       ) ;if
     ) ;define
@@ -177,11 +190,16 @@
               (tools (pi-settings-default-tools s))
               (sdir (pi-settings-session-dir s))
               (levels (pi-settings-model-thinking-levels s))
+              (idle-ms (pi-settings-http-idle-timeout-ms s))
              ) ;
           (append (if (string? dp) (list (cons "defaultProvider" dp)) '())
             (if (string? dm) (list (cons "defaultModel" dm)) '())
             (if (string? dtl) (list (cons "defaultThinkingLevel" dtl)) '())
             (if (string? proxy) (list (cons "httpProxy" proxy)) '())
+            (if (or (number? idle-ms) (string? idle-ms))
+              (list (cons "httpIdleTimeoutMs" idle-ms))
+              '()
+            ) ;if
             (if retry (list (cons "retry" (pi-retry-config->json retry))) '())
             (if (list? tools) (list (cons "defaultTools" (list->vector tools))) '())
             (if (string? sdir) (list (cons "sessionDir" sdir)) '())
@@ -203,9 +221,20 @@
             (else #f)
       ) ;cond
     ) ;define
-
     (define (%parse-model-thinking-levels val)
       (if (and (pair? val) (every pair? val)) val '())
+    ) ;define
+
+    (define (%parse-http-idle-timeout-ms raw)
+      (cond
+       ((and (string? raw)
+          (string=? (string-downcase (string-trim-both raw)) "disabled")
+        ) ;and
+        "disabled"
+       ) ;
+       ((and (number? raw) (>= raw 0)) raw)
+       (else 300000)
+      ) ;cond
     ) ;define
 
     (define (json->pi-settings obj)
@@ -230,6 +259,8 @@
                ) ;hide-thinking
                (enable-skills (if (%normalize-json-bool (%json-dict-ref obj "enableSkillCommands" #t)) #t #f)
                ) ;enable-skills
+               (idle-ms (%parse-http-idle-timeout-ms (%json-dict-ref obj "httpIdleTimeoutMs" 300000))
+               ) ;idle-ms
               ) ;
           (%make-pi-settings default-provider
             default-model
@@ -241,6 +272,7 @@
             hide-thinking
             (%parse-model-thinking-levels (%json-dict-ref obj "modelThinkingLevels" '()))
             enable-skills
+            idle-ms
           ) ;%make-pi-settings
         ) ;let*
       ) ;if
@@ -326,33 +358,27 @@
     (define (pi-model-metadata->json m)
       (if (pair? m)
         m
-        (let ((base
-                (list (cons "id" (pi-model-metadata-id m))
-                  (cons "name" (pi-model-metadata-name m))
-                  (cons "provider" (pi-model-metadata-provider m))
-                  (cons "baseUrl" (pi-model-metadata-base-url m))
-                  (cons "matched" (if (pi-model-metadata-matched? m) 'true 'false))
-                ) ;list
-              ) ;base
-              (cw (pi-model-metadata-context-window m))
+        (let ((cw (pi-model-metadata-context-window m))
               (mt (pi-model-metadata-max-tokens m))
              ) ;
-          (append base
-            (if cw (list (cons "contextWindow" cw)) '())
-            (if mt (list (cons "maxTokens" mt)) '())
+          (append `(("id" . ,(pi-model-metadata-id m))
+                    ("name" . ,(pi-model-metadata-name m))
+                    ("provider" . ,(pi-model-metadata-provider m))
+                    ("baseUrl" . ,(pi-model-metadata-base-url m))
+                    ("matched"
+                     . ,(if (pi-model-metadata-matched? m) 'true 'false)))
+            (if cw `(("contextWindow" . ,cw)) '())
+            (if mt `(("maxTokens" . ,mt)) '())
           ) ;append
         ) ;let
       ) ;if
     ) ;define
 
-    ;; alist → record：会话从 JSON 载入后把旧形态的 model-meta 规范化为
-    ;; record；已是 record 则原样返回。字段容错：缺失或 #f 时给安全默认值。
     (define (%meta-field alist key default)
       (let ((p (assoc key alist)))
         (if (and p (cdr p)) (cdr p) default)
       ) ;let
     ) ;define
-
     (define (pi-model-metadata-from-alist m)
       (if (pi-model-metadata? m)
         m

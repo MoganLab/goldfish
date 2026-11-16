@@ -5,9 +5,15 @@
 ;;
 
 (define-library (liii pi ai time)
-  (import (scheme base) (liii string) (liii date-time))
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii date-time)
+    (liii pi ai abort)
+  ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-current-time-seconds
     pi-current-monotonic-millis pi-current-monotonic-seconds
+    pi-format-timeout-reason pi-make-stream-progress-cb
   ) ;export
   (begin
 
@@ -59,6 +65,42 @@
 
     (define (pi-current-monotonic-seconds)
       (current-monotonic-seconds)
+    ) ;define
+
+    (define (pi-format-timeout-reason raw-msg timeout-sec)
+      (if (and (string? raw-msg)
+            (not (string-null? raw-msg))
+            (string-contains? (string-downcase raw-msg) "timed out")
+          ) ;and
+        (if (string-starts? raw-msg "Request timed out")
+          raw-msg
+          (string-append "Request timed out: " raw-msg)
+        ) ;if
+        (string-append "Request timed out"
+          (if (number? timeout-sec)
+            (string-append " after " (number->string timeout-sec) "s")
+            ""
+          ) ;if
+          (if (and (string? raw-msg) (not (string-null? raw-msg)))
+            (string-append " (" raw-msg ")")
+            ""
+          ) ;if
+        ) ;string-append
+      ) ;if
+    ) ;define
+
+    (define (pi-make-stream-progress-cb eff-idle last-act on-idle on-abort)
+      (lambda (dlt dln ult uln)
+        (cond ((pi-aborted?) (on-abort) #f)
+              ((and eff-idle
+                 (> (- (pi-current-monotonic-seconds) (vector-ref last-act 0)) eff-idle)
+               ) ;and
+               (on-idle)
+               #f
+              ) ;
+              (else #t)
+        ) ;cond
+      ) ;lambda
     ) ;define
 
   ) ;begin

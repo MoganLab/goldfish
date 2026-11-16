@@ -6,6 +6,7 @@
 
 (define-library (liii pi ai api openai-completions stream)
   (import (scheme base)
+    (scheme char)
     (scheme write)
     (liii string)
     (liii json)
@@ -38,10 +39,10 @@
       ) ;cond
     ) ;define
 
-    (define (%build-stream-cb stream-state on-event effective-idle on-idle on-abort err-acc)
-      (let* ((last-act (pi-current-monotonic-seconds))
-             (decoder (make-openai-stream-decoder stream-state on-event))
-            ) ;
+    (define (%build-stream-cb stream-state on-event effective-idle on-idle
+              on-abort err-acc last-act
+            ) ;%build-stream-cb
+      (let ((decoder (make-openai-stream-decoder stream-state on-event)))
         (lambda (chunk)
           (cond
             ;; 用户中止（ESC）：返回 #f 令 C 层中止 HTTP 下载
@@ -49,13 +50,14 @@
             (else
               (let ((now (pi-current-monotonic-seconds)))
                 (vector-set! err-acc 0 (string-append (vector-ref err-acc 0) chunk))
-                (if (and effective-idle (> (- now last-act) effective-idle))
+                (if
+                  (and effective-idle (> (- now (vector-ref last-act 0)) effective-idle))
                   (begin
                     (on-idle)
                     #f
                   ) ;begin
                   (begin
-                    (set! last-act now)
+                    (vector-set! last-act 0 now)
                     (decoder chunk)
                     #t
                   ) ;begin
@@ -64,7 +66,7 @@
             ) ;else
           ) ;cond
         ) ;lambda
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (%finalize-stream stream-state provider model-id)
@@ -97,14 +99,15 @@
       ) ;pi-assistant-message
     ) ;define
 
-    (define (%make-idle-timeout-error eff-idle provider model-id)
-      (pi-assistant-message '()
+    (define (%make-idle-timeout-error stream-state eff-idle provider model-id)
+      (finish-openai-stream stream-state #f)
+      (pi-assistant-message (openai-stream-state-blocks stream-state)
         :stop-reason "error"
-        :usage       (openai-map-usage '())
+        :usage       (openai-stream-state-usage stream-state)
         :error-message
-        (string-append "OpenAI stream idle timeout after "
+        (string-append "OpenAI stream idle timed out after "
           (number->string eff-idle)
-          " seconds"
+          " seconds (timeout)"
         ) ;string-append
         :provider provider
         :model    model-id
@@ -132,7 +135,8 @@
       ) ;let
     ) ;define
 
-    (define (%make-stream-error status resp err-acc provider model-id)
+    (define (%make-stream-error stream-state status resp err-acc provider model-id)
+      (finish-openai-stream stream-state #f)
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
              (acc-body (vector-ref err-acc 0))
@@ -154,9 +158,9 @@
                ) ;cond
              ) ;err-msg
             ) ;
-        (pi-assistant-message '()
+        (pi-assistant-message (openai-stream-state-blocks stream-state)
           :stop-reason   "error"
-          :usage         (openai-map-usage '())
+          :usage         (openai-stream-state-usage stream-state)
           :error-message err-msg
           :provider      provider
           :model         model-id
@@ -165,30 +169,31 @@
       ) ;let*
     ) ;define
 
-    (define (%post-stream url req-json-str headers proxy-alist cb progress timeout eff-idle)
+    (define (%post-stream url req-json-str headers proxy-alist cb progress eff-idle)
       (catch #t
         (lambda ()
           (http-post url
-            :data         req-json-str
-            :headers      headers
-            :proxy        proxy-alist
-            :stream       #t
-            :callback     cb
-            :timeout      timeout
-            :idle-timeout eff-idle
-            :progress     progress
+            :data            req-json-str
+            :headers         headers
+            :proxy           proxy-alist
+            :stream          #t
+            :callback        cb
+            :idle-timeout    eff-idle
+            :connect-timeout PI_DEFAULT_CONNECT_TIMEOUT_SECONDS
+            :progress        progress
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
           (if (eq? tag 'http-client-timeout-error)
-            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+            (let* ((raw-msg (if (pair? args) (car args) ""))
+                   (msg (pi-format-timeout-reason raw-msg eff-idle))
+                  ) ;
               (list (cons 'status-code 0)
                 (cons 'reason msg)
                 (cons 'text "")
                 (cons 'timeout #t)
-                (cons 'timeout-sec timeout)
               ) ;list
-            ) ;let
+            ) ;let*
             (let ((err-msg (if (pair? args) (car args) "Network error")))
               (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
             ) ;let
@@ -220,9 +225,26 @@
       ) ;if
     ) ;define
 
-    (define (%run-stream-loop config url req-json-str proxy-alist on-ev timeout
-              opt-retry eff-idle
-            ) ;%run-stream-loop
+    (define (%wait-stream-retry! idle-timed-out? eff-idle resp status attempt
+              provider-r base-delay max-delay
+            ) ;%wait-stream-retry!
+      (let* ((ra-raw (pi-extract-retry-after resp))
+             (ra-sec (pi-parse-retry-after ra-raw))
+             (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+             (retry-status
+               (cond (idle-timed-out? (string-append "Stream idle timed out after " (number->string eff-idle) "s")
+                     ) ;idle-timed-out?
+                     ((%resp-field resp 'timeout) (%resp-field resp 'reason))
+                     (else status)
+               ) ;cond
+             ) ;retry-status
+            ) ;
+        (pi-log-retry retry-status attempt provider-r delay-sec ra-sec)
+        (sleep delay-sec)
+      ) ;let*
+    ) ;define
+
+    (define (%run-stream-loop config url req-json-str proxy-alist on-ev opt-retry eff-idle)
       (let* ((settings (pi-cfg-ref config 'settings))
              (key-rotation? (pi-key-rotation? config))
              (provider (pi-cfg-ref config 'provider))
@@ -244,22 +266,23 @@
                    (wrapped-on-ev (if (procedure? on-ev) (lambda (ev) (set! emitted? #t) (on-ev ev)) #f)
                    ) ;wrapped-on-ev
                    (err-acc (vector ""))
+                   (last-act (vector (pi-current-monotonic-seconds)))
                    (cb (%build-stream-cb stream-state
                          wrapped-on-ev
                          eff-idle
                          (lambda () (set! idle-timed-out? #t))
                          (lambda () (set! aborted? #t))
                          err-acc
+                         last-act
                        ) ;%build-stream-cb
                    ) ;cb
-                   ;; 空闲期中止探测：libcurl 无数据时也按节拍（≤1s）调用 progress，
-                   ;; 探测到用户中止即返回 #f 令 libcurl 中止传输（CURLE_ABORTED_BY_CALLBACK）；
-                   ;; 同时置位本地 aborted?，结算时优先走 aborted 分支，不进重试/换 key
-                   (progress
-                     (lambda (dlt dln ult uln) (if (pi-aborted?) (begin (set! aborted? #t) #f) #t))
+                   (progress (pi-make-stream-progress-cb eff-idle
+                               last-act
+                               (lambda () (set! idle-timed-out? #t))
+                               (lambda () (set! aborted? #t))
+                             ) ;pi-make-stream-progress-cb
                    ) ;progress
-                   (resp (%post-stream url req-json-str headers proxy-alist cb progress timeout eff-idle)
-                   ) ;resp
+                   (resp (%post-stream url req-json-str headers proxy-alist cb progress eff-idle))
                    (status (or (%resp-field resp 'status-code) 0))
                   ) ;
               ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
@@ -276,7 +299,9 @@
                     (cons 'attempt attempt)
                     (cons 'max-attempts provider-r)
                     (cons 'retryable
-                      (openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
+                      (or idle-timed-out?
+                        (openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
+                      ) ;or
                     ) ;cons
                   ) ;list
                 ) ;pi-log-http-error!
@@ -286,42 +311,42 @@
               (cond ((or aborted? (pi-aborted?))
                      (%finalize-aborted-stream stream-state provider model-id)
                     ) ;
-                    (idle-timed-out? (%make-idle-timeout-error eff-idle provider model-id))
                     ;; 额度耗尽（5 小时/周额度）属于账户级限额，换 key 也无济于事，
                     ;; 直接给出可读提示，不再重试。
-                    ((and (pi-usage-limit-error? status (%stream-error-body resp err-acc) provider)
+                    ((and (not idle-timed-out?)
+                       (pi-usage-limit-error? status (%stream-error-body resp err-acc) provider)
                        (not key-rotation?)
                      ) ;and
-                     (%make-stream-error status resp err-acc provider model-id)
+                     (%make-stream-error stream-state status resp err-acc provider model-id)
                     ) ;
-                    ((and key-rotation? (not emitted?) (or (= status 429) (= status 403)))
+                    ((and (not idle-timed-out?)
+                       key-rotation?
+                       (not emitted?)
+                       (or (= status 429) (= status 403))
+                     ) ;and
                      (let ((next (pi-rotate-api-key! config api-key status)))
                        (if (eq? next 'exhausted)
-                         (%make-stream-error status resp err-acc provider model-id)
+                         (%make-stream-error stream-state status resp err-acc provider model-id)
                          (loop 1 next)
                        ) ;if
                      ) ;let
                     ) ;
-                    ((openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
-                     (if (<= attempt provider-r)
-                       (let* ((ra-raw (pi-extract-retry-after resp))
-                              (ra-sec (pi-parse-retry-after ra-raw))
-                              (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
-                              (retry-status (if (%resp-field resp 'timeout)
-                                              (%resp-field resp 'reason)
-                                              status
-                                            ) ;if
-                              ) ;retry-status
-                             ) ;
-                         (pi-log-retry retry-status attempt provider-r delay-sec ra-sec)
-                         (sleep delay-sec)
-                         (loop (+ attempt 1) api-key)
-                       ) ;let*
-                       (%make-stream-error status resp err-acc provider model-id)
-                     ) ;if
+                    ((or idle-timed-out?
+                       (openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
+                     ) ;or
+                     (cond ((<= attempt provider-r)
+                            (%wait-stream-retry! idle-timed-out? eff-idle resp
+                              status attempt provider-r base-delay max-delay
+                            ) ;%wait-stream-retry!
+                            (loop (+ attempt 1) api-key)
+                           ) ;
+                           (idle-timed-out? (%make-idle-timeout-error stream-state eff-idle provider model-id)
+                           ) ;idle-timed-out?
+                           (else (%make-stream-error stream-state status resp err-acc provider model-id))
+                     ) ;cond
                     ) ;
                     ((or (zero? status) (not (= status 200)))
-                     (%make-stream-error status resp err-acc provider model-id)
+                     (%make-stream-error stream-state status resp err-acc provider model-id)
                     ) ;
                     (else (%finalize-stream stream-state provider model-id))
               ) ;cond
@@ -336,7 +361,7 @@
                (system-instruction #f)
                (tool-names #f)
                (on-event #f)
-               (timeout 300)
+               (timeout #f)
                (opt-retry #f)
                (idle-timeout #f)
              ) ;openai-request-stream
@@ -349,12 +374,10 @@
              (max-tokens (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192))))
              (url (openai-build-endpoint base-url))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
-             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-             ) ;tool-resolver
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
              (tool-decls (openai-build-tool-declarations-from-names eff-tool-names tool-resolver)
              ) ;tool-decls
-             (prompt-cache-key
-               (openai-resolve-prompt-cache-key base-url (pi-cfg-ref config 'session-id))
+             (prompt-cache-key (openai-resolve-prompt-cache-key base-url (pi-cfg-ref config 'session-id))
              ) ;prompt-cache-key
              (openai-msgs (openai-build-messages messages system-instruction))
              (req-body (openai-build-request-body model-id openai-msgs #t
@@ -363,10 +386,11 @@
              ) ;req-body
              (req-json-str (json->string req-body))
              (proxy-alist (openai-build-proxy-alist proxy-url))
-             (eff-idle (or idle-timeout timeout))
+             (settings (pi-cfg-ref config 'settings))
+             (eff-idle (pi-resolve-stream-idle-timeout settings timeout idle-timeout))
             ) ;
-        (%run-stream-loop config url req-json-str proxy-alist on-event timeout
-          opt-retry eff-idle
+        (%run-stream-loop config url req-json-str proxy-alist on-event opt-retry
+          eff-idle
         ) ;%run-stream-loop
       ) ;let*
     ) ;define*

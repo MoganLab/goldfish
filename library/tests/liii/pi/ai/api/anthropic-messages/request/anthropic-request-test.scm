@@ -145,6 +145,7 @@
                (tools "bash")
                (settings (retry (enabled . #t)
                            (max-retries . 3)
+                           (provider-max-retries . 3)
                            (base-delay-ms . 10)
                            (max-agent-delay-ms . 50))))
            ) ;retry-cfg

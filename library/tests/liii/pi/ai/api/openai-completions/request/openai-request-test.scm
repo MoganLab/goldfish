@@ -335,7 +335,10 @@
            (cons 'proxy-url #f)
            (cons 'tools '())
            (cons 'settings
-             '((retry (enabled . #t) (max-retries . 2) (base-delay-ms . 10)))
+             '((retry (enabled . #t)
+                 (max-retries . 2)
+                 (provider-max-retries . 2)
+                 (base-delay-ms . 10)))
            ) ;cons
          ) ;list
        ) ;cfg

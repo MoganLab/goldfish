@@ -118,13 +118,16 @@
                      (> (car maybe-default-timeout) 0)
                    ) ;and
                  (car maybe-default-timeout)
-                 600
+                 #f
                ) ;if
              ) ;def-timeout
-             (desc (string-append "Timeout in seconds (optional, defaults to "
-                     (number->string def-timeout)
-                     "s)"
-                   ) ;string-append
+             (desc (if def-timeout
+                     (string-append "Timeout in seconds (optional, defaults to "
+                       (number->string def-timeout)
+                       "s)"
+                     ) ;string-append
+                     "Timeout in seconds (optional)"
+                   ) ;if
              ) ;desc
             ) ;
         (list (cons "type" "object")
@@ -271,9 +274,7 @@
       ) ;let*
     ) ;define
 
-    ;; 结算格式化：输入为已清理文本（各执行路径自行完成唯一一次全量清理，
-    ;; 流式路径在 %run-bash-streaming、捕获路径在调用点），此处只做
-    ;; 截断与错误状态拼装，不再重复清理
+    ;; 结算格式化：输入为已清理文本，此处只做截断与错误状态拼装
     (define (%format-bash-result clean-text exit-code timeout)
       (let* ((text (pi-truncate-bash-output clean-text))
              (trimmed-text (string-trim-both text))
@@ -285,7 +286,13 @@
                ) ;let
               ) ;
               ((= exit-code -1)
-               (let ((msg (string-append "Command timed out after " (number->string timeout) " seconds")
+               (let ((msg
+                       (string-append "Command timed out"
+                         (if (number? timeout)
+                           (string-append " after " (number->string timeout) " seconds")
+                           ""
+                         ) ;if
+                       ) ;string-append
                      ) ;msg
                     ) ;
                  (values (if (string-null? trimmed-text) msg (string-append text "\n\n" msg)) #t)
@@ -303,8 +310,8 @@
     (define (pi-execute-bash args . opts)
       (let* ((timed-out? (%keyword-value :timed-out? opts #f))
              (cwd (%keyword-value :cwd opts (getcwd)))
-             (raw-def (%keyword-value :timeout opts 600))
-             (def-timeout (if (and (number? raw-def) (> raw-def 0)) raw-def 600))
+             (raw-def (%keyword-value :timeout opts #f))
+             (def-timeout (if (and (number? raw-def) (> raw-def 0)) raw-def #f))
              (has-timeout? (or (assoc "timeout" args) (assoc 'timeout args)))
              (timeout
                (if has-timeout?
@@ -332,7 +339,13 @@
              (check-abort (%keyword-value :check-abort opts #f))
             ) ;
         (if timed-out?
-          (values (string-append "Command timed out after " (number->string timeout) " seconds")
+          (values
+            (string-append "Command timed out"
+              (if (number? timeout)
+                (string-append " after " (number->string timeout) " seconds")
+                ""
+              ) ;if
+            ) ;string-append
             #t
           ) ;values
           (begin

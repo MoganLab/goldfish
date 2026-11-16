@@ -6,6 +6,7 @@
 
 (define-library (liii pi ai api anthropic-messages stream)
   (import (scheme base)
+    (scheme char)
     (scheme write)
     (liii string)
     (liii json)
@@ -35,37 +36,34 @@
             (else #f)
       ) ;cond
     ) ;define
-
     (define (%build-req-body model-id msgs system-prompt tool-decls max-tokens)
       (append (anthropic-build-request-body model-id msgs system-prompt tool-decls max-tokens)
         (list (cons "stream" #t))
       ) ;append
     ) ;define
-
     (define (%build-headers api-key)
-      (let ((base-headers (list (cons "Content-Type" "application/json")
-                            (cons "anthropic-version" "2023-06-01")
-                          ) ;list
-            ) ;base-headers
+      (let ((base '(("Content-Type" . "application/json")
+                    ("anthropic-version" . "2023-06-01"))
+            ) ;base
            ) ;
         (if (and (string? api-key) (string-starts? api-key "Bearer "))
-          (cons (cons "Authorization" api-key) base-headers)
-          (cons (cons "x-api-key" (or api-key "")) base-headers)
+          (cons (cons "Authorization" api-key) base)
+          (cons (cons "x-api-key" (or api-key "")) base)
         ) ;if
       ) ;let
     ) ;define
 
     (define (%build-proxy proxy-url)
       (if (and (string? proxy-url) (not (string-null? proxy-url)))
-        (list (cons "http" proxy-url) (cons "https" proxy-url))
+        `(("http" . ,proxy-url) ("https" . ,proxy-url))
         '()
       ) ;if
     ) ;define
 
-    (define (%build-stream-cb stream-state on-event effective-idle on-idle on-abort err-acc)
-      (let* ((last-act (pi-current-monotonic-seconds))
-             (decoder (make-anthropic-stream-decoder stream-state on-event))
-            ) ;
+    (define (%build-stream-cb stream-state on-event effective-idle on-idle
+              on-abort err-acc last-act
+            ) ;%build-stream-cb
+      (let ((decoder (make-anthropic-stream-decoder stream-state on-event)))
         (lambda (chunk)
           (cond
             ;; 用户中止（ESC）：返回 #f 令 C 层中止 HTTP 下载
@@ -73,13 +71,14 @@
             (else
               (let ((now (pi-current-monotonic-seconds)))
                 (vector-set! err-acc 0 (string-append (vector-ref err-acc 0) chunk))
-                (if (and effective-idle (> (- now last-act) effective-idle))
+                (if
+                  (and effective-idle (> (- now (vector-ref last-act 0)) effective-idle))
                   (begin
                     (on-idle)
                     #f
                   ) ;begin
                   (begin
-                    (set! last-act now)
+                    (vector-set! last-act 0 now)
                     (decoder chunk)
                     #t
                   ) ;begin
@@ -88,7 +87,7 @@
             ) ;else
           ) ;cond
         ) ;lambda
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (%finalize-stream stream-state provider model-id)
@@ -111,7 +110,6 @@
       ) ;let*
     ) ;define
 
-    ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
     (define (%finalize-aborted-stream stream-state provider model-id)
       (when (anthropic-stream-state-current-thinking stream-state)
         (anthropic-finish-thinking-block stream-state #f)
@@ -126,14 +124,17 @@
       ) ;pi-assistant-message
     ) ;define
 
-    (define (%make-idle-timeout-error eff-idle provider model-id)
-      (pi-assistant-message '()
+    (define (%make-idle-timeout-error stream-state eff-idle provider model-id)
+      (when (anthropic-stream-state-current-thinking stream-state)
+        (anthropic-finish-thinking-block stream-state #f)
+      ) ;when
+      (pi-assistant-message (anthropic-stream-state-blocks stream-state)
         :stop-reason "error"
-        :usage       (anthropic-map-usage '())
+        :usage       (anthropic-stream-state-usage stream-state)
         :error-message
-        (string-append "Anthropic stream idle timeout after "
+        (string-append "Anthropic stream idle timed out after "
           (number->string eff-idle)
-          " seconds"
+          " seconds (timeout)"
         ) ;string-append
         :provider provider
         :model    model-id
@@ -168,8 +169,10 @@
         ) ;if
       ) ;let
     ) ;define
-
-    (define (%make-stream-error status resp err-acc provider model-id)
+    (define (%make-stream-error stream-state status resp err-acc provider model-id)
+      (when (anthropic-stream-state-current-thinking stream-state)
+        (anthropic-finish-thinking-block stream-state #f)
+      ) ;when
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
              (acc-body (vector-ref err-acc 0))
@@ -197,9 +200,9 @@
                ) ;cond
              ) ;err-msg
             ) ;
-        (pi-assistant-message '()
+        (pi-assistant-message (anthropic-stream-state-blocks stream-state)
           :stop-reason   "error"
-          :usage         (anthropic-map-usage '())
+          :usage         (anthropic-stream-state-usage stream-state)
           :error-message err-msg
           :provider      provider
           :model         model-id
@@ -208,30 +211,31 @@
       ) ;let*
     ) ;define
 
-    (define (%post-stream url req-json-str headers proxy-alist cb progress timeout eff-idle)
+    (define (%post-stream url req-json-str headers proxy-alist cb progress eff-idle)
       (catch #t
         (lambda ()
           (http-post url
-            :data         req-json-str
-            :headers      headers
-            :proxy        proxy-alist
-            :stream       #t
-            :callback     cb
-            :timeout      timeout
-            :idle-timeout eff-idle
-            :progress     progress
+            :data            req-json-str
+            :headers         headers
+            :proxy           proxy-alist
+            :stream          #t
+            :callback        cb
+            :idle-timeout    eff-idle
+            :connect-timeout PI_DEFAULT_CONNECT_TIMEOUT_SECONDS
+            :progress        progress
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
           (if (eq? tag 'http-client-timeout-error)
-            (let ((msg (string-append "Request timed out after " (number->string timeout) "s")))
+            (let* ((raw-msg (if (pair? args) (car args) ""))
+                   (msg (pi-format-timeout-reason raw-msg eff-idle))
+                  ) ;
               (list (cons 'status-code 0)
                 (cons 'reason msg)
                 (cons 'text "")
                 (cons 'timeout #t)
-                (cons 'timeout-sec timeout)
               ) ;list
-            ) ;let
+            ) ;let*
             (let ((err-msg (if (pair? args) (car args) "Network error")))
               (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
             ) ;let
@@ -251,8 +255,27 @@
       ) ;make-anthropic-stream-state
     ) ;define
 
+    (define (%wait-stream-retry! idle-timed-out? eff-idle resp status attempt
+              provider-r base-delay max-delay
+            ) ;%wait-stream-retry!
+      (let* ((ra-raw (pi-extract-retry-after resp))
+             (ra-sec (pi-parse-retry-after ra-raw))
+             (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+             (retry-status
+               (cond (idle-timed-out? (string-append "Stream idle timed out after " (number->string eff-idle) "s")
+                     ) ;idle-timed-out?
+                     ((%resp-field resp 'timeout) (%resp-field resp 'reason))
+                     (else status)
+               ) ;cond
+             ) ;retry-status
+            ) ;
+        (pi-log-retry retry-status attempt provider-r delay-sec ra-sec)
+        (sleep delay-sec)
+      ) ;let*
+    ) ;define
+
     (define (%run-stream-loop settings url req-json-str headers proxy-alist
-              on-ev timeout opt-retry eff-idle provider model-id
+              on-ev opt-retry eff-idle provider model-id
             ) ;%run-stream-loop
       (let-values (((max-r base-delay max-delay provider-r)
                     (pi-resolve-retry-params settings opt-retry)
@@ -264,22 +287,23 @@
                  (idle-timed-out? #f)
                  (aborted? #f)
                  (err-acc (vector ""))
+                 (last-act (vector (pi-current-monotonic-seconds)))
                  (cb (%build-stream-cb stream-state
                        on-ev
                        eff-idle
                        (lambda () (set! idle-timed-out? #t))
                        (lambda () (set! aborted? #t))
                        err-acc
+                       last-act
                      ) ;%build-stream-cb
                  ) ;cb
-                 ;; 空闲期中止探测：libcurl 无数据时也按节拍（≤1s）调用 progress，
-                 ;; 探测到用户中止即返回 #f 令 libcurl 中止传输（CURLE_ABORTED_BY_CALLBACK）；
-                 ;; 同时置位本地 aborted?，结算时优先走 aborted 分支，不进重试/换 key
-                 (progress
-                   (lambda (dlt dln ult uln) (if (pi-aborted?) (begin (set! aborted? #t) #f) #t))
+                 (progress (pi-make-stream-progress-cb eff-idle
+                             last-act
+                             (lambda () (set! idle-timed-out? #t))
+                             (lambda () (set! aborted? #t))
+                           ) ;pi-make-stream-progress-cb
                  ) ;progress
-                 (resp (%post-stream url req-json-str headers proxy-alist cb progress timeout eff-idle)
-                 ) ;resp
+                 (resp (%post-stream url req-json-str headers proxy-alist cb progress eff-idle))
                  (status (or (%resp-field resp 'status-code) 0))
                 ) ;
             ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
@@ -296,7 +320,9 @@
                   (cons 'attempt attempt)
                   (cons 'max-attempts provider-r)
                   (cons 'retryable
-                    (anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
+                    (or idle-timed-out?
+                      (anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
+                    ) ;or
                   ) ;cons
                 ) ;list
               ) ;pi-log-http-error!
@@ -306,27 +332,22 @@
             (cond ((or aborted? (pi-aborted?))
                    (%finalize-aborted-stream stream-state provider model-id)
                   ) ;
-                  (idle-timed-out? (%make-idle-timeout-error eff-idle provider model-id))
-                  ((anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
-                   (if (<= attempt provider-r)
-                     (let* ((ra-raw (pi-extract-retry-after resp))
-                            (ra-sec (pi-parse-retry-after ra-raw))
-                            (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
-                            (retry-status (if (%resp-field resp 'timeout)
-                                            (%resp-field resp 'reason)
-                                            status
-                                          ) ;if
-                            ) ;retry-status
-                           ) ;
-                       (pi-log-retry retry-status attempt provider-r delay-sec ra-sec)
-                       (sleep delay-sec)
-                       (loop (+ attempt 1))
-                     ) ;let*
-                     (%make-stream-error status resp err-acc provider model-id)
-                   ) ;if
+                  ((or idle-timed-out?
+                     (anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
+                   ) ;or
+                   (cond ((<= attempt provider-r)
+                          (%wait-stream-retry! idle-timed-out? eff-idle resp
+                            status attempt provider-r base-delay max-delay
+                          ) ;%wait-stream-retry!
+                          (loop (+ attempt 1))
+                         ) ;
+                         (idle-timed-out? (%make-idle-timeout-error stream-state eff-idle provider model-id)
+                         ) ;idle-timed-out?
+                         (else (%make-stream-error stream-state status resp err-acc provider model-id))
+                   ) ;cond
                   ) ;
                   ((or (zero? status) (not (= status 200)))
-                   (%make-stream-error status resp err-acc provider model-id)
+                   (%make-stream-error stream-state status resp err-acc provider model-id)
                   ) ;
                   (else (%finalize-stream stream-state provider model-id))
             ) ;cond
@@ -340,7 +361,7 @@
                (system-instruction #f)
                (tool-names #f)
                (on-event #f)
-               (timeout 300)
+               (timeout #f)
                (opt-retry #f)
                (idle-timeout #f)
              ) ;anthropic-request-stream
@@ -354,8 +375,7 @@
              (max-tokens (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192))))
              (url (anthropic-build-endpoint base-url))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
-             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))
-             ) ;tool-resolver
+             (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f)))
              (tool-decls (anthropic-build-tool-declarations-from-names eff-tool-names tool-resolver)
              ) ;tool-decls
              (ant-msgs (anthropic-build-messages messages))
@@ -368,13 +388,12 @@
              (proxy-alist (%build-proxy proxy-url))
              (settings (pi-cfg-ref config 'settings))
              (provider (pi-cfg-ref config 'provider))
-             (eff-idle (or idle-timeout timeout))
+             (eff-idle (pi-resolve-stream-idle-timeout settings timeout idle-timeout))
             ) ;
         (%run-stream-loop settings url req-json-str headers proxy-alist on-event
-          timeout opt-retry eff-idle provider model-id
+          opt-retry eff-idle provider model-id
         ) ;%run-stream-loop
       ) ;let*
     ) ;define*
-
   ) ;begin
 ) ;define-library

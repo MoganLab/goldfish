@@ -110,7 +110,7 @@
     ) ;define
 
     (define (%tool-def-bash . maybe-default-timeout)
-      (let ((def-timeout (if (pair? maybe-default-timeout) (car maybe-default-timeout) 600))
+      (let ((def-timeout (if (pair? maybe-default-timeout) (car maybe-default-timeout) #f))
            ) ;
         (pi-tool-definition "bash"
           "Execute a bash command in the current working directory."
@@ -196,9 +196,9 @@
 
     (define (get-tool-definition name . maybe-opts)
       (let ((def-timeout
-              (cond ((null? maybe-opts) 600)
+              (cond ((null? maybe-opts) #f)
                     ((number? (car maybe-opts)) (car maybe-opts))
-                    (else (pi-keyword-value :timeout maybe-opts 600))
+                    (else (pi-keyword-value :timeout maybe-opts #f))
               ) ;cond
             ) ;def-timeout
            ) ;

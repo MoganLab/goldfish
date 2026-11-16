@@ -6,6 +6,7 @@
 
 (define-library (liii pi code cli args)
   (import (scheme base)
+    (scheme char)
     (scheme process-context)
     (liii string)
     (liii list)
@@ -180,7 +181,15 @@
              (values 'max-turns (string->number next-arg) 2)
             ) ;
             ((and (string=? arg "--timeout") next-arg)
-             (values 'timeout (string->number next-arg) 2)
+             (let ((val
+                     (if (string=? (string-downcase (string-trim-both next-arg)) "disabled")
+                       0
+                       (string->number next-arg)
+                     ) ;if
+                   ) ;val
+                  ) ;
+               (values 'timeout val 2)
+             ) ;let
             ) ;
             ((and (string=? arg "--session-timeout") next-arg)
              (values 'session-timeout (string->number next-arg) 2)

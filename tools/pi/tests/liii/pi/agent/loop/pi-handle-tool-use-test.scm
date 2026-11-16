@@ -58,4 +58,16 @@
   ) ;let-values
 ) ;let*
 
+;; 3. LLM 请求超时不透传给工具执行（解耦）
+(let* ((seen-opts #f)
+       (mock-exec (lambda (name args . opts) (set! seen-opts opts) (pi-tool-result "ok" #f))
+       ) ;mock-exec
+       (cfg (list (cons 'execute-tool-call mock-exec)))
+       (resp (pi-assistant-message '() :stop-reason "toolUse"))
+       (calls (list '((id . "c1") (name . "bash") (arguments))))
+      ) ;
+  (pi-handle-tool-use (list resp) calls #f 120 cfg resp)
+  (check (memq ':timeout seen-opts) => #f)
+) ;let*
+
 (check-report)

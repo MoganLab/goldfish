@@ -22,7 +22,9 @@
 (check-true (procedure? json->pi-settings))
 
 ;; 1. 完整 JSON 解析
-(let* ((j (string->json "{\"defaultProvider\":\"deepseek\",\"defaultModel\":\"deepseek-chat\",\"defaultThinkingLevel\":\"high\",\"httpProxy\":\"http://127.0.0.1:7890\",\"retry\":{\"enabled\":false,\"maxRetries\":2},\"defaultTools\":[\"read\",\"bash\"],\"sessionDir\":\"/tmp/sessions\",\"hideThinkingBlock\":true,\"modelThinkingLevels\":{\"deepseek/deepseek-chat\":\"medium\"},\"enableSkillCommands\":false}"))
+(let* ((j (string->json "{\"defaultProvider\":\"deepseek\",\"defaultModel\":\"deepseek-chat\",\"defaultThinkingLevel\":\"high\",\"httpProxy\":\"http://127.0.0.1:7890\",\"retry\":{\"enabled\":false,\"maxRetries\":2},\"defaultTools\":[\"read\",\"bash\"],\"sessionDir\":\"/tmp/sessions\",\"hideThinkingBlock\":true,\"modelThinkingLevels\":{\"deepseek/deepseek-chat\":\"medium\"},\"enableSkillCommands\":false}"
+          ) ;string->json
+       ) ;j
        (s (json->pi-settings j))
       ) ;
   (check-true (pi-settings? s))
@@ -36,7 +38,10 @@
   (check (pi-settings-default-tools s) => '("read" "bash"))
   (check (pi-settings-session-dir s) => "/tmp/sessions")
   (check (pi-settings-hide-thinking-block s) => #t)
-  (check (pi-settings-model-thinking-level s "deepseek" "deepseek-chat") => "medium")
+  (check (pi-settings-model-thinking-level s "deepseek" "deepseek-chat")
+    =>
+    "medium"
+  ) ;check
   (check (pi-settings-enable-skill-commands s) => #f)
 ) ;let*
 
@@ -57,10 +62,26 @@
 ) ;let
 
 ;; 3. 已是 record 原样返回
-(let* ((orig (pi-settings))
-       (out (json->pi-settings orig))
-      ) ;
+(let* ((orig (pi-settings)) (out (json->pi-settings orig)))
   (check (eq? out orig) => #t)
 ) ;let*
+
+;; httpIdleTimeoutMs 默认、数字、0 与 disabled 解析及往返保持原值
+(let ((s-def (json->pi-settings (string->json "{}")))
+      (s-num (json->pi-settings (string->json "{\"httpIdleTimeoutMs\":120000}")))
+      (s-zero (json->pi-settings (string->json "{\"httpIdleTimeoutMs\":0}")))
+      (s-dis (json->pi-settings (string->json "{\"httpIdleTimeoutMs\":\"disabled\"}"))
+      ) ;s-dis
+     ) ;
+  (check (pi-settings-http-idle-timeout-ms s-def) => 300000)
+  (check (pi-settings-http-idle-timeout-ms s-num) => 120000)
+  (check (pi-settings-http-idle-timeout-ms s-zero) => 0)
+  (check (pi-settings-http-idle-timeout-ms s-dis) => "disabled")
+  (check (cdr (assoc "httpIdleTimeoutMs" (pi-settings->json s-dis)))
+    =>
+    "disabled"
+  ) ;check
+  (check (cdr (assoc "httpIdleTimeoutMs" (pi-settings->json s-zero))) => 0)
+) ;let
 
 (check-report)

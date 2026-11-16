@@ -286,6 +286,7 @@
            ) ;cfg-malformed
            (retry-opt-m '((enabled . #t)
                           (max-retries . 3)
+                          (provider-max-retries . 3)
                           (base-delay-ms . 20)
                           (max-agent-delay-ms . 100))
            ) ;retry-opt-m
@@ -340,8 +341,6 @@
       (check (cdr (assoc 'stopReason resp-a)) => "error")
       (check (cdr (assoc 'errorMessage resp-a)) => "MALFORMED_RESPONSE")
     ) ;let*
-
-    ;; HTTP 200 + finishReason=SAFETY：内容判定类终态，不重试，也不因重试拖延
     ;; HTTP 200 + 异常 finishReason（SAFETY 不重试 + 与 MALFORMED_RESPONSE 均落盘）
     (let* ((log-base (make-temp-dir "gf-pi-log-malformed-" ""))
            (mk-cfg

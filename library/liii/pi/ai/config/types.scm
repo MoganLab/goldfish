@@ -9,37 +9,48 @@
   (export %make-pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
-    %make-pi-settings pi-settings? pi-settings-default-provider
-    pi-settings-default-model pi-settings-default-thinking-level
-    pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
-    pi-settings-session-dir pi-settings-hide-thinking-block
-    pi-settings-enable-skill-commands
-    pi-settings-model-thinking-levels %make-pi-credential pi-credential?
-    pi-credential-provider pi-credential-key pi-credential-type
-    %make-pi-model-metadata pi-model-metadata? pi-model-metadata-id
-    pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
-    pi-model-metadata-context-window pi-model-metadata-max-tokens
-    pi-model-metadata-matched?
+    pi-retry-config-provider-timeout-ms %make-pi-settings pi-settings?
+    pi-settings-default-provider pi-settings-default-model
+    pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
+    pi-settings-default-tools pi-settings-session-dir
+    pi-settings-hide-thinking-block pi-settings-enable-skill-commands
+    pi-settings-model-thinking-levels pi-settings-http-idle-timeout-ms
+    %make-pi-credential pi-credential? pi-credential-provider pi-credential-key
+    pi-credential-type %make-pi-model-metadata pi-model-metadata?
+    pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
+    pi-model-metadata-base-url pi-model-metadata-context-window
+    pi-model-metadata-max-tokens pi-model-metadata-matched?
   ) ;export
   (begin
 
     (define-record-type <pi-retry-config>
-      (%make-pi-retry-config enabled max-retries base-delay-ms
-        max-agent-delay-ms provider-max-retries
-      ) ;%make-pi-retry-config
+      (%%make-pi-retry-config enabled max-retries base-delay-ms
+        max-agent-delay-ms provider-max-retries provider-timeout-ms
+      ) ;%%make-pi-retry-config
       pi-retry-config?
       (enabled pi-retry-config-enabled)
       (max-retries pi-retry-config-max-retries)
       (base-delay-ms pi-retry-config-base-delay-ms)
       (max-agent-delay-ms pi-retry-config-max-agent-delay-ms)
       (provider-max-retries pi-retry-config-provider-max-retries)
+      (provider-timeout-ms pi-retry-config-provider-timeout-ms)
     ) ;define-record-type
 
+    (define (%make-pi-retry-config enabled max-retries base-delay-ms
+             max-agent-delay-ms provider-max-retries . rest
+            ) ;
+      (let ((provider-timeout-ms (if (pair? rest) (car rest) #f)))
+        (%%make-pi-retry-config enabled max-retries base-delay-ms
+          max-agent-delay-ms provider-max-retries provider-timeout-ms
+        ) ;%%make-pi-retry-config
+      ) ;let
+    ) ;define
+
     (define-record-type <pi-settings>
-      (%make-pi-settings default-provider default-model default-thinking-level
+      (%%make-pi-settings default-provider default-model default-thinking-level
         http-proxy retry default-tools session-dir hide-thinking-block
-        model-thinking-levels enable-skill-commands
-      ) ;%make-pi-settings
+        model-thinking-levels enable-skill-commands http-idle-timeout-ms
+      ) ;%%make-pi-settings
       pi-settings?
       (default-provider pi-settings-default-provider)
       (default-model pi-settings-default-model)
@@ -51,7 +62,22 @@
       (hide-thinking-block pi-settings-hide-thinking-block)
       (model-thinking-levels pi-settings-model-thinking-levels)
       (enable-skill-commands pi-settings-enable-skill-commands)
+      (http-idle-timeout-ms pi-settings-http-idle-timeout-ms)
     ) ;define-record-type
+
+    (define (%make-pi-settings default-provider default-model
+             default-thinking-level http-proxy retry default-tools session-dir
+             hide-thinking-block model-thinking-levels enable-skill-commands .
+             rest
+            ) ;
+      (let ((http-idle-timeout-ms (if (pair? rest) (car rest) 300000)))
+        (%%make-pi-settings default-provider default-model
+          default-thinking-level http-proxy retry default-tools session-dir
+          hide-thinking-block model-thinking-levels enable-skill-commands
+          http-idle-timeout-ms
+        ) ;%%make-pi-settings
+      ) ;let
+    ) ;define
 
     (define-record-type <pi-credential>
       (%make-pi-credential provider key type)

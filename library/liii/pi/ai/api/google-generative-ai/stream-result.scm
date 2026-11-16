@@ -89,12 +89,13 @@
             (string-contains? (string-downcase resp-err) "low speed")
             (string-contains? (string-downcase resp-err) "timed out")
           ) ;or
+          (gemini-stream-stop-active-block! stream-state on-event)
           (pi-assistant-message (gemini-stream-state-blocks stream-state)
             :stop-reason "error"
             :error-message
             (string-append "Stream idle timed out after "
               (number->string eff-idle)
-              " seconds"
+              " seconds (timeout)"
             ) ;string-append
             :usage    (gemini-stream-state-usage stream-state)
             :provider provider

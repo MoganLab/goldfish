@@ -106,7 +106,6 @@
       ) ;let
     ) ;define
 
-    ;; 从 config 取工具执行器（由上层注入；缺失时返回占位错误结果）
     (define (%tool-executor opt-config)
       (let ((val (pi-cfg-ref opt-config 'execute-tool-call)))
         (or (and (procedure? val) val)
@@ -114,11 +113,9 @@
         ) ;or
       ) ;let
     ) ;define
-
     (define (%collect-text-blocks blks)
       (map pi-text-block-text (filter pi-text-block? (%to-block-list blks)))
     ) ;define
-
     (define (extract-assistant-text msg)
       (let* ((m (or (json->pi-message msg) msg))
              (content (cond ((pi-assistant-message? m) (pi-assistant-message-content m))
@@ -197,13 +194,15 @@
                  ) ;when
                ) ;lambda
              ) ;on-update
-             (exec-opts (append (list :timeout timeout)
-                          (if (equal? name "bash")
-                            (list :on-update on-update :check-abort pi-aborted?)
-                            '()
-                          ) ;if
-                          (if (pair? opt-config) (list :config opt-config) '())
-                        ) ;append
+             (exec-opts
+               (append
+                 (if (and (number? timeout) (> timeout 0)) `(,:timeout ,timeout) '())
+                 (if (equal? name "bash")
+                   `(,:on-update ,on-update ,:check-abort ,pi-aborted?)
+                   '()
+                 ) ;if
+                 (if (pair? opt-config) `(,:config ,opt-config) '())
+               ) ;append
              ) ;exec-opts
              (started-at (current-jiffy))
              (raw-res (apply exec name effective-args exec-opts))

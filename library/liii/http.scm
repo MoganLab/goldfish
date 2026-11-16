@@ -16,7 +16,9 @@
 
 (define-library (liii http)
   (import (liii error) (liii http common) (liii http error) (scheme file))
-  (export http-head http-get http-post http-delete http-ok? http-client-timeout-error)
+  (export http-head http-get http-post http-delete http-ok?
+    http-client-timeout-error
+  ) ;export
   (begin
 
     (define (http-stream-call runner output-file callback)
@@ -58,6 +60,7 @@
                (timeout #f)
                (idle-timeout #f)
                (progress #f)
+               (connect-timeout #f)
              ) ;http-get
       (let* ((url (http-require-string "http-get" "url" url))
              (params (http-normalize-string-alist "http-get" "params" params))
@@ -69,9 +72,13 @@
              (timeout (http-optional-timeout "http-get" "timeout" timeout))
              (idle-timeout (http-optional-timeout "http-get" "idle-timeout" idle-timeout))
              (progress (http-optional-procedure "http-get" "progress" progress))
+             (connect-timeout (http-optional-timeout "http-get" "connect-timeout" connect-timeout)
+             ) ;connect-timeout
             ) ;
         (cond ((not stream)
-               (g_http-get url params headers proxy #f timeout idle-timeout progress)
+               (g_http-get url params headers proxy #f timeout idle-timeout
+                 progress connect-timeout
+               ) ;g_http-get
               ) ;
               ((and (not output-file) (not callback))
                (value-error "http-get: stream mode requires output-file or callback")
@@ -79,7 +86,7 @@
               (else (http-stream-call (lambda (stream-callback)
                                         (g_http-get url params headers proxy
                                           stream-callback timeout idle-timeout
-                                          progress
+                                          progress connect-timeout
                                         ) ;g_http-get
                                       ) ;lambda
                       output-file
@@ -102,6 +109,7 @@
                (timeout #f)
                (idle-timeout #f)
                (progress #f)
+               (connect-timeout #f)
              ) ;http-post
       (let* ((url (http-require-string "http-post" "url" url))
              (params (http-normalize-string-alist "http-post" "params" params))
@@ -114,6 +122,8 @@
              (timeout (http-optional-timeout "http-post" "timeout" timeout))
              (idle-timeout (http-optional-timeout "http-post" "idle-timeout" idle-timeout))
              (progress (http-optional-procedure "http-post" "progress" progress))
+             (connect-timeout (http-optional-timeout "http-post" "connect-timeout" connect-timeout)
+             ) ;connect-timeout
              (body-or-data (if (null? files)
                              (http-require-string "http-post" "data" data)
                              (http-normalize-post-form-data "http-post" data)
@@ -128,7 +138,7 @@
             ) ;
         (cond ((not stream)
                (g_http-post url params body-or-data headers proxy files #f
-                 timeout idle-timeout progress
+                 timeout idle-timeout progress connect-timeout
                ) ;g_http-post
               ) ;
               ((and (not output-file) (not callback))
@@ -138,6 +148,7 @@
                                         (g_http-post url params body-or-data
                                           headers proxy files stream-callback
                                           timeout idle-timeout progress
+                                          connect-timeout
                                         ) ;g_http-post
                                       ) ;lambda
                       output-file

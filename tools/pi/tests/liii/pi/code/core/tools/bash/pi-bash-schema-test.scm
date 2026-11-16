@@ -29,7 +29,7 @@
       ) ;
   (check (cdr (assoc "type" schema)) => "object")
   (check-true (pair? props))
-  (check desc => "Timeout in seconds (optional, defaults to 600s)")
+  (check desc => "Timeout in seconds (optional)")
 ) ;let*
 
 ;; pi-bash-schema 动态默认超时参数

@@ -47,10 +47,10 @@
   (check-true (string-contains? out "Command timed out after 5 seconds"))
 ) ;let-values
 
-;; 模拟超时，未指定 opts :timeout 默认 600 秒
+;; 模拟超时，未指定 opts :timeout 默认无超时（与上游 pi 一致）
 (let-values (((out is-err) (pi-execute-bash '(("command" . "echo test")) :timed-out? #t)))
   (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 600 seconds"))
+  (check-true (string-contains? out "Command timed out"))
 ) ;let-values
 
 ;; 命令执行时间超过 timeout 参数
@@ -91,13 +91,13 @@
   ) ;check-true
 ) ;let
 
-;; 模拟超时配合 opts :timeout 0，安全回退到 600 秒
+;; 模拟超时配合 opts :timeout 0，安全回退为无超时
 (let-values (((out is-err)
               (pi-execute-bash '(("command" . "echo test")) :timed-out? #t :timeout 0)
              ) ;
             ) ;
   (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 600 seconds"))
+  (check-true (string-contains? out "Command timed out"))
 ) ;let-values
 
 ;; 模型显式 timeout 超越默认值生效（解除 min clamp，对齐原生 pi）

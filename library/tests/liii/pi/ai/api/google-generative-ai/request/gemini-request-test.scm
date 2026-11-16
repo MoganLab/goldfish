@@ -178,6 +178,7 @@
            ) ;cfg-retry
            (retry-opt '((enabled . #t)
                         (max-retries . 3)
+                        (provider-max-retries . 3)
                         (base-delay-ms . 50)
                         (max-agent-delay-ms . 200))
            ) ;retry-opt
@@ -282,6 +283,7 @@
            ) ;cfg-malformed
            (retry-opt-m '((enabled . #t)
                           (max-retries . 3)
+                          (provider-max-retries . 3)
                           (base-delay-ms . 20)
                           (max-agent-delay-ms . 100))
            ) ;retry-opt-m
