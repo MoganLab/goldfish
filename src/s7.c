@@ -10766,6 +10766,7 @@ static s7_pointer g_c_pointer_to_list(s7_scheme *sc, s7_pointer args)
 s7_pointer b_simple_setter(s7_scheme *sc, int32_t typer, s7_pointer args);
 
 #include "s7_continuation.h"
+#include "library_liii_random.h"
 
 
 /* -------------------------------- numbers -------------------------------- */
@@ -10827,7 +10828,7 @@ static /* inline */ s7_pointer make_simpler_ratio(s7_scheme *sc, s7_int num, s7_
   return(new_ratio);
 }
 
-static inline s7_pointer make_simpler_ratio_or_integer(s7_scheme *sc, s7_int num, s7_int den) /* nom gcd needed and den > 0 (might be 1) */
+s7_pointer make_simpler_ratio_or_integer(s7_scheme *sc, s7_int num, s7_int den) /* nom gcd needed and den > 0 (might be 1) */
 {
   s7_pointer new_ratio;
   if ((S7_DEBUGGING) && (den <= 0)) fprintf(stderr, "%s[%d]: denominator: %" ld64 "/n", __func__, __LINE__, den);
@@ -11254,7 +11255,7 @@ s7_pointer s7_make_ratio(s7_scheme *sc, s7_int a, s7_int b)
   return(make_ratio(sc, a, b));
 }
 
-static s7_pointer make_ratio_with_div_check(s7_scheme *sc, s7_pointer caller, s7_int a, s7_int b)
+s7_pointer make_ratio_with_div_check(s7_scheme *sc, s7_pointer caller, s7_int a, s7_int b)
 {
   if (b == 0)
     division_by_zero_error_2_nr(sc, caller, wrap_integer(sc, a), int_zero);
@@ -13377,8 +13378,6 @@ static s7_pointer argument_type(s7_scheme *sc, s7_pointer arg1)
       return(s7_type_of(sc, arg1));
   return(NULL);
 }
-
-static s7_pointer g_random_i(s7_scheme *sc, s7_pointer args);
 
 static s7_pointer add_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
@@ -16137,330 +16136,7 @@ sign of 'x' (1 = positive, -1 = negative).  (integer-decode-float 0.0): (0 0 1)"
 }
 
 
-/* -------------------------------- random-state -------------------------------- */
-/* random numbers.  The simple version used in clm.c is probably adequate, but here I'll use Marsaglia's MWC algorithm.
- *     (random num) -> a number (0..num), if num == 0 return 0, use global default state
- *     (random num state) -> same but use this state
- *     (random-state seed) -> make a new state
- *   to save the current seed, use copy, to save it across load, random-state->list and list->random-state.
- *   random-state? returns #t if its arg is one of these guys
- */
-
-static s7_pointer random_state_copy(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer new_r, obj = car(args);
-  if (!is_random_state(obj)) return(sc->F);
-  new_cell(sc, new_r, T_RANDOM_STATE);
-  random_seed(new_r) = random_seed(obj);
-  random_carry(new_r) = random_carry(obj);
-  return(new_r);
-}
-
-#ifndef MWC_32
-  #define MWC_32 1
-#endif
-
-s7_pointer s7_random_state(s7_scheme *sc, s7_pointer args)
-{
-  #define H_random_state "(random-state seed (carry plausible-default)) returns a new random number state initialized with 'seed'. \
-Pass this as the second argument to 'random' to get a repeatable random number sequence:\n\
-    (let ((seed (random-state 1234))) (random 1.0 seed))"
-  #define Q_random_state s7_make_circular_signature(sc, 1, 2, sc->is_random_state_symbol, sc->is_integer_symbol)
-
-  s7_pointer r1, r2, rs;
-  s7_int i1, i2;  /* actually want s7_uint here -- we lose the sign bit? */
-  if (is_null(args))
-    return(sc->default_random_state);
-
-  r1 = car(args);
-  if (!s7_is_integer(r1))
-    return(method_or_bust(sc, r1, sc->random_state_symbol, args, sc->type_names[T_INTEGER], 1));
-  i1 = integer(r1);
-#if MWC_32
-  if (i1 < 0)
-    out_of_range_error_nr(sc, sc->random_state_symbol, int_one, r1, it_is_negative_string);
-#endif
-  if (is_null(cdr(args)))
-    {
-      new_cell(sc, rs, T_RANDOM_STATE);
-      random_seed(rs) = (s7_uint)i1;
-      random_carry(rs) = 1675393560;                          /* should this be dependent on the seed? */
-      return(rs);
-    }
-
-  r2 = cadr(args);
-  if (!s7_is_integer(r2))
-    return(method_or_bust(sc, r2, sc->random_state_symbol, args, sc->type_names[T_INTEGER], 2));
-  i2 = integer(r2);
-#if MWC_32
-  if (i2 < 0)
-    out_of_range_error_nr(sc, sc->random_state_symbol, int_two, r2, it_is_negative_string);
-#endif
-  new_cell(sc, rs, T_RANDOM_STATE);
-  random_seed(rs) = (s7_uint)i1;
-  random_carry(rs) = (s7_uint)i2;
-  return(rs);
-}
-
-#define g_random_state s7_random_state
-
-static s7_pointer random_state_getter(s7_scheme *sc, s7_pointer r, s7_int loc)
-{
-  if (loc == 0) return(make_integer(sc, random_seed(r)));
-  if (loc == 1) return(make_integer(sc, random_carry(r)));
-  return(sc->F);
-}
-
-static s7_pointer random_state_setter(s7_scheme *sc, s7_pointer r, s7_int loc, s7_pointer val)
-{
-  if (is_t_integer(val))
-    {
-      s7_int i = s7_integer_clamped_if_gmp(sc, val);
-      if (loc == 0) random_seed(r) = i;
-      if (loc == 1) random_carry(r) = i;
-    }
-  return(sc->F);
-}
-
-
-/* -------------------------------- random-state? -------------------------------- */
-/* g_is_random_state is now defined in s7_scheme_predicate.c */
-  #define H_is_random_state "(random-state? obj) returns #t if obj is a random-state object (from random-state)."
-  #define Q_is_random_state sc->pl_bt
-
-bool s7_is_random_state(s7_pointer r) {return(type(r) == T_RANDOM_STATE);}
-
-
-/* -------------------------------- random-state->list -------------------------------- */
-s7_pointer s7_random_state_to_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_random_state_to_list "(random-state->list r) returns the random state object as a list.\
-You can later apply random-state to this list to continue a random number sequence from any point."
-  #define Q_random_state_to_list s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_random_state_symbol)
-
-  s7_pointer r = (is_null(args)) ? sc->default_random_state : car(args);
-  if (!is_random_state(r))
-    return(method_or_bust(sc, r, sc->random_state_to_list_symbol, args, a_random_state_object_string, 1));
-  return(list_2(sc, make_integer(sc, random_seed(r)), make_integer_unchecked(sc, random_carry(r))));
-}
-
-#define g_random_state_to_list s7_random_state_to_list
-
-void s7_set_default_random_state(s7_scheme *sc, s7_int seed, s7_int carry)
-{
-  s7_pointer rs;
-  new_cell(sc, rs, T_RANDOM_STATE);
-  random_seed(rs) = (s7_uint)seed;
-  random_carry(rs) = (s7_uint)carry;
-  sc->default_random_state = rs;
-}
-
-
-/* -------------------------------- random -------------------------------- */
-static double next_random(s7_pointer r)
-{
-#if MWC_32
-  /* The multiply-with-carry generator for 32-bit integers:
-   *        x(n)=a*x(n-1) + carry mod 2^32
-   * Choose multiplier a from this list:
-   *   1791398085 1929682203 1683268614 1965537969 1675393560 1967773755 1517746329 1447497129 1655692410 1606218150
-   *   2051013963 1075433238 1557985959 1781943330 1893513180 1631296680 2131995753 2083801278 1873196400 1554115554
-   * ( or any 'a' for which both a*2^32-1 and a*2^31-1 are prime)
-   *
-   * see s7_random_state for 64 bit version of this, L26622
-   * here's a check that things are not totally broken:
-      (define (check-random-integers lo hi)
-        (let* ((range (- hi lo))
-      	       (num-bins 32)
-      	       (bins (make-int-vector num-bins 0)))
-          (do ((i 0 (+ i 1))
-      	       (x (random range) (random range)))
-      	      ((= i 10000) bins)
-            (let ((bin (floor (* (/ x range) num-bins))))
-      	      (set! (bins bin) (+ (bins bin) 1))))))
-      (display (check-random-integers 0 9223372036854775807)) (newline)
-
-      (let ((mx 0) (mn 1000))
-        (do ((i 0 (+ i 1)))
-            ((= i 10000))
-          (let ((val (random 123)))
-            (set! mx (max mx val))
-            (set! mn (min mn val))))
-        (display (list mn mx)) (newline))
-   */
-  #define RAN_MULT 2131995753UL
-  double result;
-  s7_uint temp = random_seed(r) * RAN_MULT + random_carry(r);
-  random_seed(r) = (temp & 0xffffffffUL);
-  random_carry(r) = (temp >> 32);
-  result = (double)((uint32_t)(random_seed(r))) / 4294967295.5;
-  /* divisor was 2^32-1 = 4294967295.0, but somehow this can round up once in a billion tries?
-   *   do we want the double just less than 2^32?
-   * can the multiply-add+logand above return 0? I'm getting 0's from (random (expt 2 62))
-   */
-#else
-  /* 64-bit MWC from https://prng.di.unimi.it/#shootout */
-  double result;
-  #define MWC_A1 0xffebb71d94fcdaf9
-  /* The state must be initialized so that 0 < c < MWC_A1 - 1. For simplicity, we suggest to set c = 1 and x to a 64-bit seed. */
-
-  s7_uint x = random_seed(r), c = random_carry(r);
-  s7_uint u_result = x;                  /* Or, result = x ^ (x << 32) (see above) */ /* s7_uint == uint64_t */
-  const __uint128_t t = MWC_A1 * (__uint128_t)x + c;
-  random_seed(r) = t;
-  random_carry(r) = t >> 64;
-  result = ((long_double)(random_seed(r)) / (long_double)4294967296.0) / (long_double)4294967295.5;
-#endif
-
-  return(result);
-}
-
-static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
-{
-  #define H_random "(random num state) returns a random number of the same type as num between zero and num, equalling num only if num is zero"
-  #define Q_random s7_make_signature(sc, 3, sc->is_number_symbol, sc->is_number_symbol, sc->is_random_state_symbol)
-  s7_pointer r, num;
-
-  /* if we disallow (random 0) the programmer has to protect every call on random with (if (eqv? x 0) 0 (random x)).  If
-   *   we claim we're using a half-open interval, then we should also disallow (random 0.0); otherwise the following
-   *   must be true: (let* ((x 0.0) (y (random x))) (and (>= y 0.0) (< y x))).  The definition above is consistent
-   *   with (random 0) -> 0, simpler to use in practice, and certainly no worse than (/ 0 0) -> 1.
-   */
-  if (is_null(cdr(args)))
-    r = sc->default_random_state;
-  else
-    {
-      r = cadr(args);
-      if (!is_random_state(r))
-	return(method_or_bust(sc, r, sc->random_symbol, args, a_random_state_object_string, 2));
-    }
-  num = car(args);
-  switch (type(num))
-    {
-    case T_INTEGER:
-      return(make_integer(sc, (s7_int)(integer(num) * next_random(r))));
-    case T_RATIO:
-      {
-	const s7_double x = fraction(num);
-	s7_double error;
-	s7_int numer = 0, denom = 1;
-	/* the error here needs to take the size of the fraction into account.  Otherwise, if
-	 *    error is (say) 1e-6 and the fraction is (say) 9000000/9223372036854775807,
-	 *    c_rationalize will always return 0.  But even that isn't foolproof:
-	 *    (random 1/562949953421312) -> 1/376367230475000
-	 */
-	if ((x < 1.0e-10) && (x > -1.0e-10))
-	  {
-	    /* 1e-12 is not tight enough:
-	     *    (random 1/2251799813685248) -> 1/2250240579436280
-	     *    (random -1/4503599627370496) -> -1/4492889778435526
-	     *    (random 1/140737488355328) -> 1/140730223985746
-	     *    (random -1/35184372088832) -> -1/35183145492420
-	     *    (random -1/70368744177664) -> -1/70366866392738
-	     *    (random 1/4398046511104) -> 1/4398033095756
-	     *    (random 1/137438953472) -> 1/137438941127
-	     */
-	    if (numerator(num) < -10)
-	      numer = -(s7_int)(floor(-numerator(num) * next_random(r)));
-	    else
-	      if (numerator(num) > 10)
-		numer = (s7_int)floor(numerator(num) * next_random(r));
-	      else
-		{
-		  s7_int diff = S7_INT64_MAX - denominator(num);
-		  numer = numerator(num);
-		  if (diff < 100)
-		    return(make_ratio(sc, numer, denominator(num)));
-		  denom = denominator(num) + (s7_int)floor(diff * next_random(r));
-		  return(make_ratio_with_div_check(sc, sc->random_symbol, numer, denom));
-		}
-	    return(make_ratio(sc, numer, denominator(num)));
-	  }
-	error = ((x < 1e-6) && (x > -1e-6)) ? 1e-18 : 1e-12;
-	c_rationalize(x * next_random(r), error, &numer, &denom);
-	return(make_simpler_ratio_or_integer(sc, numer, denom));
-      }
-    case T_REAL:
-      return(make_real(sc, real(num) * next_random(r)));
-      /* (x >> 11) * 0x1.0p-53, (1LL << 50) * 0x1.0p-53) -> .125, here "x" is 64 bits, but isn't this int64 related? */
-    case T_COMPLEX:
-      return(make_complex(sc, real_part(num) * next_random(r), imag_part(num) * next_random(r)));
-    default:
-      return(method_or_bust(sc, num, sc->random_symbol, args, a_number_string, 1));
-    }
-  return(sc->F);
-}
-
-s7_double s7_random(s7_scheme *sc, s7_pointer state)
-{
-  return(next_random((state) ? state : sc->default_random_state));
-}
-
-static s7_double random_d_7d(s7_scheme *sc, s7_double x)
-{
-  return(x * next_random(sc->default_random_state));
-}
-
-static s7_int random_i_7i(s7_scheme *sc, s7_int i)
-{
-  return((s7_int)(i * next_random(sc->default_random_state)));
-}
-
-static s7_pointer g_random_i(s7_scheme *sc, s7_pointer args)
-{
-  return(make_integer(sc, (s7_int)(integer(car(args)) * next_random(sc->default_random_state))));
-}
-
-static s7_pointer g_random_f(s7_scheme *sc, s7_pointer args)
-{
-  return(make_real(sc, real(car(args)) * next_random(sc->default_random_state)));
-}
-
-static s7_pointer g_random_1(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer num = car(args), r = sc->default_random_state;
-  if (is_t_integer(num))
-    return(make_integer(sc, (s7_int)(integer(num) * next_random(r))));
-  if (is_t_real(num))
-    return(make_real(sc, real(num) * next_random(r)));
-  return(g_random(sc, args));
-}
-
-static s7_pointer random_p_p(s7_scheme *sc, s7_pointer num)
-{
-  if (is_t_integer(num))
-    return(make_integer(sc, (s7_int)(integer(num) * next_random(sc->default_random_state))));
-  if (is_t_real(num))
-    return(make_real(sc, real(num) * next_random(sc->default_random_state)));
-  return(g_random(sc, set_plist_1(sc, num)));
-}
-
-static s7_pointer random_p_p_wrapped(s7_scheme *sc, s7_pointer num)
-{
-  if (is_t_integer(num))
-    return(wrap_integer(sc, (s7_int)(integer(num) * next_random(sc->default_random_state))));
-  if (is_t_real(num))
-    return(wrap_real(sc, real(num) * next_random(sc->default_random_state)));
-  return(g_random(sc, set_plist_1(sc, num)));
-}
-
-static s7_pointer random_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
-{
-  if (args == 1)
-    {
-      s7_pointer arg1 = cadr(expr);
-      if (is_t_integer(arg1))
-	return(sc->random_i);
-      return((is_t_real(arg1)) ? sc->random_f : sc->random_1);
-    }
-  return(func);
-}
-
-static s7_pointer g_add_i_random(s7_scheme *sc, s7_pointer args)
-{
-  s7_int x = integer(car(args)), y = opt3_int(args); /* cadadr */
-  return(make_integer(sc, x + (s7_int)(y * next_random(sc->default_random_state)))); /* (+ -1 (random 1)) -- placement of the (s7_int) cast matters! */
-}
+/* random-state and random moved to library_liii_random.c */
 
 
 uint8_t uppers[256], lowers[256];
@@ -30267,14 +29943,6 @@ static bool complex_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared
   return(false);
 }
 
-static bool random_state_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  return((x == y) ||
-	 ((is_random_state(y)) &&
-	  (random_seed(x) == random_seed(y)) &&
-	  (random_carry(x) == random_carry(y))));
-}
-
 bool c_function_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci) {return((is_c_function(y)) && (c_function_data(x) == c_function_data(y)));}
 static bool c_macro_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci) {return((is_c_macro(y)) && (c_macro_data(x) == c_macro_data(y)));}
 
@@ -32263,19 +31931,6 @@ static s7_pointer symbol_to_let(s7_scheme *sc, s7_pointer sym)
       s7_gc_unprotect_at(sc, gc_loc);
     }
   return(let);
-}
-
-static s7_pointer random_state_to_let(s7_scheme *sc, s7_pointer rs)
-{
-  if (!sc->seed_symbol)
-    {
-      sc->seed_symbol = make_symbol(sc, "seed", 4);
-      sc->carry_symbol = make_symbol(sc, "carry", 5);
-    }
-  return(internal_inlet(sc, 8, sc->value_symbol, rs,
-			sc->type_symbol, sc->is_random_state_symbol,
-			sc->seed_symbol, make_integer(sc, random_seed(rs)),
-			sc->carry_symbol, make_integer(sc, random_carry(rs))));
 }
 
 static s7_pointer vector_to_let(s7_scheme *sc, s7_pointer vec)
@@ -35358,19 +35013,19 @@ static s7_pointer fx_num_eq_0s(s7_scheme *sc, s7_pointer arg)
 
 static s7_pointer fx_random_i(s7_scheme *sc, s7_pointer arg)
 {
-  return(make_integer(sc, (s7_int)(integer(cadr(arg)) * next_random(sc->default_random_state))));
+  return(make_integer(sc, (s7_int)(integer(cadr(arg)) * s7_next_random(sc->default_random_state))));
 }
 
 static s7_pointer fx_random_i_wrapped(s7_scheme *sc, s7_pointer arg)
 {
-  return(wrap_integer(sc, (s7_int)(integer(cadr(arg)) * next_random(sc->default_random_state))));
+  return(wrap_integer(sc, (s7_int)(integer(cadr(arg)) * s7_next_random(sc->default_random_state))));
 }
 
 static s7_pointer fx_add_i_random(s7_scheme *sc, s7_pointer arg)
 {
   s7_int x = integer(cadr(arg));
   s7_int y = opt3_int(cdr(arg)); /* cadadr */
-  return(make_integer(sc, x + (s7_int)(y * next_random(sc->default_random_state)))); /* (+ -1 (random 1)) -- placement of the (s7_int) cast matters! */
+  return(make_integer(sc, x + (s7_int)(y * s7_next_random(sc->default_random_state)))); /* (+ -1 (random 1)) -- placement of the (s7_int) cast matters! */
 }
 
 static s7_pointer fx_add_sf(s7_scheme *sc, s7_pointer arg) {return(g_add_xf(sc, lookup(sc, cadr(arg)), real(opt1_con(cdr(arg))), 1));}
@@ -40607,8 +40262,8 @@ static s7_int opt_i_7ii_ff(opt_info *o)
   return(q_func(o).i_7ii_f(o->sc, i1, i2));
 }
 
-static s7_int opt_add_i_random_i(opt_info *o)      {return(q_arg1(o).i + (s7_int)(q_arg2(o).i * next_random(o->sc->default_random_state)));}
-static s7_int opt_subtract_random_i_i(opt_info *o) {return((s7_int)(q_arg1(o).i * next_random(o->sc->default_random_state)) - q_arg2(o).i);}
+static s7_int opt_add_i_random_i(opt_info *o)      {return(q_arg1(o).i + (s7_int)(q_arg2(o).i * s7_next_random(o->sc->default_random_state)));}
+static s7_int opt_subtract_random_i_i(opt_info *o) {return((s7_int)(q_arg1(o).i * s7_next_random(o->sc->default_random_state)) - q_arg2(o).i);}
 
 static bool i_ii_ok(s7_scheme *sc, opt_info *opc, const s7_pointer s_func, const s7_pointer expr)
 {
@@ -42068,7 +41723,7 @@ static s7_double opt_d_dd_fc(opt_info *o) {return(q_func(o).d_dd_f(q_d_func1_cal
 
 static s7_double opt_subtract_random_f_f(opt_info *o)
 {
-  return(q_arg1(o).x * next_random(o->sc->default_random_state) - q_arg2(o).x);
+  return(q_arg1(o).x * s7_next_random(o->sc->default_random_state) - q_arg2(o).x);
 }
 
 static s7_double opt_d_dd_fc_add(opt_info *o) {return(q_d_func1_call(o) + q_arg2(o).x);}
@@ -80895,6 +80550,10 @@ s7_pointer s7i_format_no_column(s7_scheme *sc) { return sc->format_no_column; }
 
 s7_pointer s7i_an_output_port_string(void) { return an_output_port_string; }
 s7_pointer s7i_a_format_port_string(void) { return a_format_port_string; }
+s7_pointer s7i_a_random_state_object_string(void) { return a_random_state_object_string; }
+s7_pointer s7i_a_number_string(void) { return a_number_string; }
+s7_pointer s7i_it_is_negative_string(void) { return it_is_negative_string; }
+s7_int s7i_opt3_int(s7_pointer p) { return opt3_int(p); }
 void s7i_set_sc_value(s7_scheme *sc, s7_pointer val) { sc->value = val; }
 
 s7_int s7i_FORMAT_PORT_LENGTH(void) { return FORMAT_PORT_LENGTH; }

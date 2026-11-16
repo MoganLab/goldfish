@@ -2625,6 +2625,8 @@ s7_pointer find_method(s7_scheme *sc, s7_pointer let, s7_pointer symbol);
 bool is_constant_symbol(s7_scheme *sc, s7_pointer sym);
 bool is_eq_initial_value(s7_pointer symbol, s7_pointer other);
 bool is_proper_quote(s7_scheme *sc, s7_pointer p);
+s7_pointer make_ratio_with_div_check(s7_scheme *sc, s7_pointer caller, s7_int a, s7_int b);
+s7_pointer make_simpler_ratio_or_integer(s7_scheme *sc, s7_int num, s7_int den);
 s7_pointer make_string_with_length(s7_scheme *sc, const char *str, s7_int len);
 s7_pointer make_symbol(s7_scheme *sc, const char *name, s7_int len);
 s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ, int32_t position);
@@ -2842,6 +2844,7 @@ void *Realloc(void *ptr, size_t size);
 #define port_is_closed(p)              port_port(p)->is_closed
 #define port_position(p)               (T_Prt(p))->object.prt.point
 #define port_type(p)                   port_port(p)->ptype
+#define is_random_state(p)             (type(p) == T_RANDOM_STATE)
 #define random_carry(p)                (T_Ran(p))->object.rng.carry
 #define random_seed(p)                 (T_Ran(p))->object.rng.seed
 #if S7_DEBUGGING
