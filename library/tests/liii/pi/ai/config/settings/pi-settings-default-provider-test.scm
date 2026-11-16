@@ -1,9 +1,9 @@
-;; pi-settings-retry
-;; 获取客户端全局偏好配置 record 的 retry 字段。
+;; pi-settings-default-provider
+;; 获取客户端全局偏好配置 record 的 default-provider 字段。
 ;;
 ;; 语法
 ;; ----
-;; (pi-settings-retry obj)
+;; (pi-settings-default-provider obj)
 ;;
 ;; 参数
 ;; ----
@@ -12,17 +12,17 @@
 ;;
 ;; 返回值
 ;; ----
-;; <pi-retry-config>
-;; retry 字段的值。
+;; string? 或 #f
+;; default-provider 字段的值。
 
-(import (liii check) (liii pi ai config retry) (liii pi ai config types))
+(import (liii check) (liii pi ai config retry) (liii pi ai config settings))
 
 (check-set-mode! 'report-failed)
 
 (define retry-cfg-a (pi-retry-config #t 5 1500 45000 12))
 
 (define retry-cfg-b (pi-retry-config #f 0 500 10000 3))
-(let* ((obj-a (%make-pi-settings "google"
+(let* ((obj-a (pi-settings "google"
                 "gemini-2.5-flash"
                 "medium"
                 "http://127.0.0.1:7890"
@@ -32,9 +32,9 @@
                 #f
                 '(("deepseek/deepseek-v4-pro" . "high"))
                   #t
-              ) ;%make-pi-settings
+              ) ;pi-settings
        ) ;obj-a
-       (obj-b (%make-pi-settings "anthropic"
+       (obj-b (pi-settings "anthropic"
                 "claude-sonnet-4"
                 "high"
                 #f
@@ -44,11 +44,11 @@
                 #t
                 '()
                   #t
-              ) ;%make-pi-settings
+              ) ;pi-settings
        ) ;obj-b
       ) ;
-  (check-true (eq? (pi-settings-retry obj-a) retry-cfg-a))
-  (check-true (eq? (pi-settings-retry obj-b) retry-cfg-b))
+  (check (pi-settings-default-provider obj-a) => "google")
+  (check (pi-settings-default-provider obj-b) => "anthropic")
 ) ;let*
 
 (check-report)

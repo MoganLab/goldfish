@@ -18,7 +18,8 @@
 (import (scheme base)
   (liii check)
   (liii json)
-  (liii pi ai config record)
+  (liii pi ai config retry)
+  (liii pi ai config settings)
 ) ;import
 
 (check-set-mode! 'report-failed)

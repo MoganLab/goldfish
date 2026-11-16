@@ -5,10 +5,10 @@
 ;;
 
 (define-library (liii pi ai config types)
-  (import (scheme base) (liii pi ai config retry))
+  (import (scheme base) (liii pi ai config retry) (liii pi ai config settings))
   (export pi-retry-config? pi-retry-config-enabled pi-retry-config-max-retries
     pi-retry-config-base-delay-ms pi-retry-config-max-agent-delay-ms
-    pi-retry-config-provider-max-retries %make-pi-settings pi-settings?
+    pi-retry-config-provider-max-retries pi-settings?
     pi-settings-default-provider pi-settings-default-model
     pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
     pi-settings-default-tools pi-settings-session-dir
@@ -21,24 +21,6 @@
     pi-model-metadata-matched?
   ) ;export
   (begin
-
-    (define-record-type <pi-settings>
-      (%make-pi-settings default-provider default-model default-thinking-level
-        http-proxy retry default-tools session-dir hide-thinking-block
-        model-thinking-levels enable-skill-commands
-      ) ;%make-pi-settings
-      pi-settings?
-      (default-provider pi-settings-default-provider)
-      (default-model pi-settings-default-model)
-      (default-thinking-level pi-settings-default-thinking-level)
-      (http-proxy pi-settings-http-proxy)
-      (retry pi-settings-retry)
-      (default-tools pi-settings-default-tools)
-      (session-dir pi-settings-session-dir)
-      (hide-thinking-block pi-settings-hide-thinking-block)
-      (model-thinking-levels pi-settings-model-thinking-levels)
-      (enable-skill-commands pi-settings-enable-skill-commands)
-    ) ;define-record-type
 
     (define-record-type <pi-credential>
       (%make-pi-credential provider key type)

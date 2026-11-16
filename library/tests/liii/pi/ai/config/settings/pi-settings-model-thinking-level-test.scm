@@ -21,7 +21,7 @@
 ;; string? 或 #f
 ;; 模型特定的思考级别字符串，未配置返回 #f。
 
-(import (liii check) (liii pi ai config record))
+(import (liii check) (liii pi ai config settings))
 
 (check-set-mode! 'report-failed)
 

@@ -31,7 +31,7 @@
 ;; pi-settings?
 ;; 全局偏好配置 record 实例。
 
-(import (liii check) (liii pi ai config record))
+(import (liii check) (liii pi ai config retry) (liii pi ai config settings))
 
 (check-set-mode! 'report-failed)
 

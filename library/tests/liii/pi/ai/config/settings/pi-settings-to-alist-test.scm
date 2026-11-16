@@ -15,7 +15,7 @@
 ;; alist?
 ;; 包含 defaultProvider、defaultModel 等字段的关联列表。
 
-(import (liii check) (liii pi ai config record))
+(import (liii check) (liii pi ai config settings))
 
 (check-set-mode! 'report-failed)
 

@@ -15,14 +15,14 @@
 ;; alist?
 ;; model-thinking-levels 字段的值。
 
-(import (liii check) (liii pi ai config retry) (liii pi ai config types))
+(import (liii check) (liii pi ai config retry) (liii pi ai config settings))
 
 (check-set-mode! 'report-failed)
 
 (define retry-cfg-a (pi-retry-config #t 5 1500 45000 12))
 
 (define retry-cfg-b (pi-retry-config #f 0 500 10000 3))
-(let* ((obj-a (%make-pi-settings "google"
+(let* ((obj-a (pi-settings "google"
                 "gemini-2.5-flash"
                 "medium"
                 "http://127.0.0.1:7890"
@@ -32,9 +32,9 @@
                 #f
                 '(("deepseek/deepseek-v4-pro" . "high"))
                   #t
-              ) ;%make-pi-settings
+              ) ;pi-settings
        ) ;obj-a
-       (obj-b (%make-pi-settings "anthropic"
+       (obj-b (pi-settings "anthropic"
                 "claude-sonnet-4"
                 "high"
                 #f
@@ -44,7 +44,7 @@
                 #t
                 '()
                   #t
-              ) ;%make-pi-settings
+              ) ;pi-settings
        ) ;obj-b
       ) ;
   (check (pi-settings-model-thinking-levels obj-a)

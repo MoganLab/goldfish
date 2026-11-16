@@ -15,7 +15,11 @@
 ;; pi-settings?
 ;; 解析后的全局设置 record；缺失字段使用安全默认值。
 
-(import (liii check) (liii json) (liii pi ai config record))
+(import (liii check)
+  (liii json)
+  (liii pi ai config retry)
+  (liii pi ai config settings)
+) ;import
 
 (check-set-mode! 'report-failed)
 

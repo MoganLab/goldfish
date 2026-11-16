@@ -1,9 +1,9 @@
-;; pi-settings-hide-thinking-block
-;; 获取客户端全局偏好配置 record 的 hide-thinking-block 字段。
+;; pi-settings-default-model
+;; 获取客户端全局偏好配置 record 的 default-model 字段。
 ;;
 ;; 语法
 ;; ----
-;; (pi-settings-hide-thinking-block obj)
+;; (pi-settings-default-model obj)
 ;;
 ;; 参数
 ;; ----
@@ -12,17 +12,17 @@
 ;;
 ;; 返回值
 ;; ----
-;; boolean?
-;; hide-thinking-block 字段的值。
+;; string? 或 #f
+;; default-model 字段的值。
 
-(import (liii check) (liii pi ai config retry) (liii pi ai config types))
+(import (liii check) (liii pi ai config retry) (liii pi ai config settings))
 
 (check-set-mode! 'report-failed)
 
 (define retry-cfg-a (pi-retry-config #t 5 1500 45000 12))
 
 (define retry-cfg-b (pi-retry-config #f 0 500 10000 3))
-(let* ((obj-a (%make-pi-settings "google"
+(let* ((obj-a (pi-settings "google"
                 "gemini-2.5-flash"
                 "medium"
                 "http://127.0.0.1:7890"
@@ -32,9 +32,9 @@
                 #f
                 '(("deepseek/deepseek-v4-pro" . "high"))
                   #t
-              ) ;%make-pi-settings
+              ) ;pi-settings
        ) ;obj-a
-       (obj-b (%make-pi-settings "anthropic"
+       (obj-b (pi-settings "anthropic"
                 "claude-sonnet-4"
                 "high"
                 #f
@@ -44,11 +44,11 @@
                 #t
                 '()
                   #t
-              ) ;%make-pi-settings
+              ) ;pi-settings
        ) ;obj-b
       ) ;
-  (check (pi-settings-hide-thinking-block obj-a) => #f)
-  (check (pi-settings-hide-thinking-block obj-b) => #t)
+  (check (pi-settings-default-model obj-a) => "gemini-2.5-flash")
+  (check (pi-settings-default-model obj-b) => "claude-sonnet-4")
 ) ;let*
 
 (check-report)

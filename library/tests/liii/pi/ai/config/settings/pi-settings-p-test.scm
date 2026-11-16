@@ -15,12 +15,12 @@
 ;; boolean
 ;; 若属于客户端全局偏好配置 record 实例则返回 #t，否则返回 #f。
 
-(import (liii check) (liii pi ai config retry) (liii pi ai config types))
+(import (liii check) (liii pi ai config retry) (liii pi ai config settings))
 
 (check-set-mode! 'report-failed)
 
 (define retry-cfg-a (pi-retry-config #t 5 1500 45000 12))
-(let ((obj (%make-pi-settings "google"
+(let ((obj (pi-settings "google"
              "gemini-2.5-flash"
              "medium"
              "http://127.0.0.1:7890"
@@ -30,7 +30,7 @@
              #f
              '(("deepseek/deepseek-v4-pro" . "high"))
                #t
-           ) ;%make-pi-settings
+           ) ;pi-settings
       ) ;obj
      ) ;
   (check-true (pi-settings? obj))
