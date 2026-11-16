@@ -31,6 +31,7 @@
     (liii pi code all-in-one loader)
     (liii pi code core extensions registry)
     (liii pi code core extensions event)
+    (liii pi code core extensions types core)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir pi-config?
     make-pi-config pi-cfg-ref pi-cfg-set pi-cfg-merge gf-get-config-dir
