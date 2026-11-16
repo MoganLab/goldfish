@@ -15,7 +15,7 @@
     (liii pi ai message image-block)
   ) ;import
   (export pi-block? pi-block-type pi-block->json json->pi-block
-    %convert-message-content %normalize-json-value %normalize-json-keys
+    %convert-message-content %normalize-json-value
   ) ;export
   (begin
 
@@ -129,79 +129,67 @@
       ) ;cond
     ) ;define
 
-    (define (%json-key->string k)
-      (if (symbol? k) (symbol->string k) k)
-    ) ;define
-
-    (define (%normalize-json-keys obj)
-      (if (or (null? obj)
-            (equal? obj '(()))
-            (every (lambda (p) (and (pair? p) (string? (car p)))) obj)
-          ) ;or
-        obj
-        (map (lambda (p) (cons (if (symbol? (car p)) (symbol->string (car p)) (car p)) (cdr p)))
-          obj
-        ) ;map
-      ) ;if
+    (define (%string-key-json-object? obj)
+      (and (json-object? obj)
+        (or (equal? obj '(())) (every (lambda (p) (and (pair? p) (string? (car p)))) obj))
+      ) ;and
     ) ;define
 
     (define (json->pi-block obj)
       (if (pi-block? obj)
         obj
         (begin
-          (unless (or (json-object? obj) (null? obj))
+          (unless (or (%string-key-json-object? obj) (null? obj))
             (type-error "json->pi-block: expected json object or pi-block" obj)
           ) ;unless
           (if (null? obj)
             #f
-            (let* ((nobj (%normalize-json-keys obj))
-                   (btype (%json-key->string (json-ref nobj "type")))
-                  ) ;
+            (let ((btype (json-ref obj "type")))
               (cond
                ((equal? btype "text")
-                (let ((raw-sig (json-ref nobj "textSignature")))
-                  (pi-text-block (json-ref-string nobj "text" "")
+                (let ((raw-sig (json-ref obj "textSignature")))
+                  (pi-text-block (json-ref-string obj "text" "")
                     (if (string? raw-sig) raw-sig #f)
                   ) ;pi-text-block
                 ) ;let
                ) ;
                ((equal? btype "thinking")
-                (let ((raw-sig (json-ref nobj "thinkingSignature")))
-                  (pi-thinking-block (json-ref-string nobj "thinking" "")
+                (let ((raw-sig (json-ref obj "thinkingSignature")))
+                  (pi-thinking-block (json-ref-string obj "thinking" "")
                     (if (string? raw-sig) raw-sig #f)
                   ) ;pi-thinking-block
                 ) ;let
                ) ;
                ((equal? btype "toolCall")
-                (let ((raw-args (json-ref nobj "arguments"))
-                      (raw-sig (json-ref nobj "thoughtSignature"))
+                (let ((raw-args (json-ref obj "arguments"))
+                      (raw-sig (json-ref obj "thoughtSignature"))
                      ) ;
-                  (pi-tool-call-block (json-ref-string nobj "id" "")
-                    (json-ref-string nobj "name" "")
+                  (pi-tool-call-block (json-ref-string obj "id" "")
+                    (json-ref-string obj "name" "")
                     (%normalize-tool-args (if (null? raw-args) '() raw-args))
                     (if (string? raw-sig) raw-sig #f)
                   ) ;pi-tool-call-block
                 ) ;let
                ) ;
                ((equal? btype "image")
-                (let ((m (json-ref-string nobj "media_type" "image/png"))
-                      (m2 (json-ref nobj "mimeType"))
+                (let ((m (json-ref-string obj "media_type" "image/png"))
+                      (m2 (json-ref obj "mimeType"))
                      ) ;
-                  (pi-image-block (json-ref-string nobj "data" "")
+                  (pi-image-block (json-ref-string obj "data" "")
                     (if (string? m2) (if (string=? m2 "") m m2) m)
                   ) ;pi-image-block
                 ) ;let
                ) ;
                (else #f)
               ) ;cond
-            ) ;let*
+            ) ;let
           ) ;if
         ) ;begin
       ) ;if
     ) ;define
 
     (define (%convert-block-elem x)
-      (if (or (pi-block? x) (json-object? x)) (or (json->pi-block x) x) x)
+      (if (or (pi-block? x) (%string-key-json-object? x)) (or (json->pi-block x) x) x)
     ) ;define
 
     (define (%convert-message-content c)

@@ -11,6 +11,7 @@
     (liii json)
     (liii list)
     (liii pi ai message)
+    (liii pi agent tools-compat)
   ) ;import
   (export display-stderr handle-print-result pi-last-message pi-message-field
     pi-last-assistant-text pi-content-text
@@ -25,7 +26,7 @@
     ) ;define
 
     (define (%normalize-block blk)
-      (if (or (pi-block? blk) (json-object? blk)) (or (json->pi-block blk) blk) blk)
+      (%maybe-json-block blk)
     ) ;define
 
     (define (%to-block-list blks)
@@ -126,12 +127,7 @@
     ) ;define
 
     (define (pi-message-field msg key default)
-      (let ((m (if (or (pi-message? msg) (json-object? msg))
-                 (or (json->pi-message msg) msg)
-                 msg
-               ) ;if
-            ) ;m
-           ) ;
+      (let ((m (%maybe-json-msg msg)))
         (cond ((pi-message? m) (%message-record-field m key default))
               ((pair? m) (%assoc-field m key default))
               (else default)
@@ -179,11 +175,7 @@
           (display-stderr "Warning: No assistant response received")
           0
         ) ;begin
-        (let* ((msg (if (or (pi-message? last-msg) (json-object? last-msg))
-                      (or (json->pi-message last-msg) last-msg)
-                      last-msg
-                    ) ;if
-               ) ;msg
+        (let* ((msg (%maybe-json-msg last-msg))
                (raw-stop-reason (pi-message-field msg 'stopReason "stop"))
                (stop-reason (if (string? raw-stop-reason) raw-stop-reason "stop"))
                (content (pi-message-field msg 'content '()))

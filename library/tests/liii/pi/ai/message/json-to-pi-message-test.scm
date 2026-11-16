@@ -86,8 +86,9 @@
   (check-true (pi-text-block? (vector-ref (pi-tool-result-message-content r) 0)))
 ) ;let*
 
-;; 5. 未知 role 返回 #f，非 json-object 抛出 type-error
+;; 5. 未知 role 返回 #f，非标准 JSON 对象（含 symbol-key alist）抛出 type-error
 (check-false (json->pi-message '(("role" . "system"))))
+(check-catch 'type-error (json->pi-message '((role . "user") (content . "hi"))))
 (check-catch 'type-error (json->pi-message 42))
 
 (check-report)

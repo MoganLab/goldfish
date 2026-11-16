@@ -10,6 +10,7 @@
     (liii list)
     (liii string)
     (liii pi ai message)
+    (liii pi agent tools-compat)
   ) ;import
   (export pi-session-header-entry pi-session-header-entry?
     pi-session-header-entry-version pi-session-header-entry-id
@@ -328,14 +329,7 @@
                       ) ;
                       ((string=? etype "message")
                        (let ((raw-msg (%dict-ref obj "message" #f)))
-                         (pi-session-message-entry id
-                           pid
-                           ts
-                           (if (or (pi-message? raw-msg) (json-object? raw-msg))
-                             (or (json->pi-message raw-msg) raw-msg)
-                             raw-msg
-                           ) ;if
-                         ) ;pi-session-message-entry
+                         (pi-session-message-entry id pid ts (%maybe-json-msg raw-msg))
                        ) ;let
                       ) ;
                       ((string=? etype "compaction")

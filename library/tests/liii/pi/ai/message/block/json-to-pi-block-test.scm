@@ -74,8 +74,9 @@
   (check (pi-image-block-mime-type r4) => "image/jpeg")
 ) ;let*
 
-;; 3. 未知类型返回 #f，非 json-object 抛出 type-error
+;; 3. 未知类型返回 #f，非标准 JSON 对象（含 symbol-key alist）抛出 type-error
 (check-false (json->pi-block '(("type" . "unknown"))))
+(check-catch 'type-error (json->pi-block '((type . "text") (text . "hi"))))
 (check-catch 'type-error (json->pi-block "not-a-block"))
 
 (check-report)
