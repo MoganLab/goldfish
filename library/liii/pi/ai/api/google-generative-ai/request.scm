@@ -144,9 +144,7 @@
               (%make-error-response msg usage provider model-id)
             ) ;let*
             (let* ((candidate (vector-ref candidates 0))
-                   (content-obj (cdr (or (assoc "content" candidate) '(#f
-                                                                       #_quote
-                                                                       ()))))
+                   (content-obj (cdr (or (assoc "content" candidate) '(#f))))
                    (parts (cdr (or (assoc "parts" content-obj) '(#f . #()))))
                    (finish-reason (cdr (or (assoc "finishReason" candidate) '(#f
                                                                               . "STOP"))))
