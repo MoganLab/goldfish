@@ -14,6 +14,7 @@
     (liii http)
     (liii error)
     (liii time)
+    (liii pi ai time)
     (liii pi ai event)
     (liii pi ai config runtime)
     (liii pi ai retry)
