@@ -9,7 +9,7 @@
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
-    pi-retry-config->alist pi-retry-config->json json->pi-retry-config
+    pi-retry-config->json json->pi-retry-config
   ) ;export
   (begin
 
@@ -27,18 +27,6 @@
       (max-agent-delay-ms pi-retry-config-max-agent-delay-ms)
       (provider-max-retries pi-retry-config-provider-max-retries)
     ) ;define*-record-type
-
-    (define (pi-retry-config->alist r)
-      (if (pair? r)
-        r
-        (list (cons 'enabled (pi-retry-config-enabled r))
-          (cons 'max-retries (pi-retry-config-max-retries r))
-          (cons 'base-delay-ms (pi-retry-config-base-delay-ms r))
-          (cons 'max-agent-delay-ms (pi-retry-config-max-agent-delay-ms r))
-          (cons 'provider-max-retries (pi-retry-config-provider-max-retries r))
-        ) ;list
-      ) ;if
-    ) ;define
 
     (define (pi-retry-config->json r)
       (if (pair? r)

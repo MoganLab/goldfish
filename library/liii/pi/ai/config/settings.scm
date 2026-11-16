@@ -16,8 +16,7 @@
     pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
     pi-settings-session-dir pi-settings-hide-thinking-block
     pi-settings-model-thinking-levels pi-settings-enable-skill-commands
-    pi-settings-model-thinking-level pi-settings->alist pi-settings->json
-    json->pi-settings
+    pi-settings-model-thinking-level pi-settings->json json->pi-settings
   ) ;export
   (begin
 
@@ -80,23 +79,6 @@
        ((false) #f)
        (else val)
       ) ;case
-    ) ;define
-
-    (define (pi-settings->alist s)
-      (if (pair? s)
-        s
-        (list (cons 'default-provider (pi-settings-default-provider s))
-          (cons 'default-model (pi-settings-default-model s))
-          (cons 'default-thinking-level (pi-settings-default-thinking-level s))
-          (cons 'http-proxy (pi-settings-http-proxy s))
-          (cons 'retry (pi-settings-retry s))
-          (cons 'default-tools (pi-settings-default-tools s))
-          (cons 'session-dir (pi-settings-session-dir s))
-          (cons 'hide-thinking-block (pi-settings-hide-thinking-block s))
-          (cons 'model-thinking-levels (pi-settings-model-thinking-levels s))
-          (cons 'enable-skill-commands (pi-settings-enable-skill-commands s))
-        ) ;list
-      ) ;if
     ) ;define
 
     (define (pi-settings->json s)

@@ -7,7 +7,7 @@
 (define-library (liii pi ai config credential)
   (import (scheme base) (liii base))
   (export pi-credential pi-credential? pi-credential-provider pi-credential-key
-    pi-credential-type pi-credential->alist pi-credential->json
+    pi-credential-type pi-credential->json
   ) ;export
   (begin
 
@@ -18,16 +18,6 @@
       (key pi-credential-key)
       (type pi-credential-type)
     ) ;define*-record-type
-
-    (define (pi-credential->alist c)
-      (if (pair? c)
-        c
-        (list (cons 'provider (pi-credential-provider c))
-          (cons 'key (pi-credential-key c))
-          (cons 'type (pi-credential-type c))
-        ) ;list
-      ) ;if
-    ) ;define
 
     (define (pi-credential->json c)
       (if (pair? c)

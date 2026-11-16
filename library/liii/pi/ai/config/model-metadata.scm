@@ -9,8 +9,7 @@
   (export pi-model-metadata pi-model-metadata? pi-model-metadata-id
     pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
     pi-model-metadata-context-window pi-model-metadata-max-tokens
-    pi-model-metadata-matched? pi-model-metadata->alist pi-model-metadata->json
-    pi-model-metadata-from-alist
+    pi-model-metadata-matched? pi-model-metadata->json
   ) ;export
   (begin
 
@@ -32,20 +31,6 @@
       (max-tokens pi-model-metadata-max-tokens)
       (matched? pi-model-metadata-matched?)
     ) ;define*-record-type
-
-    (define (pi-model-metadata->alist m)
-      (if (pair? m)
-        m
-        (list (cons 'id (pi-model-metadata-id m))
-          (cons 'name (pi-model-metadata-name m))
-          (cons 'provider (pi-model-metadata-provider m))
-          (cons 'base-url (pi-model-metadata-base-url m))
-          (cons 'context-window (pi-model-metadata-context-window m))
-          (cons 'max-tokens (pi-model-metadata-max-tokens m))
-          (cons 'matched? (pi-model-metadata-matched? m))
-        ) ;list
-      ) ;if
-    ) ;define
 
     (define (pi-model-metadata->json m)
       (if (pair? m)
@@ -70,30 +55,6 @@
             (if mt (list (cons "maxTokens" mt)) '())
           ) ;append
         ) ;let
-      ) ;if
-    ) ;define
-
-    ;; alist → record：会话从 JSON 载入后把旧形态的 model-meta 规范化为
-    ;; record；已是 record 则原样返回。字段容错：缺失或 #f 时给安全默认值。
-    (define (%meta-field alist key default)
-      (let ((p (assoc key alist)))
-        (if (and p (cdr p)) (cdr p) default)
-      ) ;let
-    ) ;define
-
-    (define (pi-model-metadata-from-alist m)
-      (if (pi-model-metadata? m)
-        m
-        (and (pair? m)
-          (pi-model-metadata (%meta-field m 'id "")
-            (%meta-field m 'name "")
-            (%meta-field m 'provider "")
-            (%meta-field m 'base-url "")
-            (%meta-field m 'context-window #f)
-            (%meta-field m 'max-tokens #f)
-            (%meta-field m 'matched? #t)
-          ) ;pi-model-metadata
-        ) ;and
       ) ;if
     ) ;define
 

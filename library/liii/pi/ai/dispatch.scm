@@ -70,20 +70,17 @@
              ;; 缺失时用注册表默认值补齐；不再把 record 降级为 alist
              (c6
                (let ((m
-                      (cond (raw-meta
-                             (pi-model-metadata-from-alist raw-meta)
-                            ) ;
-                            (else
-                              (pi-model-metadata ""
-                                ""
-                                provider
-                                (or (pi-provider-base-url provider) "")
-                                #f
-                                4096
-                                #t
-                              ) ;pi-model-metadata
-                            ) ;else
-                      ) ;cond
+                      (if (pi-model-metadata? raw-meta)
+                        raw-meta
+                        (pi-model-metadata ""
+                          ""
+                          provider
+                          (or (pi-provider-base-url provider) "")
+                          #f
+                          4096
+                          #t
+                        ) ;pi-model-metadata
+                      ) ;if
                     ) ;m
                    ) ;
                  (pi-cfg-set c5 'model-meta m)

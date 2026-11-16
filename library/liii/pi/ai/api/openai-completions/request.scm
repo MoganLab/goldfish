@@ -16,6 +16,7 @@
     (liii error)
     (liii time)
     (liii pi ai event)
+    (liii pi ai config model-metadata)
     (liii pi ai config runtime)
     (liii pi ai message)
     (liii pi ai api openai-completions core)
@@ -186,11 +187,28 @@
                      (%resolve-retry-params settings opt-retry)
                     ) ;
                     ((base-url)
-                     (cdr (or (assoc 'base-url model-meta) '(#f
-                                                             . "https://api.openai.com/v1")))
+                     (cond ((pi-model-metadata? model-meta)
+                            (pi-model-metadata-base-url model-meta)
+                           ) ;
+                           ((pair? model-meta)
+                            (cdr (or (assoc 'base-url model-meta)
+                                   '(#f . "https://api.openai.com/v1")
+                                 ) ;or
+                            ) ;cdr
+                           ) ;
+                           (else "https://api.openai.com/v1")
+                     ) ;cond
                     ) ;
-                    ((max-tokens) (cdr (or (assoc 'max-tokens model-meta) '(#f
-                                                                            . 8192))))
+                    ((max-tokens)
+                     (cond ((pi-model-metadata? model-meta)
+                            (or (pi-model-metadata-max-tokens model-meta) 8192)
+                           ) ;
+                           ((pair? model-meta)
+                            (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192)))
+                           ) ;
+                           (else 8192)
+                     ) ;cond
+                    ) ;
                     ((url) (openai-build-endpoint base-url))
                     ((eff-tool-names) (or tool-names (pi-cfg-ref config 'tools '())))
                     ((tool-resolver)

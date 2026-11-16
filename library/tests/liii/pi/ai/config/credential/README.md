@@ -15,5 +15,4 @@ bin/gf test library/tests/liii/pi/ai/config/credential/
 - `pi-credential-provider` - 获取服务商名称
 - `pi-credential-key` - 获取 API 密钥
 - `pi-credential-type` - 获取凭据类型
-- `pi-credential->alist` - 将 `<pi-credential>` 转为关联列表
 - `pi-credential->json` - 将 `<pi-credential>` 转为 JSON 关联列表

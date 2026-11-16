@@ -23,6 +23,5 @@ bin/gf test library/tests/liii/pi/ai/config/settings/
 - `pi-settings-model-thinking-levels` - 获取按模型覆盖的思考级别关联表
 - `pi-settings-enable-skill-commands` - 获取 Agent Skills 命令开关
 - `pi-settings-model-thinking-level` - 查询指定服务商与模型的思考级别
-- `pi-settings->alist` - 将 `<pi-settings>` 转为关联列表
 - `pi-settings->json` - 将 `<pi-settings>` 转为 JSON 关联列表
 - `json->pi-settings` - 从 JSON 关联列表解析 `<pi-settings>`

@@ -20,17 +20,13 @@ gf doc pi-settings
 
 ### 重试配置
 - `pi-retry-config` - 构造重试策略 record
-- `pi-retry-config->alist` - 将重试策略转换为 alist
 
 ### 客户端设置
 - `pi-settings` - 构造客户端全局设置 record
-- `pi-settings->alist` - 将客户端设置转换为 alist
 - `pi-settings-model-thinking-level` - 查询特定模型的思考级别覆盖
 
 ### 凭据管理
 - `pi-credential` - 构造服务商凭据 record
-- `pi-credential->alist` - 将凭据转换为 alist
 
 ### 模型元数据
 - `pi-model-metadata` - 构造模型元数据 record
-- `pi-model-metadata->alist` - 将模型元数据转换为 alist

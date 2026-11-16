@@ -12,6 +12,7 @@
     (liii http)
     (liii time)
     (liii pi ai abort)
+    (liii pi ai config model-metadata)
     (liii pi ai config runtime)
     (liii pi ai time)
     (liii pi ai event)
@@ -348,10 +349,29 @@
              (model-meta (pi-cfg-ref config 'model-meta))
              (api-key (pi-cfg-ref config 'api-key))
              (proxy-url (pi-cfg-ref config 'proxy-url))
-             (base-url (cdr (or (assoc 'base-url model-meta) '(#f
-                                                               . "https://api.anthropic.com")))
+             (base-url
+               (cond ((pi-model-metadata? model-meta)
+                      (pi-model-metadata-base-url model-meta)
+                     ) ;
+                     ((pair? model-meta)
+                      (cdr (or (assoc 'base-url model-meta)
+                             '(#f . "https://api.anthropic.com")
+                           ) ;or
+                      ) ;cdr
+                     ) ;
+                     (else "https://api.anthropic.com")
+               ) ;cond
              ) ;base-url
-             (max-tokens (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192))))
+             (max-tokens
+               (cond ((pi-model-metadata? model-meta)
+                      (or (pi-model-metadata-max-tokens model-meta) 8192)
+                     ) ;
+                     ((pair? model-meta)
+                      (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192)))
+                     ) ;
+                     (else 8192)
+               ) ;cond
+             ) ;max-tokens
              (url (anthropic-build-endpoint base-url))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))
              (tool-resolver (or (pi-cfg-ref config 'tool-resolver) (lambda (name) #f))

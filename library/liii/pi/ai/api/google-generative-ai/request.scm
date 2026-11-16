@@ -15,6 +15,7 @@
     (liii error)
     (liii time)
     (liii pi ai event)
+    (liii pi ai config model-metadata)
     (liii pi ai config runtime)
     (liii pi ai retry)
     (liii pi ai limits)
@@ -292,11 +293,13 @@
              (settings (pi-cfg-ref config 'settings))
              (provider (pi-cfg-ref config 'provider "google"))
              (key-rotation? (pi-key-rotation? config))
-             (base-url (cdr (or (assoc 'base-url model-meta)
-                              '(#f
-                                . "https://generativelanguage.googleapis.com/v1beta")
-                            ) ;or
-                       ) ;cdr
+             (base-url
+               (if (pi-model-metadata? model-meta)
+                 (pi-model-metadata-base-url model-meta)
+                 (or (and (pair? model-meta) (cdr (or (assoc 'base-url model-meta) '(#f . #f))))
+                   "https://generativelanguage.googleapis.com/v1beta"
+                 ) ;or
+               ) ;if
              ) ;base-url
              (url (gemini-build-endpoint base-url model-id))
              (eff-tool-names (or tool-names (pi-cfg-ref config 'tools '())))

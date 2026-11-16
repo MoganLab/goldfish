@@ -17,6 +17,5 @@ bin/gf test library/tests/liii/pi/ai/config/retry/
 - `pi-retry-config-base-delay-ms` - 获取基础退避延迟毫秒数
 - `pi-retry-config-max-agent-delay-ms` - 获取最大退避延迟毫秒数
 - `pi-retry-config-provider-max-retries` - 获取服务商级最大重试次数
-- `pi-retry-config->alist` - 将 `<pi-retry-config>` 转为关联列表
 - `pi-retry-config->json` - 将 `<pi-retry-config>` 转为 JSON 关联列表
 - `json->pi-retry-config` - 从 JSON 关联列表解析 `<pi-retry-config>`

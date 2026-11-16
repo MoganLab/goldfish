@@ -19,6 +19,4 @@ bin/gf test library/tests/liii/pi/ai/config/model-metadata/
 - `pi-model-metadata-context-window` - 获取上下文窗口 token 数
 - `pi-model-metadata-max-tokens` - 获取单次输出最大 token 数
 - `pi-model-metadata-matched?` - 获取是否匹配上内置模型表
-- `pi-model-metadata->alist` - 将 `<pi-model-metadata>` 转为关联列表
 - `pi-model-metadata->json` - 将 `<pi-model-metadata>` 转为 JSON 关联列表
-- `pi-model-metadata-from-alist` - 从关联列表规范化构造 `<pi-model-metadata>`

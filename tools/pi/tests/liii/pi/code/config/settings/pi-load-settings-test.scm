@@ -52,31 +52,24 @@
   (check (pi-settings-http-proxy settings) => "http://127.0.0.1:7890")
   (check (pi-settings-default-tools settings) => '("read" "bash" "edit" "write"))
   (check-true (pi-retry-config? (pi-settings-retry settings)))
-  (check (cdr (assoc 'default-provider settings)) => "google")
-  (check (cdr (assoc 'default-model settings)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'http-proxy settings)) => "http://127.0.0.1:7890")
-  (let ((retry (cdr (assoc 'retry settings))))
-    (check (cdr (assoc 'enabled retry)) => #t)
-    (check (cdr (assoc 'max-retries retry)) => 3)
-    (check (cdr (assoc 'base-delay-ms retry)) => 2000)
-    (check (cdr (assoc 'max-agent-delay-ms retry)) => 60000)
+  (let ((retry (pi-settings-retry settings)))
+    (check (pi-retry-config-enabled retry) => #t)
+    (check (pi-retry-config-max-retries retry) => 3)
+    (check (pi-retry-config-base-delay-ms retry) => 2000)
+    (check (pi-retry-config-max-agent-delay-ms retry) => 60000)
     ;; 无嵌套节时 provider 预算为 #f（由 resolver 回退顶层值）
-    (check (cdr (assoc 'provider-max-retries retry)) => #f)
     (check (pi-retry-config-provider-max-retries retry) => #f)
   ) ;let
-  (check (cdr (assoc 'default-tools settings)) => '("read" "bash" "edit" "write"))
 ) ;let
 
 (let ((empty-settings (pi-load-settings "non/existent/dir")))
   (check-true (pi-settings? empty-settings))
   (check (pi-settings-default-provider empty-settings) => "google")
-  (check (cdr (assoc 'default-provider empty-settings)) => "google")
-  (check (cdr (assoc 'default-model empty-settings)) => "gemini-3.8-flash")
-  (check (cdr (assoc 'http-proxy empty-settings)) => #f)
-  (check (cdr (assoc 'default-tools empty-settings)) => #f)
+  (check (pi-settings-default-model empty-settings) => "gemini-3.8-flash")
+  (check (pi-settings-http-proxy empty-settings) => #f)
+  (check (pi-settings-default-tools empty-settings) => #f)
   ;; enableSkillCommands 未配置时默认开启
   (check-true (pi-settings-enable-skill-commands empty-settings))
-  (check-true (cdr (assoc 'enable-skill-commands empty-settings)))
 ) ;let
 
 ;; enableSkillCommands: false 生效（/skill: 命令开关）
@@ -88,17 +81,14 @@
        (settings (pi-load-settings skill-off-dir))
       ) ;
   (check-false (pi-settings-enable-skill-commands settings))
-  (check-false (cdr (assoc 'enable-skill-commands settings)))
 ) ;let*
 
 ;; retry.provider 嵌套节解析：provider.maxRetries 不再被丢弃
 (let* ((settings (pi-load-settings retry-provider-dir))
-       (retry (cdr (assoc 'retry settings)))
+       (retry (pi-settings-retry settings))
       ) ;
   (check-true (pi-settings? settings))
-  (check (cdr (assoc 'max-retries retry)) => 3)
-  (check (cdr (assoc 'provider-max-retries retry)) => 12)
-  (check (cdr (assoc "provider-max-retries" retry)) => 12)
+  (check (pi-retry-config-max-retries retry) => 3)
   (check (pi-retry-config-provider-max-retries retry) => 12)
   ;; resolver 选取 provider 预算，顶层预算保持 3
   (let-values (((max-retries base-delay-ms max-agent-delay-ms provider-max-retries)
@@ -113,7 +103,6 @@
 ;; sessionDir 设置项：读取原始字符串（~ 与相对路径在会话目录解析时展开）
 (let ((settings (pi-load-settings session-dir-fixture-dir)))
   (check (pi-settings-session-dir settings) => "/tmp/session-dir-fixture")
-  (check (cdr (assoc 'session-dir settings)) => "/tmp/session-dir-fixture")
 ) ;let
 
 ;; 无 sessionDir 键时保持 #f
