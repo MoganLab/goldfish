@@ -15,14 +15,14 @@
 ;; boolean
 ;; 若属于模型规格元数据 record 实例则返回 #t，否则返回 #f。
 
-(import (liii check) (liii pi ai config types))
+(import (liii check) (liii pi ai config model-metadata))
 
 (check-set-mode! 'report-failed)
 
-(let ((obj (%make-pi-model-metadata "gemini-2.5-flash" "Gemini 2.5 Flash"
+(let ((obj (pi-model-metadata "gemini-2.5-flash" "Gemini 2.5 Flash"
              "google" "https://generativelanguage.googleapis.com" 1048576 65536
              #t
-           ) ;%make-pi-model-metadata
+           ) ;pi-model-metadata
       ) ;obj
      ) ;
   (check-true (pi-model-metadata? obj))

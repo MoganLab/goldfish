@@ -9,6 +9,7 @@
     (liii pi ai config retry)
     (liii pi ai config settings)
     (liii pi ai config credential)
+    (liii pi ai config model-metadata)
   ) ;import
   (export pi-retry-config? pi-retry-config-enabled pi-retry-config-max-retries
     pi-retry-config-base-delay-ms pi-retry-config-max-agent-delay-ms
@@ -18,27 +19,12 @@
     pi-settings-default-tools pi-settings-session-dir
     pi-settings-hide-thinking-block pi-settings-enable-skill-commands
     pi-settings-model-thinking-levels pi-credential? pi-credential-provider
-    pi-credential-key pi-credential-type %make-pi-model-metadata
-    pi-model-metadata? pi-model-metadata-id pi-model-metadata-name
-    pi-model-metadata-provider pi-model-metadata-base-url
+    pi-credential-key pi-credential-type pi-model-metadata? pi-model-metadata-id
+    pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
     pi-model-metadata-context-window pi-model-metadata-max-tokens
     pi-model-metadata-matched?
   ) ;export
   (begin
-
-    (define-record-type <pi-model-metadata>
-      (%make-pi-model-metadata id name provider base-url context-window
-        max-tokens matched?
-      ) ;%make-pi-model-metadata
-      pi-model-metadata?
-      (id pi-model-metadata-id)
-      (name pi-model-metadata-name)
-      (provider pi-model-metadata-provider)
-      (base-url pi-model-metadata-base-url)
-      (context-window pi-model-metadata-context-window)
-      (max-tokens pi-model-metadata-max-tokens)
-      (matched? pi-model-metadata-matched?)
-    ) ;define-record-type
-
+    #f
   ) ;begin
 ) ;define-library

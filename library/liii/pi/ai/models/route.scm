@@ -340,14 +340,14 @@
       (if (and (not (pi-model-metadata-matched? meta))
             (pi-provider-has-model? provider model-id models-store)
           ) ;and
-        (%make-pi-model-metadata (pi-model-metadata-id meta)
+        (pi-model-metadata (pi-model-metadata-id meta)
           (pi-model-metadata-name meta)
           (pi-model-metadata-provider meta)
           (pi-model-metadata-base-url meta)
           (pi-model-metadata-context-window meta)
           (pi-model-metadata-max-tokens meta)
           #t
-        ) ;%make-pi-model-metadata
+        ) ;pi-model-metadata
         meta
       ) ;if
     ) ;define

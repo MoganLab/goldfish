@@ -15,18 +15,18 @@
 ;; string?
 ;; name 字段的值。
 
-(import (liii check) (liii pi ai config types))
+(import (liii check) (liii pi ai config model-metadata))
 
 (check-set-mode! 'report-failed)
 
-(let* ((obj-a (%make-pi-model-metadata "gemini-2.5-flash" "Gemini 2.5 Flash"
+(let* ((obj-a (pi-model-metadata "gemini-2.5-flash" "Gemini 2.5 Flash"
                 "google" "https://generativelanguage.googleapis.com" 1048576
                 65536 #t
-              ) ;%make-pi-model-metadata
+              ) ;pi-model-metadata
        ) ;obj-a
-       (obj-b (%make-pi-model-metadata "deepseek-v4" "DeepSeek V4" "deepseek" #f
+       (obj-b (pi-model-metadata "deepseek-v4" "DeepSeek V4" "deepseek" #f
                 128000 8192 #f
-              ) ;%make-pi-model-metadata
+              ) ;pi-model-metadata
        ) ;obj-b
       ) ;
   (check (pi-model-metadata-name obj-a) => "Gemini 2.5 Flash")

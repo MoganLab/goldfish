@@ -170,14 +170,14 @@
              (mt (if m (%dict-ref m "maxTokens" def-mt) def-mt))
             ) ;
         (let-values (((f-url f-cw f-mt) (%apply-meta-env-overrides norm-url cw mt opt-env p-str)))
-          (%make-pi-model-metadata model-id
+          (pi-model-metadata model-id
             (if m (%dict-ref m "name" model-id) model-id)
             p-str
             f-url
             f-cw
             f-mt
             (if m #t #f)
-          ) ;%make-pi-model-metadata
+          ) ;pi-model-metadata
         ) ;let-values
       ) ;let*
     ) ;define

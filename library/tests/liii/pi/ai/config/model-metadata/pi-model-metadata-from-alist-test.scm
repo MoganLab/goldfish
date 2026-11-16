@@ -16,7 +16,7 @@
 ;; record 输入原样返回；alist 输入转换为 record（缺失字段用安全默认值补齐）；
 ;; 其余输入返回 #f。
 
-(import (liii check) (liii pi ai config record))
+(import (liii check) (liii pi ai config model-metadata))
 
 (check-set-mode! 'report-failed)
 

@@ -18,7 +18,7 @@
 (import (scheme base)
   (liii check)
   (liii json)
-  (liii pi ai config record)
+  (liii pi ai config model-metadata)
 ) ;import
 
 (check-set-mode! 'report-failed)
