@@ -316,6 +316,15 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
         return expr;
       }
       s7_pointer root_val= s7_let_ref (sc, s7_rootlet (sc), expr);
+      if (strcmp (s7_symbol_name (expr), "quote") == 0) {
+        s7_pointer quote_val= s7_is_let (env) ? s7_let_ref (sc, env, expr) : root_val;
+        if (quote_val == s7_undefined (sc)) {
+          quote_val= root_val;
+        }
+        if (s7_is_syntax (quote_val)) {
+          return quote_val;
+        }
+      }
       if (s7_is_let (env)) {
         s7_pointer val= s7_let_ref (sc, env, expr);
         if (val != s7_undefined (sc)) {
