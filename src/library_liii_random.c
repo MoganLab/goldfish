@@ -6,9 +6,9 @@
  * Bill Schottstaedt, bil@ccrma.stanford.edu
  */
 
-#include "library_liii_random.h"
-#include "s7.h"
 #include "s7_internal.h"
+
+#include "library_liii_random.h"
 #include "s7_internal_helpers.h"
 #include "s7_scheme_base.h"
 #include "s7_scheme_let.h"
