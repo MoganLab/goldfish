@@ -109,10 +109,12 @@
 ) ;let*
 
 ;; 4. all-in-one 必须进入链式调度，不再交给真实协议直接请求元供应商
-(let* ((dir (path->string (path-join (path-temp-dir)
-                          (string-append "aio-flow-test-" (number->string (getpid)))
-                        ) ;path-join
-            ) ;path->string
+(let* ((dir
+         (path->string
+           (path-join (path-temp-dir)
+             (string-append "aio-flow-test-" (number->string (getpid)))
+           ) ;path-join
+         ) ;path->string
        ) ;dir
        (cfg (list (cons 'tools '())
               (cons 'provider "all-in-one")
@@ -145,21 +147,30 @@
   (path-write-text (path->string (path-join dir "all-in-one.json"))
     "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1000,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"m1\"},{\"provider\":\"stub\",\"model\":\"m2\",\"thinkingLevel\":\"high\"}]}]}"
   ) ;path-write-text
-  (let ((res (run-agent-loop-with-timeout cfg (list (pi-user-message "hi")) "" #f '()
-               #f #t
-               (lambda (node timeout-ms config-dir run-fn)
-                 (set! probed (cons (chain-node-provider node) probed))
-                 (equal? (chain-node-model node) "m2")
-               ) ;lambda
-               (lambda (provider config messages system-prompt tools on-event timeout)
-                 (set! requests (cons (list provider config messages) requests))
-                 (pi-assistant-message (list (pi-text-block "pong")) "stop")
-               ) ;lambda
-             ) ;run-agent-loop-with-timeout
+  (let ((res
+          (run-agent-loop-with-timeout cfg
+            (list (pi-user-message "hi"))
+            ""
+            #f
+            '()
+            #f
+            #t
+            (lambda (node timeout-ms config-dir run-fn)
+              (set! probed (cons (chain-node-provider node) probed))
+              (equal? (chain-node-model node) "m2")
+            ) ;lambda
+            (lambda (provider config messages system-prompt tools on-event timeout)
+              (set! requests (cons (list provider config messages) requests))
+              (if (equal? (cdr (assoc 'model-id config)) "m1")
+                (pi-assistant-message '() "error" "HTTP 503")
+                (pi-assistant-message (list (pi-text-block "pong")) "stop")
+              ) ;if
+            ) ;lambda
+          ) ;run-agent-loop-with-timeout
         ) ;res
        ) ;
-    (check (reverse probed) => '("stub" "stub"))
-    (check (length requests) => 1)
+    (check (reverse probed) => '("stub"))
+    (check (length requests) => 2)
     (check (caar requests) => "stub")
     (check (cdr (assoc 'provider (cadar requests))) => "stub")
     (check (cdr (assoc 'model-id (cadar requests))) => "m2")
