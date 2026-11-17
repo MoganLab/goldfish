@@ -187,4 +187,21 @@
   (check (length lines) => 20)
 ) ;let
 
+;; 11. 顶部子标签页栏与 all-in-one 子标签页渲染
+(let ((text-p
+        (plain (string-join (pi-config-render st (pi-config-cursor 0 0) 0 120 20) "\n"))
+      ) ;text-p
+      (text-a
+        (plain (string-join (pi-config-render st (pi-config-cursor 0 0 1 0 0) 0 120 20) "\n")
+        ) ;plain
+      ) ;text-a
+     ) ;
+  (check (string-contains text-p "[providers]") => #t)
+  (check (string-contains text-p "all-in-one") => #t)
+  (check (string-contains text-a "[all-in-one]") => #t)
+  (check (string-contains text-a "chains · 2") => #t)
+  (check (string-contains text-a "nodes · coding-fast") => #t)
+  (check (string-contains text-a "node #1") => #t)
+) ;let
+
 (check-report)

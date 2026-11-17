@@ -76,4 +76,18 @@
   ) ;check
 ) ;let*
 
+;; 3. 1/2 与 shift-tab 切换子标签页
+(let* ((c0 (pi-config-cursor 0 0))
+       (r1 (pi-config-key-handler st c0 1 "2"))
+       (r2 (pi-config-key-handler st (car r1) (cadr r1) 'shift-tab))
+       (r3 (pi-config-key-handler st (car r2) (cadr r2) "]"))
+       (r4 (pi-config-key-handler st (car r3) (cadr r3) "1"))
+      ) ;
+  (check (cdr (assoc 'tab (car r1))) => 1)
+  (check (cadr r1) => 0)
+  (check (cdr (assoc 'tab (car r2))) => 0)
+  (check (cdr (assoc 'tab (car r3))) => 1)
+  (check (cdr (assoc 'tab (car r4))) => 0)
+) ;let*
+
 (check-report)

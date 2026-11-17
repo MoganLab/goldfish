@@ -308,7 +308,33 @@
       #t
     ) ;check
     (check (string-contains settings "\"defaultProvider\": \"minimax-cn\"") => #f)
-    (check (string-contains (list-ref lines 1) "zai-coding-cn *") => #t)
+    (check (string-contains (list-ref lines 2) "zai-coding-cn *") => #t)
+  ) ;let
+) ;let
+
+;; 14. all-in-one 子标签页：按 2 切换显示设置链条，→ 进入节点列，v 查看 all-in-one.json，1 切回 providers
+(let ((dir (make-dir "aio-tab")) (vt (make-virtual-terminal :width 120 :height 24)))
+  (for-each (lambda (k) (virtual-terminal-push-key! vt k)) (list "2" 'q))
+  (check (pi-config-run dir :terminal vt :env '()) => 'chat)
+  (let ((screen (string-join (virtual-terminal-screen vt) "\n")))
+    (check (string-contains screen "[all-in-one]") => #t)
+    (check (string-contains screen "chains · 2") => #t)
+    (check (string-contains screen "coding-fast") => #t)
+    (check (string-contains screen "nodes · coding-fast") => #t)
+    (check (string-contains screen "google/gemini-3.8-flash") => #t)
+    (check (string-contains screen "node #1") => #t)
+  ) ;let
+) ;let
+
+(let ((dir (make-dir "aio-tab-overlay"))
+      (vt (make-virtual-terminal :width 120 :height 24))
+     ) ;
+  (for-each (lambda (k) (virtual-terminal-push-key! vt k)) (list "2" "v" 'q))
+  ;; 按 v 后进入覆盖层，按 q 先关覆盖层再需要一次 q 退出；这里补一个 q
+  (virtual-terminal-push-key! vt 'q)
+  (check (pi-config-run dir :terminal vt :env '()) => 'chat)
+  (let ((screen (string-join (virtual-terminal-screen vt) "\n")))
+    (check (string-contains screen "[all-in-one]") => #t)
   ) ;let
 ) ;let
 
