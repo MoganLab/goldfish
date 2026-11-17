@@ -2,7 +2,6 @@
 (define-library (liii cmark inline emoji)
   (import (scheme base))
   (import (scheme char))
-  (import (only (liii string) string-skip))
   (import (liii cmark node))
   (export emoji-candidate-start? emoji-start? parse-emoji)
   (begin
@@ -33,13 +32,19 @@
     ) ;define
 
     (define (find-emoji-end str start)
-      (let ((pos (string-skip str emoji-shortcode-char? (+ start 1))))
-        (and pos
-          (char=? (string-ref str pos) #\:)
-          (let ((shortcode (substring str (+ start 1) pos)))
-            (and (> (string-length shortcode) 0) (supported-emoji-shortcode? shortcode) pos)
-          ) ;let
-        ) ;and
+      (let ((len (string-length str)))
+        (let loop
+          ((pos (+ start 1)))
+          (cond ((>= pos len) #f)
+                ((char=? (string-ref str pos) #\:)
+                 (let ((shortcode (substring str (+ start 1) pos)))
+                   (and (> (string-length shortcode) 0) (supported-emoji-shortcode? shortcode) pos)
+                 ) ;let
+                ) ;
+                ((emoji-shortcode-char? (string-ref str pos)) (loop (+ pos 1)))
+                (else #f)
+          ) ;cond
+        ) ;let
       ) ;let
     ) ;define
 

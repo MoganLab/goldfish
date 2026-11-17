@@ -2,7 +2,6 @@
 (define-library (liii cmark inline autolink)
   (import (scheme base))
   (import (scheme char))
-  (import (only (liii list) find))
   (import (liii string))
   (import (liii ascii))
   (import (liii cmark node))
@@ -19,7 +18,13 @@
     ) ;define
 
     (define (count-char-in-range str start end target)
-      (string-count str target start end)
+      (let loop
+        ((pos start) (count 0))
+        (if (>= pos end)
+          count
+          (loop (+ pos 1) (if (char=? (string-ref str pos) target) (+ count 1) count))
+        ) ;if
+      ) ;let
     ) ;define
 
     (define bare-autolink-multibyte-trailing-punctuations
@@ -38,20 +43,25 @@
       ) ;or
     ) ;define
     (define (trailing-bare-autolink-punctuation-length str start end)
-      (define (match-suffix? suffix)
-        (let ((suffix-len (string-length suffix)))
-          (and (<= (+ start suffix-len) end)
-            (string=? (substring str (- end suffix-len) end) suffix)
-          ) ;and
-        ) ;let
-      ) ;define
       (if (<= end start)
         #f
         (let ((last-char (string-ref str (- end 1))))
           (if (trailing-bare-autolink-ascii-punctuation? last-char)
             1
-            (let ((matched (find match-suffix? bare-autolink-multibyte-trailing-punctuations)))
-              (and matched (string-length matched))
+            (let loop
+              ((suffixes bare-autolink-multibyte-trailing-punctuations))
+              (if (null? suffixes)
+                #f
+                (let* ((suffix (car suffixes)) (suffix-len (string-length suffix)))
+                  (if
+                    (and (<= (+ start suffix-len) end)
+                      (string=? (substring str (- end suffix-len) end) suffix)
+                    ) ;and
+                    suffix-len
+                    (loop (cdr suffixes))
+                  ) ;if
+                ) ;let*
+              ) ;if
             ) ;let
           ) ;if
         ) ;let

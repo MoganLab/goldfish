@@ -1,8 +1,6 @@
 
 (define-library (liii cmark block table)
   (import (scheme base))
-  (import (only (liii list) every))
-  (import (only (liii string) string-every))
   (import (liii cmark text))
   (import (liii cmark block line))
   (export table-start? collect-table-block)
@@ -87,12 +85,20 @@
                  (core-len (string-length core))
                 ) ;
             (and (> core-len 0)
-              (string-every #\- core)
-              (cond ((and left-colon? right-colon?) 'center)
-                    (left-colon? 'left)
-                    (right-colon? 'right)
-                    (else 'default)
-              ) ;cond
+              (let loop
+                ((i 0))
+                (cond
+                 ((>= i core-len)
+                  (cond ((and left-colon? right-colon?) 'center)
+                        (left-colon? 'left)
+                        (right-colon? 'right)
+                        (else 'default)
+                  ) ;cond
+                 ) ;
+                 ((char=? (string-ref core i) #\-) (loop (+ i 1)))
+                 (else #f)
+                ) ;cond
+              ) ;let
             ) ;and
           ) ;let*
         ) ;and
@@ -102,8 +108,15 @@
     (define (parse-table-alignments line)
       (let ((cells (parse-table-row line)))
         (and cells
-          (let ((alignments (map alignment-cell-symbol cells)))
-            (and (every values alignments) alignments)
+          (let loop
+            ((remaining cells) (alignments '()))
+            (cond ((null? remaining) (reverse alignments))
+                  (else
+                    (let ((alignment (alignment-cell-symbol (car remaining))))
+                      (and alignment (loop (cdr remaining) (cons alignment alignments)))
+                    ) ;let
+                  ) ;else
+            ) ;cond
           ) ;let
         ) ;and
       ) ;let

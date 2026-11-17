@@ -7,7 +7,6 @@
 (define-library (liii cmark block line)
   (import (scheme base))
   (import (scheme char))
-  (import (only (liii string) string-every string-count))
   (import (liii cmark text))
   (export blank-line? blank-or-whitespace-line? thematic-break-line?
     expand-leading-tabs
@@ -57,8 +56,14 @@
             (and (>= (string-length trimmed) 3)
               (let ((c (string-ref trimmed 0)))
                 (and (or (char=? c #\-) (char=? c #\*) (char=? c #\_))
-                  (string-every (lambda (ch) (or (char=? ch c) (ascii-whitespace? ch))) trimmed)
-                  (>= (string-count trimmed c) 3)
+                  (let loop
+                    ((i 1) (count 1))
+                    (cond ((>= i (string-length trimmed)) (>= count 3))
+                          ((char=? (string-ref trimmed i) c) (loop (+ i 1) (+ count 1)))
+                          ((ascii-whitespace? (string-ref trimmed i)) (loop (+ i 1) count))
+                          (else #f)
+                    ) ;cond
+                  ) ;let
                 ) ;and
               ) ;let
             ) ;and

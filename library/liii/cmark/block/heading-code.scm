@@ -2,7 +2,6 @@
   (import (scheme base))
   (import (scheme char))
   (import (only (liii list) drop-while))
-  (import (only (liii string) string-every string-skip-right))
   (import (liii cmark text))
   (import (liii cmark block line))
   (export first-word parse-fence-line fenced-code-start?
@@ -139,7 +138,12 @@
           (and (> (string-length trimmed) 0)
             (let ((first-char (string-ref trimmed 0)))
               (and (or (char=? first-char #\=) (char=? first-char #\-))
-                (string-every first-char trimmed)
+                (let loop
+                  ((i 1))
+                  (or (>= i (string-length trimmed))
+                    (and (char=? (string-ref trimmed i) first-char) (loop (+ i 1)))
+                  ) ;or
+                ) ;let
               ) ;and
             ) ;let
           ) ;and
@@ -181,19 +185,27 @@
 
     ;; 保留结尾 # 序列（Example 71/72/73/79）：# 序列前空白压缩为单个空格
     (define (strip-atx-closing-sequence content)
-      (let* ((trimmed (string-trim-right content))
-             (len (string-length trimmed))
-             (i (string-skip-right trimmed #\#))
-            ) ;
-        (if (and i (ascii-whitespace? (string-ref trimmed i)))
-          (let ((j (string-skip-right trimmed ascii-whitespace? 0 i)))
-            (string-append (substring trimmed 0 (if j (+ j 1) 0))
-              " "
-              (substring trimmed (+ i 1) len)
-            ) ;string-append
-          ) ;let
-          trimmed
-        ) ;if
+      (let* ((trimmed (string-trim-right content)) (len (string-length trimmed)))
+        (let loop
+          ((i (- len 1)))
+          (cond ((< i 0) trimmed)
+                ((char=? (string-ref trimmed i) #\#) (loop (- i 1)))
+                ((ascii-whitespace? (string-ref trimmed i))
+                 ;; # 序列前有空白：压缩为 1 个空格
+                 (let loop2
+                   ((j (- i 1)))
+                   (if (and (>= j 0) (ascii-whitespace? (string-ref trimmed j)))
+                     (loop2 (- j 1))
+                     (string-append (substring trimmed 0 (+ j 1))
+                       " "
+                       (substring trimmed (+ i 1) len)
+                     ) ;string-append
+                   ) ;if
+                 ) ;let
+                ) ;
+                (else trimmed)
+          ) ;cond
+        ) ;let
       ) ;let*
     ) ;define
 
