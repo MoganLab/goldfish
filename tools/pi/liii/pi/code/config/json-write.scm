@@ -29,22 +29,25 @@
     ) ;define
 
     (define (pi-write-atomic abs-path text)
-      (let* ((tmp (string-append abs-path ".tmp")) (bak (string-append abs-path ".bak")))
+      (let* ((abs-str (if (path? abs-path) (path->string abs-path) abs-path))
+             (tmp (string-append abs-str ".tmp"))
+             (bak (string-append abs-str ".bak"))
+            ) ;
         (path-write-text (path tmp) text)
-        (if (file-exists? abs-path)
+        (if (file-exists? abs-str)
           (begin
             (path-unlink (path bak) #t)
-            (path-rename (path abs-path) (path bak))
-            (path-rename (path tmp) (path abs-path))
+            (path-rename (path abs-str) (path bak))
+            (path-rename (path tmp) (path abs-str))
             (path-unlink (path bak) #t)
           ) ;begin
-          (path-rename (path tmp) (path abs-path))
+          (path-rename (path tmp) (path abs-str))
         ) ;if
       ) ;let*
     ) ;define
 
     (define (%abs dir-str rel)
-      (string-append dir-str "/" rel)
+      (path->string (path-join dir-str rel))
     ) ;define
 
     (define (pi-apply-writes dir-str writes)

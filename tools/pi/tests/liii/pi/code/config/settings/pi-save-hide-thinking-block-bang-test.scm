@@ -93,6 +93,13 @@
   (check (pi-settings-hide-thinking-block (pi-load-settings AGENT-DIR)) => #f)
 ) ;let
 
+;; 传入 <path> 对象作为 config-dir（CLI 运行时 gf-get-config-dir 返回 <path>）
+(pi-save-hide-thinking-block! (path AGENT-DIR) #t)
+(check (pi-settings-hide-thinking-block (pi-load-settings (path AGENT-DIR)))
+  =>
+  #t
+) ;check
+
 (rmtree AGENT-DIR #t)
 
 (check-report)
