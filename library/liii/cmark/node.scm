@@ -200,7 +200,7 @@
     ) ;define
 
     (define (cmark-node-type? node type)
-      (eq? (cmark-node-type node) type)
+      (and (cmark-node? node) (eq? (cmark-node-type node) type))
     ) ;define
 
     (define (cmark-document? node)
