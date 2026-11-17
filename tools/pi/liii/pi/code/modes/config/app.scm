@@ -4,10 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-;; `gf pi config`：ranger 风格三列配置浏览 TUI。
-;;   ← → 切换激活列，↑ ↓ 在列内移动，Tab 循环切列，g/G 首尾，q/Esc 退出（Ctrl+C 关闭覆盖层或忽略）。
-;;   space：启停（写 models/providers.json 或 models/<provider>.json）
-;;   v：只读查看光标条目对应的配置文件（覆盖层）
+;; `gf pi config`：ranger 风格三列配置浏览 TUI（含 providers 与 all-in-one 子标签页）。
 (define-library (liii pi code modes config app)
   (import (scheme base)
     (liii base)
@@ -21,13 +18,15 @@
     (liii pi code modes config overlay)
     (liii pi code modes config files)
     (liii pi code modes config json-write)
+    (liii pi code modes config all-in-one)
+    (liii pi code modes config app-aio)
+    (liii pi code modes config aio-modal)
+    (liii pi code modes config aio-modal-render)
   ) ;import
   (export pi-config-run pi-config-key-handler)
   (begin
 
     (define %columns 3)
-
-    ;; ---------- 光标与导航（纯逻辑，便于单测） ----------
 
     (define (%ref alist key)
       (let ((pair (assoc key alist)))
@@ -36,7 +35,31 @@
     ) ;define
 
     (define (%set-cursor cursor provider-index model-index)
-      (list (cons 'provider provider-index) (cons 'model model-index))
+      (let ((tab (assoc 'tab cursor))
+            (chain (assoc 'chain cursor))
+            (node (assoc 'node cursor))
+           ) ;
+        (append (list (cons 'provider provider-index) (cons 'model model-index))
+          (if tab (list tab) '())
+          (if chain (list chain) '())
+          (if node (list node) '())
+        ) ;append
+      ) ;let
+    ) ;define
+
+    (define (%set-tab-cursor cursor tab)
+      (list (cons 'provider (%ref cursor 'provider))
+        (cons 'model (%ref cursor 'model))
+        (cons 'tab tab)
+        (cons 'chain (%ref cursor 'chain))
+        (cons 'node (%ref cursor 'node))
+      ) ;list
+    ) ;define
+
+    (define (%aio-tab? cursor)
+      (let ((tab (%ref cursor 'tab)))
+        (or (eq? tab 'all-in-one) (equal? tab 1))
+      ) ;let
     ) ;define
 
     (define (%clamp index count)
@@ -84,6 +107,13 @@
         (cond
           ;; 退出：仅 q 与 escape
           ((or (eq? key 'escape) (equal? c "q")) (list cursor active #t))
+          ;; 子标签页切换：1 = providers，2 = all-in-one，shift-tab / [ / ] = 循环切换
+          ((equal? c "1") (list (%set-tab-cursor cursor 0) 0 #f))
+          ((equal? c "2") (list (%set-tab-cursor cursor 1) 0 #f))
+          ((or (eq? key 'shift-tab) (equal? c "[") (equal? c "]"))
+           (list (%set-tab-cursor cursor (if (%aio-tab? cursor) 0 1)) 0 #f)
+          ) ;
+          ((%aio-tab? cursor) (pi-config-aio-key-handler st cursor active key))
           ;; 纵向移动
           ((or (eq? key 'up) (equal? c "k"))
            (list
@@ -171,62 +201,25 @@
       ) ;let*
     ) ;define*
 
-    ;; ---------- 初始光标 ----------
-
     (define (%initial-cursor st)
-      (let* ((providers (pi-config-state-providers st))
-             (index (list-index (lambda (p) (pi-config-provider-default? p)) providers))
-            ) ;
-        (%normalize-cursor st (%set-cursor (pi-config-cursor (or index 0) 0) 0 0))
-      ) ;let*
+      (let ((idx (list-index pi-config-provider-default? (pi-config-state-providers st))))
+        (%normalize-cursor st (pi-config-cursor (or idx 0) 0))
+      ) ;let
     ) ;define
 
-    ;; ---------- Enter ----------
-
-    ;; provider 列：等同右方向键（进入模型列）
-    ;; 模型列/详情列：把选中模型设为默认模型（写 settings.json）
-    (define (%handle-enter! st cursor active message-box)
-      (if (= active 0)
-        (pi-config-key-handler st cursor active 'right)
-        (let* ((plan (pi-config-plan-set-default st cursor 1))
-               (msg (pi-user-dict-ref plan "message" ""))
-              ) ;
-          (if (not (pi-user-dict-ref plan "ok" #f))
-            (set! message-box msg)
-            (let ((res (pi-config-apply-writes st (pi-user-dict-ref plan "writes" '()))))
-              (set! message-box
-                (if (pi-user-dict-ref res "ok" #f)
-                  msg
-                  (pi-user-dict-ref res "message" "save failed")
-                ) ;if
-              ) ;set!
-            ) ;let
-          ) ;if
-          (list cursor active #f)
-        ) ;let*
-      ) ;if
-    ) ;define
-
-    ;; ---------- 启停（空格） ----------
-
-    (define (%apply-toggle st cursor active message-box)
-      (let* ((column (if (= active 0) 0 1))
-             (plan (pi-config-plan-toggle st cursor column))
-             (msg (pi-user-dict-ref plan "message" ""))
-            ) ;
+    (define (%apply-plan st plan)
+      (let ((msg (pi-user-dict-ref plan "message" "")))
         (if (not (pi-user-dict-ref plan "ok" #f))
-          (set! message-box msg)
+          msg
           (let ((res (pi-config-apply-writes st (pi-user-dict-ref plan "writes" '()))))
             (if (pi-user-dict-ref res "ok" #f)
-              (set! message-box msg)
-              (set! message-box (pi-user-dict-ref res "message" "save failed"))
+              msg
+              (pi-user-dict-ref res "message" "save failed")
             ) ;if
           ) ;let
         ) ;if
-      ) ;let*
+      ) ;let
     ) ;define
-
-    ;; ---------- 主循环 ----------
 
     ;; nested = #t：由外层 TUI（如 `gf pi` 的 /config）调用，此时不进/退备用屏与
     ;; raw 模式（外层已开启），退出时只清屏并把控制权交回外层。
@@ -238,6 +231,7 @@
              (active 0)
              (overlay #f)
              (overlay-offset 0)
+             (aio-modal #f)
              (message "")
              (exit-mode 'quit)
              (done? #f)
@@ -253,29 +247,20 @@
             (set! cursor (pi-config-relocate-cursor st cursor p m))
           ) ;let*
         ) ;define
-        (define (size)
-          (terminal-size term)
-        ) ;define
         (define (render!)
-          (let* ((s (size)) (w (car s)) (h (cadr s)))
+          (let* ((s (terminal-size term)) (w (car s)) (h (cadr s)))
             (unless (equal? s last-size)
               (set! last-size s)
               (screen-clear! screen)
             ) ;unless
-            (if overlay
-              (screen-render! screen
-                (pi-config-render-overlay overlay w h overlay-offset message)
-              ) ;screen-render!
-              (screen-render! screen (pi-config-render st cursor active w h message))
-            ) ;if
+            (cond (aio-modal (screen-render! screen (pi-config-aio-modal-render aio-modal w h)))
+                  (overlay (screen-render! screen
+                             (pi-config-render-overlay overlay w h overlay-offset message)
+                           ) ;screen-render!
+                  ) ;overlay
+                  (else (screen-render! screen (pi-config-render st cursor active w h message)))
+            ) ;cond
           ) ;let*
-        ) ;define
-        ;; 覆盖层的按键：滚动与关闭
-        (define (overlay-key! key)
-          (let ((res (pi-config-overlay-step overlay overlay-offset (cadr (size)) key)))
-            (set! overlay (car res))
-            (set! overlay-offset (cadr res))
-          ) ;let
         ) ;define
         (define (handle-key! key)
           (let* ((c (cond ((char? key) (string key))
@@ -283,35 +268,79 @@
                           (else key)
                     ) ;cond
                  ) ;c
+                 (aio-act (and (%aio-tab? cursor) (pi-config-aio-action st cursor active key)))
                 ) ;
-            (cond (overlay (overlay-key! key))
-                  ((equal? c "v")
-                   (set! overlay (pi-config-file-view st cursor (if (= active 0) 0 1)))
-                   (set! overlay-offset 0)
-                  ) ;
-                  ((eq? key 'enter)
-                   (let ((r (%handle-enter! st cursor active message)))
-                     (set! cursor (%normalize-cursor st (car r)))
-                     (set! active (cadr r))
-                     (reload!)
-                   ) ;let
-                  ) ;
-                  ((or (equal? c " ") (eq? key 'space))
-                   (%apply-toggle st cursor active message)
+            (cond
+              (aio-modal
+                (let ((r (pi-config-aio-modal-handle st aio-modal key)))
+                  (set! aio-modal (car r))
+                  (when (caddr r)
+                    (set! message (cadr r))
+                    (reload!)
+                  ) ;when
+                ) ;let
+              ) ;aio-modal
+              (overlay
+                (let ((res (pi-config-overlay-step overlay overlay-offset (cadr (terminal-size term)) key)
+                      ) ;res
+                     ) ;
+                  (set! overlay (car res))
+                  (set! overlay-offset (cadr res))
+                ) ;let
+              ) ;overlay
+              (aio-act
+                (let ((r (pi-config-aio-exec-action st cursor aio-act)))
+                  (set! aio-modal (car r))
+                  (set! message (cadr r))
+                  (when (caddr r)
+                    (reload!)
+                  ) ;when
+                ) ;let
+              ) ;aio-act
+              ((equal? c "v")
+               (set! overlay
+                 (if (%aio-tab? cursor)
+                   (pi-config-aio-file-view st)
+                   (pi-config-file-view st cursor (if (= active 0) 0 1))
+                 ) ;if
+               ) ;set!
+               (set! overlay-offset 0)
+              ) ;
+              ((and (eq? key 'enter) (not (%aio-tab? cursor)))
+               (if (= active 0)
+                 (let ((r (pi-config-key-handler st cursor active 'right)))
+                   (set! cursor (%normalize-cursor st (car r)))
+                   (set! active (cadr r))
+                 ) ;let
+                 (begin
+                   (set! message (%apply-plan st (pi-config-plan-set-default st cursor 1)))
                    (reload!)
-                  ) ;
-                  (else
-                    (when (or (equal? c "q") (eq? key 'escape))
-                      (set! exit-mode (if (equal? c "q") 'chat 'quit))
-                    ) ;when
-                    (let ((r (pi-config-key-handler st cursor active key)))
-                      (set! cursor (%normalize-cursor st (car r)))
-                      (set! active (cadr r))
-                      (when (caddr r)
-                        (set! done? #t)
-                      ) ;when
-                    ) ;let
-                  ) ;else
+                 ) ;begin
+               ) ;if
+              ) ;
+              ((or (equal? c " ") (eq? key 'space))
+               (if (%aio-tab? cursor)
+                 (set! message "switch to providers tab (1) to toggle")
+                 (begin
+                   (set! message
+                     (%apply-plan st (pi-config-plan-toggle st cursor (if (= active 0) 0 1)))
+                   ) ;set!
+                   (reload!)
+                 ) ;begin
+               ) ;if
+              ) ;
+              (else
+                (when (or (equal? c "q") (eq? key 'escape))
+                  (set! exit-mode (if (equal? c "q") 'chat 'quit))
+                ) ;when
+                (let ((r (pi-config-key-handler st cursor active key)))
+                  (set! cursor (%normalize-cursor st (car r)))
+                  (set! active (cadr r))
+                  (when (caddr r)
+                    (set! done? #t)
+                  ) ;when
+                ) ;let
+              ) ;else
             ) ;cond
           ) ;let*
         ) ;define
@@ -339,11 +368,9 @@
                       ) ;unless
                     ) ;begin
                     (begin
-                      (let ((s (size)))
-                        (unless (equal? s last-size)
-                          (render!)
-                        ) ;unless
-                      ) ;let
+                      (unless (equal? (terminal-size term) last-size)
+                        (render!)
+                      ) ;unless
                       (sleep 0.02)
                       (loop)
                     ) ;begin
@@ -354,16 +381,13 @@
           ) ;lambda
           (lambda ()
             (if nested
-              (begin
-                (catch #t (lambda () (screen-clear! screen)) (lambda args #f))
-                (terminal-show-cursor! term)
-              ) ;begin
+              (catch #t (lambda () (screen-clear! screen)) (lambda args #f))
               (begin
                 (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda args #f))
-                (terminal-show-cursor! term)
                 (catch #t (lambda () (terminal-exit-raw-mode! term)) (lambda args #f))
               ) ;begin
             ) ;if
+            (terminal-show-cursor! term)
             (terminal-flush term)
           ) ;lambda
         ) ;dynamic-wind

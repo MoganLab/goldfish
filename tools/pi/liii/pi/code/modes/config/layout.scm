@@ -15,6 +15,8 @@
     (liii unicode)
     (liii tui)
     (liii pi code modes config state)
+    (liii pi code modes config all-in-one)
+    (liii pi code modes config layout-aio)
   ) ;import
   (export pi-config-column-widths pi-config-cursor pi-config-render)
   (begin
@@ -31,9 +33,13 @@
 
     ;; ---------- 光标 ----------
 
-    (define (pi-config-cursor provider-index model-index)
-      (list (cons 'provider provider-index) (cons 'model model-index))
-    ) ;define
+    (define* (pi-config-cursor provider-index model-index (tab #f) (chain #f) (node #f))
+      (append (list (cons 'provider provider-index) (cons 'model model-index))
+        (if tab (list (cons 'tab tab)) '())
+        (if chain (list (cons 'chain chain)) '())
+        (if node (list (cons 'node node)) '())
+      ) ;append
+    ) ;define*
 
     (define (%cursor-ref cursor key)
       (let ((pair (assoc key cursor)))
@@ -125,22 +131,6 @@
       ) ;if
     ) ;define
 
-    ;; ---------- 三列数据 ----------
-
-    (define (%provider-lines providers selected count)
-      (map
-        (lambda (p)
-          (let* ((id (pi-config-provider-id p))
-                 (mark (if (pi-config-provider-default? p) " *" ""))
-                 (text (string-append id mark))
-                ) ;
-            (%highlight text selected)
-          ) ;let*
-        ) ;lambda
-        (%window providers count selected)
-      ) ;map
-    ) ;define
-
     ;; 需要知道 window 起点才能判断哪一行是选中行
     (define (%window-start total count selected)
       (if (<= total count)
@@ -223,15 +213,40 @@
       ) ;let
     ) ;define
 
+    ;; ---------- 顶部子标签页栏 ----------
+
+    (define (%aio-tab? tab)
+      (or (eq? tab 'all-in-one) (equal? tab 1))
+    ) ;define
+
+    (define (%tab-bar tab width)
+      (let* ((aio? (%aio-tab? tab))
+             (p-tab (if aio?
+                      (string-append %dim "  providers  " %reset)
+                      (string-append %accent " [providers] " %reset)
+                    ) ;if
+             ) ;p-tab
+             (a-tab (if aio?
+                      (string-append %accent " [all-in-one] " %reset)
+                      (string-append %dim "  all-in-one  " %reset)
+                    ) ;if
+             ) ;a-tab
+            ) ;
+        (%fit (string-append " " p-tab " " a-tab) width)
+      ) ;let*
+    ) ;define
+
     ;; ---------- 主渲染 ----------
 
-    ;; message 非空时覆盖提示行（用于显示启停/设默认的结果）
-    (define* (pi-config-render st cursor active width height (message ""))
-      (let* ((widths (pi-config-column-widths width))
-             (w1 (car widths))
-             (w2 (cadr widths))
-             (w3 (caddr widths))
-             (providers (pi-config-state-providers st))
+    (define (%join-cols col1 col2 col3)
+      (if (null? col3)
+        (map (lambda (a b) (string-append a b)) col1 col2)
+        (map (lambda (a b c) (string-append a b c)) col1 col2 col3)
+      ) ;if
+    ) ;define
+
+    (define (%render-providers-body st cursor active w1 w2 w3 content-rows)
+      (let* ((providers (pi-config-state-providers st))
              (provider-count (max 1 (length providers)))
              (p-index (min (max 0 (%cursor-ref cursor 'provider)) (- provider-count 1)))
              (provider (list-ref providers p-index))
@@ -239,105 +254,131 @@
              (model-count (max 1 (length models)))
              (m-index (min (max 0 (%cursor-ref cursor 'model)) (- model-count 1)))
              (model (and (pair? models) (list-ref models m-index)))
-             ;; 上下各留一行边框 + 状态栏 + 提示行
-             (content-rows (max 1 (- height 4)))
+             (col1
+               (%box (string-append "providers "
+                       (number->string (pi-config-state-enabled-provider-count st))
+                       "/"
+                       (number->string (length providers))
+                       " on"
+                     ) ;string-append
+                 (%list-lines providers
+                   content-rows
+                   p-index
+                   (lambda (p selected?)
+                     (%entry-line (pi-config-provider-id p)
+                       (pi-config-provider-enabled? p)
+                       (pi-config-provider-default? p)
+                       selected?
+                     ) ;%entry-line
+                   ) ;lambda
+                 ) ;%list-lines
+                 w1
+                 (= active 0)
+                 content-rows
+               ) ;%box
+             ) ;col1
+             (col2
+               (%box (string-append "models · "
+                       (pi-config-provider-id provider)
+                       (if (pi-config-provider-enabled? provider) "" " ×")
+                     ) ;string-append
+                 (%list-lines models
+                   content-rows
+                   m-index
+                   (lambda (m selected?)
+                     (%entry-line (pi-config-model-id m)
+                       (and (pi-config-provider-enabled? provider) (pi-config-model-enabled? m))
+                       (pi-config-model-default? m)
+                       selected?
+                     ) ;%entry-line
+                   ) ;lambda
+                 ) ;%list-lines
+                 w2
+                 (= active 1)
+                 content-rows
+               ) ;%box
+             ) ;col2
+             (col3
+               (if (or (= w3 0) (not model))
+                 '()
+                 (%box (string-append "preview · " (pi-config-model-id model))
+                   (%detail-lines (pi-config-model-detail-rows model provider))
+                   w3
+                   (= active 2)
+                   content-rows
+                 ) ;%box
+               ) ;if
+             ) ;col3
             ) ;
-        (let* ((col1
-                 (%box (string-append "providers "
-                         (number->string (pi-config-state-enabled-provider-count st))
-                         "/"
-                         (number->string (length providers))
-                         " on"
-                       ) ;string-append
-                   (%list-lines providers
-                     content-rows
-                     p-index
-                     (lambda (p selected?)
-                       (%entry-line (pi-config-provider-id p)
-                         (pi-config-provider-enabled? p)
-                         (pi-config-provider-default? p)
-                         selected?
-                       ) ;%entry-line
-                     ) ;lambda
-                   ) ;%list-lines
-                   w1
-                   (= active 0)
-                   content-rows
-                 ) ;%box
-               ) ;col1
-               (col2
-                 (%box (string-append "models · "
-                         (pi-config-provider-id provider)
-                         (if (pi-config-provider-enabled? provider) "" " ×")
-                       ) ;string-append
-                   (%list-lines models
-                     content-rows
-                     m-index
-                     (lambda (m selected?)
-                       (%entry-line (pi-config-model-id m)
-                         (and (pi-config-provider-enabled? provider) (pi-config-model-enabled? m))
-                         (pi-config-model-default? m)
-                         selected?
-                       ) ;%entry-line
-                     ) ;lambda
-                   ) ;%list-lines
-                   w2
-                   (= active 1)
-                   content-rows
-                 ) ;%box
-               ) ;col2
-               (col3
-                 (if (or (= w3 0) (not model))
-                   '()
-                   (%box (string-append "preview · " (pi-config-model-id model))
-                     (%detail-lines (pi-config-model-detail-rows model provider))
-                     w3
-                     (= active 2)
-                     content-rows
-                   ) ;%box
+        (%join-cols col1 col2 col3)
+      ) ;let*
+    ) ;define
+
+    (define (%render-aio-body aio cursor active w1 w2 w3 content-rows)
+      (pi-config-aio-render-body aio cursor active w1 w2 w3 content-rows %box
+        %list-lines %entry-line %detail-lines
+      ) ;pi-config-aio-render-body
+    ) ;define
+
+    ;; message 非空时覆盖提示行（用于显示启停/设默认的结果）
+    (define* (pi-config-render st cursor active width height (message ""))
+      (let* ((widths (pi-config-column-widths width))
+             (w1 (car widths))
+             (w2 (cadr widths))
+             (w3 (caddr widths))
+             (tab (%cursor-ref cursor 'tab))
+             (aio? (%aio-tab? tab))
+             (aio (and aio? (pi-config-aio-state st)))
+             ;; 顶部标签栏 + 上下各留一行边框 + 状态栏 + 提示行
+             (content-rows (max 1 (- height 5)))
+             (tab-line (%tab-bar tab width))
+             (body (if aio?
+                     (%render-aio-body aio cursor active w1 w2 w3 content-rows)
+                     (%render-providers-body st cursor active w1 w2 w3 content-rows)
+                   ) ;if
+             ) ;body
+             (status
+               (%fit
+                 (if aio?
+                   (pi-config-aio-status-text st aio)
+                   (string-append " "
+                     (pi-config-state-dir st)
+                     " · "
+                     (number->string (pi-config-state-enabled-provider-count st))
+                     "/"
+                     (number->string (pi-config-state-provider-count st))
+                     " providers · "
+                     (number->string (pi-config-state-enabled-model-count st))
+                     "/"
+                     (number->string (pi-config-state-model-count st))
+                     " models · default "
+                     (or (pi-config-state-default-provider st) "—")
+                     "/"
+                     (or (pi-config-state-default-model st) "—")
+                   ) ;string-append
                  ) ;if
-               ) ;col3
-               (body
-                 (if (null? col3)
-                   (map (lambda (a b) (string-append a b)) col1 col2)
-                   (map (lambda (a b c) (string-append a b c)) col1 col2 col3)
-                 ) ;if
-               ) ;body
-               (status
-                 (%fit (string-append " "
-                         (pi-config-state-dir st)
-                         " · "
-                         (number->string (pi-config-state-enabled-provider-count st))
-                         "/"
-                         (number->string (pi-config-state-provider-count st))
-                         " providers · "
-                         (number->string (pi-config-state-enabled-model-count st))
-                         "/"
-                         (number->string (pi-config-state-model-count st))
-                         " models · default "
-                         (or (pi-config-state-default-provider st) "—")
-                         "/"
-                         (or (pi-config-state-default-model st) "—")
-                       ) ;string-append
-                   width
-                 ) ;%fit
-               ) ;status
-               (hint (%fit (if (string=? message "")
-                             " ↑↓/jk move · → enter column · Enter set default · space toggle · v view · q chat"
-                             (string-append " " message)
-                           ) ;if
-                       width
-                     ) ;%fit
-               ) ;hint
-              ) ;
-          (let* ((lines (append body (list status hint))) (len (length lines)))
-            (cond ((<= height 0) '())
-                  ((> len height) (take lines height))
-                  ((< len height) (append lines (make-list (- height len) (%fit "" width))))
-                  (else lines)
-            ) ;cond
-          ) ;let*
-        ) ;let*
+                 width
+               ) ;%fit
+             ) ;status
+             (hint
+               (%fit (if (not (string=? message ""))
+                       (string-append " " message)
+                       (if aio?
+                         " ↑↓/jk move · → nodes · a new · d del · t thinking · space first · 1/2 tab · q chat"
+                         " ↑↓/jk move · → enter · Enter default · space toggle · v view · 1/2 tab · q chat"
+                       ) ;if
+                     ) ;if
+                 width
+               ) ;%fit
+             ) ;hint
+             (lines (cons tab-line (append body (list status hint))))
+             (len (length lines))
+            ) ;
+        (cond ((<= height 0) '())
+              ((> len height) (take lines height))
+              ((< len height) (append lines (make-list (- height len) (%fit "" width))))
+              (else lines)
+        ) ;cond
       ) ;let*
     ) ;define*
 

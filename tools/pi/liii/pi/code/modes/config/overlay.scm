@@ -79,10 +79,14 @@
             ) ;
         (list (string-append path " not found")
           ""
-          (if (string=? kind "provider")
-            (string-append "provider " id " · values from builtin registry")
-            (string-append "model " id " · values from builtin catalog")
-          ) ;if
+          (cond ((string=? kind "provider")
+                 (string-append "provider " id " · values from builtin registry")
+                ) ;
+                ((string=? kind "all-in-one")
+                 "all-in-one configuration · values from builtin default chains"
+                ) ;
+                (else (string-append "model " id " · values from builtin catalog"))
+          ) ;cond
           ""
           (string-append %dim "space toggles · q closes" %reset)
         ) ;list
