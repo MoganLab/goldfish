@@ -1,13 +1,23 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-html-inline
 ;; 创建行内 HTML 节点。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-html-inline literal)
+;;
+;; 参数
+;; ----
+;; literal : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-html-inline "<br>")))
   (check (cmark-node-type node) => 'html_inline)

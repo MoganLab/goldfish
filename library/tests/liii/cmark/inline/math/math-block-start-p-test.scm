@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark inline math))
-
-(check-set-mode! 'report-failed)
-
 ;; math-block-start?
 ;; 判断一行文本是否是块级数学公式的起始标记。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; boolean
 ;; 当 line 为 "$$" / "\\[" / 单行 "\\[...\\]" / 单行 "$$...$$" 时返回 #t。
+
+(import (liii check) (liii cmark inline math))
+
+(check-set-mode! 'report-failed)
 
 (check-true (math-block-start? "$$"))
 (check-false (math-block-start? "$$ "))

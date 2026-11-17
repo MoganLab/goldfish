@@ -1,13 +1,25 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-link
 ;; 创建链接节点。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-link url title)
+;;
+;; 参数
+;; ----
+;; url : any
+;; 输入参数。
+;; title : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-link "http://example.com" "Example")))
   (check (cmark-node-type node) => 'link)

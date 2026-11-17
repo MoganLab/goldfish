@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-node
 ;; 创建一个通用的 cmark AST 节点。
 ;;
@@ -9,10 +5,25 @@
 ;; ----
 ;; (make-cmark-node type data children parent)
 ;;
+;;
+;; 参数
+;; ----
+;; type : any
+;; 输入参数。
+;; data : any
+;; 输入参数。
+;; children : any
+;; 输入参数。
+;; parent : any
+;; 输入参数。
 ;; 返回值
 ;; ----
 ;; cmark-node
 ;; 返回携带 type、data、children 和 parent 的节点记录。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-node 'document '() '() #f)))
   (check-true (cmark-node? node))

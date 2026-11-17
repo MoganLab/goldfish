@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; cmark-node-append-child!
 ;; 为父节点追加子节点，并保持父子关系一致。
 ;;
@@ -9,10 +5,21 @@
 ;; ----
 ;; (cmark-node-append-child! parent child)
 ;;
+;;
+;; 参数
+;; ----
+;; parent : any
+;; 输入参数。
+;; child : any
+;; 输入参数。
 ;; 返回值
 ;; ----
 ;; unspecified
 ;; 调用后 parent 的 children 增加 child，child 的 parent 指向 parent。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((parent (make-cmark-paragraph))
       (first-child (make-cmark-text "Hello"))

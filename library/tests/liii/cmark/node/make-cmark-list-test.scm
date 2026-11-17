@@ -1,13 +1,27 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-list
 ;; 创建列表节点。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-list list-type start delimiter)
+;;
+;; 参数
+;; ----
+;; list-type : any
+;; 输入参数。
+;; start : any
+;; 输入参数。
+;; delimiter : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-list 'ordered 1 #\.)))
   (check (cmark-node-type node) => 'list)

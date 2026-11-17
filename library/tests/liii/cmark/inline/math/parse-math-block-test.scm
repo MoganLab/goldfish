@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark inline math) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; parse-math-block
 ;; 把块级数学公式行序列解析为 math_block 节点。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; cmark-node
 ;; 返回类型为 'math_block 的节点，literal 字段保存公式内容。
+
+(import (liii check) (liii cmark inline math) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((math (parse-math-block '("$$" "E = mc^2" "$$"))))
   (check (cmark-node-type math) => 'math_block)

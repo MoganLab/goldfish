@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-heading
 ;; 创建带 level 数据的标题节点。
 ;;
@@ -9,10 +5,19 @@
 ;; ----
 ;; (make-cmark-heading level)
 ;;
+;;
+;; 参数
+;; ----
+;; level : any
+;; 输入参数。
 ;; 返回值
 ;; ----
 ;; cmark-node
 ;; 返回类型为 'heading 的节点，并在 data 中保存标题级别。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-heading 2)))
   (check (cmark-node-type node) => 'heading)

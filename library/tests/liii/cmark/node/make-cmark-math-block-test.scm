@@ -1,13 +1,23 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-math-block
 ;; 创建块级数学公式节点。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-math-block literal)
+;;
+;; 参数
+;; ----
+;; literal : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-math-block "E=mc^2")))
   (check (cmark-node-type node) => 'math_block)

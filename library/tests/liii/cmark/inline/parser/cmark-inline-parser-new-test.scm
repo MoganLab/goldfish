@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark inline parser))
-
-(check-set-mode! 'report-failed)
-
 ;; cmark-inline-parser-new
 ;; 创建已初始化的内联解析器。
 ;;
@@ -9,10 +5,18 @@
 ;; ----
 ;; (cmark-inline-parser-new)
 ;;
+;;
+;; 参数
+;; ----
+;; 无参数。
 ;; 返回值
 ;; ----
 ;; cmark-inline-parser
 ;; 返回 content 为空串、pos 为 0、node 为 #f 的解析器。
+
+(import (liii check) (liii cmark inline parser))
+
+(check-set-mode! 'report-failed)
 
 (let ((parser (cmark-inline-parser-new)))
   (check-true (cmark-inline-parser? parser))

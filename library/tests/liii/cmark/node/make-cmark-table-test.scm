@@ -1,13 +1,27 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-table
 ;; 创建表格节点，并保留对齐、表头和正文行信息。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-table alignments header rows)
+;;
+;; 参数
+;; ----
+;; alignments : any
+;; 输入参数。
+;; header : any
+;; 输入参数。
+;; rows : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-table '(default right) '(("Name" "Value")) '(("A" "1")
                                                                      ("B" "2")))

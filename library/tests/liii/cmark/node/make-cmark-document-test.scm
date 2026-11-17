@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-document
 ;; 创建文档根节点。
 ;;
@@ -9,10 +5,18 @@
 ;; ----
 ;; (make-cmark-document)
 ;;
+;;
+;; 参数
+;; ----
+;; 无参数。
 ;; 返回值
 ;; ----
 ;; cmark-node
 ;; 返回类型为 'document 的根节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-document)))
   (check (cmark-node-type node) => 'document)

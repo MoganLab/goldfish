@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark inline math))
-
-(check-set-mode! 'report-failed)
-
 ;; math-inline-start?
 ;; 判断字符串某个位置是否是行内数学公式的起始。
 ;;
@@ -9,6 +5,13 @@
 ;; ----
 ;; (math-inline-start? str pos)
 ;;
+;;
+;; 参数
+;; ----
+;; str : any
+;; 输入参数。
+;; pos : any
+;; 输入参数。
 ;; 返回值
 ;; ----
 ;; boolean
@@ -18,6 +21,10 @@
 ;; ----
 ;; \( 是数学扩展定界（0111 起解析器原生支持，替代 preprocess-latex 预处理）；
 ;; \\( 由转义分支先行消费，主循环不会停在被转义的 \( 上。
+
+(import (liii check) (liii cmark inline math))
+
+(check-set-mode! 'report-failed)
 
 (check-true (math-inline-start? "$math$" 0))
 (check-false (math-inline-start? "text" 0))

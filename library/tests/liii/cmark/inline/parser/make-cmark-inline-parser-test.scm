@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark inline parser))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-inline-parser
 ;; 创建未初始化的内联解析器记录。
 ;;
@@ -9,6 +5,10 @@
 ;; ----
 ;; (make-cmark-inline-parser)
 ;;
+;;
+;; 参数
+;; ----
+;; 无参数。
 ;; 返回值
 ;; ----
 ;; cmark-inline-parser
@@ -17,6 +17,10 @@
 ;; 描述
 ;; ----
 ;; 该构造器主要用于底层初始化和字段访问测试。
+
+(import (liii check) (liii cmark inline parser))
+
+(check-set-mode! 'report-failed)
 
 (let ((parser (make-cmark-inline-parser)))
   (check-true (cmark-inline-parser? parser))

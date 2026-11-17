@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark inline math) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; parse-math-inline
 ;; 从指定位置解析一段行内数学公式。
 ;;
@@ -9,10 +5,21 @@
 ;; ----
 ;; (parse-math-inline str start)
 ;;
+;;
+;; 参数
+;; ----
+;; str : any
+;; 输入参数。
+;; start : any
+;; 输入参数。
 ;; 返回值
 ;; ----
 ;; pair
 ;; 返回 (node . next-pos)，其中 node 可能是 math_inline 或 text。
+
+(import (liii check) (liii cmark inline math) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((result (parse-math-inline "$E=mc^2$" 0)))
   (check (cmark-node-type (car result)) => 'math_inline)

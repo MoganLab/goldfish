@@ -1,13 +1,23 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-code
 ;; 创建行内代码节点。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-code literal)
+;;
+;; 参数
+;; ----
+;; literal : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-code "x")))
   (check (cmark-node-type node) => 'code)

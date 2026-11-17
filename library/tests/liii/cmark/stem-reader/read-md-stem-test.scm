@@ -1,15 +1,25 @@
-(import (scheme base))
-(import (liii check))
-(import (liii cmark stem-reader))
-
-(check-set-mode! 'report-failed)
-
 ;; read-md-stem
 ;; 读取 md.stem 资源文本，并返回完整的 `(md-stem ...)` 文档。
 ;;
 ;; 语法
 ;; ----
 ;; (read-md-stem [input-port])
+;;
+;; 参数
+;; ----
+;; [input-port] : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; any
+;; 返回操作结果。
+
+(import (scheme base))
+(import (liii check))
+(import (liii cmark stem-reader))
+
+(check-set-mode! 'report-failed)
 
 (check-true (procedure? read-md-stem))
 
