@@ -59,6 +59,7 @@
     (lambda (node timeout config-dir run-fn)
       (equal? (chain-node-provider node) "p2")
     ) ;lambda
+    0
   ) ;pi-chain-execute
 ) ;define
 

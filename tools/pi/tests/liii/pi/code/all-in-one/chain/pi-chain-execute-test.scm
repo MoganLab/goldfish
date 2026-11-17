@@ -70,8 +70,10 @@
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
 (pi-chain-reset-rewind-state!)
 
-;; 1. 节点 1 在 T=1000 故障，顺次探活落到节点 2；记录节点 1 故障时间戳并在执行前清洗边界
+;; 1. 节点 1 在 T=1000 真实请求失败触发切换（skip-index=0），探活落到节点 2；
+;;    记录节点 1 故障时间戳并在执行前清洗边界
 (let ((healthy '("deepseek1")) (probed '()) (calls '()))
+  (pi-chain-record-node-failure! N1 1000)
   (check
     (pi-chain-execute CHAIN
       (list USER BROKEN)
@@ -89,13 +91,13 @@
         (check request-fn => #f)
         (member (chain-node-provider node) healthy)
       ) ;lambda
-      #f
+      0
       1000
     ) ;pi-chain-execute
     =>
     'executed-on-node-2
   ) ;check
-  (check (reverse probed) => '("kimi1" "deepseek1"))
+  (check (reverse probed) => '("deepseek1"))
   (check (length calls) => 1)
   (let ((call (car calls)))
     (check (list-ref call 0) => "deepseek1")
@@ -111,7 +113,7 @@
   ) ;check-true
 ) ;let
 
-;; 2. 粘性节点机制：节点 2 可用时保持粘性，直接探活并正常使用节点 2，不探活节点 1
+;; 2. 粘性节点机制：节点 2 可用时保持粘性，直接复用节点 2 且不再探活
 (let ((probed '()) (executed #f))
   (check
     (pi-chain-execute CHAIN
@@ -133,14 +135,15 @@
     =>
     'executed-on-node-2-again
   ) ;check
-  ;; 验证只探活了粘性节点 deepseek1，没有重新从链头 kimi1 探活
-  (check (reverse probed) => '("deepseek1"))
+  ;; 验证粘性复用时不触发探活
+  (check probed => '())
   (check executed => "deepseek1")
 ) ;let
 
-;; 3. 冷却期跳过机制：在 T=10000（距离 kimi1 故障仅 9 秒 < 60 秒冷却期），节点 2 故障；
-;; kimi1 仍处于冷却期内被跳过，避免无效超时；顺延探测节点 3 并成功切换
+;; 3. 冷却期跳过机制：在 T=10000（距离 kimi1 故障仅 9 秒 < 60 秒冷却期），节点 2 真实请求故障；
+;; 记录节点 2 故障并跳过节点 2 触发切换探活；kimi1 仍处于冷却期内被跳过，顺延探测节点 3 并成功切换
 (let ((probed '()) (executed #f))
+  (pi-chain-record-node-failure! N2 10000)
   (check
     (pi-chain-execute CHAIN
       (list USER)
@@ -155,21 +158,22 @@
         (set! probed (cons (chain-node-provider node) probed))
         (equal? (chain-node-provider node) "google1")
       ) ;lambda
-      #f
+      1
       10000
     ) ;pi-chain-execute
     =>
     'executed-on-node-3
   ) ;check
-  ;; 粘性节点 deepseek1 先探活（失败）；kimi1 处于冷却期被跳过；顺延探测 google1（成功）
-  (check (reverse probed) => '("deepseek1" "google1"))
+  ;; 跳过刚失败的 deepseek1；kimi1 处于冷却期被跳过；顺延探测 google1（成功）
+  (check (reverse probed) => '("google1"))
   (check executed => "google1")
   (check (pi-chain-node-last-failure N2) => 10000)
 ) ;let
 
-;; 4. 冷却期自愈回溯：在 T=70000（距离 kimi1 故障 69 秒 >= 60 秒冷却期），节点 3 故障；
-;; kimi1 已超出冷却期，优先对 kimi1 重新探活；kimi1 恢复可用，自愈回溯至链头并记录 REWIND
+;; 4. 冷却期自愈回溯：在 T=70000（距离 kimi1 故障 69 秒 >= 60 秒冷却期），节点 3 真实请求故障；
+;; kimi1 已超出冷却期，切换时优先对 kimi1 重新探活；kimi1 恢复可用，自愈回溯至链头并记录 REWIND
 (let ((probed '()) (executed #f))
+  (pi-chain-record-node-failure! N3 70000)
   (check
     (pi-chain-execute CHAIN
       (list USER)
@@ -182,17 +186,17 @@
       #f
       (lambda (node timeout-ms config-dir request-fn)
         (set! probed (cons (chain-node-provider node) probed))
-        ;; 粘性节点 google1 故障；超出冷却期的链头 kimi1 恢复可用
+        ;; 超出冷却期的链头 kimi1 恢复可用
         (equal? (chain-node-provider node) "kimi1")
       ) ;lambda
-      #f
+      2
       70000
     ) ;pi-chain-execute
     =>
     'executed-on-node-1
   ) ;check
-  ;; 先探活粘性节点 google1（失败）；kimi1 超出冷却期被优先探活（成功）
-  (check (reverse probed) => '("google1" "kimi1"))
+  ;; 跳过刚失败的 google1；kimi1 超出冷却期被优先探活（成功）
+  (check (reverse probed) => '("kimi1"))
   (check executed => "kimi1")
   ;; 节点 1 自愈成功后故障标记已清除
   (check-false (pi-chain-node-last-failure N1))
@@ -203,9 +207,10 @@
   ) ;check-true
 ) ;let
 
-;; 5. 冷却期探活失败刷新：在 T=135000（距离 deepseek1 故障 125s、google1 故障 65s 已过冷却），节点 1 故障；
+;; 5. 冷却期探活失败刷新：在 T=135000（距离 deepseek1 故障 125s、google1 故障 65s 已过冷却），节点 1 真实请求故障；
 ;; 检查 deepseek1：超出冷却期进行探活但仍失败，刷新其故障时间戳为 135000 并顺延到 google1
 (let ((probed '()) (executed #f))
+  (pi-chain-record-node-failure! N1 135000)
   (check
     (pi-chain-execute CHAIN
       (list USER)
@@ -220,14 +225,14 @@
         (set! probed (cons (chain-node-provider node) probed))
         (equal? (chain-node-provider node) "google1")
       ) ;lambda
-      #f
+      0
       135000
     ) ;pi-chain-execute
     =>
     'executed-on-node-3-again
   ) ;check
-  ;; 粘性节点 kimi1 故障；deepseek1 超出冷却期探活失败；顺延探测 google1（成功）
-  (check (reverse probed) => '("kimi1" "deepseek1" "google1"))
+  ;; 跳过刚失败的 kimi1；deepseek1 超出冷却期探活失败；顺延探测 google1（成功）
+  (check (reverse probed) => '("deepseek1" "google1"))
   (check executed => "google1")
   (check (pi-chain-node-last-failure N1) => 135000)
   (check (pi-chain-node-last-failure N2) => 135000)
@@ -259,7 +264,7 @@
   (check-false called?)
 ) ;let
 
-;; 7. 冷却期禁用（retryIntervalMs <= 0）：节点不进入冷却期，保持立即探活
+;; 7. 冷却期禁用（retryIntervalMs <= 0）：节点不进入冷却期，切换时立即探活
 (let ((probed '())
       (cfg-no-cd (make-all-in-one-cfg #f 1000 0 3456 (list CHAIN)))
      ) ;
@@ -276,7 +281,7 @@
         (set! probed (cons (chain-node-provider node) probed))
         #t
       ) ;lambda
-      #f
+      1
       105
     ) ;pi-chain-execute
     =>

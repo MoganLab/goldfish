@@ -58,6 +58,7 @@
     TMP-DIR
     #f
     (lambda (node . args) (equal? (chain-node-provider node) "p2"))
+    0
   ) ;pi-chain-execute
   =>
   'ok

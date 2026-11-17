@@ -44,14 +44,23 @@
 ) ;when
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
 
-(define (execute-with-probe probe-fn)
-  (pi-chain-execute CHAIN '() (lambda (provider . args) provider) CFG TMP-DIR #f probe-fn)
+(define (execute-with-probe probe-fn . maybe-skip)
+  (pi-chain-execute CHAIN
+    '()
+    (lambda (provider . args) provider)
+    CFG
+    TMP-DIR
+    #f
+    probe-fn
+    (if (pair? maybe-skip) (car maybe-skip) #f)
+  ) ;pi-chain-execute
 ) ;define
 
-;; 先切换到 p2，再确认下一轮只探测并复用 p2。
+;; 先切换到 p2，再确认下一轮直接粘性复用 p2，不再触发探活。
 (check
   (execute-with-probe
     (lambda (node . args) (equal? (chain-node-provider node) "p2"))
+    0
   ) ;execute-with-probe
   =>
   "p2"
@@ -67,10 +76,10 @@
     =>
     "p2"
   ) ;check
-  (check (reverse probed) => '("p2"))
+  (check probed => '())
 ) ;let
 
-;; 重置后不再粘性复用 p2，下一轮从链头 p1 开始。
+;; 重置后不再粘性复用 p2，下一轮直接从链头 p1 开始且不探活。
 (pi-chain-reset-sticky-state!)
 (let ((probed '()))
   (check
@@ -83,7 +92,7 @@
     =>
     "p1"
   ) ;check
-  (check (reverse probed) => '("p1"))
+  (check probed => '())
 ) ;let
 
 (when (file-exists? TMP-DIR)

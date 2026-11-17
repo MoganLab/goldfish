@@ -84,7 +84,7 @@
 
 (pi-chain-reset-sticky-state!)
 
-;; 首节点失败、第二节点成功；真实请求收到实际节点凭据与模型元数据，
+;; 首节点真实请求失败、切换到第二节点（触发探活）；真实请求收到实际节点凭据与模型元数据，
 ;; 并在交接前用 active_node 事件告知前台当前节点
 (let ((probed '()) (captured #f) (node-events '()))
   (let ((response
@@ -108,13 +108,19 @@
               (equal? (chain-node-model node) "two")
             ) ;lambda
             (lambda (provider config messages system-prompt tools on-event timeout)
-              (set! captured (list provider config messages system-prompt tools timeout))
-              (pi-assistant-message (list (pi-text-block "ok")) "stop")
+              (if (equal? (cdr (assoc 'model-id config)) "one")
+                (pi-assistant-message '() "error" "HTTP 503: unavailable")
+                (begin
+                  (set! captured (list provider config messages system-prompt tools timeout))
+                  (pi-assistant-message (list (pi-text-block "ok")) "stop")
+                ) ;begin
+              ) ;if
             ) ;lambda
           ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
-    (check (reverse probed) => '("one" "two"))
+    ;; 首次请求不探活，仅在切换到 two 时探活
+    (check (reverse probed) => '("two"))
     (check (pi-assistant-message-stop-reason response) => "stop")
     (check (car captured) => "stub")
     (let ((config (cadr captured)))
@@ -131,7 +137,9 @@
     (check
       (filter (lambda (p) (eq? (car p) 'active_node)) node-events)
       =>
-      (list (cons 'active_node '("stub" "two" "high" 234567 #t)))
+      (list (cons 'active_node '("stub" "two" "high" 234567 #t))
+        (cons 'active_node '("stub" "one" "off" 128000 #f))
+      ) ;list
     ) ;check
   ) ;let
 ) ;let
@@ -164,14 +172,14 @@
         ) ;response
        ) ;
     (check (pi-assistant-message-stop-reason response) => "stop")
-    (check (reverse probed) => '("one" "two"))
+    (check (reverse probed) => '("two"))
     (check (reverse requested) => '("one" "two"))
   ) ;let
 ) ;let
 
-;; 全链失败或链不存在时不调用真实请求函数
+;; 全链失败时返回错误响应（首节点真实请求失败、备选节点探活失败）
 (pi-chain-reset-sticky-state!)
-(let ((called? #f))
+(let ((requested '()) (probed '()))
   (let ((response (pi-all-in-one-request-stream "all-in-one"
                     CONFIG
                     '()
@@ -179,13 +187,20 @@
                     '()
                     #f
                     60
-                    (lambda args #f)
-                    (lambda args (set! called? #t))
+                    (lambda (node . args)
+                      (set! probed (cons (chain-node-model node) probed))
+                      #f
+                    ) ;lambda
+                    (lambda (provider config . args)
+                      (set! requested (cons (cdr (assoc 'model-id config)) requested))
+                      (pi-assistant-message '() "error" "HTTP 503")
+                    ) ;lambda
                   ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
     (check (pi-assistant-message-stop-reason response) => "error")
-    (check-false called?)
+    (check (reverse requested) => '("one"))
+    (check (reverse probed) => '("two"))
   ) ;let
 ) ;let
 
@@ -215,10 +230,13 @@
       (equal? (chain-node-model node) "two")
     ) ;lambda
     (lambda (provider node-cfg messages system-prompt tools on-event timeout)
-      (pi-assistant-message (list (pi-text-block "ok")) "stop")
+      (if (equal? (cdr (assoc 'model-id node-cfg)) "one")
+        (pi-assistant-message '() "error" "HTTP 503")
+        (pi-assistant-message (list (pi-text-block "ok")) "stop")
+      ) ;if
     ) ;lambda
   ) ;pi-all-in-one-request-stream
-  (check (length node-events) => 1)
+  (check (length node-events) => 2)
   (check (length (car node-events)) => 5)
   (check (list-ref (car node-events) 4) => #t)
 ) ;let
