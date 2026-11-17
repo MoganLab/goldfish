@@ -15,11 +15,10 @@
 ;;
 
 (define-library (liii path record)
-  (export make-path-record path? path-record-parts path-record-type
-    path-record-drive path-record-root path path-from-string path-of-drive
-    path-from-parts path-from-env path-cwd path-home path-temp-dir path-parts
-    path-type path-drive path-root path->string path-as-posix path-absolute?
-    path-relative? path-equals? path=?
+  (export path? path path-from-string path-of-drive path-from-parts path-from-env
+    path-cwd path-home path-temp-dir path-parts path-type path-drive path-root
+    path->string path-as-posix path-absolute? path-relative? path-equals?
+    path=?
   ) ;export
   (import (scheme base)
     (scheme char)
@@ -30,23 +29,13 @@
     (liii string)
     (liii vector)
     (liii path internal parse)
+    (liii path internal record)
   ) ;import
   (begin
 
-    ;; ;============================================================
-    ;; ; Path record 类型
-    ;; ;============================================================
-    ;; ; root 字段：#\\ / #\/ 表示有根分隔符(绝对路径或驱动器根),
-    ;; ; #f 表示无根(drive-relative 或相对路径)。用于区分 C:\foo
-    ;; ; (root=#\\)和 C:foo(root=#f)的语义差异。
-    (define-record-type <path>
-      (make-path-record parts type drive root)
-      path?
-      (parts path-record-parts)
-      (type path-record-type)
-      (drive path-record-drive)
-      (root path-record-root)
-    ) ;define-record-type
+    (define (path? obj)
+      (%path? obj)
+    ) ;define
 
     ;; ; 构造路径 anchor 首元素字符串(对齐 pathlib.parts 的首元素)。
     ;; ; 差异:posix 绝对返回 "/";Windows 返回 "C:\"/"C:"/"\\server\share\"/"\\";
@@ -74,7 +63,7 @@
     ;; ; 差异:Windows 路径形式(UNC、C:\、C:foo)只在 Windows 平台识别,
     ;; ; 否则一律当 posix;同一字符串 "/" 在 Windows 被规范化为 windows "\"。
     (define (path . args)
-      (cond ((null? args) (make-path-record #(".") 'posix "" #f))
+      (cond ((null? args) (%make-path-record #(".") 'posix "" #f))
             (else
               (let ((arg (car args)))
                 (cond
@@ -82,12 +71,12 @@
                   (if (and (os-windows?) (or (unc-prefix? arg) (windows-path-with-drive? arg)))
                     (receive (parts drive root)
                       (parse-windows-path arg)
-                      (make-path-record parts 'windows drive root)
+                      (%make-path-record parts 'windows drive root)
                     ) ;receive
                     (receive (parts root)
                       (parse-path-string arg)
                       (let ((type (if (os-windows?) 'windows 'posix)))
-                        (make-path-record parts type "" root)
+                        (%make-path-record parts type "" root)
                       ) ;let
                     ) ;receive
                   ) ;if
@@ -106,10 +95,10 @@
     (define (path-parts p)
       (if (not (path? p))
         (type-error "path-parts: argument must be path")
-        (let ((parts (path-record-parts p))
-              (root (path-record-root p))
-              (drive (path-record-drive p))
-              (type (path-record-type p))
+        (let ((parts (%path-record-parts p))
+              (root (%path-record-root p))
+              (drive (%path-record-drive p))
+              (type (%path-record-type p))
              ) ;
           (let ((anchor (anchor-string type drive root)))
             (cond (anchor (vector-append (vector anchor) parts))
@@ -125,7 +114,7 @@
     ;; ; 差异:类型由构造时的平台决定,Windows 上 (path "/") 是 'windows。
     (define (path-type p)
       (if (path? p)
-        (path-record-type p)
+        (%path-record-type p)
         (type-error "path-type: argument must be path")
       ) ;if
     ) ;define
@@ -135,7 +124,7 @@
     ;; ; UNC 返回 "\\server\share" 整体(无冒号),相对/current-drive root 返回 ""。
     (define (path-drive p)
       (if (path? p)
-        (let* ((drive (path-record-drive p)) (type (path-record-type p)))
+        (let* ((drive (%path-record-drive p)) (type (%path-record-type p)))
           (cond ((eq? type 'posix) "")
                 ((unc-prefix? drive) drive)
                 ((string-null? drive) "")
@@ -151,7 +140,7 @@
     ;; ; 仅 server 的 \\srv)返回 ""。
     (define (path-root p)
       (if (path? p)
-        (let ((root (path-record-root p)) (type (path-record-type p)))
+        (let ((root (%path-record-root p)) (type (%path-record-type p)))
           (cond ((not root) "")
                 ((eq? type 'windows) "\\")
                 (else "/")
@@ -206,10 +195,10 @@
     (define (path->string p)
       (cond
        ((path? p)
-        (let ((parts (path-record-parts p))
-              (type (path-record-type p))
-              (drive (path-record-drive p))
-              (root (path-record-root p))
+        (let ((parts (%path-record-parts p))
+              (type (%path-record-type p))
+              (drive (%path-record-drive p))
+              (root (%path-record-root p))
              ) ;
           (case type
            ((posix) (%path->string-posix parts root))
@@ -244,9 +233,9 @@
     ;; ; (C:\foo、\\srv\sh\foo 绝对;C:foo、\foo 都不是绝对)。
     (define (path-absolute? p)
       (if (path? p)
-        (let ((type (path-record-type p))
-              (drive (path-record-drive p))
-              (root (path-record-root p))
+        (let ((type (%path-record-type p))
+              (drive (%path-record-drive p))
+              (root (%path-record-root p))
              ) ;
           (case type
            ((windows) (and root (not (string-null? drive))))
@@ -267,7 +256,7 @@
     ;; ; drive="C", root=#\\, parts=#()。仅 Windows 路径用,posix 无对应。
     (define (path-of-drive ch)
       (if (char? ch)
-        (make-path-record #() 'windows (string (ascii-upcase ch)) #\\)
+        (%make-path-record #() 'windows (string (ascii-upcase ch)) #\\)
         (type-error "path-of-drive: argument must be char")
       ) ;if
     ) ;define
@@ -281,7 +270,7 @@
     ;; ;   "/"     → posix 绝对, root=#\/
     (define (path-from-parts parts)
       (cond ((not (vector? parts)) (type-error "path-from-parts: argument must be vector"))
-            ((= (vector-length parts) 0) (make-path-record #(".") 'posix "" #f))
+            ((= (vector-length parts) 0) (%make-path-record #(".") 'posix "" #f))
             (else
               (let ((head (vector-ref parts 0)))
                 (cond
@@ -291,7 +280,7 @@
                          (has-tail-slash? (char=? (string-ref head (- hend 1)) #\\))
                          (trimmed (if has-tail-slash? (substring head 0 (- hend 1)) head))
                         ) ;
-                    (make-path-record (clean-tail parts) 'windows trimmed #\\)
+                    (%make-path-record (clean-tail parts) 'windows trimmed #\\)
                   ) ;let*
                  ) ;
 
@@ -301,26 +290,26 @@
                          (has-slash? (and (> hend 2) (char=? (string-ref head 2) #\\)))
                          (root (if has-slash? #\\ #f))
                         ) ;
-                    (make-path-record (clean-tail parts) 'windows drive root)
+                    (%make-path-record (clean-tail parts) 'windows drive root)
                   ) ;let*
                  ) ;
 
                  ((string=? head "/")
                   ;; posix 绝对：保留 caller 传的剩余 parts（不再剥离 "."，因为 caller 显式传）
-                  (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
+                  (%make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
                  ) ;
 
                  ((string=? head "\\")
                   ;; windows 当前驱动器根
-                  (make-path-record (vector-copy (vector-drop parts 1)) 'windows "" #\\)
+                  (%make-path-record (vector-copy (vector-drop parts 1)) 'windows "" #\\)
                  ) ;
 
                  ((string-null? head)
                   ;; 老式空 stub 开头，按 posix 绝对处理
-                  (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
+                  (%make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
                  ) ;
 
-                 (else (make-path-record (vector-copy parts) 'posix "" #f))
+                 (else (%make-path-record (vector-copy parts) 'posix "" #f))
                 ) ;cond
               ) ;let
             ) ;else

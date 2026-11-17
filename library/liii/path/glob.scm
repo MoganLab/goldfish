@@ -22,6 +22,7 @@
     (liii error)
     (liii string)
     (liii vector)
+    (liii path internal record)
     (liii path record)
     (liii path pure)
   ) ;import
@@ -99,12 +100,12 @@
     ;; ; 模式可含分隔符,从右向左逐段匹配;模式以分隔符开头(绝对模式)要求段数完全匹配。
     (define (path-match p pattern)
       (let* ((pp (path p))
-             (type (path-record-type pp))
+             (type (%path-record-type pp))
              (sep (if (eq? type 'windows) #\\ #\/))
              ;; Windows match 大小写不敏感:统一转小写后再匹配。
              (ci? (eq? type 'windows))
              (down (lambda (s) (if ci? (string-downcase s) s)))
-             (segs (map down (vector->list (path-record-parts pp))))
+             (segs (map down (vector->list (%path-record-parts pp))))
              (pat-raw (map down (string-split pattern sep)))
              ;; 绝对模式:pattern 以 sep 开头会产生首段空串
              (absolute-pattern? (and (>= (string-length pattern) 1) (char=? (string-ref pattern 0) sep))
