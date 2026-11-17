@@ -1,13 +1,22 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-item
 ;; 创建列表项节点。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-item)
+;;
+;; 参数
+;; ----
+;; 无参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-item)))
   (check (cmark-node-type node) => 'item)

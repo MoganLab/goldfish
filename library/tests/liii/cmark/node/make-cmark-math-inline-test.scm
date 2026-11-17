@@ -1,13 +1,23 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-math-inline
 ;; 创建行内数学公式节点。
 ;;
 ;; 语法
 ;; ----
 ;; (make-cmark-math-inline literal)
+;;
+;; 参数
+;; ----
+;; literal : any
+;; 输入参数。
+;;
+;; 返回值
+;; ----
+;; cmark-node
+;; 返回新创建的 cmark AST 节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-math-inline "x^2")))
   (check (cmark-node-type node) => 'math_inline)

@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-text
 ;; 创建文本节点。
 ;;
@@ -9,10 +5,19 @@
 ;; ----
 ;; (make-cmark-text content)
 ;;
+;;
+;; 参数
+;; ----
+;; content : any
+;; 输入参数。
 ;; 返回值
 ;; ----
 ;; cmark-node
 ;; 返回类型为 'text 的节点，并把文本写入 content 字段。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-text "Hello")))
   (check (cmark-node-type node) => 'text)

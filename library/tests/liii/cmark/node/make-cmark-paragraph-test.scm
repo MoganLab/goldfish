@@ -1,7 +1,3 @@
-(import (liii check) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; make-cmark-paragraph
 ;; 创建段落节点。
 ;;
@@ -9,10 +5,18 @@
 ;; ----
 ;; (make-cmark-paragraph)
 ;;
+;;
+;; 参数
+;; ----
+;; 无参数。
 ;; 返回值
 ;; ----
 ;; cmark-node
 ;; 返回类型为 'paragraph、且初始无子节点的段落节点。
+
+(import (liii check) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (let ((node (make-cmark-paragraph)))
   (check (cmark-node-type node) => 'paragraph)

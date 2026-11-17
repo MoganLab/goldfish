@@ -1,7 +1,3 @@
-(import (liii check) (liii list) (liii cmark node))
-
-(check-set-mode! 'report-failed)
-
 ;; cmark-all-types
 ;; 返回 cmark 支持的全部节点类型，并配合类型谓词使用。
 ;;
@@ -9,10 +5,18 @@
 ;; ----
 ;; (cmark-all-types)
 ;;
+;;
+;; 参数
+;; ----
+;; 无参数。
 ;; 返回值
 ;; ----
 ;; list
 ;; 返回块级类型与行内类型拼接得到的完整列表。
+
+(import (liii check) (liii list) (liii cmark node))
+
+(check-set-mode! 'report-failed)
 
 (check-true (cmark-block-type? 'document))
 (check-true (cmark-block-type? 'paragraph))
