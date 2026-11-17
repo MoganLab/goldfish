@@ -9,8 +9,8 @@
 ;; ----
 ;; tc : alist
 ;; tool_calls 增量片段，包含 index，可选包含 id 与 function (name, arguments)。
-;; stream-state : openai-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : openai-stream-state
+;; 可变流状态记录。
 ;; on-event : procedure | #f
 ;; 接收流式事件的回调；为 #f 时不派发事件。
 ;;

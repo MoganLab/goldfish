@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : openai-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : openai-stream-state
+;; 可变流状态记录。
 ;; text : string
 ;; 本次到达的文本增量。
 ;; on-event : procedure | #f

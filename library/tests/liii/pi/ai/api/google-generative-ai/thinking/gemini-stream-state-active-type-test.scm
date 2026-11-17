@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : gemini-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : gemini-stream-state
+;; 可变流状态记录。
 ;;
 ;; 返回值
 ;; ----
@@ -28,13 +28,6 @@
   (gemini-stream-state-current-active-type-set! state "text")
   (check (gemini-stream-state-active-type state) => "text")
   (gemini-stream-state-current-active-type-set! state "thinking")
-  (check (gemini-stream-state-active-type state) => "thinking")
-) ;let
-
-;; vector 状态（兼容旧调用）
-(let ((state (vector '() #f '() '() "STOP" #f #f #f)))
-  (check (gemini-stream-state-active-type state) => #f)
-  (vector-set! state 5 "thinking")
   (check (gemini-stream-state-active-type state) => "thinking")
 ) ;let
 

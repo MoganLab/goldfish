@@ -11,8 +11,8 @@
 ;; 包含 thinking 或 signature 字段的 Anthropic 增量对象。
 ;; idx : integer
 ;; 当前内容块索引。
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; on-ev : procedure | #f
 ;; 接收 thinking_delta 事件的回调；为 #f 时不派发事件。
 ;;
@@ -25,17 +25,23 @@
 ;; ----
 ;; 没有活动 thinking 块时忽略增量，签名增量本身不产生 thinking_delta 事件。
 
-(import (liii check) (liii pi ai api anthropic-messages thinking))
+(import (liii check)
+  (liii pi ai api anthropic-messages thinking)
+  (liii pi ai api anthropic-messages stream-state)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f))
+(let* ((stream-state
+         (make-anthropic-stream-state '() #f '((input . 10) (output . 5)) '() #f #f
+           '((thinking . "") (signature . "") (index . 0))
+         ) ;make-anthropic-stream-state
+       ) ;stream-state
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
        ) ;emit
       ) ;
-  (vector-set! stream-state 6 '((thinking . "") (signature . "") (index . 0)))
 
   (anthropic-handle-thinking-delta '(("type" . "thinking_delta")
                                      ("thinking" . "Step 1"))

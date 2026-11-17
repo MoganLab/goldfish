@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; idx : integer
 ;; 当前内容块索引。
 ;; on-ev : procedure | #f
@@ -32,7 +32,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 派发 thinking_start 事件并重置 last-text
-(let* ((stream-state (vector '() "old text" '((input . 10) (output . 5)) '() #f #f #f))
+(let* ((stream-state (make-anthropic-stream-state '() "old text" '((input . 10) (output . 5)) '() #f #f #f))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -48,7 +48,7 @@
 ) ;let*
 
 ;; 回调为 #f 时不派发事件，但仍建立 thinking 状态
-(let ((stream-state (vector '() #f '() '() #f #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f '() '() #f #f #f)))
   (anthropic-start-thinking-block stream-state 3 #f)
   (check-true (not (eq? (anthropic-stream-state-current-thinking stream-state) #f)))
 ) ;let*

@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; state : gemini-stream-state | vector
-;; 流状态；record 为当前表示，vector 用于兼容旧调用。
+;; state : gemini-stream-state
+;; 流状态记录。
 ;; value : string | #f
 ;; 当前活动块类型，可取 text 或 thinking；没有活动块时为 #f。
 ;;
@@ -17,9 +17,6 @@
 ;; 未指定
 ;; 通过副作用更新流状态。
 
-;; 说明
-;; ----
-;; record 状态直接更新记录字段；vector 状态更新对应的下标。
 
 (import (liii check) (liii pi ai api google-generative-ai stream-state))
 
@@ -31,10 +28,5 @@
   (check (gemini-stream-state-current-active-type state) => "text")
 ) ;let
 
-;; vector 状态（兼容旧调用）
-(let ((state (vector '() #f '() '() "STOP" #f "" "")))
-  (gemini-stream-state-current-active-type-set! state "text")
-  (check (gemini-stream-state-current-active-type state) => "text")
-) ;let
 
 (check-report)

@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; state : openai-stream-state | vector
-;; 流状态；record 为当前表示，vector 用于兼容旧调用。
+;; state : openai-stream-state
+;; 流状态记录。
 ;;
 ;; 返回值
 ;; ----
@@ -27,9 +27,5 @@
   (check (openai-stream-state-tools state) => '())
 ) ;let*
 
-;; vector 状态（兼容旧调用）
-(let ((state (vector '() #f '() "stop" #f '())))
-  (check (openai-stream-state-tools state) => '())
-) ;let*
 
 (check-report)

@@ -17,8 +17,8 @@
 ;; 当前内容块索引。
 ;; usage : alist
 ;; 当前用量统计。
-;; stream-state : gemini-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : gemini-stream-state
+;; 可变流状态记录。
 ;; on-event : procedure | #f
 ;; 接收流式事件的回调；为 #f 时不派发事件。
 ;;
@@ -36,7 +36,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 首个增量新建文本块并派发 text_start 与 text_delta
-(let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -55,7 +55,7 @@
 ) ;let*
 
 ;; 后续增量合并到最后一个文本块，只派发 text_delta
-(let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -81,7 +81,7 @@
 ) ;let*
 
 ;; 空文本被忽略
-(let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))

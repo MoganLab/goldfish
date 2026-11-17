@@ -54,10 +54,10 @@
       (catch #t
         (lambda ()
           (let ((json-data (string->json body)))
-            (and (pair? json-data)
-              (let ((err (cdr (or (assoc "error" json-data) '(#f . #f)))))
+            (and (json-object? json-data)
+              (let ((err (json-ref json-data "error")))
                 (cond
-                 ((pair? err) (cdr (or (assoc "message" err) '(#f . #f))))
+                 ((json-object? err) (json-ref-string err "message" #f))
                  ((string? err) err)
                  (else #f)
                 ) ;cond
@@ -123,11 +123,15 @@
     ) ;define
 
     (define (process-stream-function-call fc blocks stream-state on-event)
-      (let* ((name (cdr (assoc "name" fc)))
-             (args (cdr (assoc "args" fc)))
-             (id (cdr (or (assoc "id" fc) (assoc 'id fc) '(#f . #f))))
-             (ts (cdr (or (assoc "thoughtSignature" fc) (assoc 'thoughtSignature fc) '(#f
-                                                                                       . #f)))
+      (let* ((name (if (json-object? fc) (json-ref-string fc "name" "") ""))
+             (args (if (json-object? fc) (json-ref fc "args") '()))
+             (id (or (and (json-object? fc) (json-ref-string fc "id" #f))
+                   (cdr (or (assoc 'id fc) '(#f . #f)))
+                 ) ;or
+             ) ;id
+             (ts (or (and (json-object? fc) (json-ref-string fc "thoughtSignature" #f))
+                   (cdr (or (assoc 'thoughtSignature fc) '(#f . #f)))
+                 ) ;or
              ) ;ts
              (eff-id
                (if (and (string? id) (not (string-null? id)))
@@ -174,14 +178,14 @@
       (let* ((blocks (gemini-stream-state-blocks stream-state))
              (last-text (gemini-stream-state-last-text stream-state))
              (usage (gemini-stream-state-usage stream-state))
-             (part-ts (cdr (or (assoc "thoughtSignature" part) (assoc 'thoughtSignature part) '(#f
-                                                                                                . #f))
-                      ) ;cdr
+             (part-ts (or (and (json-object? part) (json-ref-string part "thoughtSignature" #f))
+                        (cdr (or (assoc 'thoughtSignature part) '(#f . #f)))
+                      ) ;or
              ) ;part-ts
             ) ;
         (cond
-         ((assoc "text" part)
-          (let ((t (cdr (assoc "text" part))))
+         ((json-contains-key? part "text")
+          (let ((t (json-ref-string part "text" "")))
             (if (gemini-is-thinking-part? part)
               (gemini-append-thinking-block! stream-state t part-ts on-event)
               (begin
@@ -204,11 +208,11 @@
             ) ;if
           ) ;let
          ) ;
-         ((assoc "functionCall" part)
+         ((json-contains-key? part "functionCall")
           (gemini-stream-stop-active-block! stream-state on-event)
-          (let ((fc (cdr (assoc "functionCall" part))))
+          (let ((fc (json-ref part "functionCall")))
             (process-stream-function-call
-              (if (and (string? part-ts) (not (assoc "thoughtSignature" fc)))
+              (if (and (string? part-ts) (not (json-contains-key? fc "thoughtSignature")))
                 (cons (cons "thoughtSignature" part-ts) fc)
                 fc
               ) ;if
@@ -223,28 +227,30 @@
     ) ;define
 
     (define (process-sse-chunk-data json-obj stream-state on-event)
-      (let* ((candidates (cdr (or (assoc "candidates" json-obj) '(#f . #()))))
-             (usage-meta (cdr (or (assoc "usageMetadata" json-obj) '(#f . #f))))
+      (let* ((candidates (if (json-object? json-obj) (json-ref json-obj "candidates") #()))
+             (usage-meta (if (json-object? json-obj) (json-ref json-obj "usageMetadata") #f))
             ) ;
-        (when (pair? usage-meta)
+        (when (json-object? usage-meta)
           (gemini-stream-state-usage-set! stream-state (gemini-map-usage usage-meta))
         ) ;when
         (when (and (vector? candidates) (> (vector-length candidates) 0))
-          (let* ((candidate (vector-ref candidates 0))
-                 (finish-reason (cdr (or (assoc "finishReason" candidate) '(#f
-                                                                            . #f))))
-                 (content-obj (cdr (or (assoc "content" candidate) '(#f))))
-                 (parts (cdr (or (assoc "parts" content-obj) '(#f . #()))))
-                ) ;
-            (when finish-reason
-              (gemini-stream-state-finish-reason-set! stream-state finish-reason)
+          (let ((candidate (vector-ref candidates 0)))
+            (when (json-object? candidate)
+              (let* ((finish-reason (json-ref-string candidate "finishReason" #f))
+                     (content-obj (json-ref candidate "content"))
+                     (parts (if (json-object? content-obj) (json-ref content-obj "parts") #()))
+                    ) ;
+                (when finish-reason
+                  (gemini-stream-state-finish-reason-set! stream-state finish-reason)
+                ) ;when
+                (when (vector? parts)
+                  (vector-for-each (lambda (part) (process-stream-part part stream-state on-event))
+                    parts
+                  ) ;vector-for-each
+                ) ;when
+              ) ;let*
             ) ;when
-            (when (vector? parts)
-              (vector-for-each (lambda (part) (process-stream-part part stream-state on-event))
-                parts
-              ) ;vector-for-each
-            ) ;when
-          ) ;let*
+          ) ;let
         ) ;when
       ) ;let*
     ) ;define

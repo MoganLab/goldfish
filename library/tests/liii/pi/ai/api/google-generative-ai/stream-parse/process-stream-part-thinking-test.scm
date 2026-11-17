@@ -9,8 +9,8 @@
 ;; ----
 ;; part : alist
 ;; 包含 text、thought、thoughtSignature 或 functionCall 的响应片段。
-;; stream-state : gemini-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : gemini-stream-state
+;; 可变流状态记录。
 ;; on-event : procedure | #f
 ;; 接收流式事件的回调；为 #f 时不派发事件。
 ;;
@@ -26,13 +26,14 @@
 (import (liii check)
   (liii pi ai message)
   (liii pi ai api google-generative-ai stream-parse)
+  (liii pi ai api google-generative-ai stream-state)
   (liii pi ai api google-generative-ai thinking)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 测试 process-stream-part 在流式接收 thinking 块并过渡到普通 text 块时的事件和结构
-(let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f #f))
+(let* ((stream-state (make-gemini-stream-state '() #f '((input . 10) (output . 5)) '() #f #f #f #f))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -46,8 +47,8 @@
     stream-state
     emit
   ) ;process-stream-part
-  (check (length (vector-ref stream-state 0)) => 1)
-  (check (pi-thinking-block? (car (vector-ref stream-state 0))) => #t)
+  (check (length (gemini-stream-state-blocks stream-state)) => 1)
+  (check (pi-thinking-block? (car (gemini-stream-state-blocks stream-state))) => #t)
   (check (length events) => 2)
   (check (cdr (assoc 'type (car events))) => "thinking_start")
   (check (cdr (assoc 'type (cadr events))) => "thinking_delta")
@@ -57,19 +58,19 @@
     stream-state
     emit
   ) ;process-stream-part
-  (check (length (vector-ref stream-state 0)) => 1)
+  (check (length (gemini-stream-state-blocks stream-state)) => 1)
   (check (length events) => 3)
   (check (cdr (assoc 'type (list-ref events 2))) => "thinking_delta")
-  (check (pi-thinking-block-thinking (car (vector-ref stream-state 0)))
+  (check (pi-thinking-block-thinking (car (gemini-stream-state-blocks stream-state)))
     =>
     "Let me analyze this"
   ) ;check
 
   ;; 3. 第三个 chunk: 思考结束，进入普通回答 text
   (process-stream-part '(("text" . "Here is the result.")) stream-state emit)
-  (check (length (vector-ref stream-state 0)) => 2)
-  (check (pi-thinking-block? (car (vector-ref stream-state 0))) => #t)
-  (check (pi-text-block? (cadr (vector-ref stream-state 0))) => #t)
+  (check (length (gemini-stream-state-blocks stream-state)) => 2)
+  (check (pi-thinking-block? (car (gemini-stream-state-blocks stream-state))) => #t)
+  (check (pi-text-block? (cadr (gemini-stream-state-blocks stream-state))) => #t)
   ;; 应该先触发 thinking_end，再触发 text_start, text_delta
   (check (length events) => 6)
   (check (cdr (assoc 'type (list-ref events 3))) => "thinking_end")
