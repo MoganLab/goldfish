@@ -15,8 +15,8 @@
 ;;
 
 (define-library (liii path component)
-  (export split-name-dots replace-last-segment path-name path-stem path-suffix
-    path-suffixes path-with-name path-with-stem path-with-suffix
+  (export path-name path-stem path-suffix path-suffixes path-with-name
+    path-with-stem path-with-suffix
   ) ;export
   (import (scheme base)
     (liii base)

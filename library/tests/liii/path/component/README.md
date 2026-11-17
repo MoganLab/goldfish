@@ -48,8 +48,3 @@ gf doc liii/path/component "函数名"
 - `path-with-name` - 替换整个末段名字
 - `path-with-stem` - 替换主名并保留后缀
 - `path-with-suffix` - 替换最后一个后缀
-
-### 三、内部工具
-
-- `split-name-dots` - 解析末段的点分隔结构
-- `replace-last-segment` - 替换路径末段为新名字
