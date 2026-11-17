@@ -14,7 +14,7 @@
 ;; limitations under the License.
 ;;
 
-(define-library (liii path component)
+(define-library (liii path internal component)
   (export path-name path-stem path-suffix path-suffixes path-with-name
     path-with-stem path-with-suffix
   ) ;export

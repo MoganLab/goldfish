@@ -1,12 +1,12 @@
-# (liii path component) 模块函数分类索引
+# (liii path internal component) 模块函数分类索引
 
-`(liii path component)` 提供路径末段分量的解析与访问函数，
+`(liii path internal component)` 提供路径末段分量的解析与访问函数，
 包括文件名、主名、后缀的读取与替换，全部为纯计算、不访问文件系统。
 
 ## 常见用法示例
 
 ```scheme
-(import (liii path component))
+(import (liii path internal component))
 
 ;; 示例1：读取末段分量
 (path-name (path "/a/file.tar.gz"))    ; => "file.tar.gz"
@@ -31,7 +31,7 @@ gf doc "函数名"
 或者指定库名：
 
 ```bash
-gf doc liii/path/component "函数名"
+gf doc liii/path/internal/component "函数名"
 ```
 
 ## 函数分类索引

@@ -29,7 +29,7 @@
     (liii path internal parse)
     (liii path internal record)
     (liii path record)
-    (liii path component)
+    (liii path internal component)
   ) ;import
   (begin
 
