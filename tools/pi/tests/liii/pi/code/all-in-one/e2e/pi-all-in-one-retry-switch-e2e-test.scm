@@ -177,9 +177,9 @@
       =>
       "Hello stream!"
     ) ;check
-    ;; 探活重试预算与长任务解耦：provider.maxRetries = 12 时探活仍最多重试 3 次
-    ;; （1 次首发 + 3 次重试 = 4 次请求）
-    (check (count-429-attempts) => 4)
+    ;; 首次请求不探活，直接走真实请求：provider.maxRetries = 12 时共尝试 13 次
+    ;; （1 次首发 + 12 次重试），失败后切换备用节点
+    (check (count-429-attempts) => 13)
   ) ;let
 
   ;; 2. 未配置 retry 段：行为一致，同样切换备用节点

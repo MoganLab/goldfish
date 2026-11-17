@@ -98,6 +98,7 @@
 ;; 2. print 模式经全链枯竭 → recovery 等待 → 恢复后结算：
 ;;    stdout 只有最终 assistant 文本，不含倒计时或事件噪声
 (pi-chain-reset-sticky-state!)
+(pi-chain-record-node-failure! (make-chain-node "stub" "one") now)
 (let* ((probe-round 0)
        (cfg
          (list (cons 'tools '())
@@ -146,6 +147,7 @@
 
 ;; 3. JSON 模式：recovery 期间 stdout 仍是逐行合法 JSON（协议事件），不含倒计时
 (pi-chain-reset-sticky-state!)
+(pi-chain-record-node-failure! (make-chain-node "stub" "one") now)
 (let* ((probe-round 0)
        (cfg
          (list (cons 'tools '())

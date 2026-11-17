@@ -121,7 +121,7 @@
                ) ;make-config
        ) ;config
       ) ;
-  ;; 第一轮探活全部失败；recovery 唤醒后的第二轮探活全部成功
+  ;; 第一轮请求失败触发切换探活且探活失败；recovery 唤醒后的第二轮恢复成功
   (let ((response
           (pi-all-in-one-request-stream "all-in-one"
             (cons
@@ -137,13 +137,18 @@
             60
             (lambda (node timeout-ms dir request-fn)
               (set! probe-round (+ probe-round 1))
-              ;; 首轮：所有节点探活失败
-              (>= probe-round 3)
+              ;; 首轮切换探活失败；recovery 唤醒后探活成功
+              (>= probe-round 2)
             ) ;lambda
             (lambda (provider node-cfg messages system-prompt tools on-event timeout)
-              (set! attempts (+ attempts 1))
-              (set! captured-msgs messages)
-              (pi-assistant-message (list (pi-text-block "recovered ok")) "stop")
+              (if (zero? probe-round)
+                (pi-assistant-message '() "error" "HTTP 503: unavailable")
+                (begin
+                  (set! attempts (+ attempts 1))
+                  (set! captured-msgs messages)
+                  (pi-assistant-message (list (pi-text-block "recovered ok")) "stop")
+                ) ;begin
+              ) ;if
             ) ;lambda
           ) ;pi-all-in-one-request-stream
         ) ;response
@@ -202,7 +207,7 @@
                     #f
                     60
                     (lambda (node timeout-ms dir request-fn) #f)
-                    (lambda args (pi-assistant-message '() "stop"))
+                    (lambda args (pi-assistant-message '() "error" "HTTP 503"))
                   ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
@@ -217,6 +222,8 @@
 ;; 3. 等待期间 Esc 中止：返回 aborted，不再发业务请求
 ;; ---------------------------------------------------------------------------
 (pi-chain-reset-sticky-state!)
+(pi-chain-record-node-failure! (make-chain-node "stub" "one" "low") 1000000)
+(pi-chain-record-node-failure! (make-chain-node "stub" "two" "high") 1000000)
 (let* ((clock (make-clock))
        (request-called #f)
        (config (make-config (cons 'now-fn (car clock))
@@ -247,6 +254,8 @@
 ;;    消息留给前台作为新任务，不注入本轮请求上下文
 ;; ---------------------------------------------------------------------------
 (pi-chain-reset-sticky-state!)
+(pi-chain-record-node-failure! (make-chain-node "stub" "one" "low") 1000000)
+(pi-chain-record-node-failure! (make-chain-node "stub" "two" "high") 1000000)
 (let* ((clock (make-clock))
        (steering-queue (list "typed while waiting"))
        (consumed '())

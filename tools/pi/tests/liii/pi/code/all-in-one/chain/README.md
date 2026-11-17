@@ -1,6 +1,6 @@
 # (liii pi code all-in-one chain) 模块函数分类索引
 
-`(liii pi code all-in-one chain)` 实现粘性节点机制、链式调度与故障冷却（Circuit Breaker）：优先探活当前粘性节点（上一成功节点），若可用则直接复用；若粘性节点不可用，触发重新调度时对高优先级节点应用冷却时间窗口（复用配置中的 `retryIntervalMs`，缺省 60 秒），冷却期内节点直接跳过以避免连续超时，超出冷却期节点优先探活自愈回溯。首个健康节点接收边界清洗后的会话并执行真实业务，全链失败返回 `all-nodes-exhausted`。
+`(liii pi code all-in-one chain)` 实现粘性节点机制、链式调度与故障冷却（Circuit Breaker）：正常请求（包括首次调度与粘性复用）不探活，直接选用粘性节点或链上首个未冷却节点执行真实业务；仅在真实请求失败触发节点切换（传入 `skip-index`）时才对候选节点按优先级顺序执行探活，并对高优先级节点应用冷却时间窗口（复用配置中的 `retryIntervalMs`，缺省 60 秒），冷却期内节点直接跳过以避免连续超时，超出冷却期节点优先探活自愈回溯。首个选定节点接收边界清洗后的会话并执行真实业务，全链不可用返回 `all-nodes-exhausted`。
 
 使用时导入：
 
@@ -27,7 +27,7 @@ gf doc pi-chain-reset-cooldown-state!
 
 ## 函数分类索引
 
-- `pi-chain-execute` - 粘性节点探活、冷却期防雪崩、链头优先自愈回溯、边界清洗与真实请求执行
+- `pi-chain-execute` - 仅切换节点时探活、冷却期防雪崩、链头优先自愈回溯、边界清洗与真实请求执行
 - `pi-chain-node-label` - 构造 `provider/model` 日志标签
 - `pi-chain-node-key` - 生成节点唯一标识键字符串（`provider/model:thinkingLevel`）
 - `pi-chain-reset-rewind-state!` - 清空当前粘性节点记忆、REWIND 判定状态与节点冷却故障记录

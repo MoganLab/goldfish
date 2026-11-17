@@ -46,6 +46,7 @@
   (liii pi code modes interactive footer)
   (liii pi code all-in-one chain)
   (liii pi code all-in-one request)
+  (liii pi code all-in-one types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -99,6 +100,7 @@
 ;; 1. 用户消息在首个步进即到达：立即返回 aborted，不推进时钟、不重试
 ;; ---------------------------------------------------------------------------
 (pi-chain-reset-sticky-state!)
+(pi-chain-record-node-failure! (make-chain-node "stub" "one") 1000000)
 (let* ((clock (make-clock))
        (pending (list "typed immediately"))
        (consumed '())
@@ -148,6 +150,7 @@
 ;; 2. 用户消息在等待若干步进后到达：立即结束，不等满 maxWaitMs
 ;; ---------------------------------------------------------------------------
 (pi-chain-reset-sticky-state!)
+(pi-chain-record-node-failure! (make-chain-node "stub" "one") 1000000)
 (let* ((clock (make-clock))
        (pending (list "typed later"))
        (poll-count 0)

@@ -45,7 +45,7 @@
 ) ;when
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
 
-;; 先选中 p2，清除该链粘性后下一轮应从 p1 开始。
+;; 先切换选中 p2，清除该链粘性后下一轮应从 p1 开始（不探活）。
 (check
   (pi-chain-execute CHAIN
     '()
@@ -54,6 +54,7 @@
     TMP-DIR
     #f
     (lambda (node . args) (equal? (chain-node-provider node) "p2"))
+    0
   ) ;pi-chain-execute
   =>
   "p2"
@@ -75,7 +76,7 @@
     =>
     "p1"
   ) ;check
-  (check (reverse probed) => '("p1"))
+  (check probed => '())
 ) ;let
 
 (when (file-exists? TMP-DIR)

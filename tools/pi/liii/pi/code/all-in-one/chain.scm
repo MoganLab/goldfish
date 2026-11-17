@@ -4,15 +4,6 @@
 ;; Licensed under the MIT License
 ;;
 
-;; 粘性节点、链式调度与故障冷却（Circuit Breaker）：
-;; 1. 优先在当前粘性节点（上一成功节点）探活，若可用则直接复用；
-;; 2. 若粘性节点不可用，触发重新调度，按优先级顺序检查各候选节点；
-;; 3. 检查高优先级节点时引入冷却时间窗口（复用配置中的 retryIntervalMs，缺省 60 秒）：
-;;    - 若仍处于冷却期内（now - last_fail < cooldown）：跳过，顺延探测后续节点；
-;;    - 若已超出冷却期（now - last_fail >= cooldown）：重新探活。若成功则自愈回溯，
-;;      若失败则刷新故障时间戳并继续顺延探测；
-;; 4. 首个健康节点清洗边界后执行真实业务并清除其故障时间戳；
-;; 5. 全链不可用时记录 EXHAUSTED 日志并返回 all-nodes-exhausted。
 (define-library (liii pi code all-in-one chain)
   (import (scheme base)
     (liii list)
@@ -309,23 +300,31 @@
           ) ;let
         ) ;define
 
-        (if (and (not skip-index)
-              previous-index
-              (integer? previous-index)
-              (>= previous-index 0)
-              (< previous-index node-total)
-            ) ;and
-          (let ((sticky-cand (list-ref nodes previous-index)))
-            (if (probe sticky-cand timeout-ms dir request-fn)
-              (execute-candidate sticky-cand previous-index)
-              (begin
-                (%record-node-failure! sticky-cand (%current-now now-fn))
-                (probe-from-head previous-index)
-              ) ;begin
+        (define (execute-first-available)
+          (let loop
+            ((rest nodes) (index 0))
+            (if (null? rest)
+              (log-exhausted)
+              (let ((cand (car rest)))
+                (if (pi-chain-node-in-cooldown? cand cooldown-ms (%current-now now-fn))
+                  (loop (cdr rest) (+ index 1))
+                  (execute-candidate cand index)
+                ) ;if
+              ) ;let
             ) ;if
           ) ;let
-          (probe-from-head skip-index)
-        ) ;if
+        ) ;define
+
+        (cond (skip-index (probe-from-head skip-index))
+              ((and previous-index
+                 (integer? previous-index)
+                 (>= previous-index 0)
+                 (< previous-index node-total)
+               ) ;and
+               (execute-candidate (list-ref nodes previous-index) previous-index)
+              ) ;
+              (else (execute-first-available))
+        ) ;cond
       ) ;let*
     ) ;define*
 
