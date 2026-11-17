@@ -1,0 +1,6 @@
+(bullet-list tight
+  (item unchecked
+    (p "外层任务")
+    (bullet-list tight
+      (item checked (p "内层完成"))
+      (item unchecked (p "内层未完成")))))

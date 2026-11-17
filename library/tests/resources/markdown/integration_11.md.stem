@@ -1,0 +1,54 @@
+(h1 "综合文档十一：数学、表格与原始片段")
+
+(p
+  "开头段落包含 [literal brackets]、数字实体 #、命名实体 \"quoted\"、行内注释 "
+  (raw-inline "html" "<!-- note -->")
+  "、行内公式 "
+  (math-inline "E=mc^2")
+  "，以及参考式图片 "
+  (image "matrix.png" "Matrix" "矩阵 " (math-inline "A_{ij}"))
+  "。")
+
+(math-block "\\frac{a_1+b^2}{\\sqrt{c}}")
+
+(math-block "\\int_0^1 x^2\\,dx")
+
+(math-block "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}")
+
+(raw-block "html" "<!-- block note -->")
+
+(raw-block "html" "<?process math-block?>")
+
+(table
+  (align left center)
+  (thead
+    (tr
+      (th "Column")
+      (th "Description")))
+  (tbody
+    (tr
+      (td (code "alpha"))
+      (td (math-inline "\\alpha + \\beta")))
+    (tr
+      (td (link "https://example.com/spec" "" "spec"))
+      (td (image "mini.png" "Mini" "图")))))
+
+(code-block "text" "raw fenced content")
+
+(code-block "" "raw indented content\nsecond line")
+
+(blockquote
+  (p
+    "引用中再说一次：访问 "
+    (link "https://example.com/math" "" "https://example.com/math")
+    "，或者查看"
+    (link "https://example.com/paper" "Paper" "参考资料")
+    "。")
+  (p
+    "第二段继续，包含 "
+    (raw-inline "html" "<span>")
+    "HTML"
+    (raw-inline "html" "</span>")
+    " 与 "
+    (code "code")
+    "。"))

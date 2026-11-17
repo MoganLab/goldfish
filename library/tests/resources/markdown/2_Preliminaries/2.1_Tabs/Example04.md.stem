@@ -1,0 +1,7 @@
+(bullet-list
+  loose
+  (item
+    (p "foo")
+    (p "bar")
+  )
+)

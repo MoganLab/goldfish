@@ -1,0 +1,7 @@
+(table
+  (align default default)
+  (thead
+    (tr (th "Type") (th "Value")))
+  (tbody
+    (tr (td "link") (td (link "https://example.com/guide" "Guide" "guide")))
+    (tr (td "image") (td (image "logo.png" "Logo" "logo")))))

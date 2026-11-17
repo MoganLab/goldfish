@@ -1,0 +1,3 @@
+(ordered-list 1 period tight
+  (item (bullet-list tight (item (ordered-list 2 period tight (item (p "foo"))))))
+)

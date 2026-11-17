@@ -1,0 +1,10 @@
+(ordered-list
+  1
+  period
+  loose
+  (item
+    (p "前文")
+    (thematic-break)
+    (p "后文")
+  )
+)

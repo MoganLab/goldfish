@@ -1,0 +1,2 @@
+(p "[foo][ref[bar]]")
+(p "[ref[bar]]: /uri")

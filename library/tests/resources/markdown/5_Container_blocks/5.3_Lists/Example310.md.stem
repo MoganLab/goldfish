@@ -1,0 +1,9 @@
+(bullet-list tight
+  (item (p "a"))
+  (item (p "b"))
+  (item (p "c"))
+  (item (p "d"))
+  (item (p "e"))
+  (item (p "f"))
+  (item (p "g"))
+)

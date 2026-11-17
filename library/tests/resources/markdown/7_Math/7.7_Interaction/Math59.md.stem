@@ -1,0 +1,2 @@
+(p
+  (link "https://example.com/math" "" "公式 " (math-inline "\\frac{1}{n}")))

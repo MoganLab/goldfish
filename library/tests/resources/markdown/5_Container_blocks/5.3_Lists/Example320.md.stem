@@ -1,0 +1,7 @@
+(bullet-list tight
+  (item
+    (p "a")
+    (blockquote (p "b"))
+  )
+  (item (p "c"))
+)

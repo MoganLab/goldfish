@@ -1,0 +1,3 @@
+(p "Foo")
+(thematic-break)
+(p "bar")

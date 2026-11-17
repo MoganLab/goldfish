@@ -1,0 +1,3 @@
+(raw-block "html" "<table><tr><td>\n<pre>\n**Hello**,")
+(p (em "world") ".")
+(raw-block "html" "</pre>\n</td></tr></table>")

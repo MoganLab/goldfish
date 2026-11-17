@@ -1,0 +1,1 @@
+(p "$y = x^2 \\hbox{ when " (math-inline "x > 2") "}$")

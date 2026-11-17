@@ -1,0 +1,2 @@
+(p (raw-inline "html" "<a href=\"foo\\
+bar\">"))

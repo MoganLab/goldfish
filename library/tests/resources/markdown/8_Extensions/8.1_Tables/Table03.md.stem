@@ -1,0 +1,6 @@
+(table
+  (align left center right default)
+  (thead
+    (tr (th "Left") (th "Center") (th "Right") (th "Default")))
+  (tbody
+    (tr (td "a") (td "b") (td "c") (td "d"))))

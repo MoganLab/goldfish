@@ -1,0 +1,12 @@
+(ordered-list
+  1
+  one-paren
+  tight
+  (item
+    (p "title")
+    (table
+      (align default default)
+      (thead
+        (tr (th "Name") (th "Value")))
+      (tbody
+        (tr (td "A") (td "1"))))))

@@ -1,0 +1,7 @@
+(table
+  (align default default)
+  (thead
+    (tr (th "Name") (th "Value")))
+  (tbody
+    (tr (td "A") (td "1"))
+    (tr (td "B") (td "2"))))

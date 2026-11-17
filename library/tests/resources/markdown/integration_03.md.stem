@@ -1,0 +1,22 @@
+(h1 "部署步骤")
+
+(ordered-list
+  1
+  period
+  tight
+  (item
+    (p "下载" (link "https://example.com/pkg" "安装包" "安装包"))
+  )
+  (item
+    (p "检查项：")
+    (bullet-list
+      tight
+      (item (p (code "README")))
+      (item (p (image "logo.png" "项目 Logo" "Logo")))
+    )
+  )
+)
+
+(thematic-break)
+
+(code-block "" "line 1\nline 2")

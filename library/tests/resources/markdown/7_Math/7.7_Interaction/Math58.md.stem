@@ -1,0 +1,2 @@
+(p
+  (image "logo.png" "" "值为 " (math-inline "x")))

@@ -1,0 +1,1 @@
+(p (math-inline "a*b_1") " 和 " (strong "强调"))

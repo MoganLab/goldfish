@@ -1,0 +1,1 @@
+(p "矩阵 " (math-inline "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}") " 可以行内出现。")

@@ -1,0 +1,2 @@
+(raw-block "html" "<style\n  type=\"text/css\">\nh1 {color:red;}\n\np {color:blue;}\n</style>")
+(p "okay")

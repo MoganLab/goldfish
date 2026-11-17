@@ -1,0 +1,6 @@
+(table
+  (align default default)
+  (thead
+    (tr (th "Expr") (th "Note")))
+  (tbody
+    (tr (td "`x") (td "y`"))))

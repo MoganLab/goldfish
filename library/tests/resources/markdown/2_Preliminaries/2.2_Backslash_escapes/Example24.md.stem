@@ -1,0 +1,3 @@
+(code-block #"foo+bar"
+foo
+"foo+bar") ;code-block

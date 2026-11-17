@@ -1,0 +1,4 @@
+(bullet-list tight
+  (item checked
+    (p "完成")
+    (blockquote (p "引用内容"))))

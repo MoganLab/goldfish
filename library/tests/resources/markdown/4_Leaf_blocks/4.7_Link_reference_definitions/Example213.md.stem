@@ -1,0 +1,2 @@
+(p "Foo" (soft-break) "[bar]: /baz")
+(p "[bar]")

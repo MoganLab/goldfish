@@ -1,0 +1,9 @@
+(bullet-list
+  tight
+  (item (p "Foo"))
+)
+(thematic-break)
+(bullet-list
+  tight
+  (item (p "Bar"))
+)

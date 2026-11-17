@@ -1,0 +1,4 @@
+(ordered-list 1 period loose
+  (item
+    (p "前文")
+    (math-block "A_{ij}")))

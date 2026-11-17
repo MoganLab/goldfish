@@ -1,0 +1,6 @@
+(bullet-list
+  tight
+  (item
+    (code-block "" "  foo")
+  )
+)

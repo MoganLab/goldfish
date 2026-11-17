@@ -1,0 +1,7 @@
+(bullet-list tight
+  (item (h1 "Foo"))
+  (item
+    (h2 "Bar")
+    (p "baz")
+  )
+)

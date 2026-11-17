@@ -1,0 +1,3 @@
+(bullet-list tight
+  (item (p "[x]任务"))
+  (item (p "[ ]未完成")))

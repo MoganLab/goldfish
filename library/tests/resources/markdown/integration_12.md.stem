@@ -1,0 +1,134 @@
+(h1 "综合文档十二：标题层级、任务流与表格")
+
+(p
+  "开场段落包含 "
+  (link "https://example.com/start" "Start" "直接链接")
+  "、"
+  (image "cover.png" "Cover" "直接图")
+  "、"
+  (raw-inline "html" "<span>")
+  "行内 HTML"
+  (raw-inline "html" "</span>")
+  "、行内公式 "
+  (math-inline "a_n = a_{n-1} + 1")
+  "、实体 &、邮箱 "
+  (link "mailto:team@example.com" "" "team@example.com")
+  "，以及转义 _不是强调_。"
+  (soft-break)
+  "这一段第二行继续补充，保持 soft break。"
+  (soft-break)
+  "这一段第三行通过反斜杠换行"
+  (line-break)
+  "第四行继续说明任务背景。")
+
+(h2 "二级标题：项目目标")
+
+(p
+  "这里先引入参考式链接"
+  (link "https://example.com/spec" "Spec" "规范")
+  "和参考式图片"
+  (image "diagram.png" "Diagram" "示意图")
+  "，随后放一个 "
+  (code "inline code")
+  " 片段，以及 "
+  (raw-inline "html" "<kbd>")
+  "Ctrl+Shift+P"
+  (raw-inline "html" "</kbd>")
+  " 这样的行内原始 HTML。")
+
+(h3 "三级标题：无序任务列表")
+
+(bullet-list loose
+  (item unchecked
+    (p
+      "未完成项里有 "
+      (strong "强调")
+      "、"
+      (em "斜体")
+      " 和 "
+      (math-inline "x+y")
+      "。"))
+  (item checked
+    (p
+      "已完成项继续这一行"
+      (soft-break)
+      "这里是 lazy continuation，包含 "
+      (link "https://example.com/next" "" "二次链接")
+      " 与 "
+      (image "mini.png" "" "小图")
+      "。"))
+  (item
+    (p "普通项中嵌套有序列表：")
+    (ordered-list 1 period tight
+      (item (p "第一子项"))
+      (item
+        (p
+          "第二子项中有 "
+          (raw-inline "html" "<span>")
+          "HTML"
+          (raw-inline "html" "</span>")
+          " 和 "
+          (code "gf test")))))
+  (item
+    (p "普通项中嵌套块引用：")
+    (blockquote
+      (p
+        "引用第一段，含有参考式"
+        (link "https://example.com/doc" "Doc" "文档")
+        "。")
+      (p
+        "引用第二段，包含 "
+        (math-inline "b^2 - 4ac")
+        "。"))))
+
+(h4 "四级标题：有序任务列表")
+
+(ordered-list 1 period loose
+  (item unchecked
+    (p "第一项要检查表格。"))
+  (item checked
+    (p "第二项说明 fenced math：")
+    (math-block "\\sum_{k=1}^{n} k"))
+  (item
+    (p "普通编号项里再嵌套一个右括号有序列表：")
+    (ordered-list 1 one-paren tight
+      (item (p "第一小步"))
+      (item (p "第二小步")))))
+
+(h5 "五级标题：无前导管道表格")
+
+(table
+  (align left right)
+  (thead
+    (tr
+      (th "Key")
+      (th "Value")))
+  (tbody
+    (tr
+      (td (code "gamma"))
+      (td (math-inline "\\gamma")))
+    (tr
+      (td (link "https://example.com/spec" "Spec" "spec"))
+      (td (image "diagram.png" "Diagram" "标记")))
+    (tr
+      (td (raw-inline "html" "<span>") "tag" (raw-inline "html" "</span>"))
+      (td "普通文本与 \"quoted\""))))
+
+(h6 "六级标题：代码、原始块与收尾")
+
+(code-block "scheme" "(define total\n  (fold-left + 0 '(1 2 3 4)))")
+
+(code-block "" "这里是缩进代码块\n第二行继续")
+
+(raw-block "html" "<!-- integration-12 block comment -->")
+
+(h2 "总结小节")
+
+(p
+  "最终段落再次引用"
+  (link "https://example.com/doc" "Doc" "文档")
+  "、放入自动链接 "
+  (link "https://example.com/final" "" "https://example.com/final")
+  "，并以图片 "
+  (image "ending.png" "Ending" "结尾图")
+  " 收尾。")

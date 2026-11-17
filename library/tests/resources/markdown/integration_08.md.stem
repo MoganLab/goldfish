@@ -1,0 +1,41 @@
+(h2 "复盘记录")
+
+(p
+  "第一段先看"
+  (link "https://example.com" "" "首页")
+  "，再看"
+  (link "https://example.com/roadmap" "路线图" "路线图")
+  "。"
+  (soft-break)
+  "这里的图片是"
+  (image "cover.png" "封面标题" "封面")
+  "，还有直接图片"
+  (image "shot.png" "截图" "截图")
+  "。"
+  (soft-break)
+  "第一行"
+  (soft-break)
+  "第二行"
+  (line-break)
+  "第三行，并查看["
+  (code "不会变成链接")
+  "]。"
+)
+
+(blockquote
+  (h1 "引用中的井号标题")
+  (p "请看Tom & Jerry。" (soft-break) "[不会变成链接]")
+  (thematic-break)
+  (code-block "text" "line 1\nline 2")
+)
+
+(ordered-list
+  3
+  one-paren
+  loose
+  (item (p "第三项包含" (link "https://example.com/inside" "" "内链") "。"))
+  (item
+    (p "第四项包含" (image "icon.png" "" "图标") "和" (code "code") "。")
+    (p "line 1" (soft-break) "line 2")
+  )
+)

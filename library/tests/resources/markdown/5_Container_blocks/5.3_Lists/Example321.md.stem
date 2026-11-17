@@ -1,0 +1,8 @@
+(bullet-list tight
+  (item
+    (p "a")
+    (blockquote (p "b"))
+    (code-block "" "c")
+  )
+  (item (p "d"))
+)

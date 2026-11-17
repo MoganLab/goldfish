@@ -1,0 +1,1 @@
+(p "[foo" (link "https://example.com/?search=%5D%5Bref%5D" "" "https://example.com/?search=][ref]"))

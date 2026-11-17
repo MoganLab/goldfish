@@ -1,0 +1,5 @@
+(blockquote
+  (p "前文")
+  (thematic-break)
+  (p "后文")
+)

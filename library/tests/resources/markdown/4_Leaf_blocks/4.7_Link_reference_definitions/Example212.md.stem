@@ -1,0 +1,2 @@
+(code-block "" "[foo]: /url")
+(p "[foo]")

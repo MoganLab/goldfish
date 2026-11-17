@@ -1,0 +1,2 @@
+(p "[foo]: " (raw-inline "html" "<bar>") "(baz)")
+(p "[foo]")

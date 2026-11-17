@@ -1,0 +1,2 @@
+(blockquote
+  (p "裸链接 " (link "https://example.com/quote" "" "https://example.com/quote")))

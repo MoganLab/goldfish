@@ -1,0 +1,1 @@
+(p "\\begin{equation}" (soft-break) "x = y" (soft-break) "\\end{equation}")

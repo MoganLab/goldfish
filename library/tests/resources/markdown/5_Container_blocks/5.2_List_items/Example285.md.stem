@@ -1,0 +1,2 @@
+(p "foo" (soft-break) "*")
+(p "foo" (soft-break) "1.")

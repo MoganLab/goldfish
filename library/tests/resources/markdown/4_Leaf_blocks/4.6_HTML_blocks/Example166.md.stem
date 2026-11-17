@@ -1,0 +1,1 @@
+(raw-block "html" "<del>\n*foo*\n</del>")

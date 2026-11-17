@@ -1,0 +1,75 @@
+(h1 "综合文档九：基础语义总览")
+
+(p
+  "第一段包含 "
+  (strong "强强调")
+  "、"
+  (em "弱强调")
+  "、"
+  (code "inline code")
+  "、"
+  (math-inline "x^2+y^2")
+  "、"
+  (raw-inline "html" "<span>")
+  "行内HTML"
+  (raw-inline "html" "</span>")
+  "、实体 Tom & Jerry、转义 *不是强调*、自动链接 "
+  (link "https://example.com/docs" "" "https://example.com/docs")
+  " 和邮箱 "
+  (link "mailto:user@example.com" "" "user@example.com")
+  "。"
+  (soft-break)
+  "第二行继续这一段"
+  (soft-break)
+  "第三行通过反斜杠换行"
+  (line-break)
+  "第四行继续说明。")
+
+(h2 "小节标题")
+
+(p
+  "这里使用参考式"
+  (link "https://example.com/reference" "参考文档" "文档")
+  "与参考式图片"
+  (image "logo.png" "Logo" "图标")
+  "，同时再放一个直接链接 "
+  (link "https://example.com/home" "首页" "主页")
+  "。")
+
+(thematic-break)
+
+(blockquote
+  (p
+    "引用段落里有 "
+    (math-inline "a+b")
+    " 和 "
+    (raw-inline "html" "<kbd>")
+    "Ctrl+C"
+    (raw-inline "html" "</kbd>")
+    "。")
+  (p
+    "第二段里还有 "
+    (code "code")
+    " 和 "
+    (link "https://example.com/q" "" "链接")
+    "。"))
+
+(raw-block "html" "<div>\nraw html block line 1\nraw html block line 2\n</div>")
+
+(code-block "scheme" "(define (square x)\n  (* x x))")
+
+(code-block "" "这是缩进代码块\n第二行")
+
+(table
+  (align default right)
+  (thead
+    (tr
+      (th "Name")
+      (th "Value")))
+  (tbody
+    (tr
+      (td (code "x"))
+      (td (math-inline "x^2")))
+    (tr
+      (td (link "https://example.com/doc" "" "文档"))
+      (td (raw-inline "html" "<span>") "ok" (raw-inline "html" "</span>")))))

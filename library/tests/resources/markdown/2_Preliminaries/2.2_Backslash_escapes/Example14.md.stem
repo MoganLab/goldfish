@@ -1,0 +1,1 @@
+(p "*not emphasized*" (soft-break) "<br/> not a tag" (soft-break) "[not a link](/foo)" (soft-break) "`not code`" (soft-break) "1. not a list" (soft-break) "* not a list" (soft-break) "# not a heading" (soft-break) "[foo]: /url \"not a reference\"" (soft-break) "&ouml; not a character entity")

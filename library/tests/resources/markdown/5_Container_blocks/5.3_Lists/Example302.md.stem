@@ -1,0 +1,5 @@
+(ordered-list 1 period tight
+  (item (p "foo"))
+  (item (p "bar"))
+)
+(ordered-list 3 one-paren tight (item (p "baz")))

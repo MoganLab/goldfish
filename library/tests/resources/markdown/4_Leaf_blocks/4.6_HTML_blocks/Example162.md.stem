@@ -1,0 +1,1 @@
+(raw-block "html" "<a href=\"foo\">\n*bar*\n</a>")

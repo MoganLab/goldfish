@@ -1,0 +1,2 @@
+(bullet-list tight
+  (item checked (p "大写完成标记")))

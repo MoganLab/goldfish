@@ -1,0 +1,2 @@
+(h1 "bar")
+(p (link "/url" "" "foo"))

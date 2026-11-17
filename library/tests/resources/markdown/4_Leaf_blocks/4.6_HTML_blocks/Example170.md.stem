@@ -1,0 +1,2 @@
+(raw-block "html" "<script type=\"text/javascript\">\n// JavaScript example\n\ndocument.getElementById(\"demo\").innerHTML = \"Hello JavaScript!\";\n</script>")
+(p "okay")

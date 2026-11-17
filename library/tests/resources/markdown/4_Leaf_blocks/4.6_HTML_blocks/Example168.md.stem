@@ -1,0 +1,1 @@
+(p (raw-inline "html" "<del>") (em "foo") (raw-inline "html" "</del>"))

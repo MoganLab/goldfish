@@ -1,0 +1,19 @@
+(h1 "项目说明")
+
+(p
+  "欢迎使用"
+  (strong "Goldfish")
+  "，运行"
+  (code "gf test")
+  "查看结果。"
+  (line-break)
+  "访问"
+  (link "https://example.com/doc" "文档首页" "文档")
+  "和"
+  (link "https://example.com/guide" "" "指南")
+  "。"
+)
+
+(p
+  (image "logo.png" "项目 Logo" "Logo")
+)

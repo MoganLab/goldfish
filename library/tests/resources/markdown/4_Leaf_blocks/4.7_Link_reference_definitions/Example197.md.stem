@@ -1,0 +1,3 @@
+(p "[foo]: /url 'title")
+(p "with blank line'")
+(p "[foo]")

@@ -1,0 +1,1 @@
+(p "值是 " (math-inline "\\int_0^1 x^2\\,dx") " 。")

@@ -1,0 +1,6 @@
+(bullet-list tight
+  (item
+    (p "a")
+    (bullet-list tight (item (p "b")))
+  )
+)

@@ -1,0 +1,92 @@
+(h1 "综合文档十三：引用定义、数学块与原始片段")
+
+(p
+  "开篇段落使用参考式"
+  (link "https://example.org/entry" "Entry" "入口")
+  "、参考式图片"
+  (image "cover-ref.png" "CoverRef" "封面")
+  "、自动链接 "
+  (link "https://example.org/root" "" "https://example.org/root")
+  "、邮箱 "
+  (link "mailto:ops@example.org" "" "ops@example.org")
+  "、行内注释 "
+  (raw-inline "html" "<!-- inline note -->")
+  "、行内公式 "
+  (math-inline "E = mc^2")
+  "、以及转义 [方括号]。")
+
+(thematic-break)
+
+(blockquote
+  (p
+    "块引用里先放一个段落，里面包含 "
+    (link "https://example.org/entry" "Entry" "文档")
+    "、"
+    (code "command --help")
+    "、"
+    (raw-inline "html" "<span>")
+    "html"
+    (raw-inline "html" "</span>")
+    " 和实体 #。")
+  (p "接着放一个列表：")
+  (bullet-list tight
+    (item (p "第一项"))
+    (item
+      (p
+        "第二项里带图片 "
+        (image "inner.png" "Inner" "图"))))
+  (p "最后补一个数学块：")
+  (math-block "\\int_0^1 x^2\\,dx"))
+
+(math-block "\\begin{aligned}\nf(x) &= x^2 + 1 \\\\\ng(x) &= \\sqrt{x}\n\\end{aligned}")
+
+(math-block "\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}")
+
+(raw-block "html" "<section>\nraw html block line 1\nraw html block line 2\n</section>")
+
+(raw-block "html" "<?integration process?>")
+
+(table
+  (align default left)
+  (thead
+    (tr
+      (th "Field")
+      (th "Example")))
+  (tbody
+    (tr
+      (td (code "alpha"))
+      (td (math-inline "\\alpha + \\beta")))
+    (tr
+      (td (link "https://example.org/entry" "Entry" "入口"))
+      (td (image "cover-ref.png" "CoverRef" "封面")))
+    (tr
+      (td (raw-inline "html" "<span>") "mini" (raw-inline "html" "</span>"))
+      (td "普通文本"))))
+
+(ordered-list 1 period tight
+  (item
+    (p "第一编号项。"))
+  (item
+    (p
+      "第二编号项里有 "
+      (link "https://example.org/inline" "Inline" "直接链接")
+      "。"))
+  (item
+    (p "第三编号项里嵌套无序列表：")
+    (bullet-list tight
+      (item (p "子项 A"))
+      (item
+        (p
+          "子项 B，包含 "
+          (math-inline "x_i"))))))
+
+(p
+  "结尾段落再次使用参考式"
+  (link "https://example.org/entry" "Entry" "文档")
+  "、直接图片 "
+  (image "tail.png" "Tail" "尾图")
+  "、以及 raw inline "
+  (raw-inline "html" "<kbd>")
+  "Esc"
+  (raw-inline "html" "</kbd>")
+  "。")

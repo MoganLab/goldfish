@@ -1,0 +1,7 @@
+(table
+  (align default default)
+  (thead
+    (tr (th "Case") (th "Value")))
+  (tbody
+    (tr (td "entity") (td "Tom & Jerry"))
+    (tr (td "escape") (td "x|y and *literal*"))))

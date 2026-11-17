@@ -1,0 +1,1 @@
+(p (math-inline "a") " 和 " (math-inline "b") " 都是变量。")

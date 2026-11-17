@@ -1,0 +1,9 @@
+(bullet-list tight
+  (item (p "foo"))
+  (item (p "bar"))
+)
+(raw-block "html" "<!-- -->")
+(bullet-list tight
+  (item (p "baz"))
+  (item (p "bim"))
+)

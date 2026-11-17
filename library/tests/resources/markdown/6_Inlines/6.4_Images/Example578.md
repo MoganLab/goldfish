@@ -1,0 +1,1 @@
+![foo](sample-image.jpg)

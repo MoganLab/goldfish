@@ -1,0 +1,1 @@
+(p "*" (raw-inline "html" "<img src=\"foo\" title=\"*\"/>"))

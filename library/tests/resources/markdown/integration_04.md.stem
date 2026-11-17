@@ -1,0 +1,23 @@
+(ordered-list
+  3
+  one-paren
+  tight
+  (item
+    (p
+      "第三项包含"
+      (link "https://example.com/doc" "" "文档")
+      "和"
+      (image "icon.png" "图标" "图标")
+      "。"
+    )
+  )
+  (item
+    (p
+      "第四项第一行"
+      (line-break)
+      "第二行并查看"
+      (link "https://example.com" "" "首页")
+      "。"
+    )
+  )
+)
