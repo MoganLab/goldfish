@@ -33,6 +33,7 @@
     (liii format color)
     (liii gfproject config)
     (liii goldtest-cache)
+    (liii goldtest-cache-deps)
     (liii goldtest-runner-report)
   ) ;import
   (export ESC color GREEN RED YELLOW RESET goldfish-cmd run-test-file
@@ -70,19 +71,15 @@
       *test-cache-force*
     ) ;define
 
-    ;; 检查缓存是否命中（未启用或强制绕过时返回 #f）
-    ;; force-flag 为主会话传入的强制绕过标志：并行 worker 是独立 s7 会话，
-    ;; 库内 mutable 变量在 worker 内不可见，故须参数化传入；
-    ;; 测试文件本身不存在时一律不缓存：不存在文件的 key 退化为
-    ;; 空哈希与空依赖，所有不存在路径共享同一 key，写入会造成跨测试碰撞
+    ;; 检查缓存是否命中（未启用或强制绕过时返回 #f；force-flag 参数化传入 worker）
     (define (%cache-check test-file . maybe-force)
       (let ((force-flag (if (pair? maybe-force) (car maybe-force) *test-cache-force*)))
         (catch #t
           (lambda ()
             (and (not force-flag)
               (file-exists? test-file)
-              (tools-test-path? test-file)
-              (let ((key (test-action-key test-file)))
+              (not (test-no-cache-directive? test-file))
+              (let ((key (test-action-key test-file (%goldfish-cmd-flags test-file))))
                 (and (test-cache-hit? (test-cache-path key)) key)
               ) ;let
             ) ;and
@@ -92,21 +89,21 @@
       ) ;let
     ) ;define
 
-    ;; 测试成功后写回缓存（force 模式下成功后仍刷新缓存）；
-    ;; force-flag 同样须参数化传入（worker 会话原因同上）
+    ;; 测试成功后写回缓存（force 模式下成功后仍刷新缓存）
     (define (%cache-record test-file exit-code . maybe-force)
-      (let ((force-flag (if (pair? maybe-force) (car maybe-force) *test-cache-force*)))
-        (catch #t
-          (lambda ()
-            (when (and (file-exists? test-file) (tools-test-path? test-file) (zero? exit-code))
-              (let ((key (test-action-key test-file)))
-                (test-cache-record! (test-cache-path key) exit-code)
-              ) ;let
-            ) ;when
-          ) ;lambda
-          (lambda args #f)
-        ) ;catch
-      ) ;let
+      (catch #t
+        (lambda ()
+          (when (and (file-exists? test-file)
+                  (not (test-no-cache-directive? test-file))
+                  (zero? exit-code)
+                ) ;and
+            (let ((key (test-action-key test-file (%goldfish-cmd-flags test-file))))
+              (test-cache-record! (test-cache-path key) exit-code)
+            ) ;let
+          ) ;when
+        ) ;lambda
+        (lambda args #f)
+      ) ;catch
     ) ;define
 
     (define (%find-domain-for-test-file test-file)
@@ -135,9 +132,8 @@
       ) ;let
     ) ;define
 
-    (define (goldfish-cmd . maybe-test-file)
-      (let* ((test-file (and (pair? maybe-test-file) (car maybe-test-file)))
-             (d (and test-file (%find-domain-for-test-file test-file)))
+    (define (%goldfish-cmd-flags test-file)
+      (let* ((d (and test-file (%find-domain-for-test-file test-file)))
              (root (and d (cdr (assq 'root d))))
              (m (and d (assq 'mode d)))
              (mode
@@ -145,6 +141,7 @@
              ) ;mode
              (inc
                (if (or (not root)
+                     (not test-file)
                      (string-starts? test-file "tests/")
                      (member root '("" "goldfish/" "r7rs/" "library/" "bignum/") string=?)
                    ) ;or
@@ -153,8 +150,14 @@
                ) ;if
              ) ;inc
             ) ;
-        (string-append (executable) " -m " mode " " inc)
+        (string-append " -m " mode " " inc)
       ) ;let*
+    ) ;define
+
+    (define (goldfish-cmd . maybe-test-file)
+      (let ((test-file (and (pair? maybe-test-file) (car maybe-test-file))))
+        (string-append (executable) (%goldfish-cmd-flags test-file))
+      ) ;let
     ) ;define
 
     ;; 单个测试文件超时秒数：GOLDFISH_TEST_TIMEOUT 环境变量可覆盖

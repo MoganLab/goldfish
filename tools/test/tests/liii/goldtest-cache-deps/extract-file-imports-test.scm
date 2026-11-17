@@ -13,7 +13,7 @@
 ;; ------
 ;; list?，库名符号列表；文件不存在或解析失败时为空列表
 
-(import (scheme base) (liii check) (liii goldtest-cache))
+(import (scheme base) (liii check) (liii goldtest-cache-deps))
 
 (check-set-mode! 'report-failed)
 

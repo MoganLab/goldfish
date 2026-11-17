@@ -67,6 +67,14 @@ jobs:
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
           key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
 
+      - name: cache test results
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/goldfish/test
+          key: debian-trixie-test-cache-${{ github.sha }}
+          restore-keys: |
+            debian-trixie-test-cache-
+
       - name: Detect changes
         id: filter
         uses: dorny/paths-filter@v3
