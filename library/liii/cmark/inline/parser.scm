@@ -31,7 +31,7 @@
       *bare-autolink-enabled*
     ) ;define
 
-    (define-record-type cmark-inline-parser
+    (define-record-type <cmark-inline-parser>
       (make-cmark-inline-parser)
       cmark-inline-parser?
       (content cmark-inline-parser-content cmark-inline-parser-set-content!)

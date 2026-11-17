@@ -24,7 +24,7 @@
     collect-paragraph-lines block-start? collect-next-markdown-block
   ) ;export
   (begin
-    (define-record-type markdown-block
+    (define-record-type <markdown-block>
       (make-markdown-block type lines data)
       markdown-block?
       (type markdown-block-type)

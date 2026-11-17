@@ -50,7 +50,7 @@
   (export cmark-heading?)
   (export cmark-list?)
   (begin
-    (define-record-type cmark-node
+    (define-record-type <cmark-node>
       (make-cmark-node type data children parent)
       cmark-node?
       (type cmark-node-type cmark-node-set-type!)
