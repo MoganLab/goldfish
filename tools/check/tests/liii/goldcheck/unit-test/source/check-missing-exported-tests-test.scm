@@ -90,4 +90,28 @@
   (path-rmdir base-dir)
 ) ;let*
 
+;; 4. 临时测试夹具：以 % 开头的内部导出函数缺少单测时不报违规
+(let* ((base-dir (path->string (path-join (path-temp-dir) "gf-missing-internal-fixture"))
+       ) ;base-dir
+       (test-dir (path->string (path-join base-dir "tests" "my-lib3")))
+       (src-dir (path->string (path-join base-dir "goldfish")))
+       (_ (path-mkdir (path test-dir) :parents #t :exist-ok #t))
+       (_ (path-mkdir (path src-dir) :parents #t :exist-ok #t))
+       (src-file (path->string (path-join src-dir "my-lib3.scm")))
+       (foo-test (path->string (path-join test-dir "foo-test.scm")))
+       (src-content "(define-library (my-lib3)\n  (export foo %internal-helper)\n  (import (scheme base))\n  (begin (define foo 1) (define (%internal-helper) 2)))\n"
+       ) ;src-content
+       (_ (path-write-bytes (path src-file) (string->utf8 src-content)))
+       (_ (path-write-bytes (path foo-test) (string->utf8 "(check 1 => 1)\n")))
+       (viols (check-missing-exported-tests test-dir "tests/my-lib3"))
+      ) ;
+  (check viols => '())
+  (path-unlink foo-test #t)
+  (path-unlink src-file #t)
+  (path-rmdir test-dir)
+  (path-rmdir (path->string (path-parent (path test-dir))))
+  (path-rmdir src-dir)
+  (path-rmdir base-dir)
+) ;let*
+
 (check-report)
