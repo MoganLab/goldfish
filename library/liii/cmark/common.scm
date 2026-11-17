@@ -7,6 +7,7 @@
 (define-library (liii cmark common)
   (import (scheme base))
   (import (scheme char))
+  (import (only (liii string) string-skip))
   (import (liii cmark node))
   (import (liii cmark text))
   (import (liii cmark inline escape))
@@ -83,10 +84,7 @@
         (if
           (or (>= start len) (not (char-alphabetic? (string-ref str start))))
           #f
-          (let loop
-            ((i (+ start 1)))
-            (if (and (< i len) (html-tag-name-char? (string-ref str i))) (loop (+ i 1)) i)
-          ) ;let
+          (or (string-skip str html-tag-name-char? (+ start 1)) len)
         ) ;if
       ) ;let
     ) ;define

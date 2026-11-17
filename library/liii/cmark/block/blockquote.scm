@@ -1,6 +1,7 @@
 
 (define-library (liii cmark block blockquote)
   (import (scheme base))
+  (import (only (liii list) take-while drop-while))
   (import (liii cmark block line))
   (export blockquote-line? collect-blockquote-lines unquote-blockquote-line)
   (begin
@@ -23,15 +24,7 @@
     ) ;define
 
     (define (collect-blockquote-lines lines)
-      (let loop
-        ((remaining lines) (collected '()))
-        (cond ((null? remaining) (cons (reverse collected) '()))
-              ((blockquote-line? (car remaining))
-               (loop (cdr remaining) (cons (car remaining) collected))
-              ) ;
-              (else (cons (reverse collected) remaining))
-        ) ;cond
-      ) ;let
+      (cons (take-while blockquote-line? lines) (drop-while blockquote-line? lines))
     ) ;define
 
     ;; 剥掉前导空白 + > 标记（占 1 列），后跟至多 1 列可选空白（空格或 tab，Example 6）。

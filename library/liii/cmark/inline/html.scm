@@ -2,20 +2,13 @@
 (define-library (liii cmark inline html)
   (import (scheme base))
   (import (scheme char))
+  (import (only (liii string) string-position string-skip string-index))
   (import (liii cmark text))
   (import (liii cmark common))
   (export inline-html-start? find-inline-html-end)
   (begin
     (define (find-string str start pattern)
-      (let ((pattern-len (string-length pattern)) (len (string-length str)))
-        (let loop
-          ((i start))
-          (cond ((> (+ i pattern-len) len) #f)
-                ((string=? (substring str i (+ i pattern-len)) pattern) i)
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+      (string-position pattern str start)
     ) ;define
 
     ;; 宽松标签结束扫描（declaration <!...> 用：跳过引号找 >）
@@ -59,10 +52,7 @@
             ) ;not
           ) ;or
           #f
-          (let loop
-            ((j (+ i 1)))
-            (if (and (< j len) (html-attrname-char? (string-ref str j))) (loop (+ j 1)) j)
-          ) ;let
+          (or (string-skip str html-attrname-char? (+ i 1)) len)
         ) ;if
       ) ;let
     ) ;define
@@ -77,22 +67,11 @@
       ) ;and
     ) ;define
     (define (skip-unquoted-value str i)
-      (let ((len (string-length str)))
-        (let loop
-          ((j i))
-          (if (and (< j len) (unquoted-value-char? (string-ref str j))) (loop (+ j 1)) j)
-        ) ;let
-      ) ;let
+      (or (string-skip str unquoted-value-char? i) (string-length str))
     ) ;define
     (define (find-quote-end str qpos quote)
-      (let ((len (string-length str)))
-        (let loop
-          ((i (+ qpos 1)))
-          (cond ((>= i len) #f)
-                ((char=? (string-ref str i) quote) (+ i 1))
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
+      (let ((pos (string-index str quote (+ qpos 1))))
+        (and pos (+ pos 1))
       ) ;let
     ) ;define
     (define (parse-attribute str i)
@@ -150,32 +129,16 @@
       ) ;or
     ) ;define
     (define (find-closing-tag-end str start)
-      (let ((len (string-length str)))
-        (let loop-name
-          ((i (+ start 2)))
-          (cond ((>= i len) #f)
-                ((html-tag-name-char? (string-ref str i)) (loop-name (+ i 1)))
-                (else
-                  (let loop-end
-                    ((j i))
-                    (cond ((>= j len) #f)
-                          ((html-whitespace? (string-ref str j)) (loop-end (+ j 1)))
-                          ((char=? (string-ref str j) #\>) (+ j 1))
-                          (else #f)
-                    ) ;cond
-                  ) ;let
-                ) ;else
-          ) ;cond
-        ) ;let
+      (let ((name-end (string-skip str html-tag-name-char? (+ start 2))))
+        (and name-end
+          (let ((end (skip-html-ws str name-end)))
+            (and (< end (string-length str)) (char=? (string-ref str end) #\>) (+ end 1))
+          ) ;let
+        ) ;and
       ) ;let
     ) ;define
     (define (skip-html-ws str i)
-      (let ((len (string-length str)))
-        (let loop
-          ((j i))
-          (if (and (< j len) (html-whitespace? (string-ref str j))) (loop (+ j 1)) j)
-        ) ;let
-      ) ;let
+      (or (string-skip str html-whitespace? i) (string-length str))
     ) ;define
     (define (closing-tag-start? str pos)
       (and (string-prefix-at? str pos "</")

@@ -1,6 +1,7 @@
 (define-library (liii cmark inline char)
   (import (scheme base))
   (import (scheme char))
+  (import (only (liii string) string-every))
   (import (liii ascii))
   (export all-spaces? utf8-codepoint-at previous-char-start byte-punctuation?
     unicode-punctuation-at? unicode-punctuation-before? unicode-whitespace-at?
@@ -8,15 +9,7 @@
   ) ;export
   (begin
     (define (all-spaces? str)
-      (let ((len (string-length str)))
-        (let loop
-          ((pos 0))
-          (cond ((>= pos len) #t)
-                ((char=? (string-ref str pos) #\space) (loop (+ pos 1)))
-                (else #f)
-          ) ;cond
-        ) ;let
-      ) ;let
+      (string-every #\space str)
     ) ;define
     (define (utf8-cont str idx)
       (- (char->integer (string-ref str idx)) 128)

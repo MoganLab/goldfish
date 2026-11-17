@@ -1,6 +1,7 @@
 
 (define-library (liii cmark stem inline)
   (import (scheme base))
+  (import (only (liii list) fold))
   (import (liii cmark node))
   (import (only (liii cmark parser) parse-inlines))
   (import (liii cmark common))
@@ -119,17 +120,18 @@
     ) ;define
 
     (define (merge-adjacent-strings items)
-      (let loop
-        ((remaining items) (result '()))
-        (cond ((null? remaining) (reverse result))
-              ((and (pair? result) (string? (car remaining)) (string? (car result)))
-               (loop (cdr remaining)
-                 (cons (string-append (car result) (car remaining)) (cdr result))
-               ) ;loop
-              ) ;
-              (else (loop (cdr remaining) (cons (car remaining) result)))
-        ) ;cond
-      ) ;let
+      (reverse
+        (fold
+          (lambda (item acc)
+            (if (and (pair? acc) (string? item) (string? (car acc)))
+              (cons (string-append (car acc) item) (cdr acc))
+              (cons item acc)
+            ) ;if
+          ) ;lambda
+          '()
+          items
+        ) ;fold
+      ) ;reverse
     ) ;define
   ) ;begin
 ) ;define-library

@@ -1,6 +1,8 @@
 (define-library (liii cmark block heading-code)
   (import (scheme base))
   (import (scheme char))
+  (import (only (liii list) drop-while))
+  (import (only (liii string) string-every string-skip-right))
   (import (liii cmark text))
   (import (liii cmark block line))
   (export first-word parse-fence-line fenced-code-start?
@@ -27,18 +29,14 @@
           (< indent len)
           (let ((c (string-ref line indent)))
             (and (or (char=? c #\`) (char=? c #\~))
-              (let loop
-                ((i (+ indent 1)))
-                (if (and (< i len) (char=? (string-ref line i) c))
-                  (loop (+ i 1))
-                  (let* ((fence-len (- i indent)) (raw-info (string-trim (substring line i len))))
-                    (and (>= fence-len 3)
-                      (or (char=? c #\~) (not (string-index raw-info #\` 0)))
-                      (list c fence-len indent (first-word raw-info))
-                    ) ;and
-                  ) ;let*
-                ) ;if
-              ) ;let
+              (let* ((fence-len (char-run-length line indent c))
+                     (raw-info (string-trim (substring line (+ indent fence-len) len)))
+                    ) ;
+                (and (>= fence-len 3)
+                  (or (char=? c #\~) (not (string-index raw-info #\` 0)))
+                  (list c fence-len indent (first-word raw-info))
+                ) ;and
+              ) ;let*
             ) ;and
           ) ;let
         ) ;and
@@ -72,17 +70,10 @@
         (and (<= indent 3)
           (< indent len)
           (char=? (string-ref line indent) fence-char)
-          (let loop
-            ((i (+ indent 1)))
-            (if (and (< i len) (char=? (string-ref line i) fence-char))
-              (loop (+ i 1))
-              (and (>= (- i indent) fence-len)
-                (let loop2
-                  ((j i))
-                  (or (>= j len) (and (ascii-whitespace? (string-ref line j)) (loop2 (+ j 1))))
-                ) ;let
-              ) ;and
-            ) ;if
+          (let ((run-len (char-run-length line indent fence-char)))
+            (and (>= run-len fence-len)
+              (= (skip-ascii-whitespace line (+ indent run-len)) len)
+            ) ;and
           ) ;let
         ) ;and
       ) ;let*
@@ -138,12 +129,7 @@
     ) ;define
 
     (define (trim-leading-blank-or-whitespace-lines lines)
-      (cond ((null? lines) '())
-            ((blank-or-whitespace-line? (car lines))
-             (trim-leading-blank-or-whitespace-lines (cdr lines))
-            ) ;
-            (else lines)
-      ) ;cond
+      (drop-while blank-or-whitespace-line? lines)
     ) ;define
 
     ;; underline: 前导空白 <= 3，去空白后 >= 1 个连续 = 或 -（CommonMark：至少 1 个即可，如 Example 83 的 `Foo\n=`）
@@ -153,12 +139,7 @@
           (and (> (string-length trimmed) 0)
             (let ((first-char (string-ref trimmed 0)))
               (and (or (char=? first-char #\=) (char=? first-char #\-))
-                (let loop
-                  ((i 1))
-                  (or (>= i (string-length trimmed))
-                    (and (char=? (string-ref trimmed i) first-char) (loop (+ i 1)))
-                  ) ;or
-                ) ;let
+                (string-every first-char trimmed)
               ) ;and
             ) ;let
           ) ;and
@@ -200,27 +181,19 @@
 
     ;; 保留结尾 # 序列（Example 71/72/73/79）：# 序列前空白压缩为单个空格
     (define (strip-atx-closing-sequence content)
-      (let* ((trimmed (string-trim-right content)) (len (string-length trimmed)))
-        (let loop
-          ((i (- len 1)))
-          (cond ((< i 0) trimmed)
-                ((char=? (string-ref trimmed i) #\#) (loop (- i 1)))
-                ((ascii-whitespace? (string-ref trimmed i))
-                 ;; # 序列前有空白：压缩为 1 个空格
-                 (let loop2
-                   ((j (- i 1)))
-                   (if (and (>= j 0) (ascii-whitespace? (string-ref trimmed j)))
-                     (loop2 (- j 1))
-                     (string-append (substring trimmed 0 (+ j 1))
-                       " "
-                       (substring trimmed (+ i 1) len)
-                     ) ;string-append
-                   ) ;if
-                 ) ;let
-                ) ;
-                (else trimmed)
-          ) ;cond
-        ) ;let
+      (let* ((trimmed (string-trim-right content))
+             (len (string-length trimmed))
+             (i (string-skip-right trimmed #\#))
+            ) ;
+        (if (and i (ascii-whitespace? (string-ref trimmed i)))
+          (let ((j (string-skip-right trimmed ascii-whitespace? 0 i)))
+            (string-append (substring trimmed 0 (if j (+ j 1) 0))
+              " "
+              (substring trimmed (+ i 1) len)
+            ) ;string-append
+          ) ;let
+          trimmed
+        ) ;if
       ) ;let*
     ) ;define
 

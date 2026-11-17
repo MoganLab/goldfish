@@ -2,6 +2,7 @@
 (define-library (liii cmark inline entity)
   (import (scheme base))
   (import (scheme char))
+  (import (only (liii string) string-skip))
   (import (liii unicode))
   (import (liii cmark node))
   (import (liii cmark text))
@@ -53,52 +54,31 @@
     ) ;define
 
     (define (parse-numeric-entity-reference str start digits-start base)
-      (let ((len (string-length str)))
-        (let loop
-          ((pos digits-start))
-          (cond ((>= pos len) (cons "&" (+ start 1)))
-                ((char=? (string-ref str pos) #\;)
-                 (if (= pos digits-start)
-                   (cons "&" (+ start 1))
-                   (let ((value (string->number (substring str digits-start pos) base)))
-                     (if value
-                       (let ((decoded (unicode-scalar->string value)))
-                         (if decoded
-                           (cons decoded (+ pos 1))
-                           (cons (substring str start (+ pos 1)) (+ pos 1))
-                         ) ;if
-                       ) ;let
-                       (cons "&" (+ start 1))
-                     ) ;if
-                   ) ;let
-                 ) ;if
+      (let* ((pred (if (= base 16) hex-digit? char-numeric?))
+             (pos (string-skip str pred digits-start))
+            ) ;
+        (if (and pos (char=? (string-ref str pos) #\;) (> pos digits-start))
+          (let* ((value (string->number (substring str digits-start pos) base))
+                 (decoded (and value (unicode-scalar->string value)))
                 ) ;
-                (((if (= base 16) hex-digit? char-numeric?) (string-ref str pos))
-                 (loop (+ pos 1))
-                ) ;
-                (else (cons "&" (+ start 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+            (if value
+              (cons (or decoded (substring str start (+ pos 1))) (+ pos 1))
+              (cons "&" (+ start 1))
+            ) ;if
+          ) ;let*
+          (cons "&" (+ start 1))
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (parse-named-entity-reference str start)
-      (let ((len (string-length str)))
-        (let loop
-          ((pos (+ start 1)))
-          (cond ((>= pos len) (cons "&" (+ start 1)))
-                ((char=? (string-ref str pos) #\;)
-                 (if (= pos (+ start 1))
-                   (cons "&" (+ start 1))
-                   (let* ((name (substring str (+ start 1) pos)) (value (named-entity-value name)))
-                     (if value (cons value (+ pos 1)) (cons "&" (+ start 1)))
-                   ) ;let*
-                 ) ;if
-                ) ;
-                ((entity-name-char? (string-ref str pos)) (loop (+ pos 1)))
-                (else (cons "&" (+ start 1)))
-          ) ;cond
-        ) ;let
+      (let ((pos (string-skip str entity-name-char? (+ start 1))))
+        (if (and pos (char=? (string-ref str pos) #\;) (> pos (+ start 1)))
+          (let ((value (named-entity-value (substring str (+ start 1) pos))))
+            (if value (cons value (+ pos 1)) (cons "&" (+ start 1)))
+          ) ;let
+          (cons "&" (+ start 1))
+        ) ;if
       ) ;let
     ) ;define
 

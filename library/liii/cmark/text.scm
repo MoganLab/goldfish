@@ -80,35 +80,17 @@
     ) ;define
 
     (define (count-leading-spaces str)
-      (let ((len (string-length str)))
-        (let loop
-          ((i 0))
-          (cond ((>= i len) i)
-                ((char=? (string-ref str i) #\space) (loop (+ i 1)))
-                (else i)
-          ) ;cond
-        ) ;let
-      ) ;let
+      (or (string-skip str #\space) (string-length str))
     ) ;define
 
     ;; 从 start 起统计连续字符 ch 的长度（count-run / count-backticks 统一版）
     (define (char-run-length str start ch)
-      (let ((len (string-length str)))
-        (let loop
-          ((i start))
-          (if (and (< i len) (char=? (string-ref str i) ch)) (loop (+ i 1)) (- i start))
-        ) ;let
-      ) ;let
+      (- (or (string-skip str ch start) (string-length str)) start)
     ) ;define
 
     ;; 从 start 起跳过 ascii-whitespace? 字符，返回第一个非空白位置（skip-spaces 统一版）
     (define (skip-ascii-whitespace str start)
-      (let ((len (string-length str)))
-        (let loop
-          ((i start))
-          (if (and (< i len) (ascii-whitespace? (string-ref str i))) (loop (+ i 1)) i)
-        ) ;let
-      ) ;let
+      (or (string-skip str ascii-whitespace? start) (string-length str))
     ) ;define
 
     ;; alist 取 key 带默认值（node-data-ref / markdown-block-data-ref 统一版，见 1027 B5）
@@ -120,15 +102,10 @@
 
     ;; 数前导空格与 tab（区别于 count-leading-spaces 只数空格）
     (define (count-leading-indent line)
-      (let loop
-        ((i 0) (n (string-length line)))
-        (if (>= i n)
-          i
-          (let ((ch (string-ref line i)))
-            (if (or (char=? ch #\space) (char=? ch #\tab)) (loop (+ i 1) n) i)
-          ) ;let
-        ) ;if
-      ) ;let
+      (or
+        (string-skip line (lambda (ch) (or (char=? ch #\space) (char=? ch #\tab))))
+        (string-length line)
+      ) ;or
     ) ;define
 
     ;; s 从 pos 起查找子串 sub（返回起始索引或 #f）
