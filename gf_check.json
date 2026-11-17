@@ -88,22 +88,6 @@
       {
         "path": "r7rs/hint/scheme/base.scm",
         "reason": "包含用于查询 hint 的符号 define-record-type"
-      },
-      {
-        "path": "library/liii/cmark/inline/parser.scm",
-        "reason": "原样开源的 cmark 模块，将在后续 PR 中按 Record 规范重构"
-      },
-      {
-        "path": "library/liii/cmark/node.scm",
-        "reason": "原样开源的 cmark 模块，将在后续 PR 中按 Record 规范重构"
-      },
-      {
-        "path": "library/liii/cmark/block/collector.scm",
-        "reason": "原样开源的 markdown 模块，将在后续 PR 中按 Record 规范重构"
-      },
-      {
-        "path": "library/liii/cmark/block/list.scm",
-        "reason": "原样开源的 markdown 模块，将在后续 PR 中按 Record 规范重构"
       }
     ],
     "no-glue": [

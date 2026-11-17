@@ -20,7 +20,7 @@
     strip-task-list-item-marker
   ) ;export
   (begin
-    (define-record-type markdown-list-marker
+    (define-record-type <markdown-list-marker>
       (make-markdown-list-marker indent type start delimiter content-indent body)
       markdown-list-marker?
       (indent markdown-list-marker-indent)
