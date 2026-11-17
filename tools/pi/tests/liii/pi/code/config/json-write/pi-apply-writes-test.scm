@@ -52,6 +52,13 @@
   "{\"id\": \"new\"}\n"
 ) ;check
 
+;; 传入 <path> 对象作为目录时同样正常工作
+(let ((res (pi-apply-writes (path DIR) (list (cons "settings.json" "{}\n")))))
+  (check (cdr (assoc "ok" res)) => #t)
+  (check (cdr (assoc "failed" res)) => #f)
+) ;let
+(check (path-read-text (path-join (path DIR) "settings.json")) => "{}\n")
+
 (rmtree DIR #t)
 
 (check-report)
