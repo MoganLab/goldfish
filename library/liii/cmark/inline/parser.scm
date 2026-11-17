@@ -1,5 +1,5 @@
 (define-library (liii cmark inline parser)
-  (import (scheme base))
+  (import (scheme base) (liii base))
   (import (scheme char))
   (import (srfi srfi-1))
   (import (liii cmark text))
@@ -31,20 +31,15 @@
       *bare-autolink-enabled*
     ) ;define
 
-    (define-record-type <cmark-inline-parser>
-      (make-cmark-inline-parser)
+    (define*-record-type <cmark-inline-parser>
+      (make-cmark-inline-parser (content #f) (pos #f) (node #f))
       cmark-inline-parser?
       (content cmark-inline-parser-content cmark-inline-parser-set-content!)
       (pos cmark-inline-parser-pos cmark-inline-parser-set-pos!)
       (node cmark-inline-parser-node cmark-inline-parser-set-node!)
-    ) ;define-record-type
+    ) ;define*-record-type
     (define (cmark-inline-parser-new)
-      (let ((parser (make-cmark-inline-parser)))
-        (cmark-inline-parser-set-content! parser "")
-        (cmark-inline-parser-set-pos! parser 0)
-        (cmark-inline-parser-set-node! parser #f)
-        parser
-      ) ;let
+      (make-cmark-inline-parser "" 0 #f)
     ) ;define
     (define (parse-text str)
       (make-cmark-text str)

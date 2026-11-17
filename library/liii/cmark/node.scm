@@ -1,6 +1,6 @@
 
 (define-library (liii cmark node)
-  (import (scheme base))
+  (import (scheme base) (liii base))
   (export make-cmark-node)
   (export cmark-node?)
   (export cmark-node-type)
@@ -50,14 +50,14 @@
   (export cmark-heading?)
   (export cmark-list?)
   (begin
-    (define-record-type <cmark-node>
-      (make-cmark-node type data children parent)
+    (define*-record-type <cmark-node>
+      (make-cmark-node type (data '()) (children '()) (parent #f))
       cmark-node?
       (type cmark-node-type cmark-node-set-type!)
       (data cmark-node-data cmark-node-set-data!)
       (children cmark-node-children cmark-node-set-children!)
       (parent cmark-node-parent cmark-node-set-parent!)
-    ) ;define-record-type
+    ) ;define*-record-type
 
     (define *cmark-block-types*
       '(document block_quote alert list item code_block html_block custom_block
@@ -82,107 +82,103 @@
     ) ;define
 
     (define (make-cmark-document)
-      (make-cmark-node 'document '() '() #f)
+      (make-cmark-node 'document)
     ) ;define
 
     (define (make-cmark-block-quote)
-      (make-cmark-node 'block_quote '() '() #f)
+      (make-cmark-node 'block_quote)
     ) ;define
 
     (define (make-cmark-paragraph)
-      (make-cmark-node 'paragraph '() '() #f)
+      (make-cmark-node 'paragraph)
     ) ;define
 
     (define (make-cmark-alert kind)
-      (make-cmark-node 'alert `((kind . ,kind)) '() #f)
+      (make-cmark-node 'alert `((kind . ,kind)))
     ) ;define
 
     (define (make-cmark-heading level)
-      (make-cmark-node 'heading `((level . ,level)) '() #f)
+      (make-cmark-node 'heading `((level . ,level)))
     ) ;define
 
     (define (make-cmark-code-block info literal)
-      (make-cmark-node 'code_block `((info . ,info) (literal . ,literal)) '() #f)
+      (make-cmark-node 'code_block `((info . ,info) (literal . ,literal)))
     ) ;define
 
     (define (make-cmark-thematic-break)
-      (make-cmark-node 'thematic_break '() '() #f)
+      (make-cmark-node 'thematic_break)
     ) ;define
 
     (define (make-cmark-table alignments header rows)
       (make-cmark-node 'table
         `((alignments . ,alignments) (header . ,header) (rows . ,rows))
-        '()
-        #f
       ) ;make-cmark-node
     ) ;define
 
     (define (make-cmark-text content)
-      (make-cmark-node 'text `((content . ,content)) '() #f)
+      (make-cmark-node 'text `((content . ,content)))
     ) ;define
 
     (define (make-cmark-softbreak)
-      (make-cmark-node 'softbreak '() '() #f)
+      (make-cmark-node 'softbreak)
     ) ;define
 
     (define (make-cmark-linebreak)
-      (make-cmark-node 'linebreak '() '() #f)
+      (make-cmark-node 'linebreak)
     ) ;define
 
     (define (make-cmark-code literal)
-      (make-cmark-node 'code `((literal . ,literal)) '() #f)
+      (make-cmark-node 'code `((literal . ,literal)))
     ) ;define
 
     (define (make-cmark-emoji shortcode)
-      (make-cmark-node 'emoji `((shortcode . ,shortcode)) '() #f)
+      (make-cmark-node 'emoji `((shortcode . ,shortcode)))
     ) ;define
 
     (define (make-cmark-emph)
-      (make-cmark-node 'emph '() '() #f)
+      (make-cmark-node 'emph)
     ) ;define
 
     (define (make-cmark-strong)
-      (make-cmark-node 'strong '() '() #f)
+      (make-cmark-node 'strong)
     ) ;define
 
     (define (make-cmark-strikeout)
-      (make-cmark-node 'strikeout '() '() #f)
+      (make-cmark-node 'strikeout)
     ) ;define
 
     (define (make-cmark-link url title)
-      (make-cmark-node 'link `((url . ,url) (title . ,title)) '() #f)
+      (make-cmark-node 'link `((url . ,url) (title . ,title)))
     ) ;define
 
     (define (make-cmark-image url title)
-      (make-cmark-node 'image `((url . ,url) (title . ,title)) '() #f)
+      (make-cmark-node 'image `((url . ,url) (title . ,title)))
     ) ;define
 
     (define (make-cmark-list list-type start delimiter)
       (make-cmark-node 'list
         `((type . ,list-type) (start . ,start) (delimiter . ,delimiter))
-        '()
-        #f
       ) ;make-cmark-node
     ) ;define
 
     (define (make-cmark-item)
-      (make-cmark-node 'item '() '() #f)
+      (make-cmark-node 'item)
     ) ;define
 
     (define (make-cmark-html-block literal)
-      (make-cmark-node 'html_block `((literal . ,literal)) '() #f)
+      (make-cmark-node 'html_block `((literal . ,literal)))
     ) ;define
 
     (define (make-cmark-html-inline literal)
-      (make-cmark-node 'html_inline `((literal . ,literal)) '() #f)
+      (make-cmark-node 'html_inline `((literal . ,literal)))
     ) ;define
 
     (define (make-cmark-math-block literal)
-      (make-cmark-node 'math_block `((literal . ,literal)) '() #f)
+      (make-cmark-node 'math_block `((literal . ,literal)))
     ) ;define
 
     (define (make-cmark-math-inline literal)
-      (make-cmark-node 'math_inline `((literal . ,literal)) '() #f)
+      (make-cmark-node 'math_inline `((literal . ,literal)))
     ) ;define
 
     (define (cmark-node-append-child! parent child)

@@ -1,6 +1,6 @@
 
 (define-library (liii cmark block collector)
-  (import (scheme base))
+  (import (scheme base) (liii base))
   (import (scheme char))
   (import (liii cmark block blockquote))
   (import (liii cmark block alert))
@@ -24,13 +24,13 @@
     collect-paragraph-lines block-start? collect-next-markdown-block
   ) ;export
   (begin
-    (define-record-type <markdown-block>
-      (make-markdown-block type lines data)
+    (define*-record-type <markdown-block>
+      (make-markdown-block type (lines '()) (data '()))
       markdown-block?
       (type markdown-block-type)
       (lines markdown-block-lines)
       (data markdown-block-data)
-    ) ;define-record-type
+    ) ;define*-record-type
 
     (define (markdown-block-data-ref block key default)
       (assoc-ref-default (markdown-block-data block) key default)
