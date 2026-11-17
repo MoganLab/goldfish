@@ -1,0 +1,43 @@
+# Maintainer: Da Shen <da@liii.pro>
+
+pkgname=goldfish-scheme-git
+pkgver=18.11.60.r2.geb67a0626
+pkgrel=1
+pkgdesc="A Python-like Scheme Interpreter (git development version)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/MoganLab/goldfish"
+license=('Apache-2.0')
+depends=('gcc-libs' 'glibc')
+makedepends=('xmake' 'git' 'cmake')
+optdepends=('python: for running auxiliary python scripts and test stubs')
+provides=('goldfish' 'goldfish-scheme')
+conflicts=('goldfish-scheme')
+source=("goldfish::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd goldfish
+  git describe --long --tags --match="v*" | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd goldfish
+  export XMAKE_ROOT=y
+  xmake config --mode=release --yes
+  xmake build --yes goldfish
+}
+
+check() {
+  cd goldfish
+  bin/gf eval '(+ 1 2)'
+  bin/gf --version
+}
+
+package() {
+  cd goldfish
+  export XMAKE_ROOT=y
+  xmake install -o "$pkgdir/usr" goldfish
+  ln -s gf "$pkgdir/usr/bin/goldfish"
+  find "$pkgdir/usr/share/goldfish" -name "*.py" -exec chmod -x {} +
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -1,0 +1,21 @@
+pkgbase = goldfish-scheme
+	pkgdesc = A Python-like Scheme Interpreter
+	pkgver = 18.11.60
+	pkgrel = 1
+	url = https://github.com/MoganLab/goldfish
+	arch = x86_64
+	arch = aarch64
+	license = Apache-2.0
+	makedepends = xmake
+	makedepends = git
+	makedepends = cmake
+	depends = gcc-libs
+	depends = glibc
+	optdepends = python: for running auxiliary python scripts and test stubs
+	provides = goldfish
+	provides = goldfish-scheme
+	conflicts = goldfish-scheme-git
+	source = goldfish-scheme-18.11.60.tar.gz::https://github.com/MoganLab/goldfish/archive/refs/tags/v18.11.60.tar.gz
+	sha256sums = 90a87bd066e25cade3ebb130e65c4314a3fc9a71f81a8a8c83e11592f29a9c7e
+
+pkgname = goldfish-scheme
