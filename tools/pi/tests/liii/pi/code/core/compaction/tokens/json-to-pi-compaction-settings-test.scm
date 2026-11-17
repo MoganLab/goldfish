@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; obj : any?
-;; string->json 解析出的 alist，或已是 <pi-compaction-settings> 的 record。
+;; obj : json-object? | null?
+;; string->json 解析出的 JSON 对象或空列表。
 ;;
 ;; 返回值
 ;; ----
@@ -60,12 +60,8 @@
 (check-catch 'type-error (json->pi-compaction-settings #f))
 (check-catch 'type-error (json->pi-compaction-settings "bad"))
 (check-catch 'type-error (json->pi-compaction-settings 123))
-
-;; 4. 已是 record 原样返回
-(let* ((orig (make-pi-compaction-settings #f 4096 10000))
-       (out (json->pi-compaction-settings orig))
-      ) ;
-  (check (eq? out orig) => #t)
-) ;let*
+(check-catch 'type-error
+  (json->pi-compaction-settings (make-pi-compaction-settings #f 4096 10000))
+) ;check-catch
 
 (check-report)

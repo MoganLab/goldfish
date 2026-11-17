@@ -46,31 +46,24 @@
     ) ;define
 
     (define (json->pi-compaction-settings obj)
-      (if (pi-compaction-settings? obj)
-        obj
-        (begin
-          (unless (or (json-object? obj) (null? obj))
-            (type-error "json->pi-compaction-settings: expected json object or pi-compaction-settings"
-              obj
-            ) ;type-error
-          ) ;unless
-          (let ((defaults (pi-compaction-default-settings)))
-            (if (null? obj)
-              defaults
-              (make-pi-compaction-settings (json-ref-boolean obj "enabled" (pi-compaction-settings-enabled defaults))
-                (json-ref-integer obj
-                  "reserveTokens"
-                  (pi-compaction-settings-reserve-tokens defaults)
-                ) ;json-ref-integer
-                (json-ref-integer obj
-                  "keepRecentTokens"
-                  (pi-compaction-settings-keep-recent-tokens defaults)
-                ) ;json-ref-integer
-              ) ;make-pi-compaction-settings
-            ) ;if
-          ) ;let
-        ) ;begin
-      ) ;if
+      (unless (or (json-object? obj) (null? obj))
+        (type-error "json->pi-compaction-settings: expected json object" obj)
+      ) ;unless
+      (let ((defaults (pi-compaction-default-settings)))
+        (if (null? obj)
+          defaults
+          (make-pi-compaction-settings (json-ref-boolean obj "enabled" (pi-compaction-settings-enabled defaults))
+            (json-ref-integer obj
+              "reserveTokens"
+              (pi-compaction-settings-reserve-tokens defaults)
+            ) ;json-ref-integer
+            (json-ref-integer obj
+              "keepRecentTokens"
+              (pi-compaction-settings-keep-recent-tokens defaults)
+            ) ;json-ref-integer
+          ) ;make-pi-compaction-settings
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (pi-compaction-settings->json s)
