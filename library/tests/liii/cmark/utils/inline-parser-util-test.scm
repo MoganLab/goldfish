@@ -1,6 +1,3 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 (import (liii check))
 (import (liii cmark inline util))
 

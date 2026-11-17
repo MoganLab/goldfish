@@ -1,6 +1,3 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 ;; (liii cmark inline parser) 模块函数分类索引
 ;;
 ;; cmark-inline-parser 定义最小的内联解析状态对象，

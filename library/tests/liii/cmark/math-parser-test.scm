@@ -1,6 +1,3 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 ;; (liii cmark inline math) 模块函数分类索引
 ;;
 ;; cmark-math-parser 负责识别 Markdown 扩展中的块级与行内数学公式，

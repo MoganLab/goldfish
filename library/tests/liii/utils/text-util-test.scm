@@ -1,5 +1,3 @@
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 ;; (liii cmark text) 字符串通用工具测试
 ;;
 ;; text-util 提供 markdown 插件共用的字符串/字符位置原语；

@@ -1,6 +1,3 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 ;; (liii cmark stem-reader) 模块函数分类索引
 ;;
 ;; md-stem-reader 负责读取 `.md.stem` 资源文本，并返回

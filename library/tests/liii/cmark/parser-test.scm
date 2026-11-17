@@ -1,6 +1,3 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 ;; (liii cmark parser) 模块函数分类索引
 ;;
 ;; cmark-parser 负责把 Markdown 文本拆分成块级节点与行内节点，
