@@ -14,13 +14,18 @@
 ;; ------
 ;; 命中时返回 Action Key 字符串，未命中/禁用/强制时返回 #f
 
-(import (scheme base) (liii check) (liii goldtest-runner))
+(import (scheme base) (scheme file) (liii check) (liii os) (liii path) (liii goldtest-runner))
 
 (check-set-mode! 'report-failed)
 
-;; ===== 场景1: 非 tools 路径（library/ 等）恒不缓存 =====
-(check-false (%cache-check "library/tests/liii/json-test.scm"))
-(check-false (%cache-check "r7rs/tests/scheme/base-test.scm"))
+;; ===== 场景1: @test-no-cache 指令的测试文件恒不缓存 =====
+(define no-cache-tmp
+  (path->string (path-join (path-temp-dir) "gf-cache-check-nocache.scm")))
+(when (file-exists? no-cache-tmp) (delete-file no-cache-tmp))
+(call-with-output-file no-cache-tmp
+  (lambda (p) (display "; @test-no-cache\n(import (scheme base))\n" p)))
+(check-false (%cache-check no-cache-tmp))
+(when (file-exists? no-cache-tmp) (delete-file no-cache-tmp))
 
 ;; ===== 场景2: force 标志参数化时直接返回 #f =====
 (check-false (%cache-check "tests/liii/goldtest-args/main-test.scm" #t))

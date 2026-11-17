@@ -23,18 +23,18 @@
     (liii sys)
     (liii list)
     (liii string)
-    (liii sort)
     (liii hashlib)
     (liii goldtool cache)
+    (liii goldtest-cache-deps)
   ) ;import
-  (export tools-test-path? extract-file-imports resolve-tool-import-path
+  (export tools-test-path? resolve-tool-import-path
     find-tools-dependencies compute-tools-deps-hash compute-test-action-key
     test-action-key test-cache-base-dir test-cache-path test-cache-hit?
     test-cache-touch! test-cache-record! test-cache-clear!
   ) ;export
   (begin
 
-    ;; 判断给定测试文件路径是否属于 tools/ 目录
+    ;; 判断给定测试文件路径是否属于 tools/ 目录（保留导出以兼容历史调用）
     (define (tools-test-path? path)
       (cond ((not (string? path)) #f)
             ((string-starts? path "tools/") #t)
@@ -61,135 +61,12 @@
       ) ;cond
     ) ;define
 
-    ;; 解包 R7RS 导入集修饰符（only, except, prefix, rename）
-    (define (%unwrap-import-set set)
-      (cond ((not (pair? set)) #f)
-            ((memq (car set) '(only except prefix rename)) (%unwrap-import-set (cadr set)))
-            ((and (pair? set) (symbol? (car set))) set)
-            (else #f)
-      ) ;cond
-    ) ;define
-
-    ;; 从单条顶层 AST 提取导入库名列表
-    (define (%form-imported-libs form)
-      (cond
-       ((and (pair? form) (eq? (car form) 'import))
-        (filter (lambda (x) x) (map %unwrap-import-set (cdr form)))
-       ) ;
-       ((and (pair? form) (eq? (car form) 'define-library))
-        (let loop
-          ((clauses (cddr form)) (acc '()))
-          (cond ((null? clauses) (reverse acc))
-                ((and (pair? (car clauses)) (eq? (caar clauses) 'import))
-                 (loop (cdr clauses)
-                   (append
-                     (reverse (filter (lambda (x) x) (map %unwrap-import-set (cdar clauses))))
-                     acc
-                   ) ;append
-                 ) ;loop
-                ) ;
-                (else (loop (cdr clauses) acc))
-          ) ;cond
-        ) ;let
-       ) ;
-       (else '())
-      ) ;cond
-    ) ;define
-
-    ;; 从文件中提取所有 (import ...) 库名列表
-    (define (extract-file-imports file-path)
-      (if (not (file-exists? file-path))
-        '()
-        (catch #t
-          (lambda ()
-            (call-with-input-file file-path
-              (lambda (p)
-                (let loop
-                  ((f (read p)) (acc '()))
-                  (if (eof-object? f)
-                    (reverse acc)
-                    (loop (read p) (append (reverse (%form-imported-libs f)) acc))
-                  ) ;if
-                ) ;let
-              ) ;lambda
-            ) ;call-with-input-file
-          ) ;lambda
-          (lambda args '())
-        ) ;catch
-      ) ;if
-    ) ;define
-
-    (define (%lib-name->rel-path lib-name)
-      (string-append (string-join (map symbol->string lib-name) "/") ".scm")
-    ) ;define
-
-    ;; 将库名转换为 tools 内部源文件路径（若非 tools 库则返回 #f）
     (define (resolve-tool-import-path lib-name current-file)
-      (let ((rel (%lib-name->rel-path lib-name)))
-        (cond
-         ((file-exists? rel)
-          (let ((cwd (getcwd)))
-            (if (or (string-contains cwd "/tools/") (string-contains cwd "\\tools\\"))
-              rel
-              #f
-            ) ;if
-          ) ;let
-         ) ;
-         ((and (string-starts? current-file "tools/")
-            (let* ((parts (string-split current-file "/"))
-                   (tool-dir (string-append (car parts) "/" (cadr parts)))
-                   (cand (string-append tool-dir "/" rel))
-                  ) ;
-              (and (file-exists? cand) cand)
-            ) ;let*
-          ) ;and
-          (let* ((parts (string-split current-file "/"))
-                 (tool-dir (string-append (car parts) "/" (cadr parts)))
-                ) ;
-            (string-append tool-dir "/" rel)
-          ) ;let*
-         ) ;
-         (else
-           (let loop
-             ((tools '("pi" "test" "fmt" "fix" "check" "doc" "help" "pr" "repl"
-                       "source" "version")
-              ) ;tools
-             ) ;
-             (if (null? tools)
-               #f
-               (let ((cand (string-append "tools/" (car tools) "/" rel)))
-                 (if (file-exists? cand) cand (loop (cdr tools)))
-               ) ;let
-             ) ;if
-           ) ;let
-         ) ;else
-        ) ;cond
-      ) ;let
+      (resolve-import-path lib-name current-file)
     ) ;define
 
-    ;; 递归解析测试文件及其依赖中的 tools 内部 .scm 文件路径，按字母序返回
     (define (find-tools-dependencies test-file)
-      (let ((visited '()))
-        (define (visit file)
-          (let ((imports (extract-file-imports file)))
-            (for-each
-              (lambda (lib)
-                (let ((dep-path (resolve-tool-import-path lib file)))
-                  (when (and dep-path (not (member dep-path visited string=?)))
-                    (set! visited (cons dep-path visited))
-                    (visit dep-path)
-                  ) ;when
-                ) ;let
-              ) ;lambda
-              imports
-            ) ;for-each
-          ) ;let
-        ) ;define
-        (when (file-exists? test-file)
-          (visit test-file)
-        ) ;when
-        (list-sort string<? visited)
-      ) ;let
+      (find-test-dependencies test-file)
     ) ;define
 
     ;; 对依赖列表中的文件内容计算确定性串联指纹
@@ -211,6 +88,16 @@
       ) ;if
     ) ;define
 
+    ;; 规范化测试文件绝对路径（防止不同项目同名相对路径碰撞）
+    (define (%canonical-test-id test-file)
+      (let ((p (path test-file)))
+        (if (path-absolute? p)
+          (path->string p)
+          (path->string (path-join (path (getcwd)) test-file))
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; 纯函数：根据四大因子计算 Action Cache Key
     (define (compute-test-action-key bin-hash test-file-hash tools-deps-hash argv-flags)
       (sha256 (string-append bin-hash ":" test-file-hash ":" tools-deps-hash ":" argv-flags)
@@ -220,12 +107,14 @@
     ;; 综合计算单测试文件的 Action Key
     (define (test-action-key test-file . maybe-flags)
       (let* ((bin-hash (if (file-exists? (executable)) (sha256-by-file (executable)) ""))
-             (test-file-hash (if (file-exists? test-file) (sha256-by-file test-file) ""))
-             (deps (find-tools-dependencies test-file))
+             (file-hash (if (file-exists? test-file) (sha256-by-file test-file) ""))
+             (test-id (%canonical-test-id test-file))
+             (combined-file-hash (string-append test-id ":" file-hash))
+             (deps (find-test-dependencies test-file))
              (deps-hash (compute-tools-deps-hash deps))
              (flags (if (pair? maybe-flags) (car maybe-flags) ""))
             ) ;
-        (compute-test-action-key bin-hash test-file-hash deps-hash flags)
+        (compute-test-action-key bin-hash combined-file-hash deps-hash flags)
       ) ;let*
     ) ;define
 

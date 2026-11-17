@@ -14,7 +14,7 @@
 ;; ------
 ;; tools 内部源文件相对路径（string?）；非工具库返回 #f
 
-(import (scheme base) (liii check) (liii goldtest-cache))
+(import (scheme base) (liii check) (liii string) (liii goldtest-cache))
 
 (check-set-mode! 'report-failed)
 
@@ -24,8 +24,10 @@
   (resolve-tool-import-path '(liii goldtest-cache) "tests/liii/goldtest-cache/main-test.scm")
   => "liii/goldtest-cache.scm")
 
-;; ===== 场景2: 非工具库（如 scheme base）解析为 #f =====
-(check-false (resolve-tool-import-path '(scheme base) "tests/liii/x.scm"))
+;; ===== 场景2: 标准库（如 scheme base）按 load-path 解析，不存在库返回 #f =====
+(define resolved-base (resolve-tool-import-path '(scheme base) "tests/liii/x.scm"))
+(check-true (and (string? resolved-base) (string-ends? resolved-base "r7rs/scheme/base.scm")))
+(check-false (resolve-tool-import-path '(nonexistent lib xyz) "tests/liii/x.scm"))
 
 ;; ===== 场景3: 是过程 =====
 (check-true (procedure? resolve-tool-import-path))
