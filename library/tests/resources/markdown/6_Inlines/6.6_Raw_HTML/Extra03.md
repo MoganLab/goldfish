@@ -1,0 +1,1 @@
+- 列表里有<span class="pill">徽标</span>

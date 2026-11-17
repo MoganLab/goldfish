@@ -1,0 +1,16 @@
+(bullet-list tight
+  (item
+    (p "foo")
+    (bullet-list tight
+      (item
+        (p "bar")
+        (bullet-list loose
+          (item
+            (p "baz")
+            (p "bim")
+          )
+        )
+      )
+    )
+  )
+)

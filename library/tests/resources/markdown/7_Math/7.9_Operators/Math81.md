@@ -1,0 +1,3 @@
+$$
+\lim_{n \to \infty} \sum_{i=1}^{n} \frac{1}{i^2} = \frac{\pi^2}{6}
+$$

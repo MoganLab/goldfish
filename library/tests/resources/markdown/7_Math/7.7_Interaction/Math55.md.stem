@@ -1,0 +1,2 @@
+(blockquote
+  (p "引用里有 " (math-inline "x+y")))

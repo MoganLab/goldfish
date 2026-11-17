@@ -1,0 +1,4 @@
+(bullet-list
+  tight
+  (item
+    (p "列表里有" (raw-inline "html" "<span class=\"pill\">") "徽标" (raw-inline "html" "</span>"))))

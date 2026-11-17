@@ -1,0 +1,1 @@
+(blockquote (p "第一段，包含" (code "code") "。") (p "第二段，包含" (strong "强调") "。"))

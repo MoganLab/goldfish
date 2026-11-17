@@ -1,0 +1,2 @@
+(p "The number of windows in my house is")
+(ordered-list 1 period tight (item (p "The number of doors is 6.")))

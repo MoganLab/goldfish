@@ -1,0 +1,2 @@
+(p
+  (image "matrix.png" "" "矩阵 " (math-inline "A_{ij}")))

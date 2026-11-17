@@ -1,0 +1,2 @@
+(blockquote (bullet-list tight (item (p "foo"))))
+(bullet-list tight (item (p "bar")))

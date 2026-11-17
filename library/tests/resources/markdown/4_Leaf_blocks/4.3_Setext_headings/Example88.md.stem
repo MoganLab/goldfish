@@ -1,0 +1,3 @@
+(p "Foo" (soft-break) "= =")
+(p "Foo")
+(thematic-break)

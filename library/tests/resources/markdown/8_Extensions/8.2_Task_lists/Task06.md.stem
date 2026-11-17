@@ -1,0 +1,4 @@
+(bullet-list tight
+  (item (p "普通项"))
+  (item unchecked (p "任务项"))
+  (item checked (p "已完成项")))

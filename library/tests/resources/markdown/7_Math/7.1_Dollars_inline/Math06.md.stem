@@ -1,0 +1,1 @@
+(p "组合：" (math-inline "f(x)=\\sum_{i=1}^{n} x_i^2") " 和 " (math-inline "\\alpha+\\beta") "。")

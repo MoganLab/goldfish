@@ -1,0 +1,3 @@
+(raw-block "html" "<del>")
+(p (em "foo"))
+(raw-block "html" "</del>")

@@ -1,0 +1,60 @@
+(h1 "综合文档十：列表与容器组合")
+
+(bullet-list loose
+  (item
+    (p "普通项前文。"))
+  (item unchecked
+    (p "待办项里有 " (strong "强调") " 和 " (math-inline "x_1") "。"))
+  (item checked
+    (p
+      "已完成项"
+      (soft-break)
+      "继续这一项的 lazy continuation，包含 "
+      (raw-inline "html" "<span>")
+      "HTML"
+      (raw-inline "html" "</span>")
+      " 和 &。"))
+  (item
+    (p "列表项里嵌套有序列表：")
+    (ordered-list 1 one-paren tight
+      (item (p "第一子项"))
+      (item
+        (p
+          "第二子项里有 "
+          (link "https://example.com/list" "" "链接")
+          " 和 "
+          (code "gf test")))))
+  (item
+    (p "列表项里嵌套数学块：")
+    (math-block "\\sum_{i=1}^{n} x_i"))
+  (item
+    (p "列表项里嵌套引用：")
+    (blockquote
+      (p "引用项")
+      (p "第二段包含 " (image "asset.png" "Asset" "图")))))
+
+(ordered-list 1 period tight
+  (item
+    (p "第一编号项。"))
+  (item
+    (p
+      "第二编号项里有普通文本和 "
+      (raw-inline "html" "<span>")
+      "inline html"
+      (raw-inline "html" "</span>")
+      "。")))
+
+(ordered-list 3 one-paren loose
+  (item
+    (p "第三个编号项使用右括号分隔。"))
+  (item
+    (p "第四个编号项里有围栏数学块：")
+    (math-block "A_{ij}")))
+
+(thematic-break)
+
+(blockquote
+  (p "外层引用中还有列表：")
+  (bullet-list tight
+    (item (p "子项一"))
+    (item (p "子项二里有 " (math-inline "y=z")))))

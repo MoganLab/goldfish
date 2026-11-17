@@ -1,0 +1,5 @@
+(alert important
+  (table
+    (align default default)
+    (thead (tr (th "Name") (th "Value")))
+    (tbody (tr (td "A") (td "1")))))

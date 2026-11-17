@@ -1,0 +1,2 @@
+(raw-block "html" "<!-- foo -->*bar*")
+(p (em "baz"))

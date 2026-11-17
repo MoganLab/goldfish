@@ -1,0 +1,1 @@
+(p "入口是 " (link "http://example.com/path" "" "http://example.com/path") "。")

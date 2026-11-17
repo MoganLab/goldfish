@@ -1,0 +1,4 @@
+(bullet-list tight (item (p (strong "无限级数与极限") "：")
+  (math-block "\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{1}{i^2} = \\frac{\\pi^2}{6}")
+) ;item
+) ;bullet-list

@@ -1,0 +1,1 @@
+(p (math-inline "a") " " (math-inline "b") " 相邻")

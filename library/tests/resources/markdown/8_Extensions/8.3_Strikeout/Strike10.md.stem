@@ -1,0 +1,2 @@
+(blockquote
+  (p (strikeout "引用中的删除线")))

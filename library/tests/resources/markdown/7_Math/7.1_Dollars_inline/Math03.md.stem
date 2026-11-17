@@ -1,0 +1,1 @@
+(p "公式是 " (math-inline "x+y") " 。")

@@ -1,0 +1,5 @@
+(bullet-list loose
+  (item (p "a"))
+  (item)
+  (item (p "c"))
+)

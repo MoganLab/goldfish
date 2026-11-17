@@ -1,0 +1,12 @@
+(ordered-list
+  1
+  period
+  loose
+  (item
+    (p "foo")
+    (bullet-list
+      tight
+      (item (p "bar"))
+    )
+  )
+)

@@ -1,0 +1,6 @@
+(bullet-list tight
+  (item (p "a"))
+  (item (p "b"))
+  (item (p "c"))
+  (item (p "d" (soft-break) "- e"))
+)

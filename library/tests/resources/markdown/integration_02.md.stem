@@ -1,0 +1,12 @@
+(h2 "功能清单")
+
+(blockquote
+  (p "第一行" (soft-break) "第二行")
+  (p "请访问" (link "https://example.com" "" "https://example.com") "并查看*说明*。")
+)
+
+(bullet-list
+  tight
+  (item (p "支持Tom & Jerry"))
+  (item (p "运行" (code "gf test")))
+)

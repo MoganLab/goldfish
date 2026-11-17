@@ -1,0 +1,1 @@
+(table (align default default) (thead (tr (th "a") (th "b"))) (tbody (tr (td (math-inline "x")) (td (math-inline "y")))))

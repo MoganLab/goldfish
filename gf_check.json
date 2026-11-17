@@ -74,12 +74,76 @@
       {
         "path": "library/tests/srfi/srfi-64/",
         "reason": "SRFI-64 单元测试使用 (srfi srfi-64) 自身而非 (liii check)，不以 (check-report) 结尾"
+      },
+      {
+        "path": "library/tests/liii/cmark/",
+        "reason": "原样开源的 cmark 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/markdown-block-collector/",
+        "reason": "原样开源的 markdown-block-collector 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem/",
+        "reason": "原样开源的 md-stem 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem-test.scm",
+        "reason": "原样开源的 md-stem 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem-blockquote/",
+        "reason": "原样开源的 md-stem-blockquote 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem-blocks/",
+        "reason": "原样开源的 md-stem-blocks 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem-inline/",
+        "reason": "原样开源的 md-stem-inline 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem-lists/",
+        "reason": "原样开源的 md-stem-lists 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem-reader/",
+        "reason": "原样开源的 md-stem-reader 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem-reader-test.scm",
+        "reason": "原样开源的 md-stem-reader 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/utils/",
+        "reason": "原样开源的 utils 单元测试，将在后续 PR 中按单元测试规范整理"
+      },
+      {
+        "path": "library/tests/liii/README.md",
+        "reason": "将在后续 PR 中补充 library/tests/liii/README.md"
       }
     ],
     "define-record-type": [
       {
         "path": "r7rs/hint/scheme/base.scm",
         "reason": "包含用于查询 hint 的符号 define-record-type"
+      },
+      {
+        "path": "library/liii/cmark/inline-parser.scm",
+        "reason": "原样开源的 cmark 模块，将在后续 PR 中按 Record 规范重构"
+      },
+      {
+        "path": "library/liii/cmark/node.scm",
+        "reason": "原样开源的 cmark 模块，将在后续 PR 中按 Record 规范重构"
+      },
+      {
+        "path": "library/liii/markdown-block-collector.scm",
+        "reason": "原样开源的 markdown 模块，将在后续 PR 中按 Record 规范重构"
+      },
+      {
+        "path": "library/liii/utils/markdown-list-util.scm",
+        "reason": "原样开源的 markdown 模块，将在后续 PR 中按 Record 规范重构"
       }
     ],
     "no-glue": [
@@ -172,6 +236,30 @@
       {
         "path": "goldfish/tests/goldfish/scheme/boot-test.scm",
         "reason": "自举环境各模块与全局符号加载测试"
+      },
+      {
+        "path": "library/liii/cmark/inline-parser.scm",
+        "reason": "原样开源的 cmark 内联解析器，将在后续 PR 中重构拆分"
+      },
+      {
+        "path": "library/liii/cmark/utils/html-entities-util.scm",
+        "reason": "HTML 实体映射大查表"
+      },
+      {
+        "path": "library/liii/markdown-block-collector.scm",
+        "reason": "原样开源的 markdown 块收集器，将在后续 PR 中重构拆分"
+      },
+      {
+        "path": "library/liii/utils/markdown-list-util.scm",
+        "reason": "原样开源的 markdown 列表工具，将在后续 PR 中重构拆分"
+      },
+      {
+        "path": "library/tests/liii/cmark/parser/parse-inlines-test.scm",
+        "reason": "原样开源的 cmark 内联解析测试集，将在后续 PR 中整理"
+      },
+      {
+        "path": "library/tests/liii/md-stem/markdown-to-md-stem-test.scm",
+        "reason": "原样开源的 md-stem 转换测试集，将在后续 PR 中整理"
       }
     ],
     "max-tree-depth": [
@@ -230,6 +318,30 @@
       {
         "path": "r7rs/scheme/write.scm",
         "reason": "write-shared 两遍图扫描实现（引用计数+回边标记+标注输出），嵌套源于图遍历本质结构"
+      },
+      {
+        "path": "library/liii/cmark/inline-parser.scm",
+        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
+      },
+      {
+        "path": "library/liii/cmark/math-parser.scm",
+        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
+      },
+      {
+        "path": "library/liii/cmark/utils/inline-char-util.scm",
+        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
+      },
+      {
+        "path": "library/liii/cmark/utils/inline-link-util.scm",
+        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
+      },
+      {
+        "path": "library/liii/markdown-block-collector.scm",
+        "reason": "原样开源的 markdown 模块，将在后续 PR 中重构降低嵌套深度"
+      },
+      {
+        "path": "library/liii/utils/markdown-reference-util.scm",
+        "reason": "原样开源的 markdown 模块，将在后续 PR 中重构降低嵌套深度"
       }
     ],
     "type-hint": [

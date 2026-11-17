@@ -1,0 +1,11 @@
+(bullet-list tight
+  (item (p "a"))
+  (item
+    (code-block #""
+b
+
+
+"") ;code-block
+  )
+  (item (p "c"))
+)

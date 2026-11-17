@@ -1,0 +1,1 @@
+(p "\\" (math-inline "x+y"))

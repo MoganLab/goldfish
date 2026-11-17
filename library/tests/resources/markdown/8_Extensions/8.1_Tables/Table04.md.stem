@@ -1,0 +1,8 @@
+(table
+  (align default default)
+  (thead
+    (tr (th "Syntax") (th "Meaning")))
+  (tbody
+    (tr
+      (td (code "gf test"))
+      (td (strong "run") " " (em "tests")))))

@@ -1,0 +1,5 @@
+(code-block #""
+> # Foo
+> bar
+> baz
+"") ;code-block

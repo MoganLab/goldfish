@@ -1,0 +1,2 @@
+(blockquote
+  (p "普通引用" (soft-break) "[!NOTE]" (soft-break) "这里不应转成 alert。"))

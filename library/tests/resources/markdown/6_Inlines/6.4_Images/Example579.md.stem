@@ -1,0 +1,1 @@
+(p "My " (image "/path/to/sample-image.jpg" "title" "foo bar"))

@@ -1,0 +1,6 @@
+(bullet-list tight
+  (item (p "foo"))
+  (item (p "bar"))
+  (item (p "baz"))
+  (item (p "boo"))
+)

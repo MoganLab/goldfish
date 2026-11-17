@@ -1,0 +1,5 @@
+(ordered-list 1 period loose
+  (item (p "a"))
+  (item (p "b"))
+  (item (p "c"))
+)

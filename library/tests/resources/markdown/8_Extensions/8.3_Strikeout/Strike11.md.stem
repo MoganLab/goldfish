@@ -1,0 +1,2 @@
+(bullet-list tight
+  (item (p (strikeout "列表项里的删除线"))))

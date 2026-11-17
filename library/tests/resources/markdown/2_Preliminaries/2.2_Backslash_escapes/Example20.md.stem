@@ -1,0 +1,1 @@
+(p (link "https://example.com?find=%5C*" "" "https://example.com?find=\\*"))

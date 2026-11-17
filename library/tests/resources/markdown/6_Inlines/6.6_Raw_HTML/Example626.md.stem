@@ -1,0 +1,2 @@
+(p "foo " (raw-inline "html" "<!-->") " foo -->")
+(p "foo " (raw-inline "html" "<!--->") " foo -->")

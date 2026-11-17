@@ -1,0 +1,5 @@
+(bullet-list
+  loose
+  (item
+    (p "前文")
+    (math-block "x+y")))

@@ -1,0 +1,16 @@
+(bullet-list loose
+  (item
+    (p "a")
+    (bullet-list tight
+      (item (p "b"))
+      (item (p "c"))
+    )
+  )
+  (item
+    (p "d")
+    (bullet-list tight
+      (item (p "e"))
+      (item (p "f"))
+    )
+  )
+)

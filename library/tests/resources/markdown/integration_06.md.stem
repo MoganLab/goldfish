@@ -1,0 +1,71 @@
+(h1 "总览手册")
+
+(p
+  "欢迎来到"
+  (strong "项目手册")
+  "。"
+  (soft-break)
+  "这里有"
+  (em "斜体")
+  "、"
+  (code "gf test")
+  "、"
+  (link "https://example.com" "主页" "主页")
+  "、"
+  (link "https://example.com/guide" "使用指南" "指南")
+  "、"
+  (image "logo.png" "项目徽标" "徽标")
+  "和"
+  (image "diagram.png" "" "图示")
+  "。"
+  (soft-break)
+  "普通换行"
+  (soft-break)
+  "继续这一行。"
+  (line-break)
+  "这里还会显示Tom & Jerry，以及*不会变成强调*。"
+  (soft-break)
+  "也可以直接访问"
+  (link "https://example.com/status" "" "https://example.com/status")
+  "。"
+)
+
+(blockquote
+  (h2 "引用章节")
+  (p
+    "请执行"
+    (code "gf test")
+    "。"
+    (soft-break)
+    "第二行"
+    (soft-break)
+    "继续阅读"
+    (link "https://example.com/appendix" "" "附录")
+    "。"
+  )
+  (bullet-list
+    tight
+    (item (p "子项一"))
+    (item (p "子项二含" (image "small.png" "小图标题" "小图")))
+  )
+)
+
+(ordered-list
+  1
+  period
+  tight
+  (item (p "第一步"))
+  (item (p "第二步包含" (link "https://example.com/ref" "" "参考文档")))
+  (item
+    (p "第三步")
+    (bullet-list
+      tight
+      (item (p "读取" (code "README")))
+      (item (p "查看" (image "icon.png" "" "图标")))
+    )
+  )
+)
+
+(thematic-break)
+
+(code-block "scheme" "(display \"done\")")

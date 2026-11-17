@@ -1,0 +1,59 @@
+(h1 "综合文档十四：LaTeX 子集扩展与算子")
+
+(p
+  "开篇段落检验行内重音 "
+  (math-inline "\\bar{x}")
+  " 与 "
+  (math-inline "\\hat{y}")
+  "，以及函数名 "
+  (math-inline "\\sin x + \\cos y")
+  " 和 "
+  (math-inline "\\log(n)")
+  "。")
+
+(math-block "y = \\beta_0 + \\beta_1 x + \\varepsilon, \\quad \\varepsilon \\sim \\mathcal{N}(0, \\sigma^2)")
+
+(bullet-list tight
+  (item
+    (p
+      (strong "均值（Mean）")
+      "："
+      (math-inline "\\bar{x} = \\frac{1}{n}\\sum_{i=1}^{n} x_i")))
+  (item
+    (p (strong "无限级数与极限") "：")
+    (math-block "\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{1}{i^2} = \\frac{\\pi^2}{6}")))
+
+(blockquote
+  (p
+    "引用块内放关系符 "
+    (math-inline "\\varepsilon \\sim N")
+    " 与希腊变体 "
+    (math-inline "\\phi")
+    "、"
+    (math-inline "\\varphi")
+    "、"
+    (math-inline "\\epsilon")
+    "、"
+    (math-inline "\\varepsilon")
+    "。"))
+
+(table
+  (align default default)
+  (thead
+    (tr
+      (th "统计量")
+      (th "公式")))
+  (tbody
+    (tr
+      (td "最大值")
+      (td (math-inline "\\max_{k} a_k")))
+    (tr
+      (td "方差")
+      (td (math-inline "s^2 = \\frac{1}{n-1}\\sum_{i=1}^{n} (x_i - \\bar{x})^2")))))
+
+(p
+  "结尾段落包含间距 "
+  (math-inline "a\\quad b")
+  " 与行内极限 "
+  (math-inline "\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1")
+  "。")

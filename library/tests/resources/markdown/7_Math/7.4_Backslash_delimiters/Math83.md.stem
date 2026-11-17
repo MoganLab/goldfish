@@ -1,0 +1,1 @@
+(p "公式 " (math-inline "x\n+y") " 结束")

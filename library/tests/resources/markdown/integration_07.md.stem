@@ -1,0 +1,58 @@
+(h1 "部署流程")
+
+(p
+  "开始前请阅读"
+  (link "https://example.com/docs" "总文档" "总文档")
+  "，并确认# 这一项不是标题。"
+  (soft-break)
+  "如果失败，请记录错误代码#42，并查看"
+  (image "package.zip" "安装包" "安装包")
+  "。"
+)
+
+(bullet-list tight
+  (item
+    (p "准备阶段")
+    (bullet-list
+      tight
+      (item (p "阅读" (link "https://example.com/changelog" "" "变更记录")))
+      (item (p "执行" (code "gf test")))
+    )
+  )
+  (item
+    (p "执行阶段")
+    (ordered-list
+      1
+      period
+      tight
+      (item (p "打开控制台"))
+      (item (p "输入命令" (line-break) "然后等待完成"))
+      (item (p "查看" (link "https://example.com/build" "" "https://example.com/build")))
+    )
+  )
+  (item
+    (p "收尾阶段")
+    (bullet-list
+      loose
+      (item (p "记录" (em "结果")))
+      (item
+        (p "标记" (strong "完成"))
+        (p "export PATH=/opt/bin:$PATH" (soft-break) "gf test")
+      )
+    )
+  )
+)
+
+(blockquote
+  (p "注意事项")
+  (p "第一行" (soft-break) "第二行")
+  (ordered-list
+    1
+    one-paren
+    tight
+    (item (p "内层步骤"))
+    (item (p "内层步骤包含" (link "https://example.com/outer" "外部文档" "外部文档")))
+  )
+)
+
+(code-block "" "export PATH=/opt/bin:$PATH\ngf test")
