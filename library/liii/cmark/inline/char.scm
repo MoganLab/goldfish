@@ -18,28 +18,24 @@
         ) ;let
       ) ;let
     ) ;define
+    (define (utf8-cont str idx)
+      (- (char->integer (string-ref str idx)) 128)
+    ) ;define
+
     (define (utf8-codepoint-at str pos)
       (let ((len (string-length str)))
         (and (< pos len)
           (let ((b0 (char->integer (string-ref str pos))))
             (cond ((< b0 128) (cons b0 1))
                   ((< b0 224)
-                   (and (< (+ pos 1) len)
-                     (cons
-                       (+ (* (- b0 192) 64) (- (char->integer (string-ref str (+ pos 1))) 128))
-                       2
-                     ) ;cons
-                   ) ;and
+                   (and (< (+ pos 1) len) (cons (+ (* (- b0 192) 64) (utf8-cont str (+ pos 1))) 2))
                   ) ;
                   ((< b0 240)
                    (and (< (+ pos 2) len)
                      (cons
                        (+ (* (- b0 224) 4096)
-                         (*
-                           (- (char->integer (string-ref str (+ pos 1))) 128)
-                           64
-                         ) ;*
-                         (- (char->integer (string-ref str (+ pos 2))) 128)
+                         (* (utf8-cont str (+ pos 1)) 64)
+                         (utf8-cont str (+ pos 2))
                        ) ;+
                        3
                      ) ;cons
@@ -49,15 +45,9 @@
                    (and (< (+ pos 3) len)
                      (cons
                        (+ (* (- b0 240) 262144)
-                         (*
-                           (- (char->integer (string-ref str (+ pos 1))) 128)
-                           4096
-                         ) ;*
-                         (*
-                           (- (char->integer (string-ref str (+ pos 2))) 128)
-                           64
-                         ) ;*
-                         (- (char->integer (string-ref str (+ pos 3))) 128)
+                         (* (utf8-cont str (+ pos 1)) 4096)
+                         (* (utf8-cont str (+ pos 2)) 64)
+                         (utf8-cont str (+ pos 3))
                        ) ;+
                        4
                      ) ;cons

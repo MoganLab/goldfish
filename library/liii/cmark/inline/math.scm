@@ -195,65 +195,58 @@
       ) ;let
     ) ;define
 
+    (define (parse-single-dollar-math-inline str start)
+      (let ((end-pos (string-index str #\$ (+ start 1))))
+        (cond ((not end-pos) (cons (make-cmark-text "$") (+ start 1)))
+              ((and (> end-pos (+ start 1))
+                 (char-whitespace? (string-ref str (- end-pos 1)))
+                 (math-inline-scan-open? str end-pos)
+               ) ;and
+               (cons (make-cmark-text "$") (+ start 1))
+              ) ;
+              ((math-inline-candidate? str start end-pos)
+               (cons (make-cmark-math-inline (substring str (+ start 1) end-pos))
+                 (+ end-pos 1)
+               ) ;cons
+              ) ;
+              (else (cons (make-cmark-text "$") (+ start 1)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (parse-dollar-math-inline str start len)
+      (if
+        (and (< (+ start 1) len) (char=? (string-ref str (+ start 1)) #\$))
+        (let ((end-pos (double-dollar-index str (+ start 2))))
+          (if (and end-pos (> end-pos (+ start 2)))
+            (cons (make-cmark-math-inline (substring str (+ start 2) end-pos))
+              (+ end-pos 2)
+            ) ;cons
+            (cons (make-cmark-text "$") (+ start 1))
+          ) ;if
+        ) ;let
+        (parse-single-dollar-math-inline str start)
+      ) ;if
+    ) ;define
+
     (define (parse-math-inline str start)
       (let ((len (string-length str)))
         (if (or (>= start len) (= len 0))
           (cons (make-cmark-text "") len)
           (let ((marker (string-ref str start)))
-            (cond
-             ((char=? marker #\$)
-              (cond
-                ;; $$ ... $$ 同行：kramdown 双用语法（wiki: kramdown/Typora/Deckset 等），
-                ;; 内容非空识别为行内公式；未闭合或空内容按文本消费一个 $
-                ((and (< (+ start 1) len) (char=? (string-ref str (+ start 1)) #\$))
-                 (let ((end-pos (double-dollar-index str (+ start 2))))
-                   (if (and end-pos (> end-pos (+ start 2)))
-                     (cons (make-cmark-math-inline (substring str (+ start 2) end-pos))
-                       (+ end-pos 2)
-                     ) ;cons
-                     (cons (make-cmark-text "$") (+ start 1))
-                   ) ;if
-                 ) ;let
-                ) ;
-                ;; 单 $ ... $：启发式限制假阳性。
-                ;; 闭合 $ 前为空白且其后仍有 $（可能开启更深 span）时让位——
-                ;; Math 17 外层 $...hbox{ when $ 不吞内层 $x > 2$；
-                ;; 无更深 $ 时接受（Math 16 的 $x $）。
-                (else
-                  (let find-close
-                    ((end-pos (string-index str #\$ (+ start 1))))
-                    (cond ((not end-pos) (cons (make-cmark-text "$") (+ start 1)))
-                          ((and (> end-pos (+ start 1))
-                             (char-whitespace? (string-ref str (- end-pos 1)))
-                             (math-inline-scan-open? str end-pos)
-                           ) ;and
-                           (cons (make-cmark-text "$") (+ start 1))
-                          ) ;
-                          ((math-inline-candidate? str start end-pos)
-                           (let* ((content (substring str (+ start 1) end-pos))
-                                  (inner (make-cmark-math-inline content))
-                                 ) ;
-                             (cons inner (+ end-pos 1))
-                           ) ;let*
-                          ) ;
-                          (else (cons (make-cmark-text "$") (+ start 1)))
-                    ) ;cond
-                  ) ;let
-                ) ;else
-              ) ;cond
-             ) ;
-             ;; \(...\)：扫描未转义的 \)；未闭合或空内容回退为字面 (（转义语义）
-             ((char=? marker #\\)
-              (let ((end-pos (unescaped-close-paren-index str (+ start 2))))
-                (if (and end-pos (> end-pos (+ start 2)))
-                  (cons (make-cmark-math-inline (substring str (+ start 2) end-pos))
-                    (+ end-pos 2)
-                  ) ;cons
-                  (cons (make-cmark-text "(") (+ start 2))
-                ) ;if
-              ) ;let
-             ) ;
-             (else (cons (make-cmark-text (substring str start len)) len))
+            (cond ((char=? marker #\$) (parse-dollar-math-inline str start len))
+                  ;; \(...\)：扫描未转义的 \)；未闭合或空内容回退为字面 (（转义语义）
+                  ((char=? marker #\\)
+                   (let ((end-pos (unescaped-close-paren-index str (+ start 2))))
+                     (if (and end-pos (> end-pos (+ start 2)))
+                       (cons (make-cmark-math-inline (substring str (+ start 2) end-pos))
+                         (+ end-pos 2)
+                       ) ;cons
+                       (cons (make-cmark-text "(") (+ start 2))
+                     ) ;if
+                   ) ;let
+                  ) ;
+                  (else (cons (make-cmark-text (substring str start len)) len))
             ) ;cond
           ) ;let
         ) ;if

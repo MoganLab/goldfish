@@ -182,20 +182,8 @@
         "reason": "自举环境各模块与全局符号加载测试"
       },
       {
-        "path": "library/liii/cmark/inline/parser.scm",
-        "reason": "原样开源的 cmark 内联解析器，将在后续 PR 中重构拆分"
-      },
-      {
         "path": "library/liii/cmark/html-entities.scm",
         "reason": "HTML 实体映射大查表"
-      },
-      {
-        "path": "library/liii/cmark/block/collector.scm",
-        "reason": "原样开源的 markdown 块收集器，将在后续 PR 中重构拆分"
-      },
-      {
-        "path": "library/liii/cmark/block/list.scm",
-        "reason": "原样开源的 markdown 列表工具，将在后续 PR 中重构拆分"
       },
       {
         "path": "library/tests/liii/cmark/parser/parse-inlines-test.scm",
@@ -262,30 +250,6 @@
       {
         "path": "r7rs/scheme/write.scm",
         "reason": "write-shared 两遍图扫描实现（引用计数+回边标记+标注输出），嵌套源于图遍历本质结构"
-      },
-      {
-        "path": "library/liii/cmark/inline/parser.scm",
-        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
-      },
-      {
-        "path": "library/liii/cmark/inline/math.scm",
-        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
-      },
-      {
-        "path": "library/liii/cmark/inline/char.scm",
-        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
-      },
-      {
-        "path": "library/liii/cmark/inline/link.scm",
-        "reason": "原样开源的 cmark 模块，将在后续 PR 中重构降低嵌套深度"
-      },
-      {
-        "path": "library/liii/cmark/block/collector.scm",
-        "reason": "原样开源的 markdown 模块，将在后续 PR 中重构降低嵌套深度"
-      },
-      {
-        "path": "library/liii/cmark/block/reference.scm",
-        "reason": "原样开源的 markdown 模块，将在后续 PR 中重构降低嵌套深度"
       }
     ],
     "type-hint": [
