@@ -80,46 +80,6 @@
         "reason": "原样开源的 cmark 单元测试，将在后续 PR 中按单元测试规范整理"
       },
       {
-        "path": "library/tests/liii/markdown-block-collector/",
-        "reason": "原样开源的 markdown-block-collector 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem/",
-        "reason": "原样开源的 md-stem 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem-test.scm",
-        "reason": "原样开源的 md-stem 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem-blockquote/",
-        "reason": "原样开源的 md-stem-blockquote 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem-blocks/",
-        "reason": "原样开源的 md-stem-blocks 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem-inline/",
-        "reason": "原样开源的 md-stem-inline 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem-lists/",
-        "reason": "原样开源的 md-stem-lists 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem-reader/",
-        "reason": "原样开源的 md-stem-reader 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/md-stem-reader-test.scm",
-        "reason": "原样开源的 md-stem-reader 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
-        "path": "library/tests/liii/utils/",
-        "reason": "原样开源的 utils 单元测试，将在后续 PR 中按单元测试规范整理"
-      },
-      {
         "path": "library/tests/liii/README.md",
         "reason": "将在后续 PR 中补充 library/tests/liii/README.md"
       }
@@ -258,7 +218,7 @@
         "reason": "原样开源的 cmark 内联解析测试集，将在后续 PR 中整理"
       },
       {
-        "path": "library/tests/liii/md-stem/markdown-to-md-stem-test.scm",
+        "path": "library/tests/liii/cmark/stem/markdown-to-md-stem-test.scm",
         "reason": "原样开源的 md-stem 转换测试集，将在后续 PR 中整理"
       }
     ],
