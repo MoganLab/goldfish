@@ -330,7 +330,9 @@
                  (expected-rel (string-append rel-parent "/" test-filename))
                 ) ;
             (if
-              (path-file? (path (resolve-repo-file (path->string test-path))))
+              (or (string-starts? name "%")
+                (path-file? (path (resolve-repo-file (path->string test-path))))
+              ) ;or
               (loop (cdr rem) acc)
               (loop (cdr rem) (cons (make-missing-test-violation expected-rel name) acc))
             ) ;if

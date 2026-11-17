@@ -12,7 +12,6 @@ bin/gf doc "函数名"
 ## 函数分类索引
 
 ### 一、文档解析与校验
-- `%standard-sections` - 允许的标准小节标题列表
 - `divider-string?` - 判断字符串是否为分割线（如 '----'）
 - `comment-body` - 提取行注释的分号后有效正文
 - `extract-doc-entries` - 从行列表中提取顶部连续注释条目
