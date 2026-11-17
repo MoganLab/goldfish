@@ -2,20 +2,13 @@
 (define-library (liii cmark inline html)
   (import (scheme base))
   (import (scheme char))
+  (import (only (liii string) string-position string-index))
   (import (liii cmark text))
   (import (liii cmark common))
   (export inline-html-start? find-inline-html-end)
   (begin
     (define (find-string str start pattern)
-      (let ((pattern-len (string-length pattern)) (len (string-length str)))
-        (let loop
-          ((i start))
-          (cond ((> (+ i pattern-len) len) #f)
-                ((string=? (substring str i (+ i pattern-len)) pattern) i)
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+      (string-position pattern str start)
     ) ;define
 
     ;; 宽松标签结束扫描（declaration <!...> 用：跳过引号找 >）
@@ -85,14 +78,8 @@
       ) ;let
     ) ;define
     (define (find-quote-end str qpos quote)
-      (let ((len (string-length str)))
-        (let loop
-          ((i (+ qpos 1)))
-          (cond ((>= i len) #f)
-                ((char=? (string-ref str i) quote) (+ i 1))
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
+      (let ((pos (string-index str quote (+ qpos 1))))
+        (and pos (+ pos 1))
       ) ;let
     ) ;define
     (define (parse-attribute str i)

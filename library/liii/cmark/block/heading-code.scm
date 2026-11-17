@@ -1,6 +1,7 @@
 (define-library (liii cmark block heading-code)
   (import (scheme base))
   (import (scheme char))
+  (import (only (liii list) drop-while))
   (import (liii cmark text))
   (import (liii cmark block line))
   (export first-word parse-fence-line fenced-code-start?
@@ -27,18 +28,14 @@
           (< indent len)
           (let ((c (string-ref line indent)))
             (and (or (char=? c #\`) (char=? c #\~))
-              (let loop
-                ((i (+ indent 1)))
-                (if (and (< i len) (char=? (string-ref line i) c))
-                  (loop (+ i 1))
-                  (let* ((fence-len (- i indent)) (raw-info (string-trim (substring line i len))))
-                    (and (>= fence-len 3)
-                      (or (char=? c #\~) (not (string-index raw-info #\` 0)))
-                      (list c fence-len indent (first-word raw-info))
-                    ) ;and
-                  ) ;let*
-                ) ;if
-              ) ;let
+              (let* ((fence-len (char-run-length line indent c))
+                     (raw-info (string-trim (substring line (+ indent fence-len) len)))
+                    ) ;
+                (and (>= fence-len 3)
+                  (or (char=? c #\~) (not (string-index raw-info #\` 0)))
+                  (list c fence-len indent (first-word raw-info))
+                ) ;and
+              ) ;let*
             ) ;and
           ) ;let
         ) ;and
@@ -72,17 +69,10 @@
         (and (<= indent 3)
           (< indent len)
           (char=? (string-ref line indent) fence-char)
-          (let loop
-            ((i (+ indent 1)))
-            (if (and (< i len) (char=? (string-ref line i) fence-char))
-              (loop (+ i 1))
-              (and (>= (- i indent) fence-len)
-                (let loop2
-                  ((j i))
-                  (or (>= j len) (and (ascii-whitespace? (string-ref line j)) (loop2 (+ j 1))))
-                ) ;let
-              ) ;and
-            ) ;if
+          (let ((run-len (char-run-length line indent fence-char)))
+            (and (>= run-len fence-len)
+              (= (skip-ascii-whitespace line (+ indent run-len)) len)
+            ) ;and
           ) ;let
         ) ;and
       ) ;let*
@@ -138,12 +128,7 @@
     ) ;define
 
     (define (trim-leading-blank-or-whitespace-lines lines)
-      (cond ((null? lines) '())
-            ((blank-or-whitespace-line? (car lines))
-             (trim-leading-blank-or-whitespace-lines (cdr lines))
-            ) ;
-            (else lines)
-      ) ;cond
+      (drop-while blank-or-whitespace-line? lines)
     ) ;define
 
     ;; underline: 前导空白 <= 3，去空白后 >= 1 个连续 = 或 -（CommonMark：至少 1 个即可，如 Example 83 的 `Foo\n=`）

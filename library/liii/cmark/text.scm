@@ -1,19 +1,15 @@
 
 (define-library (liii cmark text)
   (import (scheme base))
-  (import (scheme char))
   (import (liii ascii))
   (import (liii string))
   ;; re-export 契约：string-join / string-index / string-trim-left / string-trim-right
-  ;; 是 (liii string)（SRFI-13）绑定的直接 re-export（无本地定义）；
+  ;; 是 (liii string) 绑定的直接 re-export（无本地定义）；
   ;; 缺任一导出名则本库加载即失败，改动 (liii string) 导出名时需同步此处。
   (export string-prefix? string-prefix-at? string-join string-split-lines
     string-index string-trim-left string-trim-right string-trim find-newline
     strip-trailing-carriage-return count-leading-spaces char-run-length
-    string-blank? skip-ascii-whitespace assoc-ref-default string-count-char
-    string-count-substring repeat take-n string-trim-trailing
-    count-leading-indent string-drop-leading string-strip-surrounding safe-call
-    shell-quote http-url? hex-digit-value hex-string->bytevector
+    skip-ascii-whitespace assoc-ref-default count-leading-indent
     ascii-whitespace? string-index-of char-at? string-at? prepend-rev
     stable-sort restore-math-greek-herk
   ) ;export
@@ -105,11 +101,6 @@
       ) ;let
     ) ;define
 
-    ;; 全空白行判定（按 char-whitespace?，与 markdown-line-util 的 blank-line? 语义不同）
-    (define (string-blank? s)
-      (string-null? (string-trim-both s char-whitespace?))
-    ) ;define
-
     ;; 从 start 起跳过 ascii-whitespace? 字符，返回第一个非空白位置（skip-spaces 统一版）
     (define (skip-ascii-whitespace str start)
       (let ((len (string-length str)))
@@ -127,64 +118,6 @@
       ) ;let
     ) ;define
 
-    ;; ---- 从 markdown.scm 下沉的通用工具（见 1027 B6，命名去 markdown- 前缀）----
-
-    ;; 统计字符串中某字符出现次数
-    (define (string-count-char s ch)
-      (let loop
-        ((i 0) (count 0))
-        (if (>= i (string-length s))
-          count
-          (loop (+ i 1) (if (char=? (string-ref s i) ch) (+ count 1) count))
-        ) ;if
-      ) ;let
-    ) ;define
-
-    ;; 统计子串出现次数（不重叠）
-    (define (string-count-substring s sub)
-      (let ((sub-len (string-length sub)))
-        (if (zero? sub-len)
-          0
-          (let loop
-            ((i 0) (count 0))
-            (if (>= i (- (string-length s) sub-len -1))
-              count
-              (if (string=? (substring s i (+ i sub-len)) sub)
-                (loop (+ i sub-len) (+ count 1))
-                (loop (+ i 1) count)
-              ) ;if
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    ;; 生成长度 n 的重复元素列表（make-empty-cells / pad-cells 共用）
-    (define (repeat n x)
-      (if (<= n 0) '() (cons x (repeat (- n 1) x)))
-    ) ;define
-
-    ;; 取列表前 n 个元素（越界安全，n 超出时返回整个列表；区别于 (liii list) 的 take 越界报错）
-    (define (take-n lst n)
-      (if (or (<= n 0) (null? lst)) '() (cons (car lst) (take-n (cdr lst) (- n 1))))
-    ) ;define
-
-    ;; 去尾部空格 / tab / 回车（区别于 string-trim-right 的 ascii-whitespace? 全集）
-    (define (string-trim-trailing line)
-      (let loop
-        ((i (- (string-length line) 1)))
-        (if (< i 0)
-          ""
-          (let ((ch (string-ref line i)))
-            (if (or (char=? ch #\space) (char=? ch #\tab) (char=? ch #\return))
-              (loop (- i 1))
-              (substring line 0 (+ i 1))
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
     ;; 数前导空格与 tab（区别于 count-leading-spaces 只数空格）
     (define (count-leading-indent line)
       (let loop
@@ -198,114 +131,12 @@
       ) ;let
     ) ;define
 
-    ;; 剥前 n 个字符（越界安全）
-    (define (string-drop-leading line n)
-      (let ((m (string-length line)))
-        (if (<= n 0) line (if (>= n m) "" (substring line n m)))
-      ) ;let
-    ) ;define
-
-    ;; 剥左右包裹串（先 trim，再判首尾，剥后 trim）
-    (define (string-strip-surrounding s left right)
-      (let* ((t (string-trim (if (string? s) s "")))
-             (inner (substring t (string-length left) (- (string-length t) (string-length right)))
-             ) ;inner
-            ) ;
-        (if
-          (and (string-starts? t left)
-            (string-ends? t right)
-            (>= (string-length t) (+ (string-length left) (string-length right)))
-          ) ;and
-          (string-trim inner)
-          t
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    ;; catch 包裹，异常时返回默认值
-    (define (safe-call thunk default)
-      (catch #t thunk (lambda args default))
-    ) ;define
-
-    ;; shell 单引号转义（' -> '\''）
-    (define (shell-quote s)
-      (let ((t (if (string? s) s "")))
-        (string-append "'" (string-replace t "'" "'\"'\"'") "'")
-      ) ;let
-    ) ;define
-
-    ;; http / https / data:image 前缀判断
-    (define (http-url? s)
-      (let ((u (string-downcase (string-trim (if (string? s) s "")))))
-        (or (string-starts? u "http://")
-          (string-starts? u "https://")
-          (string-starts? u "data:image/")
-        ) ;or
-      ) ;let
-    ) ;define
-
-    ;; 十六进制字符 → 数值（非 hex 返回 #f）
-    (define (hex-digit-value ch)
-      (cond ((and (char>=? ch #\0) (char<=? ch #\9))
-             (- (char->integer ch) (char->integer #\0))
-            ) ;
-            ((and (char>=? ch #\a) (char<=? ch #\f))
-             (+ 10 (- (char->integer ch) (char->integer #\a)))
-            ) ;
-            ((and (char>=? ch #\A) (char<=? ch #\F))
-             (+ 10 (- (char->integer ch) (char->integer #\A)))
-            ) ;
-            (else #f)
-      ) ;cond
-    ) ;define
-
-    ;; hex 字符串 → bytevector（支持 "<#...>" 剥壳；空串 / 奇数长度 / 非法字符返回 #f）
-    (define (hex-string->bytevector hex-text)
-      (let* ((raw (string-trim (if (string? hex-text) hex-text "")))
-             (shell-start? (string-starts? raw "<#"))
-             (shell-end? (string-ends? raw ">"))
-             (shelled? (and shell-start? shell-end? (> (string-length raw) 3)))
-             (hex
-               (if shelled? (substring raw 2 (- (string-length raw) 1)) raw)
-             ) ;hex
-             (n (string-length hex))
-            ) ;
-        (if (or (zero? n) (= (modulo n 2) 1))
-          #f
-          (let ((bv (make-bytevector (/ n 2) 0)))
-            (let loop
-              ((i 0))
-              (if (>= i n)
-                bv
-                (let* ((h1 (hex-digit-value (string-ref hex i)))
-                       (h2 (hex-digit-value (string-ref hex (+ i 1))))
-                      ) ;
-                  (if (or (not h1) (not h2))
-                    #f
-                    (begin
-                      (bytevector-u8-set! bv (/ i 2) (+ (* 16 h1) h2))
-                      (loop (+ i 2))
-                    ) ;begin
-                  ) ;if
-                ) ;let*
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
-
     ;; s 从 pos 起查找子串 sub（返回起始索引或 #f）
     (define (string-index-of s sub start)
-      (let ((len (string-length s)) (n (string-length sub)))
-        (let loop
-          ((i start))
-          (cond ((> (+ i n) len) #f)
-                ((string=? sub (substring s i (+ i n))) i)
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+      (if (string-null? sub)
+        (and (>= start 0) (<= start (string-length s)) start)
+        (string-position sub s start)
+      ) ;if
     ) ;define
 
     ;; s 位置 pos 是字符 ch（且未越界）
