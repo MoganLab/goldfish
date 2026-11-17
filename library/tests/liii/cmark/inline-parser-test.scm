@@ -1,13 +1,13 @@
 
 (set! *load-path* (cons "markdown/goldfish" *load-path*))
 
-;; (liii cmark inline-parser) 模块函数分类索引
+;; (liii cmark inline parser) 模块函数分类索引
 ;;
 ;; cmark-inline-parser 定义最小的内联解析状态对象，
 ;; 用来记录当前输入串、当前位置以及正在处理的节点。
 
 ;; ==== 常见用法示例 ====
-(import (liii cmark inline-parser))
+(import (liii cmark inline parser))
 
 (define parser (cmark-inline-parser-new))
 (cmark-inline-parser-pos parser)

@@ -4,8 +4,8 @@
 (import (scheme base))
 (import (scheme file))
 (import (liii check))
-(import (liii md-stem))
-(import (liii md-stem-reader))
+(import (liii cmark stem))
+(import (liii cmark stem-reader))
 (import (liii unicode))
 
 (check-set-mode! 'report-failed)

@@ -3,7 +3,7 @@
 
 (import (scheme base))
 (import (liii check))
-(import (liii md-stem-reader))
+(import (liii cmark stem-reader))
 
 (check-set-mode! 'report-failed)
 

@@ -1,13 +1,13 @@
 
 (set! *load-path* (cons "markdown/goldfish" *load-path*))
 
-;; (liii cmark math-parser) 模块函数分类索引
+;; (liii cmark inline math) 模块函数分类索引
 ;;
 ;; cmark-math-parser 负责识别 Markdown 扩展中的块级与行内数学公式，
 ;; 并把公式内容包装成 cmark 节点。
 
 ;; ==== 常见用法示例 ====
-(import (liii cmark math-parser))
+(import (liii cmark inline math))
 (import (liii cmark node))
 
 (cmark-node-type (parse-math-block '("$$" "E = mc^2" "$$")))

@@ -1,7 +1,7 @@
 
 (set! *load-path* (cons "markdown/goldfish" *load-path*))
 
-(import (liii check) (liii cmark math-parser))
+(import (liii check) (liii cmark inline math))
 
 (check-set-mode! 'report-failed)
 

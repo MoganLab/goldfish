@@ -1,6 +1,6 @@
 (set! *load-path* (cons "markdown/goldfish" *load-path*))
 
-;; (liii utils text-util) 字符串通用工具测试
+;; (liii cmark text) 字符串通用工具测试
 ;;
 ;; text-util 提供 markdown 插件共用的字符串/字符位置原语；
 ;; 本文件覆盖新增通用导出：string-index-of / char-at? / string-at?。
@@ -8,7 +8,7 @@
 ;; ==== 常见用法示例 ====
 (import (scheme base))
 (import (liii check))
-(import (liii utils text-util))
+(import (liii cmark text))
 
 (check-set-mode! 'report)
 

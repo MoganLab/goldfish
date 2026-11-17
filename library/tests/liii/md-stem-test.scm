@@ -1,12 +1,12 @@
 
 (set! *load-path* (cons "markdown/goldfish" *load-path*))
 
-;; (liii md-stem) 模块函数分类索引
+;; (liii cmark stem) 模块函数分类索引
 ;;
 ;; md-stem 提供 Markdown 到语义 S 表达式的转换入口。
 
 ;; ==== 常见用法示例 ====
-(import (liii md-stem))
+(import (liii cmark stem))
 
 (markdown->md-stem "# 标题")
 (markdown->md-stem "正文")

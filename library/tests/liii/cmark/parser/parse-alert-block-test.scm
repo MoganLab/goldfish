@@ -2,9 +2,9 @@
 (set! *load-path* (cons "markdown/goldfish" *load-path*))
 
 (import (liii check)
-  (liii cmark block-parser)
+  (liii cmark block parser)
   (liii cmark node)
-  (liii utils markdown-alert-block-util)
+  (liii cmark block alert)
 ) ;import
 
 (check-set-mode! 'report-failed)
