@@ -15,7 +15,7 @@
 ;; string
 ;; 大写的盘符字母（不含冒号）。
 
-(import (liii check) (liii path parse))
+(import (liii check) (liii path internal parse))
 
 (check-set-mode! 'report-failed)
 

@@ -15,7 +15,7 @@
 ;; boolean
 ;; 以字母加冒号开头（如 "C:"）返回 #t，否则 #f。
 
-(import (liii check) (liii path parse))
+(import (liii check) (liii path internal parse))
 
 (check-set-mode! 'report-failed)
 

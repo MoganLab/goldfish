@@ -20,7 +20,7 @@
 ;; 起始分隔符由 root 字段表达，不混入 parts；
 ;; "." 段与空段被过滤。Windows 平台先把 / 规范化为 \。
 
-(import (liii check) (liii os) (liii path parse) (srfi srfi-11))
+(import (liii check) (liii os) (liii path internal parse) (srfi srfi-11))
 
 (check-set-mode! 'report-failed)
 

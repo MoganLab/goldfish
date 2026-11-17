@@ -19,7 +19,7 @@
 ;; ----
 ;; 涵盖 UNC、盘符绝对/相对、当前盘根与普通相对路径五种形式。
 
-(import (liii check) (liii path parse) (srfi srfi-11))
+(import (liii check) (liii path internal parse) (srfi srfi-11))
 
 (check-set-mode! 'report-failed)
 

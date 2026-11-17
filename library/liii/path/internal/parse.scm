@@ -14,9 +14,9 @@
 ;; limitations under the License.
 ;;
 
-(define-library (liii path parse)
-  (export string-split-vec unc-prefix? windows-path-with-drive? extract-drive
-    drop-dot-parts clean-tail parse-path-string parse-unc parse-windows-path
+(define-library (liii path internal parse)
+  (export unc-prefix? windows-path-with-drive? extract-drive clean-tail
+    parse-path-string parse-windows-path
   ) ;export
   (import (scheme base)
     (scheme char)

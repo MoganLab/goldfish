@@ -31,7 +31,7 @@
     (liii os)
     (liii string)
     (liii vector)
-    (liii path parse)
+    (liii path internal parse)
   ) ;import
   (begin
 

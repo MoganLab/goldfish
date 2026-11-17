@@ -26,7 +26,7 @@
     (liii os)
     (liii string)
     (liii vector)
-    (liii path parse)
+    (liii path internal parse)
     (liii path record)
     (liii path component)
   ) ;import
