@@ -154,16 +154,12 @@
     ;; 注册表：entry = (marker . content)
     ;; ---------------------------------------------------------------
 
-    (define-record-type <paste-registry>
-      (%make-paste-registry entries counter)
+    (define*-record-type <paste-registry>
+      (make-paste-registry (entries '()) (counter 0))
       paste-registry?
       (entries %paste-entries %paste-entries-set!)
       (counter %paste-counter %paste-counter-set!)
-    ) ;define-record-type
-
-    (define (make-paste-registry)
-      (%make-paste-registry '() 0)
-    ) ;define
+    ) ;define*-record-type
 
     (define (paste-registry-count reg)
       (%paste-counter reg)
