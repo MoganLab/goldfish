@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; state : anthropic-stream-state | vector
-;; 流状态；record 为当前表示，vector 用于兼容旧调用。
+;; state : anthropic-stream-state
+;; 流状态记录。
 ;;
 ;; 返回值
 ;; ----
@@ -27,9 +27,5 @@
   (check (anthropic-stream-state-blocks state) => '())
 ) ;let*
 
-;; vector 状态（兼容旧调用）
-(let ((state (vector '() #f '() '() "end_turn" #f #f)))
-  (check (anthropic-stream-state-blocks state) => '())
-) ;let*
 
 (check-report)

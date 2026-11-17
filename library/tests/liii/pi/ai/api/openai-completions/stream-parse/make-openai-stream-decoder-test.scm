@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : openai-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : openai-stream-state
+;; 可变流状态记录。
 ;; on-ev : procedure | #f
 ;; 接收 text 和 toolcall 事件 alist 的回调；为 #f 时不派发事件。
 ;;
@@ -23,8 +23,8 @@
 ;; 收到 [DONE] 时完成所有未结束的工具调用。
 
 (import (liii check)
- 
   (liii pi ai api openai-completions)
+  (liii pi ai api openai-completions stream-state)
   (liii pi ai message)
 ) ;import
 
@@ -34,7 +34,7 @@
 ;; 测试纯文本流式增量解析与事件派发
 (let* ((events '())
        (on-ev (lambda (ev) (set! events (cons ev events))))
-       (stream-state (vector '() #f '() "stop" #f '()))
+       (stream-state (make-openai-stream-state '() #f '() "stop" #f '()))
        (decoder (make-openai-stream-decoder stream-state on-ev))
       ) ;
   ;; 传入流式 chunk
@@ -46,16 +46,16 @@
   ) ;decoder
   (decoder "data: [DONE]\n\n")
 
-  (check (length (vector-ref stream-state 0)) => 1)
-  (check (pi-text-block-text (car (vector-ref stream-state 0))) => "Hello world")
-  (check (vector-ref stream-state 3) => "stop")
-  (check (cdr (assoc 'totalTokens (vector-ref stream-state 2))) => 15)
+  (check (length (openai-stream-state-blocks stream-state)) => 1)
+  (check (pi-text-block-text (car (openai-stream-state-blocks stream-state))) => "Hello world")
+  (check (openai-stream-state-stop-reason stream-state) => "stop")
+  (check (cdr (assoc 'totalTokens (openai-stream-state-usage stream-state))) => 15)
 ) ;let*
 
 ;; 测试流式 tool_calls 增量解析与拼接
 (let* ((events '())
        (on-ev (lambda (ev) (set! events (cons ev events))))
-       (stream-state (vector '() #f '() "stop" #f '()))
+       (stream-state (make-openai-stream-state '() #f '() "stop" #f '()))
        (decoder (make-openai-stream-decoder stream-state on-ev))
       ) ;
   (decoder "data: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"bash\",\"arguments\":\"\"}}]}}]}\n\n"
@@ -68,14 +68,14 @@
   ) ;decoder
   (decoder "data: [DONE]\n\n")
 
-  (check (length (vector-ref stream-state 0)) => 1)
-  (let ((tc (car (vector-ref stream-state 0))))
+  (check (length (openai-stream-state-blocks stream-state)) => 1)
+  (let ((tc (car (openai-stream-state-blocks stream-state))))
     (check (pi-tool-call-block? tc) => #t)
     (check (pi-tool-call-block-id tc) => "call_1")
     (check (pi-tool-call-block-name tc) => "bash")
     (check (cdr (assoc "command" (pi-tool-call-block-arguments tc))) => "ls")
   ) ;let
-  (check (vector-ref stream-state 3) => "toolUse")
+  (check (openai-stream-state-stop-reason stream-state) => "toolUse")
 ) ;let*
 
 (check-report)

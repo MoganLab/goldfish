@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; t : string
 ;; 本次到达的文本增量。
 ;; on-ev : procedure | #f
@@ -36,7 +36,7 @@
 ;; 首个增量新建文本块并派发 text_start + text_delta
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (append-anthropic-stream-text stream-state "Hello" on-ev)
   (check (length (anthropic-stream-state-blocks stream-state)) => 1)
@@ -53,7 +53,7 @@
 ;; 后续增量合并到最后一个文本块，不再派发 text_start
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (append-anthropic-stream-text stream-state "Hello" on-ev)
   (set! evs '())
@@ -67,7 +67,7 @@
 ) ;let*
 
 ;; 已有其它块时新增文本块，索引指向新块
-(let* ((stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+(let* ((stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (anthropic-stream-state-blocks-set! stream-state
     (list (pi-text-block "prev")))
@@ -79,7 +79,7 @@
 ) ;let*
 
 ;; 回调为 #f 时不派发事件，但状态仍然更新
-(let ((stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)))
   (append-anthropic-stream-text stream-state "quiet" #f)
   (check (anthropic-stream-state-last-text stream-state) => "quiet")
 ) ;let*

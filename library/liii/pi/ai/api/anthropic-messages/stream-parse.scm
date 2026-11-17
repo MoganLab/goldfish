@@ -6,6 +6,7 @@
 
 (define-library (liii pi ai api anthropic-messages stream-parse)
   (import (scheme base)
+    (liii base)
     (liii string)
     (liii json)
     (liii sse)
@@ -20,14 +21,14 @@
   ) ;export
   (begin
 
-    (define-record-type <anthropic-tool-state>
-      (%make-anthropic-tool-state id name json index)
+    (define*-record-type <anthropic-tool-state>
+      (%make-anthropic-tool-state (id "") (name "") (json "") (index 0))
       %anthropic-tool-state?
       (id %anthropic-tool-state-id)
       (name %anthropic-tool-state-name)
       (json %anthropic-tool-state-json)
       (index %anthropic-tool-state-index)
-    ) ;define-record-type
+    ) ;define*-record-type
 
     (define (%emit-delta on-ev cur-idx text usage stream-state)
       (when (procedure? on-ev)
@@ -83,7 +84,7 @@
     ) ;define
 
     (define (%handle-json-delta delta idx stream-state on-ev)
-      (let* ((pj (cdr (or (assoc "partial_json" delta) '(#f . ""))))
+      (let* ((pj (if (json-object? delta) (json-ref-string delta "partial_json" "") ""))
              (cur-tool (anthropic-stream-state-current-tool stream-state))
             ) ;
         (when (%anthropic-tool-state? cur-tool)
@@ -110,23 +111,22 @@
     ) ;define
 
     (define (handle-anthropic-delta json-obj stream-state on-ev)
-      (let* ((idx (cdr (or (assoc "index" json-obj) '(#f . 0))))
-             (delta (cdr (or (assoc "delta" json-obj) '(#f))))
-             (dtype (cdr (or (assoc "type" delta) '(#f . ""))))
+      (let* ((idx (if (json-object? json-obj) (json-ref-integer json-obj "index" 0) 0))
+             (delta (if (json-object? json-obj) (json-ref json-obj "delta") '()))
+             (dtype (if (json-object? delta) (json-ref-string delta "type" "") ""))
             ) ;
-        (cond
-         ((equal? dtype "text_delta")
-          (append-anthropic-stream-text stream-state
-            (cdr (or (assoc "text" delta) '(#f . "")))
-            on-ev
-          ) ;append-anthropic-stream-text
-         ) ;
-         ((equal? dtype "input_json_delta")
-          (%handle-json-delta delta idx stream-state on-ev)
-         ) ;
-         ((or (equal? dtype "thinking_delta") (equal? dtype "signature_delta"))
-          (anthropic-handle-thinking-delta delta idx stream-state on-ev)
-         ) ;
+        (cond ((equal? dtype "text_delta")
+               (append-anthropic-stream-text stream-state
+                 (json-ref-string delta "text" "")
+                 on-ev
+               ) ;append-anthropic-stream-text
+              ) ;
+              ((equal? dtype "input_json_delta")
+               (%handle-json-delta delta idx stream-state on-ev)
+              ) ;
+              ((or (equal? dtype "thinking_delta") (equal? dtype "signature_delta"))
+               (anthropic-handle-thinking-delta delta idx stream-state on-ev)
+              ) ;
         ) ;cond
       ) ;let*
     ) ;define
@@ -184,15 +184,13 @@
     ) ;define
 
     (define (%handle-block-start json-obj stream-state on-ev)
-      (let* ((idx (cdr (or (assoc "index" json-obj) '(#f . 0))))
-             (cb (cdr (or (assoc "content_block" json-obj) '(#f))))
-             (cb-type (cdr (or (assoc "type" cb) '(#f . ""))))
+      (let* ((idx (if (json-object? json-obj) (json-ref-integer json-obj "index" 0) 0))
+             (cb (if (json-object? json-obj) (json-ref json-obj "content_block") '()))
+             (cb-type (if (json-object? cb) (json-ref-string cb "type" "") ""))
             ) ;
         (cond
          ((equal? cb-type "tool_use")
-          (let ((id (cdr (or (assoc "id" cb) '(#f . ""))))
-                (name (cdr (or (assoc "name" cb) '(#f . ""))))
-               ) ;
+          (let ((id (json-ref-string cb "id" "")) (name (json-ref-string cb "name" "")))
             (anthropic-stream-state-current-tool-set! stream-state
               (%make-anthropic-tool-state id name "" idx)
             ) ;anthropic-stream-state-current-tool-set!
@@ -222,14 +220,14 @@
     ) ;define
 
     (define (%handle-msg-delta json-obj stream-state)
-      (let* ((delta (cdr (or (assoc "delta" json-obj) '(#f))))
-             (sr (cdr (or (assoc "stop_reason" delta) '(#f . #f))))
-             (u (cdr (or (assoc "usage" json-obj) '(#f))))
+      (let* ((delta (if (json-object? json-obj) (json-ref json-obj "delta") '()))
+             (sr (if (json-object? delta) (json-ref-string delta "stop_reason" #f) #f))
+             (u (if (json-object? json-obj) (json-ref json-obj "usage") '()))
             ) ;
         (when sr
           (anthropic-stream-state-stop-reason-set! stream-state sr)
         ) ;when
-        (when (pair? u)
+        (when (json-object? u)
           (let* ((cur-u (anthropic-stream-state-usage stream-state))
                  (out-tok (%usage-num u cur-u "output_tokens" 'output))
                  (in-tok (%usage-num u cur-u "input_tokens" 'input))
@@ -250,11 +248,11 @@
     ) ;define
 
     (define (process-anthropic-sse json-obj stream-state on-ev)
-      (let ((ev-type (cdr (or (assoc "type" json-obj) '(#f . "")))))
+      (let ((ev-type (if (json-object? json-obj) (json-ref-string json-obj "type" "") "")))
         (cond
          ((equal? ev-type "message_start")
-          (let* ((msg (cdr (or (assoc "message" json-obj) '(#f))))
-                 (u (cdr (or (assoc "usage" msg) '(#f))))
+          (let* ((msg (json-ref json-obj "message"))
+                 (u (if (json-object? msg) (json-ref msg "usage") '()))
                 ) ;
             (anthropic-stream-state-usage-set! stream-state (anthropic-map-usage u))
           ) ;let*

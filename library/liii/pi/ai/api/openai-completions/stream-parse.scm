@@ -6,6 +6,7 @@
 
 (define-library (liii pi ai api openai-completions stream-parse)
   (import (scheme base)
+    (liii base)
     (liii string)
     (liii json)
     (liii sse)
@@ -20,36 +21,22 @@
   ) ;export
   (begin
 
-    (define-record-type <openai-tool-state>
-      (%make-openai-tool-state id name args emitted)
+    (define*-record-type <openai-tool-state>
+      (%make-openai-tool-state (id "") (name "") (args "") (emitted #f))
       %openai-tool-state?
       (id %openai-tool-state-id)
       (name %openai-tool-state-name)
       (args %openai-tool-state-args)
       (emitted %openai-tool-state-emitted)
-    ) ;define-record-type
-
-    (define (%val key obj default-val)
-      (if (not (pair? obj))
-        default-val
-        (let ((p
-                (or (assoc key obj)
-                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-                ) ;or
-              ) ;p
-             ) ;
-          (if (pair? p) (cdr p) default-val)
-        ) ;let
-      ) ;if
-    ) ;define
+    ) ;define*-record-type
 
     (define (extract-openai-stream-error-message body)
       (catch #t
         (lambda ()
           (let ((json-data (string->json body)))
-            (and (pair? json-data)
-              (let ((err (%val "error" json-data #f)))
-                (cond ((pair? err) (%val "message" err #f))
+            (and (json-object? json-data)
+              (let ((err (json-ref json-data "error")))
+                (cond ((json-object? err) (json-ref-string err "message" #f))
                       ((string? err) err)
                       (else #f)
                 ) ;cond
@@ -127,11 +114,11 @@
     ) ;define
 
     (define (process-openai-tool-call-delta tc stream-state on-event)
-      (let* ((idx (%val "index" tc 0))
-             (id (%val "id" tc #f))
-             (fn (%val "function" tc '()))
-             (name (%val "name" fn #f))
-             (args-delta (%val "arguments" fn ""))
+      (let* ((idx (if (json-object? tc) (json-ref-integer tc "index" 0) 0))
+             (id (if (json-object? tc) (json-ref-string tc "id" #f) #f))
+             (fn (if (json-object? tc) (json-ref tc "function") '()))
+             (name (if (json-object? fn) (json-ref-string fn "name" #f) #f))
+             (args-delta (if (json-object? fn) (json-ref-string fn "arguments" "") ""))
              (tools-alist (openai-stream-state-tools stream-state))
              (entry (assoc idx tools-alist))
              (curr-item (if entry (cdr entry) (%make-openai-tool-state "" "" "" #f)))
@@ -240,20 +227,22 @@
     ) ;define
 
     (define (process-openai-chunk json-obj stream-state on-event)
-      (let* ((top-usage (%val "usage" json-obj #f))
-             (choices (%val "choices" json-obj #()))
+      (let* ((top-usage (if (json-object? json-obj) (json-ref json-obj "usage") #f))
+             (choices (if (json-object? json-obj) (json-ref json-obj "choices") #()))
              (choice
                (if (and (vector? choices) (> (vector-length choices) 0))
                  (vector-ref choices 0)
                  '()
                ) ;if
              ) ;choice
-             (choice-usage (%val "usage" choice #f))
-             (eff-usage (or top-usage choice-usage))
-             (raw-stop (%val "finish_reason" choice #f))
-             (delta (%val "delta" choice '()))
+             (choice-usage (if (json-object? choice) (json-ref choice "usage") #f))
+             (eff-usage (if (json-object? top-usage) top-usage choice-usage))
+             (raw-stop
+               (if (json-object? choice) (json-ref-string choice "finish_reason" #f) #f)
+             ) ;raw-stop
+             (delta (if (json-object? choice) (json-ref choice "delta") '()))
             ) ;
-        (when (pair? eff-usage)
+        (when (json-object? eff-usage)
           (openai-stream-state-usage-set! stream-state (openai-map-usage eff-usage))
         ) ;when
         (when (and (string? raw-stop) (not (string-null? raw-stop)))
@@ -261,10 +250,14 @@
             (openai-map-stop-reason raw-stop)
           ) ;openai-stream-state-stop-reason-set!
         ) ;when
-        (when (pair? delta)
-          (let ((content (%val "content" delta #f))
-                (reasoning (or (%val "reasoning" delta #f) (%val "reasoning_content" delta #f)))
-                (raw-tc (%val "tool_calls" delta #f))
+        (when (json-object? delta)
+          (let ((content (json-ref-string delta "content" #f))
+                (reasoning
+                  (or (json-ref-string delta "reasoning" #f)
+                    (json-ref-string delta "reasoning_content" #f)
+                  ) ;or
+                ) ;reasoning
+                (raw-tc (json-ref delta "tool_calls"))
                ) ;
             (when (and (string? content) (not (string-null? content)))
               (append-openai-stream-text stream-state content on-event)

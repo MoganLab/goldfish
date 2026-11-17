@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : gemini-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : gemini-stream-state
+;; 可变流状态记录。
 ;; on-event : procedure | #f
 ;; 接收 text_end 或 thinking_end 事件的回调。
 ;;
@@ -21,11 +21,14 @@
 ;; ----
 ;; 没有活动块时不执行任何操作；结束事件包含块索引、完整内容和 usage。
 
-(import (liii check) (liii pi ai api google-generative-ai thinking))
+(import (liii check)
+  (liii pi ai api google-generative-ai thinking)
+  (liii pi ai api google-generative-ai stream-state)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f #f))
+(let* ((stream-state (make-gemini-stream-state '() #f '((input . 10) (output . 5)) '() #f #f #f #f))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -35,7 +38,7 @@
   (gemini-append-thinking-block! stream-state " and more" #f emit)
 
   (gemini-stream-stop-active-block! stream-state emit)
-  (check (vector-ref stream-state 5) => #f)
+  (check (gemini-stream-state-current-active-type stream-state) => #f)
   (check (length events) => 4)
   (check (cdr (assoc 'type (list-ref events 3))) => "thinking_end")
   (check (cdr (assoc 'content (list-ref events 3))) => "Thinking 1 and more")

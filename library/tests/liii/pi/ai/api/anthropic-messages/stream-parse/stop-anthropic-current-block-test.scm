@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; on-ev : procedure | #f
 ;; 接收 toolcall_end 或 text_end 事件的回调；为 #f 时不派发事件。
 ;;
@@ -34,7 +34,7 @@
 ;; 工具块结束时解析参数并写入 toolCall 块
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (process-anthropic-sse '(("type" . "content_block_start")
                            ("index" . 0)
@@ -66,7 +66,7 @@
 ) ;let*
 
 ;; 空工具参数归一化为空 alist
-(let* ((stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+(let* ((stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (process-anthropic-sse '(("type" . "content_block_start")
                            ("index" . 0)
@@ -85,7 +85,7 @@
 ;; 文本块结束时派发 text_end 并清除 last-text
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (append-anthropic-stream-text stream-state "done" on-ev)
   (set! evs '())
@@ -99,7 +99,7 @@
 ;; 没有活动块时不产生事件
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (stop-anthropic-current-block stream-state on-ev)
   (check (length evs) => 0)

@@ -9,8 +9,8 @@
 ;; ----
 ;; json-obj : alist
 ;; 已解析的 Anthropic SSE 事件对象。
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; on-ev : procedure | #f
 ;; 接收 text、toolcall 与 thinking 事件 alist 的回调；为 #f 时不派发事件。
 ;;
@@ -35,7 +35,7 @@
 (check-set-mode! 'report-failed)
 
 ;; message_start 初始化 usage
-(let ((stream-state (vector '() #f '() '() "end_turn" #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f '() '() "end_turn" #f #f)))
   (process-anthropic-sse '(("type" . "message_start")
                            ("message" . (("usage" . (("input_tokens" . 11)
                                                      ("output_tokens" . 3))))))
@@ -49,7 +49,7 @@
 ;; content_block_start 建立工具块并派发 toolcall_start
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (process-anthropic-sse '(("type" . "content_block_start")
                            ("index" . 0)
@@ -68,7 +68,7 @@
 ;; content_block_start 建立 thinking 块并派发 thinking_start
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (process-anthropic-sse '(("type" . "content_block_start")
                            ("index" . 0)
@@ -81,7 +81,7 @@
 ) ;let*
 
 ;; content_block_delta 追加文本增量
-(let ((stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)))
   (process-anthropic-sse '(("type" . "content_block_delta")
                            ("index" . 0)
                            ("delta" . (("type" . "text_delta") ("text" . "hey"))))
@@ -92,7 +92,7 @@
 ) ;let*
 
 ;; content_block_stop 结束当前文本块
-(let ((stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)))
   (process-anthropic-sse '(("type" . "content_block_delta")
                            ("index" . 0)
                            ("delta" . (("type" . "text_delta") ("text" . "hey"))))
@@ -107,7 +107,7 @@
 ) ;let*
 
 ;; message_delta 更新 stop_reason 与 usage
-(let ((stream-state (vector '() #f '() '() "end_turn" #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f '() '() "end_turn" #f #f)))
   (process-anthropic-sse '(("type" . "message_delta")
                            ("delta" . (("stop_reason" . "tool_use")))
                            ("usage" . (("output_tokens" . 42))))
@@ -119,7 +119,7 @@
 ) ;let*
 
 ;; error 事件把 stop_reason 置为 error
-(let ((stream-state (vector '() #f '() '() "end_turn" #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f '() '() "end_turn" #f #f)))
   (process-anthropic-sse '(("type" . "error"))
     stream-state
     #f
@@ -128,7 +128,7 @@
 ) ;let*
 
 ;; 未知事件类型被忽略
-(let ((stream-state (vector '() #f '() '() "end_turn" #f #f)))
+(let ((stream-state (make-anthropic-stream-state '() #f '() '() "end_turn" #f #f)))
   (process-anthropic-sse '(("type" . "ping"))
     stream-state
     #f

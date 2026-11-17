@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : gemini-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : gemini-stream-state
+;; 可变流状态记录。
 ;; t : string
 ;; 本次追加的 thinking 文本。
 ;; ts : string | #f
@@ -25,27 +25,30 @@
 ;; ----
 ;; 空文本被忽略；开始 thinking 前会结束当前活动的文本块。
 
-(import (liii check) (liii pi ai api google-generative-ai thinking))
+(import (liii check)
+  (liii pi ai api google-generative-ai thinking)
+  (liii pi ai api google-generative-ai stream-state)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f #f))
+(let* ((stream-state (make-gemini-stream-state '() #f '((input . 10) (output . 5)) '() #f #f #f #f))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
        ) ;emit
       ) ;
   (gemini-append-thinking-block! stream-state "Thinking 1" "sig-1" emit)
-  (check (vector-ref stream-state 5) => "thinking")
-  (check (vector-ref stream-state 6) => "Thinking 1")
-  (check (length (vector-ref stream-state 0)) => 1)
+  (check (gemini-stream-state-current-active-type stream-state) => "thinking")
+  (check (gemini-stream-state-thinking-text stream-state) => "Thinking 1")
+  (check (length (gemini-stream-state-blocks stream-state)) => 1)
   (check (length events) => 2)
   (check (cdr (assoc 'type (car events))) => "thinking_start")
   (check (cdr (assoc 'type (cadr events))) => "thinking_delta")
 
   (gemini-append-thinking-block! stream-state " and more" #f emit)
-  (check (vector-ref stream-state 6) => "Thinking 1 and more")
-  (check (length (vector-ref stream-state 0)) => 1)
+  (check (gemini-stream-state-thinking-text stream-state) => "Thinking 1 and more")
+  (check (length (gemini-stream-state-blocks stream-state)) => 1)
   (check (length events) => 3)
   (check (cdr (assoc 'type (caddr events))) => "thinking_delta")
 ) ;let*

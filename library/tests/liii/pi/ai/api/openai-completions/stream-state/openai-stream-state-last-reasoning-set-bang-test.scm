@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; state : openai-stream-state | vector
-;; 流状态；record 为当前表示，vector 用于兼容旧调用。
+;; state : openai-stream-state
+;; 流状态记录。
 ;; value : string | #f
 ;; 当前累积的思考内容；没有活动思考内容时为 #f。
 ;;
@@ -17,9 +17,6 @@
 ;; 未指定
 ;; 通过副作用更新流状态。
 
-;; 说明
-;; ----
-;; record 状态直接更新记录字段；vector 状态更新对应的下标。
 
 (import (liii check)
   (liii pi ai api openai-completions stream-state)
@@ -33,10 +30,5 @@
   (check (openai-stream-state-last-reasoning state) => "reasoning delta")
 ) ;let
 
-;; vector 状态（兼容旧调用）
-(let ((state (vector '() #f '() "stop" #f '() #f)))
-  (openai-stream-state-last-reasoning-set! state "reasoning delta")
-  (check (openai-stream-state-last-reasoning state) => "reasoning delta")
-) ;let
 
 (check-report)

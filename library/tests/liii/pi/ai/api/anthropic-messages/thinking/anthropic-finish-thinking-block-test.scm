@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; on-ev : procedure | #f
 ;; 接收 thinking_end 事件的回调；为 #f 时不派发事件。
 ;;
@@ -24,17 +24,21 @@
 (import (liii check)
   (liii pi ai message)
   (liii pi ai api anthropic-messages thinking)
+  (liii pi ai api anthropic-messages stream-state)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f))
+(let* ((stream-state
+         (make-anthropic-stream-state '() #f '((input . 10) (output . 5)) '() #f #f
+           '((thinking . "") (signature . "") (index . 0))
+         ) ;make-anthropic-stream-state
+       ) ;stream-state
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
        ) ;emit
       ) ;
-  (vector-set! stream-state 6 '((thinking . "") (signature . "") (index . 0)))
   (anthropic-handle-thinking-delta '(("type" . "thinking_delta")
                                      ("thinking" . "Step 1"))
     0
@@ -52,8 +56,8 @@
   (check (length events) => 2)
   (check (cdr (assoc 'type (cadr events))) => "thinking_end")
   (check (cdr (assoc 'content (cadr events))) => "Step 1")
-  (check (length (vector-ref stream-state 0)) => 1)
-  (let ((blk (car (vector-ref stream-state 0))))
+  (check (length (anthropic-stream-state-blocks stream-state)) => 1)
+  (let ((blk (car (anthropic-stream-state-blocks stream-state))))
     (check-true (pi-thinking-block? blk))
     (check (pi-thinking-block-thinking blk) => "Step 1")
     (check (pi-thinking-block-thinking-signature blk) => "sig123")

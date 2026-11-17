@@ -9,8 +9,8 @@
 ;; ----
 ;; part : alist
 ;; 包含 text、thought、thoughtSignature 或 functionCall 的响应片段。
-;; stream-state : gemini-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : gemini-stream-state
+;; 可变流状态记录。
 ;; on-event : procedure | #f
 ;; 接收流式事件的回调；为 #f 时不派发事件。
 ;;
@@ -33,7 +33,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 普通文本 part
-(let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -52,7 +52,7 @@
 ) ;let*
 
 ;; functionCall part
-(let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -76,7 +76,7 @@
 ) ;let*
 
 ;; 未知 part 被忽略
-(let* ((stream-state (vector '() #f '() '() "STOP" #f "" ""))
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))

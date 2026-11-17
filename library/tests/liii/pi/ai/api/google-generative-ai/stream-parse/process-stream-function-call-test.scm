@@ -11,8 +11,8 @@
 ;; functionCall 对象，包含 name、args，可选 id 与 thoughtSignature。
 ;; blocks : list
 ;; 当前已完成的消息块列表。
-;; stream-state : gemini-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : gemini-stream-state
+;; 可变流状态记录。
 ;; on-event : procedure | #f
 ;; 接收流式事件的回调；为 #f 时不派发事件。
 ;;
@@ -34,7 +34,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 带 id 的函数调用
-(let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() "STOP" #f "" ""))
+(let* ((stream-state (make-gemini-stream-state '() #f '((input . 10) (output . 5)) '() "STOP" #f "" ""))
        (events '())
        (emit
          (lambda (ev) (set! events (append events (list ev))))
@@ -64,7 +64,7 @@
 ) ;let*
 
 ;; 缺少 id 时生成规范化 id
-(let ((stream-state (vector '() #f '() '() "STOP" #f "" "")))
+(let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (process-stream-function-call '(("name" . "bash") ("args")) '() stream-state #f)
   (let ((tc (car (gemini-stream-state-blocks stream-state))))
     (check (pi-tool-call-block-id tc) => "bash_0_1")
@@ -73,7 +73,7 @@
 ) ;let
 
 ;; 回调为 #f 时不派发事件，但状态仍然更新
-(let ((stream-state (vector '() #f '() '() "STOP" #f "" "")))
+(let ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" "")))
   (process-stream-function-call '(("name" . "bash") ("args") ("id" . "call_x"))
     '()
     stream-state

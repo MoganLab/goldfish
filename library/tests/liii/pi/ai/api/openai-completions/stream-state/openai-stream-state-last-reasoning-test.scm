@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; state : openai-stream-state | vector
-;; 流状态；record 为当前表示，vector 用于兼容旧调用。
+;; state : openai-stream-state
+;; 流状态记录。
 ;;
 ;; 返回值
 ;; ----
@@ -27,14 +27,6 @@
   (check (openai-stream-state-last-reasoning state) => "reasoning text")
 ) ;let
 
-;; vector 状态（兼容旧调用，长度大于 6）
-(let ((state (vector '() #f '() "stop" #f '() "reasoning text")))
-  (check (openai-stream-state-last-reasoning state) => "reasoning text")
-) ;let
 
-;; vector 状态（长度不足 7）
-(let ((state (vector '() #f '() "stop" #f '())))
-  (check (openai-stream-state-last-reasoning state) => #f)
-) ;let
 
 (check-report)

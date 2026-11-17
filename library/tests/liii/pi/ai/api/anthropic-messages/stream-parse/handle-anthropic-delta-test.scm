@@ -9,8 +9,8 @@
 ;; ----
 ;; json-obj : alist
 ;; content_block_delta 事件对象，包含 index 与 delta 字段。
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; on-ev : procedure | #f
 ;; 接收 text、toolcall 与 thinking 事件 alist 的回调；为 #f 时不派发事件。
 ;;
@@ -36,7 +36,7 @@
 ;; text_delta 追加文本并派发 text_delta 事件
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (handle-anthropic-delta '(("type" . "content_block_delta")
                             ("index" . 0)
@@ -53,7 +53,7 @@
 ;; input_json_delta 拼接工具参数 JSON 片段
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   ;; 先建立工具块状态
   (process-anthropic-sse '(("type" . "content_block_start")
@@ -80,7 +80,7 @@
 ;; thinking_delta 累积思考内容
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   ;; 先建立 thinking 块状态
   (process-anthropic-sse '(("type" . "content_block_start")
@@ -103,7 +103,7 @@
 ) ;let*
 
 ;; 未知增量类型被忽略
-(let* ((stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+(let* ((stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
       ) ;
   (handle-anthropic-delta '(("type" . "content_block_delta")
                             ("index" . 0)

@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; stream-state : anthropic-stream-state | vector
-;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; stream-state : anthropic-stream-state
+;; 可变流状态记录。
 ;; on-ev : procedure | #f
 ;; 接收 text、toolcall 和 thinking 事件 alist 的回调；为 #f 时不派发事件。
 ;;
@@ -25,6 +25,7 @@
 (import (liii check)
   (liii pi ai api anthropic-messages core)
   (liii pi ai api anthropic-messages stream-parse)
+  (liii pi ai api anthropic-messages stream-state)
   (liii pi ai message)
 ) ;import
 
@@ -33,7 +34,7 @@
 ;; 1. 文本流式增量与结束
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
        (decoder (make-anthropic-stream-decoder stream-state on-ev))
       ) ;
   (decoder "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n"
@@ -45,8 +46,8 @@
   (decoder "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n"
   ) ;decoder
 
-  (check (length (vector-ref stream-state 0)) => 1)
-  (check (pi-text-block-text (car (vector-ref stream-state 0)))
+  (check (length (anthropic-stream-state-blocks stream-state)) => 1)
+  (check (pi-text-block-text (car (anthropic-stream-state-blocks stream-state)))
     =>
     "Hello Anthropic"
   ) ;check
@@ -55,7 +56,7 @@
 ;; 2. 普通 tool_use 流式参数拼接
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
        (decoder (make-anthropic-stream-decoder stream-state on-ev))
       ) ;
   (decoder "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"bash\",\"input\":{}}}\n\n"
@@ -67,8 +68,8 @@
   (decoder "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n"
   ) ;decoder
 
-  (check (length (vector-ref stream-state 0)) => 1)
-  (let ((tc (car (vector-ref stream-state 0))))
+  (check (length (anthropic-stream-state-blocks stream-state)) => 1)
+  (let ((tc (car (anthropic-stream-state-blocks stream-state))))
     (check (pi-tool-call-block? tc) => #t)
     (check (pi-tool-call-block-id tc) => "call_1")
     (check (pi-tool-call-block-name tc) => "bash")
@@ -79,7 +80,7 @@
 ;; 3. 关键测试：tool_use 无参数 delta（如直接 stop），参数归一化为 '() 且不崩溃
 (let* ((evs '())
        (on-ev (lambda (e) (set! evs (cons e evs))))
-       (stream-state (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
+       (stream-state (make-anthropic-stream-state '() #f (anthropic-map-usage '()) '() "end_turn" #f #f))
        (decoder (make-anthropic-stream-decoder stream-state on-ev))
       ) ;
   (decoder "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"call_empty\",\"name\":\"ls\",\"input\":{}}}\n\n"
@@ -87,8 +88,8 @@
   (decoder "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n"
   ) ;decoder
 
-  (check (length (vector-ref stream-state 0)) => 1)
-  (let ((tc (car (vector-ref stream-state 0))))
+  (check (length (anthropic-stream-state-blocks stream-state)) => 1)
+  (let ((tc (car (anthropic-stream-state-blocks stream-state))))
     (check (pi-tool-call-block? tc) => #t)
     (check (pi-tool-call-block-id tc) => "call_empty")
     (check (pi-tool-call-block-name tc) => "ls")

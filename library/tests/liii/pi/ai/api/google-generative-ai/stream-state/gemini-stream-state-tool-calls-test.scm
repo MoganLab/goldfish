@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; state : gemini-stream-state | vector
-;; 流状态；record 为当前表示，vector 用于兼容旧调用。
+;; state : gemini-stream-state
+;; 流状态记录。
 ;;
 ;; 返回值
 ;; ----
@@ -25,9 +25,5 @@
   (check (gemini-stream-state-tool-calls state) => '())
 ) ;let
 
-;; vector 状态（兼容旧调用）
-(let ((state (vector '() #f '() '() "STOP" #f "" "")))
-  (check (gemini-stream-state-tool-calls state) => '())
-) ;let
 
 (check-report)
