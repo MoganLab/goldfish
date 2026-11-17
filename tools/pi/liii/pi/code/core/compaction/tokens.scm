@@ -7,8 +7,10 @@
 (define-library (liii pi code core compaction tokens)
   (import (scheme base)
     (scheme write)
+    (liii error)
     (liii string)
     (liii list)
+    (liii json)
     (liii pi ai message)
   ) ;import
   (export pi-estimate-content-chars pi-estimate-message-tokens
@@ -43,73 +45,35 @@
       (make-pi-compaction-settings #t 16384 20000)
     ) ;define
 
-    (define (%json-dict-pair obj str-key sym-key)
-      (let loop
-        ((rest obj))
-        (cond ((not (pair? rest)) #f)
-              ((and (pair? (car rest))
-                 (let ((k (car (car rest))))
-                   (or (equal? k str-key) (equal? k sym-key))
-                 ) ;let
-               ) ;and
-               (car rest)
-              ) ;
-              (else (loop (cdr rest)))
-        ) ;cond
+    (define (json->pi-compaction-settings obj)
+      (unless (or (json-object? obj) (null? obj))
+        (type-error "json->pi-compaction-settings: expected json object" obj)
+      ) ;unless
+      (let ((defaults (pi-compaction-default-settings)))
+        (if (null? obj)
+          defaults
+          (make-pi-compaction-settings (json-ref-boolean obj "enabled" (pi-compaction-settings-enabled defaults))
+            (json-ref-integer obj
+              "reserveTokens"
+              (pi-compaction-settings-reserve-tokens defaults)
+            ) ;json-ref-integer
+            (json-ref-integer obj
+              "keepRecentTokens"
+              (pi-compaction-settings-keep-recent-tokens defaults)
+            ) ;json-ref-integer
+          ) ;make-pi-compaction-settings
+        ) ;if
       ) ;let
     ) ;define
 
-    (define (%json-dict-ref obj key default-val)
-      (if (not (pair? obj))
-        default-val
-        (let* ((str-key (if (symbol? key) (symbol->string key) key))
-               (sym-key (if (string? key) (string->symbol key) key))
-               (pair (%json-dict-pair obj str-key sym-key))
-              ) ;
-          (if pair (cdr pair) default-val)
-        ) ;let*
-      ) ;if
-    ) ;define
-
-    (define (%normalize-json-bool val)
-      (case val
-       ((true) #t)
-       ((false) #f)
-       (else val)
-      ) ;case
-    ) ;define
-
-    (define (json->pi-compaction-settings obj)
-      (if (pi-compaction-settings? obj)
-        obj
-        (let ((defaults (pi-compaction-default-settings)))
-          (make-pi-compaction-settings
-            (if (%normalize-json-bool (%json-dict-ref obj "enabled" (pi-compaction-settings-enabled defaults))
-                ) ;%normalize-json-bool
-              #t
-              #f
-            ) ;if
-            (%json-dict-ref obj
-              "reserveTokens"
-              (pi-compaction-settings-reserve-tokens defaults)
-            ) ;%json-dict-ref
-            (%json-dict-ref obj
-              "keepRecentTokens"
-              (pi-compaction-settings-keep-recent-tokens defaults)
-            ) ;%json-dict-ref
-          ) ;make-pi-compaction-settings
-        ) ;let
-      ) ;if
-    ) ;define
-
     (define (pi-compaction-settings->json s)
-      (if (pair? s)
-        s
-        (list (cons "enabled" (if (pi-compaction-settings-enabled s) 'true 'false))
-          (cons "reserveTokens" (pi-compaction-settings-reserve-tokens s))
-          (cons "keepRecentTokens" (pi-compaction-settings-keep-recent-tokens s))
-        ) ;list
-      ) ;if
+      (unless (pi-compaction-settings? s)
+        (type-error "pi-compaction-settings->json: expected pi-compaction-settings" s)
+      ) ;unless
+      (list (cons "enabled" (if (pi-compaction-settings-enabled s) 'true 'false))
+        (cons "reserveTokens" (pi-compaction-settings-reserve-tokens s))
+        (cons "keepRecentTokens" (pi-compaction-settings-keep-recent-tokens s))
+      ) ;list
     ) ;define
 
     (define (%ref obj key)

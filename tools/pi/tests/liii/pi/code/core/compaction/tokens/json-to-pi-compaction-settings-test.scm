@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; obj : any?
-;; string->json 解析出的 alist，或已是 <pi-compaction-settings> 的 record。
+;; obj : json-object? | null?
+;; string->json 解析出的 JSON 对象或空列表。
 ;;
 ;; 返回值
 ;; ----
@@ -34,10 +34,9 @@
   (check (pi-compaction-settings-keep-recent-tokens s) => 9000)
 ) ;let*
 
-;; 2. 空对象与非对象输入：使用默认值
+;; 2. 空对象与空列表输入：使用默认值
 (let ((s1 (json->pi-compaction-settings (string->json "{}")))
       (s2 (json->pi-compaction-settings '()))
-      (s3 (json->pi-compaction-settings #f))
      ) ;
   (check-true (pi-compaction-settings? s1))
   (check (pi-compaction-settings-enabled s1) => #t)
@@ -45,15 +44,24 @@
   (check (pi-compaction-settings-keep-recent-tokens s1) => 20000)
   (check-true (pi-compaction-settings? s2))
   (check (pi-compaction-settings-enabled s2) => #t)
-  (check-true (pi-compaction-settings? s3))
-  (check (pi-compaction-settings-enabled s3) => #t)
 ) ;let
 
-;; 3. 已是 record 原样返回
-(let* ((orig (make-pi-compaction-settings #f 4096 10000))
-       (out (json->pi-compaction-settings orig))
-      ) ;
-  (check (eq? out orig) => #t)
-) ;let*
+;; 3. 非法字段回退默认值，非对象输入抛出 type-error
+(let ((s (json->pi-compaction-settings (string->json "{\"enabled\":\"bad\",\"reserveTokens\":\"x\",\"keepRecentTokens\":null}")
+         ) ;json->pi-compaction-settings
+      ) ;s
+     ) ;
+  (check-true (pi-compaction-settings? s))
+  (check (pi-compaction-settings-enabled s) => #t)
+  (check (pi-compaction-settings-reserve-tokens s) => 16384)
+  (check (pi-compaction-settings-keep-recent-tokens s) => 20000)
+) ;let
+
+(check-catch 'type-error (json->pi-compaction-settings #f))
+(check-catch 'type-error (json->pi-compaction-settings "bad"))
+(check-catch 'type-error (json->pi-compaction-settings 123))
+(check-catch 'type-error
+  (json->pi-compaction-settings (make-pi-compaction-settings #f 4096 10000))
+) ;check-catch
 
 (check-report)
