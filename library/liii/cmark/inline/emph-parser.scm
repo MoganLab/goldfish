@@ -1,5 +1,5 @@
 ;;
-;; Copyright (C) 2026 The Goldfish Scheme Authors
+;; Copyright (C) 2026 Liii Network
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -69,10 +69,13 @@
       ) ;let
     ) ;define
 
-    (define (place-emph-node acc-rev node-placed? op-end cl-pos children use refmap parse-inlines-fn)
+    (define (place-emph-node acc-rev node-placed? op-end cl-pos children use
+              refmap parse-inlines-fn
+            ) ;place-emph-node
       (if node-placed?
         acc-rev
-        (let ((emph-node (make-emph-or-strong (reverse children) use refmap parse-inlines-fn)))
+        (let ((emph-node (make-emph-or-strong (reverse children) use refmap parse-inlines-fn))
+             ) ;
           (cons (list op-end cl-pos emph-node) acc-rev)
         ) ;let
       ) ;if
@@ -126,8 +129,9 @@
             ) ;walk
            ) ;
            ((and (<= (car (car s)) cl-pos) (< cl-pos (cadr (car s))))
-            (let ((acc1
-                    (place-emph-node acc-rev node-placed? op-end cl-pos children use refmap parse-inlines-fn)
+            (let ((acc1 (place-emph-node acc-rev node-placed? op-end cl-pos
+                          children use refmap parse-inlines-fn
+                        ) ;place-emph-node
                   ) ;acc1
                  ) ;
               (walk (cdr s)
@@ -158,7 +162,15 @@
         (if (null? pl)
           cur
           (fold-pairs (cdr pl)
-            (apply-emph-pair str delims-v cur used-o used-c (car pl) refmap parse-inlines-fn)
+            (apply-emph-pair str
+              delims-v
+              cur
+              used-o
+              used-c
+              (car pl)
+              refmap
+              parse-inlines-fn
+            ) ;apply-emph-pair
           ) ;fold-pairs
         ) ;if
       ) ;let
@@ -184,8 +196,7 @@
                           ) ;fold-emph-forest
                         ) ;if
                  ) ;inner
-                 (folded
-                   (fold-node-pairs str delims-v pairs inner used-o used-c refmap parse-inlines-fn)
+                 (folded (fold-node-pairs str delims-v pairs inner used-o used-c refmap parse-inlines-fn)
                  ) ;folded
                  (part+rest (split-segs-at folded cl))
                  (part (car part+rest))
