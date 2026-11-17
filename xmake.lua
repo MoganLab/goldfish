@@ -199,7 +199,7 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/gfproject.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/(tests/**)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(tests/**)", {prefixdir = "share/goldfish"})
 end
 
 if is_plat("wasm") then

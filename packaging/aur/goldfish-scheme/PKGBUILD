@@ -20,6 +20,7 @@ build() {
   export XMAKE_ROOT=y
   xmake config --mode=release --yes
   xmake build --yes goldfish
+  bin/gf doc --build-json
 }
 
 check() {
