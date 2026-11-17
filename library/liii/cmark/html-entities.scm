@@ -1,8 +1,21 @@
 ;;;
 ;;; WHATWG HTML 命名字符实体表（CommonMark 字符引用解码用）
 ;;;
-;;; Copyright (C) 2026 Liii Network All Right Reserved
-;;;
+;;
+;; Copyright (C) 2026 Liii Network
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
+;;
 ;;; 数据来源: https://html.spec.whatwg.org/entities.json
 ;;; 共 2125 个带分号命名实体，仅存码点；运行时由 utf8-string 还原。
 ;;; 本文件为机器生成数据，不手工维护。

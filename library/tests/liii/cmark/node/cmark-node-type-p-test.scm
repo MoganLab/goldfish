@@ -26,5 +26,7 @@
 (check-true (cmark-node-type? (make-cmark-paragraph) 'paragraph))
 (check-false (cmark-node-type? (make-cmark-paragraph) 'heading))
 (check-false (cmark-node-type? (make-cmark-text "x") 'paragraph))
+(check-false (cmark-node-type? "not-node" 'paragraph))
+(check-false (cmark-node-type? #f 'paragraph))
 
 (check-report)
