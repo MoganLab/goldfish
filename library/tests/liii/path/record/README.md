@@ -15,14 +15,6 @@
 (path-record-parts p)            ; => #("a" "b.txt")
 (path-record-type p)             ; => posix
 (path-record-root p)             ; => #\/
-
-;; 示例2：字段访问器与修改器
-(path-record-set-parts! p #("c" "d.md"))
-(path->string p)                 ; => "/c/d.md"
-
-;; 示例3：anchor 与分量拼接
-(anchor-string 'posix "" #\/)    ; => "/"
-(parts->string #("a" "b") "/")   ; => "a/b"
 ```
 
 ## 查看函数文档
@@ -45,17 +37,12 @@ gf doc liii/path/record "函数名"
 
 - `make-path-record` - 直接构造路径记录对象
 - `path?` - 判断对象是否为路径记录
-- `path-record-parts` / `path-record-set-parts!` - 分量向量字段
-- `path-record-type` / `path-record-set-type!` - 路径类型字段
-- `path-record-drive` / `path-record-set-drive!` - 盘符字段
-- `path-record-root` / `path-record-set-root!` - 根分隔符字段
+- `path-record-parts` - 分量向量字段
+- `path-record-type` - 路径类型字段
+- `path-record-drive` - 盘符字段
+- `path-record-root` - 根分隔符字段
 
-### 二、底层拼接工具
-
-- `anchor-string` - 构造路径 anchor 首元素字符串
-- `parts->string` - 用分隔符拼接分量向量
-
-### 三、构造函数
+### 二、构造函数
 
 - `path` - 从字符串或其他 path 创建路径对象
 - `path-from-string` - 从字符串创建路径
@@ -66,7 +53,7 @@ gf doc liii/path/record "函数名"
 - `path-home` - 获取用户主目录路径
 - `path-temp-dir` - 获取临时目录路径
 
-### 四、属性访问与判断
+### 三、属性访问与判断
 
 - `path-parts` - 获取路径分量（含 anchor）
 - `path-type` - 获取路径类型
@@ -76,6 +63,6 @@ gf doc liii/path/record "函数名"
 - `path-absolute?` / `path-relative?` - 判断路径绝对性
 - `path-equals?` / `path=?` - 判断两路径相等
 
-### 五、转换
+### 四、转换
 
 - `path->string` - 将路径转换为字符串

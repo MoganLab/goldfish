@@ -15,12 +15,10 @@
 ;;
 
 (define-library (liii path record)
-  (export make-path-record path? path-record-parts path-record-set-parts!
-    path-record-type path-record-set-type! path-record-drive
-    path-record-set-drive! path-record-root path-record-set-root! anchor-string
-    parts->string path path-from-string path-of-drive path-from-parts
-    path-from-env path-cwd path-home path-temp-dir path-parts path-type
-    path-drive path-root path->string path-as-posix path-absolute?
+  (export make-path-record path? path-record-parts path-record-type
+    path-record-drive path-record-root path path-from-string path-of-drive
+    path-from-parts path-from-env path-cwd path-home path-temp-dir path-parts
+    path-type path-drive path-root path->string path-as-posix path-absolute?
     path-relative? path-equals? path=?
   ) ;export
   (import (scheme base)
@@ -44,10 +42,10 @@
     (define-record-type <path>
       (make-path-record parts type drive root)
       path?
-      (parts path-record-parts path-record-set-parts!)
-      (type path-record-type path-record-set-type!)
-      (drive path-record-drive path-record-set-drive!)
-      (root path-record-root path-record-set-root!)
+      (parts path-record-parts)
+      (type path-record-type)
+      (drive path-record-drive)
+      (root path-record-root)
     ) ;define-record-type
 
     ;; ; 构造路径 anchor 首元素字符串(对齐 pathlib.parts 的首元素)。
