@@ -24,6 +24,7 @@
     (liii list)
     (liii string)
     (liii hashlib)
+    (liii hash-table)
     (liii goldtool cache)
     (liii goldtest-cache-deps)
   ) ;import
@@ -69,6 +70,18 @@
       (find-test-dependencies test-file)
     ) ;define
 
+    (define *dep-file-hash-cache* (make-hash-table))
+
+    (define (%cached-file-sha256 f)
+      (if (hash-table-contains? *dep-file-hash-cache* f)
+        (hash-table-ref *dep-file-hash-cache* f)
+        (let ((h (if (file-exists? f) (sha256-by-file f) "")))
+          (hash-table-set! *dep-file-hash-cache* f h)
+          h
+        ) ;let
+      ) ;if
+    ) ;define
+
     ;; 对依赖列表中的文件内容计算确定性串联指纹
     (define (compute-tools-deps-hash deps)
       (if (null? deps)
@@ -77,10 +90,7 @@
           ((rest deps) (acc '()))
           (if (null? rest)
             (sha256 (apply string-append (reverse acc)))
-            (let* ((f (car rest))
-                   (h (if (file-exists? f) (sha256-by-file f) ""))
-                   (line (string-append f "=" h "\n"))
-                  ) ;
+            (let* ((f (car rest)) (h (%cached-file-sha256 f)) (line (string-append f "=" h "\n")))
               (loop (cdr rest) (cons line acc))
             ) ;let*
           ) ;if
@@ -104,9 +114,20 @@
       ) ;sha256
     ) ;define
 
+    (define *cached-bin-hash* #f)
+
+    (define (%get-bin-hash)
+      (unless *cached-bin-hash*
+        (set! *cached-bin-hash*
+          (if (file-exists? (executable)) (sha256-by-file (executable)) "")
+        ) ;set!
+      ) ;unless
+      *cached-bin-hash*
+    ) ;define
+
     ;; 综合计算单测试文件的 Action Key
     (define (test-action-key test-file . maybe-flags)
-      (let* ((bin-hash (if (file-exists? (executable)) (sha256-by-file (executable)) ""))
+      (let* ((bin-hash (%get-bin-hash))
              (file-hash (if (file-exists? test-file) (sha256-by-file test-file) ""))
              (test-id (%canonical-test-id test-file))
              (combined-file-hash (string-append test-id ":" file-hash))

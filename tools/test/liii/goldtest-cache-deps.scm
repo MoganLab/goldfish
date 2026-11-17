@@ -23,6 +23,7 @@
     (liii list)
     (liii string)
     (liii sort)
+    (liii hash-table)
     (liii gfproject config)
   ) ;import
   (export extract-file-imports resolve-import-path find-test-dependencies
@@ -60,51 +61,55 @@
 
     ;; 从单条顶层 AST 提取导入库名列表
     (define (%form-imported-libs form)
-      (cond
-       ((and (pair? form) (eq? (car form) 'import))
-        (filter (lambda (x) x) (map %unwrap-import-set (cdr form)))
-       ) ;
-       ((and (pair? form) (eq? (car form) 'define-library))
-        (let loop
-          ((clauses (cddr form)) (acc '()))
-          (cond ((null? clauses) (reverse acc))
-                ((and (pair? (car clauses)) (eq? (caar clauses) 'import))
-                 (loop (cdr clauses)
-                   (append
-                     (reverse (filter (lambda (x) x) (map %unwrap-import-set (cdar clauses))))
-                     acc
-                   ) ;append
-                 ) ;loop
-                ) ;
-                (else (loop (cdr clauses) acc))
-          ) ;cond
-        ) ;let
-       ) ;
-       (else '())
+      (cond ((not (pair? form)) '())
+            ((eq? (car form) 'import)
+             (filter (lambda (x) x) (map %unwrap-import-set (cdr form)))
+            ) ;
+            ((eq? (car form) 'define-library)
+             (apply append (map %form-imported-libs (cddr form)))
+            ) ;
+            (else '())
       ) ;cond
     ) ;define
 
-    ;; 从文件中提取所有 (import ...) 库名列表
+    (define *imports-cache* (make-hash-table))
+    (define *resolve-cache* (make-hash-table))
+    (define *resources-cache* (make-hash-table))
+    (define *boot-deps-cache* #f)
+    (define *cached-base-roots* #f)
+
+    (define (%read-file-imports file-path)
+      (catch #t
+        (lambda ()
+          (call-with-input-file file-path
+            (lambda (p)
+              (let loop
+                ((f (read p)) (acc '()))
+                (if (eof-object? f)
+                  (reverse acc)
+                  (loop (read p) (append (reverse (%form-imported-libs f)) acc))
+                ) ;if
+              ) ;let
+            ) ;lambda
+          ) ;call-with-input-file
+        ) ;lambda
+        (lambda args '())
+      ) ;catch
+    ) ;define
+
+    ;; 从文件中提取所有 (import ...) 库名列表（进程内按路径缓存）
     (define (extract-file-imports file-path)
-      (if (not (file-exists? file-path))
-        '()
-        (catch #t
-          (lambda ()
-            (call-with-input-file file-path
-              (lambda (p)
-                (let loop
-                  ((f (read p)) (acc '()))
-                  (if (eof-object? f)
-                    (reverse acc)
-                    (loop (read p) (append (reverse (%form-imported-libs f)) acc))
-                  ) ;if
-                ) ;let
-              ) ;lambda
-            ) ;call-with-input-file
-          ) ;lambda
-          (lambda args '())
-        ) ;catch
-      ) ;if
+      (cond ((not (file-exists? file-path)) '())
+            ((hash-table-contains? *imports-cache* file-path)
+             (hash-table-ref *imports-cache* file-path)
+            ) ;
+            (else
+              (let ((res (%read-file-imports file-path)))
+                (hash-table-set! *imports-cache* file-path res)
+                res
+              ) ;let
+            ) ;else
+      ) ;cond
     ) ;define
 
     (define (%lib-name->rel-path lib-name)
@@ -148,9 +153,6 @@
       ) ;if
     ) ;define
 
-    ;; 缓存静态搜索根目录（gfproject-domains-list 与 gf_lib 在进程内不变）
-    (define *cached-base-roots* #f)
-
     (define (%base-search-roots)
       (unless *cached-base-roots*
         (let* ((dom-roots
@@ -160,20 +162,14 @@
                  ) ;map
                ) ;dom-roots
                (gf-lib (gfproject-get-gf-lib))
-               (gf-parent
-                 (if gf-lib (path->string (path-parent (path gf-lib))) #f)
-               ) ;gf-parent
-               (gf-roots (if gf-lib
-                           (list gf-lib
-                             (string-append gf-lib "/r7rs")
-                             (string-append gf-lib "/library")
-                             (string-append gf-lib "/bignum")
-                             (string-append gf-parent "/r7rs")
-                             (string-append gf-parent "/library")
-                             (string-append gf-parent "/bignum")
-                           ) ;list
-                           '()
-                         ) ;if
+               (gf-roots
+                 (if gf-lib
+                   (map (lambda (s) (string-append gf-lib s))
+                     '("" "/r7rs" "/library" "/bignum" "/../r7rs" "/../library"
+                       "/../bignum")
+                   ) ;map
+                   '()
+                 ) ;if
                ) ;gf-roots
                (raw (append (list ".") dom-roots gf-roots))
               ) ;
@@ -195,41 +191,50 @@
       ) ;let
     ) ;define
 
-    ;; 按真实加载路径将库名解析为 .scm 源文件路径（若为 C 内建库则返回 #f）
     (define (resolve-import-path lib-name current-file)
-      (let ((rel (%lib-name->rel-path lib-name)) (roots (%search-roots current-file)))
-        (%first-existing-path (map (lambda (r) (%join-cand r rel)) roots))
-      ) ;let
+      (let* ((cur-root (%current-file-root current-file))
+             (cache-key (cons cur-root lib-name))
+            ) ;
+        (if (hash-table-contains? *resolve-cache* cache-key)
+          (hash-table-ref *resolve-cache* cache-key)
+          (let* ((rel (%lib-name->rel-path lib-name))
+                 (roots (%search-roots current-file))
+                 (res
+                   (%first-existing-path (map (lambda (r) (%join-cand r rel)) roots))
+                 ) ;res
+                ) ;
+            (hash-table-set! *resolve-cache* cache-key res)
+            res
+          ) ;let*
+        ) ;if
+      ) ;let*
     ) ;define
 
     ;; 定位启动时隐式加载的 R7RS 引导文件
     (define (%find-boot-files)
       (let* ((gf-lib (gfproject-get-gf-lib))
-             (gf-parent
-               (if gf-lib (path->string (path-parent (path gf-lib))) #f)
-             ) ;gf-parent
              (bases
                (filter string?
                  (list "."
                    gf-lib
                    (and gf-lib (string-append gf-lib "/r7rs"))
-                   (and gf-parent (string-append gf-parent "/r7rs"))
+                   (and gf-lib (string-append gf-lib "/../r7rs"))
                  ) ;list
                ) ;filter
              ) ;bases
-             (find-one
-               (lambda (rel)
-                 (%first-existing-path
-                   (append (list (string-append "r7rs/scheme/" rel))
-                     (map (lambda (b) (%join-cand b (string-append "scheme/" rel))) bases)
-                   ) ;append
-                 ) ;%first-existing-path
-               ) ;lambda
-             ) ;find-one
-             (boot (find-one "boot.scm"))
-             (syn (find-one "syntax-rules.scm"))
             ) ;
-        (filter string? (list boot syn))
+        (filter string?
+          (map
+            (lambda (rel)
+              (%first-existing-path
+                (cons (string-append "r7rs/scheme/" rel)
+                  (map (lambda (b) (%join-cand b (string-append "scheme/" rel))) bases)
+                ) ;cons
+              ) ;%first-existing-path
+            ) ;lambda
+            '("boot.scm" "syntax-rules.scm")
+          ) ;map
+        ) ;filter
       ) ;let*
     ) ;define
 
@@ -299,84 +304,96 @@
     ) ;define
 
     (define (test-no-cache-directive? file-path)
-      (let loop
-        ((lines (%read-header-lines file-path)))
-        (cond ((null? lines) #f)
-              ((and (string-contains (car lines) ";")
-                 (string-contains (car lines) "@test-no-cache")
-               ) ;and
-               #t
-              ) ;
-              (else (loop (cdr lines)))
-        ) ;cond
-      ) ;let
+      (any (lambda (line)
+             (and (string-contains line ";") (string-contains line "@test-no-cache"))
+           ) ;lambda
+        (%read-header-lines file-path)
+      ) ;any
     ) ;define
 
     (define (%extract-test-depends file-path)
-      (let loop
-        ((lines (%read-header-lines file-path)) (acc '()))
-        (if (null? lines)
-          (reverse acc)
-          (let* ((line (car lines))
-                 (idx (and (string-contains line ";") (%substring-index line "@test-depends:")))
-                ) ;
-            (if idx
-              (let ((spec (string-trim (substring line (+ idx 14)))))
-                (if (> (string-length spec) 0)
-                  (loop (cdr lines) (cons spec acc))
-                  (loop (cdr lines) acc)
-                ) ;if
-              ) ;let
-              (loop (cdr lines) acc)
-            ) ;if
-          ) ;let*
-        ) ;if
-      ) ;let
+      (filter
+        (lambda (s) (and (string? s) (> (string-length s) 0)))
+        (map
+          (lambda (line)
+            (let ((idx (and (string-contains line ";") (%substring-index line "@test-depends:")))
+                 ) ;
+              (and idx (string-trim (substring line (+ idx 14))))
+            ) ;let
+          ) ;lambda
+          (%read-header-lines file-path)
+        ) ;map
+      ) ;filter
+    ) ;define
+
+    (define (%cached-dir-files dir)
+      (if (hash-table-contains? *resources-cache* dir)
+        (hash-table-ref *resources-cache* dir)
+        (let ((files (%collect-dir-files dir)))
+          (hash-table-set! *resources-cache* dir files)
+          files
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%visit-scm-into! visited file)
+      (for-each
+        (lambda (lib)
+          (let ((dep (resolve-import-path lib file)))
+            (when (and dep (not (hash-table-contains? visited dep)))
+              (hash-table-set! visited dep #t)
+              (%visit-scm-into! visited dep)
+            ) ;when
+          ) ;let
+        ) ;lambda
+        (extract-file-imports file)
+      ) ;for-each
+    ) ;define
+
+    (define (%add-dep! visited p)
+      (when (and p (not (hash-table-contains? visited p)))
+        (hash-table-set! visited p #t)
+      ) ;when
+    ) ;define
+
+    (define (%get-boot-deps)
+      (unless *boot-deps-cache*
+        (let ((visited (make-hash-table)))
+          (for-each (lambda (s) (%add-dep! visited s) (%visit-scm-into! visited s))
+            (%find-boot-files)
+          ) ;for-each
+          (set! *boot-deps-cache* (hash-table-keys visited))
+        ) ;let
+      ) ;unless
+      *boot-deps-cache*
     ) ;define
 
     ;; 递归解析测试文件、引导文件、resources/ 及 @test-depends 全部依赖，按字母序返回
     (define (find-test-dependencies test-file)
-      (let ((visited '()))
-        (define (add-dep! p)
-          (if (and p (not (member p visited string=?)))
-            (begin
-              (set! visited (cons p visited))
-              #t
-            ) ;begin
-            #f
-          ) ;if
-        ) ;define
-        (define (visit-scm file)
-          (for-each
-            (lambda (lib)
-              (let ((dep (resolve-import-path lib file)))
-                (when (and dep (add-dep! dep))
-                  (visit-scm dep)
-                ) ;when
-              ) ;let
-            ) ;lambda
-            (extract-file-imports file)
-          ) ;for-each
-        ) ;define
-        (when (file-exists? test-file)
-          (visit-scm test-file)
-          (for-each (lambda (bf) (when (add-dep! bf) (visit-scm bf))) (%find-boot-files))
+      (if (not (file-exists? test-file))
+        '()
+        (let ((visited (make-hash-table)))
+          (for-each (lambda (p) (%add-dep! visited p)) (%get-boot-deps))
+          (%visit-scm-into! visited test-file)
           (let ((res-dir (%find-resources-dir test-file)))
             (when res-dir
-              (for-each add-dep! (%collect-dir-files res-dir))
+              (for-each (lambda (p) (%add-dep! visited p)) (%cached-dir-files res-dir))
             ) ;when
           ) ;let
           (for-each
             (lambda (spec)
-              (cond ((path-dir? (path spec)) (for-each add-dep! (%collect-dir-files spec)))
-                    ((file-exists? spec) (add-dep! (%norm-path spec)))
+              (cond
+               ((path-dir? (path spec))
+                (for-each (lambda (p) (%add-dep! visited p)) (%collect-dir-files spec))
+               ) ;
+               ((file-exists? spec) (%add-dep! visited (%norm-path spec)))
               ) ;cond
             ) ;lambda
             (%extract-test-depends test-file)
           ) ;for-each
-        ) ;when
-        (list-sort string<? visited)
-      ) ;let
+          (list-sort string<? (hash-table-keys visited))
+        ) ;let
+      ) ;if
     ) ;define
 
   ) ;begin
