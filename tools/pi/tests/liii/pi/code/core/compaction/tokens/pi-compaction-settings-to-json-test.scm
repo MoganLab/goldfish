@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; settings : pi-compaction-settings? | alist
-;; 压缩配置 record 或已是 JSON alist。
+;; settings : pi-compaction-settings?
+;; 压缩配置 record。
 ;;
 ;; 返回值
 ;; ----
@@ -45,5 +45,8 @@
   (check (cdr (assoc "reserveTokens" j)) => 16384)
   (check (cdr (assoc "keepRecentTokens" j)) => 20000)
 ) ;let*
+
+(check-catch 'type-error (pi-compaction-settings->json '(("enabled" . true))))
+(check-catch 'type-error (pi-compaction-settings->json "invalid"))
 
 (check-report)
