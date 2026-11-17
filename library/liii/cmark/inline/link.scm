@@ -17,31 +17,27 @@
       (string-index str char start-pos)
     ) ;define
 
+    (define (count-backtick-run str pos len)
+      (let scan
+        ((p pos) (n 0))
+        (if (char-at? str p len #\`) (scan (+ p 1) (+ n 1)) n)
+      ) ;let
+    ) ;define
+
     ;; code span 不参与 emphasis/strong/link 的 delimiter 匹配（CommonMark §6.3）
     ;; 若 str 在 pos 处是 backtick run 且其后存在等长 run，返回 code span 结束位置（不含闭合 run）；否则 #f
     (define (code-span-end str pos)
       (let ((len (string-length str)))
         (and (< pos len)
           (char=? (string-ref str pos) #\`)
-          (let* ((marker-len
-                   (let scan
-                     ((p pos) (n 0))
-                     (if (char-at? str p len #\`) (scan (+ p 1) (+ n 1)) n)
-                   ) ;let
-                 ) ;marker-len
+          (let* ((marker-len (count-backtick-run str pos len))
                  (search-start (+ pos marker-len))
                 ) ;
             (let loop
               ((p search-start))
               (cond ((>= p len) #f)
                     ((char=? (string-ref str p) #\`)
-                     (let ((run-len
-                             (let scan
-                               ((q p) (n 0))
-                               (if (char-at? str q len #\`) (scan (+ q 1) (+ n 1)) n)
-                             ) ;let
-                           ) ;run-len
-                          ) ;
+                     (let ((run-len (count-backtick-run str p len)))
                        (if (= run-len marker-len) (+ p run-len) (loop (+ p run-len)))
                      ) ;let
                     ) ;

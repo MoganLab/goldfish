@@ -246,47 +246,54 @@
         (or (char=? c #\") (char=? c #\') (char=? c #\())
       ) ;let
     ) ;define
+    (define (parse-reference-title-part label norm-label url after-dest)
+      (let ((title-pos (skip-ws-across (car after-dest) (cadr after-dest) #f)))
+        (cond
+         ((not title-pos) (list norm-label url "" (cdr (cadr after-dest))))
+         ((title-start-char? (car title-pos) (cadr title-pos))
+          (let* ((t-start (car title-pos))
+                 (t-end (cadr title-pos))
+                 (finished (finish-reference label url t-start t-end))
+                 (no-title? (caddr title-pos))
+                 (t-result (if no-title? (list norm-label url "" t-end) #f))
+                ) ;
+            (if finished finished t-result)
+          ) ;let*
+         ) ;
+         ((caddr title-pos) (list norm-label url "" (cadr title-pos)))
+         (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (parse-reference-after-label label-result)
+      (let* ((label (car label-result))
+             (norm-label (normalize-reference-label label))
+             (pos (cadr label-result))
+             (rest-lines (caddr label-result))
+             (dest-pos (skip-ws-across pos rest-lines #f))
+            ) ;
+        (and dest-pos
+          (let ((dest-result (parse-link-destination dest-pos)))
+            (and dest-result
+              (parse-reference-title-part label
+                norm-label
+                (car dest-result)
+                (cdr dest-result)
+              ) ;parse-reference-title-part
+            ) ;and
+          ) ;let
+        ) ;and
+      ) ;let*
+    ) ;define
+
     (define (parse-reference-definition-lines lines)
       (let* ((first-line (car lines)) (indent (count-leading-spaces first-line)))
         (and (<= indent 3)
           (< indent (string-length first-line))
           (char=? (string-ref first-line indent) #\[)
           (let ((label-result (scan-reference-label lines (+ indent 1))))
-            (and label-result
-              (let* ((label (car label-result))
-                     (norm-label (normalize-reference-label label))
-                     (pos (cadr label-result))
-                     (rest-lines (caddr label-result))
-                     (dest-pos (skip-ws-across pos rest-lines #f))
-                    ) ;
-                (and dest-pos
-                  (let ((dest-result (parse-link-destination dest-pos)))
-                    (and dest-result
-                      (let* ((url (car dest-result))
-                             (after-dest (cdr dest-result))
-                             (title-pos (skip-ws-across (car after-dest) (cadr after-dest) #f))
-                            ) ;
-                        (cond
-                         ((not title-pos) (list norm-label url "" (cdr (cadr after-dest))))
-                         ((title-start-char? (car title-pos) (cadr title-pos))
-                          (let* ((t-start (car title-pos))
-                                 (t-end (cadr title-pos))
-                                 (finished (finish-reference label url t-start t-end))
-                                 (no-title? (caddr title-pos))
-                                 (t-result (if no-title? (list norm-label url "" t-end) #f))
-                                ) ;
-                            (if finished finished t-result)
-                          ) ;let*
-                         ) ;
-                         ((caddr title-pos) (list norm-label url "" (cadr title-pos)))
-                         (else #f)
-                        ) ;cond
-                      ) ;let*
-                    ) ;and
-                  ) ;let
-                ) ;and
-              ) ;let*
-            ) ;and
+            (and label-result (parse-reference-after-label label-result))
           ) ;let
         ) ;and
       ) ;let*
