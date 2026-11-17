@@ -25,23 +25,17 @@
   (export make-history history? history-entries history-max-size history-index
     history-draft history-push! history-prev history-next history-reset!
   ) ;export
-  (import (scheme base) (scheme write) (liii list))
+  (import (scheme base) (scheme write) (liii base) (liii list))
   (begin
 
-    (define-record-type <history>
-      (%make-history-record entries max-size index draft)
+    (define*-record-type <history>
+      (make-history (max-size 100) (entries '()) (index #f) (draft #f))
       history?
       (entries %history-entries %history-entries-set!)
       (max-size %history-max-size %history-max-size-set!)
       (index %history-index %history-index-set!)
       (draft %history-draft %history-draft-set!)
-    ) ;define-record-type
-
-    (define (make-history . args)
-      (let ((max-sz (if (null? args) 100 (car args))))
-        (%make-history-record '() max-sz #f #f)
-      ) ;let
-    ) ;define
+    ) ;define*-record-type
 
     (define (history-entries h)
       (%history-entries h)
