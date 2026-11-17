@@ -27,10 +27,10 @@
     (liii goldtool cache)
     (liii goldtest-cache-deps)
   ) ;import
-  (export tools-test-path? resolve-tool-import-path
-    find-tools-dependencies compute-tools-deps-hash compute-test-action-key
-    test-action-key test-cache-base-dir test-cache-path test-cache-hit?
-    test-cache-touch! test-cache-record! test-cache-clear!
+  (export tools-test-path? resolve-tool-import-path find-tools-dependencies
+    compute-tools-deps-hash compute-test-action-key test-action-key
+    test-cache-base-dir test-cache-path test-cache-hit? test-cache-touch!
+    test-cache-record! test-cache-clear!
   ) ;export
   (begin
 
