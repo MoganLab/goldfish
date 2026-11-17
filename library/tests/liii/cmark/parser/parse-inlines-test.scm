@@ -1,11 +1,8 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 (import (scheme base))
 (import (liii check)
-  (liii cmark inline-parser)
+  (liii cmark inline parser)
   (liii cmark node)
-  (liii utils markdown-reference-util)
+  (liii cmark block reference)
   (liii unicode)
 ) ;import
 

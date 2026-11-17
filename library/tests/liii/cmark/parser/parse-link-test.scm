@@ -1,10 +1,7 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 (import (liii check)
-  (liii cmark inline-parser)
+  (liii cmark inline parser)
   (liii cmark node)
-  (liii utils markdown-reference-util)
+  (liii cmark block reference)
 ) ;import
 
 (check-set-mode! 'report-failed)

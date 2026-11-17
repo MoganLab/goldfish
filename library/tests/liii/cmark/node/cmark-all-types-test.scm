@@ -1,6 +1,3 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 (import (liii check) (liii list) (liii cmark node))
 
 (check-set-mode! 'report-failed)

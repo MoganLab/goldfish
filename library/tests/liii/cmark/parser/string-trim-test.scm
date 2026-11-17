@@ -1,7 +1,4 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
-(import (liii check) (liii utils text-util) (liii unicode))
+(import (liii check) (liii cmark text) (liii unicode))
 
 (check-set-mode! 'report-failed)
 

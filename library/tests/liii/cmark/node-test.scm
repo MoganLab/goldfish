@@ -1,6 +1,3 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 ;; (liii cmark node) 模块函数分类索引
 ;;
 ;; cmark-node 是整个 Markdown AST 的底层数据结构模块，

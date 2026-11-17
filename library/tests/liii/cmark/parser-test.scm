@@ -1,15 +1,12 @@
-
-(set! *load-path* (cons "markdown/goldfish" *load-path*))
-
 ;; (liii cmark parser) 模块函数分类索引
 ;;
 ;; cmark-parser 负责把 Markdown 文本拆分成块级节点与行内节点，
 ;; 同时提供一批辅助判断函数，用于识别标题、列表、代码块和内联标记。
 
 ;; ==== 常见用法示例 ====
-(import (liii cmark block-parser)
-  (liii cmark inline-parser)
-  (liii utils text-util)
+(import (liii cmark block parser)
+  (liii cmark inline parser)
+  (liii cmark text)
 ) ;import
 (import (liii cmark node))
 
@@ -19,7 +16,7 @@
 
 ;; ==== 函数分类索引 ====
 ;;
-;; 一、块级判断与解析（(liii cmark block-parser)）
+;; 一、块级判断与解析（(liii cmark block parser)）
 ;;   blank-line?
 ;;   blockquote-line?
 ;;   unordered-list-item?
@@ -47,13 +44,13 @@
 ;;   parse-html-block
 ;;   block-continues?
 ;;
-;; 二、字符串与缩进工具（(liii utils text-util)）
+;; 二、字符串与缩进工具（(liii cmark text)）
 ;;   string-trim-left
 ;;   string-trim-right
 ;;   string-trim
 ;;   count-leading-spaces
 ;;
-;; 三、行内解析器状态（(liii cmark inline-parser)）
+;; 三、行内解析器状态（(liii cmark inline parser)）
 ;;   make-cmark-inline-parser
 ;;   cmark-inline-parser?
 ;;   cmark-inline-parser-content
@@ -62,7 +59,7 @@
 ;;   cmark-inline-parser-set-pos!
 ;;   cmark-inline-parser-new
 ;;
-;; 四、行内判断与解析（(liii cmark inline-parser)）
+;; 四、行内判断与解析（(liii cmark inline parser)）
 ;;   parse-text
 ;;   inline-code-start?
 ;;   parse-inline-code
