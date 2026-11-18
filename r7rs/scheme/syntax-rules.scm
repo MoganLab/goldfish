@@ -14,21 +14,21 @@
 ;; Follow the same License as the original one
 
 (define (any pred ls)
-  (cond ((null? ls) #f)
+  (cond ((not (pair? ls)) #f)
         ((pred (car ls)) #t)
         (else (any pred (cdr ls)))
   ) ;cond
 ) ;define
 
 (define (every pred ls)
-  (cond ((null? ls) #t)
+  (cond ((not (pair? ls)) #t)
         ((pred (car ls)) (every pred (cdr ls)))
         (else #f)
   ) ;cond
 ) ;define
 
 (define (find pred ls)
-  (cond ((null? ls) #f)
+  (cond ((not (pair? ls)) #f)
         ((pred (car ls)) (car ls))
         (else (find pred (cdr ls)))
   ) ;cond
