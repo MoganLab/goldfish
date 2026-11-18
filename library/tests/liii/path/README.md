@@ -48,7 +48,6 @@ gf doc liii/path "path-join"
 用于创建 path 对象的函数
 
 - `path` - 从字符串或其他 path 创建路径对象
-- `path-from-string` - 从字符串创建路径（path 的别名）
 - `path-from-parts` - 从路径各部分（向量）创建路径
 - `path-of-drive` - 创建 Windows 驱动器路径
 - `path-root` - 创建根路径 "/"

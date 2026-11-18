@@ -42,9 +42,9 @@
 
     ;; ; 复制文件到目标目录(自动取源文件名作为目标名)。
     (define (path-copy-into source target-dir)
-      (let ((filename (path-name (path-from-string source))))
+      (let ((filename (path-name (path source))))
         (path-copy source
-          (path->string (path-join (path-from-string target-dir) (path filename)))
+          (path->string (path-join (path target-dir) (path filename)))
         ) ;path-copy
       ) ;let
     ) ;define

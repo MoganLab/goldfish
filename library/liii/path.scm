@@ -19,7 +19,7 @@
     path-getsize path-read-text path-read-lines path-read-bytes path-write-text
     path-write-bytes path-append-text path-touch path-root path-of-drive
     path-from-parts path-from-env path-cwd path-home path-temp-dir path-parts
-    path-type path-drive path->string path-from-string path-name path-stem
+    path-type path-drive path->string path-name path-stem
     path-suffix path-suffixes path-with-name path-with-stem path-with-suffix
     path-relative-to path-starts-with? path-equals? path=? path-absolute?
     path-relative? path-join path-parent path-parents path-list path-list-path

@@ -70,11 +70,11 @@ gf doc liii/path/record "函数名"
 
 ## 函数分类索引
 
-### 一、类型谓词与构造函数
+### 一、构造函数
 
-- `path?` - 判断对象是否为路径记录
+用于创建 path 对象的函数
+
 - `path` - 从字符串或其他 path 创建路径对象
-- `path-from-string` - 从字符串创建路径
 - `path-from-parts` - 从分量向量创建路径
 - `path-of-drive` - 创建 Windows 驱动器路径
 - `path-from-env` - 从环境变量创建路径
@@ -82,16 +82,20 @@ gf doc liii/path/record "函数名"
 - `path-home` - 获取用户主目录路径
 - `path-temp-dir` - 获取临时目录路径
 
-### 二、属性访问与判断
+### 二、谓词
+
+- `path?` - 判断对象是否为路径记录
+- `path-absolute?` / `path-relative?` - 判断路径绝对性
+- `path-equals?` / `path=?` - 判断两路径相等
+
+### 三、属性访问
 
 - `path-parts` - 获取路径分量（含 anchor）
 - `path-type` - 获取路径类型（'posix 或 'windows，详见上方"路径类型说明"）
 - `path-drive` - 获取盘符
 - `path-root` - 获取根分隔符
-- `path-absolute?` / `path-relative?` - 判断路径绝对性
-- `path-equals?` / `path=?` - 判断两路径相等
 
-### 三、转换
+### 四、转换
 
 - `path->string` - 将路径转换为字符串
 - `path-as-posix` - 将路径转换为以 / 为分隔符的字符串（对齐 pathlib 的 as_posix()；posix 下等价于 path->string，Windows 下把 \\ 替换为 /）
