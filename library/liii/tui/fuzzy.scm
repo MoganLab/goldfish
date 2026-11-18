@@ -190,9 +190,9 @@
                 ) ;token-pairs
                ) ;
             (map cdr
-              (list-sort (lambda (a b) (< (car a) (car b)))
+              (list-stable-sort (lambda (a b) (< (car a) (car b)))
                 (%collect-scored items token-pairs get-text)
-              ) ;list-sort
+              ) ;list-stable-sort
             ) ;map
           ) ;let
         ) ;if
