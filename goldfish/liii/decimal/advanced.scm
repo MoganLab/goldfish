@@ -35,7 +35,7 @@
 
   (begin
     (define (decimal-pow n exponent . args)
-      (let* ((value (ensure-decimal "decimal-pow" n))
+      (let* ((value (%ensure-decimal "decimal-pow" n))
              (exp (if (not (integer? exponent))
                     (type-error "decimal-pow in (liii decimal advanced): exponent must be an integer"
                       exponent
@@ -71,7 +71,7 @@
     ) ;define
 
     (define (decimal-sqrt n . args)
-      (let ((value (ensure-decimal "decimal-sqrt" n)))
+      (let ((value (%ensure-decimal "decimal-sqrt" n)))
         (cond ((decimal-negative? value)
                (value-error "decimal-sqrt in (liii decimal advanced): cannot compute square root of negative number"
                  value
@@ -139,8 +139,8 @@
     ) ;define
 
     (define (decimal-divide-with-context a b mc)
-      (let ((left (ensure-decimal "decimal-divide-with-context" a))
-            (right (ensure-decimal "decimal-divide-with-context" b))
+      (let ((left (%ensure-decimal "decimal-divide-with-context" a))
+            (right (%ensure-decimal "decimal-divide-with-context" b))
             (precision (math-context-precision mc))
             (rounding-mode (math-context-rounding-mode mc))
            ) ;

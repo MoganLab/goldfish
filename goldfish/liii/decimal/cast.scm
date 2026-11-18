@@ -31,25 +31,25 @@
 
   (begin
     (define (decimal-to-bigint n)
-      (let* ((value (ensure-decimal "decimal-to-bigint" n))
+      (let* ((value (%ensure-decimal "decimal-to-bigint" n))
              (scale (decimal-scale value))
              (unscaled (decimal-unscaled value))
             ) ;
         (if (<= scale 0)
-          (bigint-multiply unscaled (power-of-ten (- scale)))
-          (bigint-divide unscaled (power-of-ten scale))
+          (bigint-multiply unscaled (%power-of-ten (- scale)))
+          (bigint-divide unscaled (%power-of-ten scale))
         ) ;if
       ) ;let*
     ) ;define
 
     (define (decimal-to-bigint-exact n)
-      (let* ((value (ensure-decimal "decimal-to-bigint-exact" n))
+      (let* ((value (%ensure-decimal "decimal-to-bigint-exact" n))
              (scale (decimal-scale value))
              (unscaled (decimal-unscaled value))
             ) ;
         (if (<= scale 0)
-          (bigint-multiply unscaled (power-of-ten (- scale)))
-          (call-with-values (lambda () (bigint-divide-and-remainder unscaled (power-of-ten scale)))
+          (bigint-multiply unscaled (%power-of-ten (- scale)))
+          (call-with-values (lambda () (bigint-divide-and-remainder unscaled (%power-of-ten scale)))
             (lambda (quotient remainder)
               (if (bigint-zero? remainder)
                 quotient
@@ -175,7 +175,7 @@
     ) ;define
 
     (define (decimal->float n)
-      (let ((value (ensure-decimal "decimal->float" n)))
+      (let ((value (%ensure-decimal "decimal->float" n)))
         (exact->inexact (string->number (decimal->string value)))
       ) ;let
     ) ;define

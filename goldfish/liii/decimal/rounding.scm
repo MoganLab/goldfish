@@ -24,9 +24,9 @@
 
   (export decimal-round-up decimal-round-down decimal-round-ceiling
     decimal-round-floor decimal-round-half-up decimal-round-half-down
-    decimal-round-half-even decimal-round-unnecessary ensure-decimal
-    ensure-rounding-mode power-of-ten decimal-precision round-away-from-zero
-    apply-rounding decimal-set-scale decimal-strip-trailing-zeros decimal-floor
+    decimal-round-half-even decimal-round-unnecessary %ensure-decimal
+    %ensure-rounding-mode %power-of-ten decimal-precision %round-away-from-zero
+    %apply-rounding decimal-set-scale decimal-strip-trailing-zeros decimal-floor
     decimal-ceiling decimal-truncate decimal-round
   ) ;export
 
@@ -40,7 +40,7 @@
     (define decimal-round-half-even 'half-even)
     (define decimal-round-unnecessary 'unnecessary)
 
-    (define (ensure-decimal who obj)
+    (define (%ensure-decimal who obj)
       (if (decimal? obj)
         obj
         (type-error (string-append who " in (liii decimal rounding): not a decimal")
@@ -49,12 +49,12 @@
       ) ;if
     ) ;define
 
-    (define (power-of-ten exponent)
+    (define (%power-of-ten exponent)
       (bigint-expt bigint-ten (abs exponent))
     ) ;define
 
     (define (decimal-precision n)
-      (let ((value (ensure-decimal "decimal-precision" n)))
+      (let ((value (%ensure-decimal "decimal-precision" n)))
         (if (bigint-zero? (decimal-unscaled value))
           1
           (string-length (bigint->string (bigint-abs (decimal-unscaled value))))
@@ -62,7 +62,7 @@
       ) ;let
     ) ;define
 
-    (define (ensure-rounding-mode who mode)
+    (define (%ensure-rounding-mode who mode)
       (if (memq mode
             (list decimal-round-up decimal-round-down decimal-round-ceiling
               decimal-round-floor decimal-round-half-up decimal-round-half-down
@@ -76,19 +76,19 @@
       ) ;if
     ) ;define
 
-    (define (round-away-from-zero quotient negative?)
+    (define (%round-away-from-zero quotient negative?)
       (if negative?
         (bigint-subtract quotient bigint-one)
         (bigint-add quotient bigint-one)
       ) ;if
     ) ;define
 
-    (define (apply-rounding who quotient remainder divisor negative? mode)
+    (define (%apply-rounding who quotient remainder divisor negative? mode)
       (if (bigint-zero? remainder)
         quotient
         (case mode
          ((down) quotient)
-         ((up) (round-away-from-zero quotient negative?))
+         ((up) (%round-away-from-zero quotient negative?))
          ((ceiling) (if negative? quotient (bigint-add quotient bigint-one)))
          ((floor) (if negative? (bigint-subtract quotient bigint-one) quotient))
          ((unnecessary)
@@ -106,14 +106,14 @@
                   ) ;cmp
                  ) ;
              (case mode
-              ((half-up) (if (>= cmp 0) (round-away-from-zero quotient negative?) quotient))
-              ((half-down) (if (> cmp 0) (round-away-from-zero quotient negative?) quotient))
+              ((half-up) (if (>= cmp 0) (%round-away-from-zero quotient negative?) quotient))
+              ((half-down) (if (> cmp 0) (%round-away-from-zero quotient negative?) quotient))
               ((half-even)
                (if (> cmp 0)
-                 (round-away-from-zero quotient negative?)
+                 (%round-away-from-zero quotient negative?)
                  (if (< cmp 0)
                    quotient
-                   (if (bigint-odd? quotient) (round-away-from-zero quotient negative?) quotient)
+                   (if (bigint-odd? quotient) (%round-away-from-zero quotient negative?) quotient)
                  ) ;if
                ) ;if
               ) ;
@@ -126,7 +126,7 @@
     ) ;define
 
     (define (decimal-set-scale n scale . maybe-rounding-mode)
-      (let* ((value (ensure-decimal "decimal-set-scale" n))
+      (let* ((value (%ensure-decimal "decimal-set-scale" n))
              (target-scale (if (not (integer? scale))
                              (type-error "decimal-set-scale in (liii decimal rounding): scale must be an integer"
                                scale
@@ -140,22 +140,22 @@
           value
           (if (> target-scale current-scale)
             (make-decimal-with-scale (bigint-multiply (decimal-unscaled value)
-                                       (power-of-ten (- target-scale current-scale))
+                                       (%power-of-ten (- target-scale current-scale))
                                      ) ;bigint-multiply
               target-scale
             ) ;make-decimal-with-scale
-            (let* ((rounding-mode (ensure-rounding-mode "decimal-set-scale"
+            (let* ((rounding-mode (%ensure-rounding-mode "decimal-set-scale"
                                     (if (null? maybe-rounding-mode)
                                       decimal-round-unnecessary
                                       (car maybe-rounding-mode)
                                     ) ;if
                                   ) ;ensure-rounding-mode
                    ) ;rounding-mode
-                   (divisor (power-of-ten (- current-scale target-scale)))
+                   (divisor (%power-of-ten (- current-scale target-scale)))
                   ) ;
               (call-with-values (lambda () (bigint-divide-and-remainder (decimal-unscaled value) divisor))
                 (lambda (quotient remainder)
-                  (make-decimal-with-scale (apply-rounding "decimal-set-scale"
+                  (make-decimal-with-scale (%apply-rounding "decimal-set-scale"
                                              quotient
                                              remainder
                                              divisor
@@ -173,7 +173,7 @@
     ) ;define
 
     (define (decimal-strip-trailing-zeros n)
-      (let* ((value (ensure-decimal "decimal-strip-trailing-zeros" n))
+      (let* ((value (%ensure-decimal "decimal-strip-trailing-zeros" n))
              (unscaled (decimal-unscaled value))
              (scale (decimal-scale value))
             ) ;
@@ -205,11 +205,11 @@
     ) ;define
 
     (define (decimal-round n arg1 . rest)
-      (let ((value (ensure-decimal "decimal-round" n)))
+      (let ((value (%ensure-decimal "decimal-round" n)))
         (cond
          ((and (integer? arg1) (not (null? rest)))
           (let ((rounding-mode (car rest)))
-            (ensure-rounding-mode "decimal-round" rounding-mode)
+            (%ensure-rounding-mode "decimal-round" rounding-mode)
             (decimal-set-scale value arg1 rounding-mode)
           ) ;let
          ) ;
