@@ -51,6 +51,7 @@ jobs:
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+            build/.packages
           key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
 
       - name: cache test results
