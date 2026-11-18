@@ -16,27 +16,32 @@
     (liii pi code all-in-one types)
     (liii pi code config)
   ) ;import
-  (export pi-chain-execute pi-chain-node-label pi-chain-node-key
-    pi-chain-reset-rewind-state! pi-chain-reset-sticky-state!
-    pi-chain-clear-sticky-node! pi-chain-current-sticky-index
-    pi-chain-record-sticky-node! pi-chain-record-node-failure!
-    pi-chain-clear-node-failure! pi-chain-node-last-failure
-    pi-chain-node-in-cooldown? pi-chain-reset-cooldown-state!
+  ;; 调度
+  (export pi-chain-execute)
+  ;; 粘性节点状态
+  (export pi-chain-current-sticky-index
+    pi-chain-record-sticky-node!
+    pi-chain-clear-sticky-node!
   ) ;export
+  ;; 节点冷却状态
+  (export pi-chain-record-node-failure! pi-chain-clear-node-failure!
+    pi-chain-node-last-failure pi-chain-node-in-cooldown?
+  ) ;export
+  ;; 状态重置（测试清理与场景测试统一使用）
+  (export pi-chain-reset-state! pi-chain-reset-cooldown-state!)
   (begin
 
-    ;; 记录各链当前粘性节点下标：((chain-id . index) ...)
+    ;; 进程级调度状态：粘性下标（((chain-id . index) ...)）与
+    ;; 节点最近故障时间戳（((node-key . timestamp-ms) ...)，单调毫秒）。
     (define %last-success-index '())
 
-    ;; 记录各节点最近一次故障时间戳（单调毫秒）：((node-key . timestamp-ms) ...)
     (define %node-failure-timestamps '())
 
-    (define (pi-chain-reset-rewind-state!)
+    ;; 同时清空粘性记忆与节点冷却，供场景测试回到初始状态。
+    (define (pi-chain-reset-state!)
       (set! %last-success-index '())
       (set! %node-failure-timestamps '())
     ) ;define
-
-    (define pi-chain-reset-sticky-state! pi-chain-reset-rewind-state!)
 
     (define (pi-chain-reset-cooldown-state!)
       (set! %node-failure-timestamps '())
@@ -208,9 +213,8 @@
       ) ;let
     ) ;define
 
-    ;; user-fn 接收 provider、model、thinking-level 和 clean-messages。
-    ;; config-dir/request-fn/probe-fn 可选，后两者用于隔离测试。
-    ;; skip-index 跳过指定下标；now-fn 可注入时间用于测试。
+    ;; 调度分三段：正常路径（粘性复用或首个未冷却节点，直接真实请求，不探活）、
+    ;; 故障切换路径（真实失败后才探活候选节点）、全链结算（返回 exhausted 哨兵）。
     (define* (pi-chain-execute chain-def
                messages
                user-fn
@@ -249,6 +253,7 @@
              (chain-id (chain-def-id chain-def))
              (previous-index (%previous-success-index chain-id))
             ) ;
+        ;; 正常路径与切换路径共用的交接动作：边界清洗 -> 记录粘性 -> 清除候选故障
         (define (execute-candidate cand index)
           (let ((clean-msgs (pi-boundary-recover-messages messages)))
             (%log-handoff chain-id index cand previous-index node-total dir)
@@ -262,6 +267,7 @@
           ) ;let
         ) ;define
 
+        ;; 全链结算：写 [EXHAUSTED] 日志并清除粘性
         (define (log-exhausted)
           (pi-alarm-log! "EXHAUSTED"
             "all"
@@ -277,6 +283,7 @@
           'all-nodes-exhausted
         ) ;define
 
+        ;; 切换路径：从链头扫描，跳过刚失败下标与冷却期节点，命中即探活
         (define (probe-from-head skip-index)
           (let loop
             ((rest nodes) (index 0))
@@ -300,6 +307,7 @@
           ) ;let
         ) ;define
 
+        ;; 正常路径：从链头挑首个未冷却节点直接执行，不探活
         (define (execute-first-available)
           (let loop
             ((rest nodes) (index 0))

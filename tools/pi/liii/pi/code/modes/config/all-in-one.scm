@@ -17,7 +17,7 @@
     (liii path)
     (liii pi code all-in-one types)
     (liii pi code all-in-one loader)
-    (liii pi code all-in-one provider)
+    (liii pi code all-in-one defaults)
     (liii pi code modes config state)
     (liii pi code modes config paths)
     (liii pi code modes config aio-writes)
@@ -90,11 +90,7 @@
              ) ;raw-cfg
              (valid? (and raw-cfg (all-in-one-cfg? raw-cfg) (pair? (all-in-one-cfg-chains raw-cfg)))
              ) ;valid?
-             (cfg (if valid?
-                    raw-cfg
-                    (make-all-in-one-cfg #t 3600000 60000 8000 (all-in-one-default-chains))
-                  ) ;if
-             ) ;cfg
+             (cfg (if valid? raw-cfg (make-default-all-in-one-config)))
              (source (if valid? "all-in-one.json" "(builtin default)"))
             ) ;
         (list (cons "source" source)

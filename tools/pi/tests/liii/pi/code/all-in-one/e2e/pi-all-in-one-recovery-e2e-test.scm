@@ -107,7 +107,7 @@
 ;; ---------------------------------------------------------------------------
 ;; 1. 全链首次枯竭 → 进入 recovery 等待 → 节点恢复后用原上下文续跑
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let* ((clock (make-clock))
        (now-fn (car clock))
        (sleep-fn (cdr clock))
@@ -177,7 +177,7 @@
 ;; ---------------------------------------------------------------------------
 ;; 2. continuous = #f 时保持快速失败，不进入等待
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let* ((clock (make-clock))
        (sleep-called #f)
        (config
@@ -221,7 +221,7 @@
 ;; ---------------------------------------------------------------------------
 ;; 3. 等待期间 Esc 中止：返回 aborted，不再发业务请求
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (pi-chain-record-node-failure! (make-chain-node "stub" "one" "low") 1000000)
 (pi-chain-record-node-failure! (make-chain-node "stub" "two" "high") 1000000)
 (let* ((clock (make-clock))
@@ -253,43 +253,42 @@
 ;; 4. 等待期间用户直接输入新消息：立即结束等待（不再盲目重试），
 ;;    消息留给前台作为新任务，不注入本轮请求上下文
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (pi-chain-record-node-failure! (make-chain-node "stub" "one" "low") 1000000)
 (pi-chain-record-node-failure! (make-chain-node "stub" "two" "high") 1000000)
 (let* ((clock (make-clock))
        (steering-queue (list "typed while waiting"))
        (consumed '())
        (request-called #f)
-       (config (make-config
-                 (cons 'now-fn (car clock))
-                 (cons 'sleep-fn (cdr clock))
-                 (cons 'aborted? (lambda () #f))
-                 (cons 'get-steering-messages
-                   (lambda ()
-                     (if (pair? steering-queue)
-                       (let ((m (car steering-queue)))
-                         (set! steering-queue (cdr steering-queue))
-                         (set! consumed (cons m consumed))
-                         (list m)
-                       ) ;let
-                       '()
-                     ) ;if
-                   ) ;lambda
-                 ) ;cons
-               ) ;make-config
+       (config
+         (make-config (cons 'now-fn (car clock))
+           (cons 'sleep-fn (cdr clock))
+           (cons 'aborted? (lambda () #f))
+           (cons 'get-steering-messages
+             (lambda ()
+               (if (pair? steering-queue)
+                 (let ((m (car steering-queue)))
+                   (set! steering-queue (cdr steering-queue))
+                   (set! consumed (cons m consumed))
+                   (list m)
+                 ) ;let
+                 '()
+               ) ;if
+             ) ;lambda
+           ) ;cons
+         ) ;make-config
        ) ;config
       ) ;
-  (let ((response
-          (pi-all-in-one-request-stream "all-in-one"
-            config
-            (list (pi-user-message "first"))
-            "system"
-            '()
-            #f
-            60
-            (lambda (node timeout-ms dir request-fn) #f)
-            (lambda args (set! request-called #t) (pi-assistant-message '() "stop"))
-          ) ;pi-all-in-one-request-stream
+  (let ((response (pi-all-in-one-request-stream "all-in-one"
+                    config
+                    (list (pi-user-message "first"))
+                    "system"
+                    '()
+                    #f
+                    60
+                    (lambda (node timeout-ms dir request-fn) #f)
+                    (lambda args (set! request-called #t) (pi-assistant-message '() "stop"))
+                  ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
     ;; 等待被用户消息中止：返回 aborted，业务请求未被调用
@@ -302,7 +301,7 @@
 ;; ---------------------------------------------------------------------------
 ;; 5. 显式 --thinking high 经异构节点故障转移：每个节点收到各自合法等级
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let ((seen '()))
   (let ((response
           (pi-all-in-one-request-stream "all-in-one"
@@ -334,7 +333,7 @@
 ;; ---------------------------------------------------------------------------
 ;; 6. 无显式 --thinking 的对照组：节点各自使用 all-in-one.json 的默认等级
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let ((seen '()))
   (let ((response
           (pi-all-in-one-request-stream "all-in-one"

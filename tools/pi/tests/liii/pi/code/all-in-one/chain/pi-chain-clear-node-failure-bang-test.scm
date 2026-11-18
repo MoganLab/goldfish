@@ -25,9 +25,7 @@
 
 (pi-chain-reset-cooldown-state!)
 
-(let ((node1 (make-chain-node "p1" "m1"))
-      (node2 (make-chain-node "p2" "m2"))
-     ) ;
+(let ((node1 (make-chain-node "p1" "m1")) (node2 (make-chain-node "p2" "m2")))
   (pi-chain-record-node-failure! node1 1000)
   (pi-chain-record-node-failure! node2 2000)
   (check (pi-chain-node-last-failure node1) => 1000)

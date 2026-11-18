@@ -25,7 +25,9 @@
 (check-true (procedure? json->chain-node))
 
 ;; 1. 完整节点解析
-(let* ((j (string->json "{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\",\"thinkingLevel\":\"high\"}"))
+(let* ((j (string->json "{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\",\"thinkingLevel\":\"high\"}"
+          ) ;string->json
+       ) ;j
        (n (json->chain-node j "fast"))
       ) ;
   (check-true (chain-node? n))
@@ -35,8 +37,13 @@
 ) ;let*
 
 ;; 2. 缺省或空白 thinkingLevel 回退为 "off"
-(let ((n1 (json->chain-node (string->json "{\"provider\":\"google\",\"model\":\"gemini-2.5-flash\"}")))
-      (n2 (json->chain-node (string->json "{\"provider\":\"google\",\"model\":\"gemini-2.5-flash\",\"thinkingLevel\":\"  \"}")))
+(let ((n1 (json->chain-node (string->json "{\"provider\":\"google\",\"model\":\"gemini-2.5-flash\"}")
+          ) ;json->chain-node
+      ) ;n1
+      (n2 (json->chain-node (string->json "{\"provider\":\"google\",\"model\":\"gemini-2.5-flash\",\"thinkingLevel\":\"  \"}"
+                            ) ;string->json
+          ) ;json->chain-node
+      ) ;n2
      ) ;
   (check (chain-node-thinking-level n1) => "off")
   (check (chain-node-thinking-level n2) => "off")
@@ -46,12 +53,11 @@
 (check-false (json->chain-node '()))
 (check-false (json->chain-node "bad" "fast"))
 (check-false (json->chain-node (string->json "{\"model\":\"m\"}") "fast"))
-(check-false (json->chain-node (string->json "{\"provider\":\"p\",\"model\":\"  \"}") "fast"))
+(check-false (json->chain-node (string->json "{\"provider\":\"p\",\"model\":\"  \"}") "fast")
+) ;check-false
 
 ;; 4. 已是 record 原样返回
-(let* ((orig (make-chain-node "openai" "gpt-5" "low"))
-       (out (json->chain-node orig))
-      ) ;
+(let* ((orig (make-chain-node "openai" "gpt-5" "low")) (out (json->chain-node orig)))
   (check (eq? out orig) => #t)
 ) ;let*
 

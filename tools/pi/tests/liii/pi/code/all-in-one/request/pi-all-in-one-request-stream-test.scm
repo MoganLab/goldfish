@@ -10,8 +10,8 @@
 ;; ----
 ;; provider : string
 ;; 元供应商标识 all-in-one。
-;; config : alist
-;; 含 config-dir、model-id 和 tools 的主会话配置。
+;; config : <pi-config>
+;; 主会话配置（本测试用 alist 形态的隔离夹具构造，含 config-dir、model-id 与 tools）。
 ;; messages : list
 ;; 主会话消息。
 ;; system-prompt : string
@@ -25,6 +25,12 @@
 ;; ----
 ;; <pi-assistant-message>
 ;; 健康节点的真实响应；无可用链时返回错误消息。
+;;
+;; 说明
+;; ----
+;; 本文件同时覆盖全链枯竭的错误响应文案（stopReason=error，
+;; 错误说明为 "All nodes in the all-in-one chain failed probe"），
+;; 该文案构造器是 request 的内部实现，不单独公开导出。
 
 (import (scheme base)
   (scheme file)
@@ -82,7 +88,7 @@
   ) ;list
 ) ;define
 
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 
 ;; 首节点真实请求失败、切换到第二节点（触发探活）；真实请求收到实际节点凭据与模型元数据，
 ;; 并在交接前用 active_node 事件告知前台当前节点
@@ -145,7 +151,7 @@
 ) ;let
 
 ;; 探活通过但真实请求失败时，清除当前粘性并顺延到下一健康节点
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let ((probed '()) (requested '()))
   (let ((response
           (pi-all-in-one-request-stream "all-in-one"
@@ -178,24 +184,22 @@
 ) ;let
 
 ;; 全链失败时返回错误响应（首节点真实请求失败、备选节点探活失败）
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let ((requested '()) (probed '()))
-  (let ((response (pi-all-in-one-request-stream "all-in-one"
-                    CONFIG
-                    '()
-                    ""
-                    '()
-                    #f
-                    60
-                    (lambda (node . args)
-                      (set! probed (cons (chain-node-model node) probed))
-                      #f
-                    ) ;lambda
-                    (lambda (provider config . args)
-                      (set! requested (cons (cdr (assoc 'model-id config)) requested))
-                      (pi-assistant-message '() "error" "HTTP 503")
-                    ) ;lambda
-                  ) ;pi-all-in-one-request-stream
+  (let ((response
+          (pi-all-in-one-request-stream "all-in-one"
+            CONFIG
+            '()
+            ""
+            '()
+            #f
+            60
+            (lambda (node . args) (set! probed (cons (chain-node-model node) probed)) #f)
+            (lambda (provider config . args)
+              (set! requested (cons (cdr (assoc 'model-id config)) requested))
+              (pi-assistant-message '() "error" "HTTP 503")
+            ) ;lambda
+          ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
     (check (pi-assistant-message-stop-reason response) => "error")
@@ -207,7 +211,7 @@
 ;; 主 cfg 中伪模型的 supports-thinking 不得覆盖节点真实能力：
 ;; all-in-one 元供应商自身通常为 #f，但节点 stub/two 声明 reasoning: true，
 ;; active_node 的第五项必须是节点的真实能力，否则页脚会按伪模型隐藏等级。
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let ((node-events '()))
   (pi-all-in-one-request-stream "all-in-one"
     (cons
@@ -242,7 +246,7 @@
 ) ;let
 
 ;; 链式调度中真实请求 429 失败耗尽后正确记录故障并切换备用节点：
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (let ((executed '()))
   (let ((response
           (pi-all-in-one-request-stream "all-in-one"

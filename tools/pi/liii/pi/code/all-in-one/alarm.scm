@@ -14,13 +14,12 @@
     (liii date-time)
     (liii pi ai log)
   ) ;import
-  (export resolve-alarm-log-path pi-alarm-log!)
+  (export resolve-alarm-log-path)
+  (export pi-alarm-log!)
   (begin
 
-    ;; resolve-alarm-log-path
-    ;; 返回当前生效的按天日志完整路径。
-    ;; 未传配置目录时使用用户配置目录 ~/.gf/agent/logs；
-    ;; 传入非空配置目录时使用该目录下的 logs/。
+    ;; 日志路径规则：未传配置目录时写用户配置目录下的 logs/，
+    ;; 传入非空配置目录时写该目录下的 logs/。
     (define (resolve-alarm-log-path . opt-config-dir)
       (let ((dir
               (if (and (pair? opt-config-dir) (car opt-config-dir))
@@ -55,9 +54,7 @@
       ) ;cond
     ) ;define
 
-    ;; pi-alarm-log!
-    ;; 追加一条异常汇总记录到当天的 pi-<date>.log。
-    ;; 格式: [TIMESTAMP] [TYPE] provider=P model=M error=E message="MSG"
+    ;; 单行记录格式：[TIMESTAMP] [TYPE] provider=P model=M error=E message="MSG"
     (define (pi-alarm-log! log-type provider model err-code message . opt-config-dir)
       (let* ((log-file (apply resolve-alarm-log-path opt-config-dir))
              (parent (path-parent (path log-file)))

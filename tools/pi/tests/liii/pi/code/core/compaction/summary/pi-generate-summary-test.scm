@@ -123,7 +123,7 @@
   (path-write-text (path->string (path-join dir "all-in-one.json"))
     "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":5000,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"google\",\"model\":\"real-summary-model\"}]}]}"
   ) ;path-write-text
-  (pi-chain-reset-sticky-state!)
+  (pi-chain-reset-state!)
   (let ((result (pi-generate-summary (list (cons 'provider "all-in-one")
                                       (cons 'provider-api "all-in-one")
                                       (cons 'model-id "coding-deep")

@@ -1,6 +1,11 @@
 ;; pi-chain-execute
 ;; 粘性节点探活、冷却期防雪崩与优先自愈回溯。
 ;;
+;; 本文件是调度的端到端场景测试：首次与粘性复用都不探活，只有真实请求失败后
+;; 才探活候选节点；冷却跳过、自愈回溯、全链枯竭与日志标签都由真实调用序列断言。
+;; 节点身份键（provider/model:thinkingLevel）与日志标签（provider/model）是
+;; 内部实现细节，不单独导出，由本文件的 SWITCH/REWIND/FAIL 断言间接覆盖。
+;;
 ;; 语法
 ;; ----
 ;; (pi-chain-execute chain-def messages user-fn cfg
@@ -56,6 +61,7 @@
 (define CHAIN (make-chain-def "coding-deep" "深度链" (list N1 N2 N3)))
 
 ;; retryIntervalMs 为 60000 毫秒（60 秒）
+
 (define CFG (make-all-in-one-cfg #f 1000 60000 3456 (list CHAIN)))
 
 (define USER (pi-user-message "continue"))
@@ -68,7 +74,7 @@
   (rmtree TMP-DIR #t)
 ) ;when
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
-(pi-chain-reset-rewind-state!)
+(pi-chain-reset-state!)
 
 ;; 1. 节点 1 在 T=1000 真实请求失败触发切换（skip-index=0），探活落到节点 2；
 ;;    记录节点 1 故障时间戳并在执行前清洗边界
@@ -265,10 +271,8 @@
 ) ;let
 
 ;; 7. 冷却期禁用（retryIntervalMs <= 0）：节点不进入冷却期，切换时立即探活
-(let ((probed '())
-      (cfg-no-cd (make-all-in-one-cfg #f 1000 0 3456 (list CHAIN)))
-     ) ;
-  (pi-chain-reset-rewind-state!)
+(let ((probed '()) (cfg-no-cd (make-all-in-one-cfg #f 1000 0 3456 (list CHAIN))))
+  (pi-chain-reset-state!)
   (pi-chain-record-node-failure! N1 100)
   (check
     (pi-chain-execute CHAIN
@@ -277,10 +281,7 @@
       cfg-no-cd
       TMP-DIR
       #f
-      (lambda (node . args)
-        (set! probed (cons (chain-node-provider node) probed))
-        #t
-      ) ;lambda
+      (lambda (node . args) (set! probed (cons (chain-node-provider node) probed)) #t)
       1
       105
     ) ;pi-chain-execute

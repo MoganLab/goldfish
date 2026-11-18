@@ -23,19 +23,20 @@
     (liii pi code cli args query)
     (liii pi code config)
   ) ;import
-  (export pi-probe-node pi-probe-prompt pi-probe-error-code
-    pi-probe-max-tokens-metadata pi-probe-retry-config
-  ) ;export
+  ;; 探活入口
+  (export pi-probe-node)
+  ;; 探活常量与配置
+  (export pi-probe-prompt pi-probe-max-tokens-metadata pi-probe-retry-config)
+  ;; 错误分类
+  (export pi-probe-error-code)
   (begin
 
     (define pi-probe-prompt "ping")
 
-    ;; 探活不给思考预算：只保留极小的输出上限，避免模型把时间花在长思考上，
-    ;; 同时让响应只返回结构化状态（stop/length 也算链路健康）。
+    ;; 探活不消耗思考预算：只保留极小输出上限，让响应只返回结构化状态
+    ;; （stop/length 也算链路健康）。
     (define %probe-max-tokens 16)
 
-    ;; pi-probe-max-tokens-metadata
-    ;; 探活请求的 max-tokens 压到极小值（16），避免思考型模型把预算吃满导致超时。
     (define (pi-probe-max-tokens-metadata meta)
       (if (pi-model-metadata? meta)
         (pi-model-metadata (pi-model-metadata-id meta)
@@ -50,12 +51,9 @@
       ) ;if
     ) ;define
 
-    ;; pi-probe-retry-config
-    ;; 探活重试预算：遵循 gf pi 既有重试机制，但与长任务重试预算解耦。
-    ;; 最多重试 3 次，退避基数取用户配置（上限 2000ms），单次退避上限 10s；
-    ;; 用户显式禁用重试时探活也不重试。
-    ;; 目的：429 限流节点快速失败并及时切换备用节点，不被 provider 级
-    ;; 大额重试预算（如 provider.maxRetries = 12）拖成长达数分钟的等待。
+    ;; 重试预算不变量：最多 3 次、退避基数取用户配置（封顶 2000ms）、
+    ;; 单次退避上限 10s，用户显式禁用重试时探活也不重试。探活因此不会被
+    ;; provider 级大额重试预算拖成长达数分钟的等待。
     (define (pi-probe-retry-config settings)
       (let* ((retry (and (pi-settings? settings) (pi-settings-retry settings)))
              (valid? (and retry (pi-retry-config? retry)))
@@ -243,10 +241,7 @@
       ) ;let*
     ) ;define
 
-    ;; request-fn 接收 provider、config、messages、sys-prompt、tools、timeout、retry，
-    ;; 缺省为 (liii pi ai dispatch) 的 pi-request-provider。
-    ;; opt-retry 缺省为 #f，遵循 gf pi 已有的重试机制（默认重试 3 次，429 等可重试错误退避重试，耗尽才判定不可用）。
-    ;; 正常返回非空文本时返回 #t；任何错误统一写 FAIL 日志并返回 #f。
+    ;; 失败统一写 FAIL 并按错误码返回 #f，成功后不写日志。
     (define* (pi-probe-node node
                (timeout-ms 8000)
                (config-dir #f)
@@ -268,7 +263,7 @@
                    (let* ((node-cfg (%probe-node-config node dir))
                           (msgs (list (pi-user-message pi-probe-prompt)))
                           (timeout-sec (/ timeout-ms 1000))
-                          ;; 按照 gf pi 已有的重试机制重试（opt-retry 缺省为 #f，默认重试 3 次，429 耗尽才判不可用）
+                          ;; opt-retry 缺省为 #f：沿用 gf pi 既有重试机制，429 耗尽才判不可用
                           (resp (req provider node-cfg msgs #f '() timeout-sec opt-retry))
                          ) ;
                      (%probe-response-failure resp)

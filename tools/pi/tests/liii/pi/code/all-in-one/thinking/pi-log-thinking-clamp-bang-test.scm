@@ -1,5 +1,5 @@
 ;; pi-log-thinking-clamp!
-;; 显式 Thinking Level 被真实节点能力收敛时写一条可诊断的按天日志与 stderr 提示。
+;; 显式 Thinking Level 被真实节点能力收敛时写按天日志并通知前台一次。
 ;;
 ;; 语法
 ;; ----
@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; config : alist
-;; 主会话配置，提供 config-dir。
+;; config : <pi-config>
+;; 主会话配置，提供 config-dir 与可选的 emit 回调。
 ;; chain-id、provider、model-id : string
 ;; 用于日志定位的链与真实物理模型。
 ;; requested、effective : string
@@ -17,7 +17,13 @@
 ;; 返回值
 ;; ----
 ;; unspecified
-;; requested 与 effective 相同时不写日志、不输出 stderr。
+;; requested 与 effective 相同时不写日志、不发事件、不输出 stderr。
+;;
+;; 说明
+;; ----
+;; 收敛诊断写按天日志的 [THINKING_CLAMP] 行，并在没有 emit 时退回 stderr，
+;; 使脚本模式仍能看到收敛结果。日志断言使用隔离目录，避免污染用户日志。
+;; 前台 thinking_clamp 事件通道不在本测试范围。
 
 (import (scheme base)
   (scheme file)
@@ -26,7 +32,7 @@
   (liii path)
   (liii shutil)
   (liii string)
-  (liii list)
+  (liii pi ai config runtime)
   (liii pi code all-in-one alarm)
   (liii pi code all-in-one thinking)
 ) ;import
@@ -41,67 +47,83 @@
   ) ;path->string
 ) ;define
 
-(when (file-exists? TMP-DIR)
-  (rmtree TMP-DIR #t)
-) ;when
-(path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
+(define (with-fresh-dir thunk)
+  (when (file-exists? TMP-DIR)
+    (rmtree TMP-DIR #t)
+  ) ;when
+  (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
+  (thunk)
+) ;define
 
-(define CONFIG (list (cons 'config-dir TMP-DIR)))
+(define (log-content)
+  (let ((file (resolve-alarm-log-path TMP-DIR)))
+    (if (file-exists? (path->string file)) (path-read-text (path->string file)) "")
+  ) ;let
+) ;define
 
-;; 1. 请求值被收敛：日志文件出现 [THINKING_CLAMP] 与 requested/effective
-(pi-log-thinking-clamp! CONFIG "coding-fast" "google" "gemini-3.8-flash" "max" "high")
-(let* ((log-file (resolve-alarm-log-path TMP-DIR))
-       (content (path-read-text log-file))
-      ) ;
-  (check-true (string-contains? content "[THINKING_CLAMP]"))
-  (check-true (string-contains? content "coding-fast"))
-  (check-true (string-contains? content "requested=max"))
-  (check-true (string-contains? content "effective=high"))
-) ;let*
-
-;; 2. 请求值未被改变时不写日志
-(pi-log-thinking-clamp! CONFIG "coding-fast" "google" "gemini-3.8-flash" "high" "high")
-(let* ((log-file (resolve-alarm-log-path TMP-DIR))
-       (content (path-read-text log-file))
-      ) ;
-  (check (length (filter (lambda (line) (string-contains? line "requested=high"))
-                    (string-split content "\n")
-                  ) ;filter
-    ) ;length
-    =>
-    0
-  ) ;check
-) ;let*
-
-(when (file-exists? TMP-DIR)
-  (rmtree TMP-DIR #t)
-) ;when
-
-;; 3. 有 emit 时收敛提示走事件（TUI 卡片），不写 stderr 破坏画面
-(let* ((events (list 'init))
-       (config (list (cons 'config-dir TMP-DIR)
-                 (cons 'emit (lambda (type payload)
-                               (set! events (cons (cons type payload) events))
-                             ) ;lambda
-                 ) ;cons
-               ) ;list
+(define (capture-stderr thunk)
+  (let ((prev (if (defined? '*stderr*) *stderr* (current-error-port)))
+        (port (open-output-string))
        ) ;
-      ) ;
-  (pi-log-thinking-clamp! config "coding-fast" "google" "gemini-3.8-flash" "max" "high")
-  (check (length events) => 2)
-  (check (caar events) => 'thinking_clamp)
-  (check (cdar events) => '("google" "gemini-3.8-flash" "max" "high"))
-) ;let*
+    (set! *stderr* port)
+    (dynamic-wind (lambda () #f) thunk (lambda () (set! *stderr* prev)))
+    (get-output-string port)
+  ) ;let
+) ;define
 
-;; 4. 未发生收敛时既不发事件也不写日志
-(let* ((events '())
-       (config (list (cons 'config-dir TMP-DIR)
+;; 1. 无 emit 的真实 <pi-config>：记录 [THINKING_CLAMP] 日志并回退 stderr
+(with-fresh-dir
+  (lambda ()
+    (let* ((cfg (make-pi-config :config-dir (path TMP-DIR)))
+           (stderr (capture-stderr (lambda ()
+                                     (pi-log-thinking-clamp! cfg "coding-fast"
+                                       "google" "gemini-3.8-flash" "max" "high"
+                                     ) ;pi-log-thinking-clamp!
+                                   ) ;lambda
+                   ) ;capture-stderr
+           ) ;stderr
+           (content (log-content))
+          ) ;
+      (check-true (string-contains? content "[THINKING_CLAMP]"))
+      (check-true (string-contains? content "chain=coding-fast"))
+      (check-true (string-contains? content "requested=max"))
+      (check-true (string-contains? content "effective=high"))
+      (check-true (string-contains? stderr "[all-in-one] thinking level clamped: max -> high")
+      ) ;check-true
+    ) ;let*
+  ) ;lambda
+) ;with-fresh-dir
+
+;; 2. 未发生收敛：不写日志、不输出 stderr
+(with-fresh-dir
+  (lambda ()
+    (let* ((events '())
+           (cfg
+             (make-pi-config
+               :config-dir (path TMP-DIR)
+               :extras
+               (list
                  (cons 'emit (lambda (type payload) (set! events (cons type events))))
                ) ;list
-       ) ;
-      ) ;
-  (pi-log-thinking-clamp! config "coding-fast" "google" "gemini-3.8-flash" "high" "high")
-  (check events => '())
-) ;let*
+             ) ;make-pi-config
+           ) ;cfg
+           (stderr (capture-stderr (lambda ()
+                                     (pi-log-thinking-clamp! cfg "coding-fast"
+                                       "google" "gemini-3.8-flash" "high" "high"
+                                     ) ;pi-log-thinking-clamp!
+                                   ) ;lambda
+                   ) ;capture-stderr
+           ) ;stderr
+          ) ;
+      (check events => '())
+      (check (log-content) => "")
+      (check stderr => "")
+    ) ;let*
+  ) ;lambda
+) ;with-fresh-dir
+
+(when (file-exists? TMP-DIR)
+  (rmtree TMP-DIR #t)
+) ;when
 
 (check-report)

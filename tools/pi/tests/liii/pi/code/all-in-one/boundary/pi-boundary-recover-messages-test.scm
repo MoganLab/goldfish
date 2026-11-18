@@ -14,6 +14,15 @@
 ;; ----
 ;; list
 ;; 尾部回滚到用户消息、已完成 tool_result 或完整 assistant 的新列表。
+;;
+;; 说明
+;; ----
+;; 本库只公开 pi-boundary-recover-messages。消息角色、stopReason、内容归一与
+;; “是否可交接”的判断都是实现细节，由本文件的回滚断言间接覆盖：
+;;   - 角色：assistant 与否决定是否检查尾部可交接性；
+;;   - stopReason：error / aborted / length / toolUse 一律不可交接；
+;;   - 内容：字符串包装为单元素列表、向量转列表、空内容视为不可交接；
+;;   - errorMessage：非空即视为失败响应，同样不可交接。
 
 (import (scheme base)
   (liii check)
@@ -69,12 +78,47 @@
   (check (pi-boundary-recover-messages messages) => messages)
 ) ;let
 
-;; 4. alist 会话采用同一规则；非列表输入安全降级为空上下文
+;; 4. 每一种不可交接尾部都被回滚：报错、中止、截断、空内容与悬空 toolUse
+(let ((cases
+        (list (pi-assistant-message (list (pi-text-block "x")) "error" "HTTP 529")
+          (pi-assistant-message (list (pi-text-block "x")) "aborted")
+          (pi-assistant-message (list (pi-text-block "x")) "length")
+          (pi-assistant-message '() "stop")
+          (pi-assistant-message (list (pi-tool-call-block "c1" "read" '())) "toolUse")
+        ) ;list
+      ) ;cases
+     ) ;
+  (for-each
+    (lambda (tail)
+      (check (pi-boundary-recover-messages (list USER tail)) => (list USER))
+    ) ;lambda
+    cases
+  ) ;for-each
+) ;let
+
+;; 5. alist 会话采用同一规则（字符串内容包装为单元素块列表）；非列表输入安全降级
 (check
   (pi-boundary-recover-messages '(((role . "user") (content . "go"))
                                   ((role . "assistant")
                                    (content . "partial")
                                    (stopReason . "aborted")))
+  ) ;pi-boundary-recover-messages
+  =>
+  '(((role . "user") (content . "go")))
+) ;check
+(check
+  (pi-boundary-recover-messages '(((role . "user") (content . "go"))
+                                  (("role" . "assistant")
+                                   (stopReason . "length")))
+  ) ;pi-boundary-recover-messages
+  =>
+  '(((role . "user") (content . "go")))
+) ;check
+(check
+  (pi-boundary-recover-messages '(((role . "user") (content . "go"))
+                                  ((role . "assistant")
+                                   (content . "done")
+                                   (errorMessage . "HTTP 529")))
   ) ;pi-boundary-recover-messages
   =>
   '(((role . "user") (content . "go")))

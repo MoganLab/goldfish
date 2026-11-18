@@ -23,7 +23,9 @@
 (check-true (procedure? json->chain-def))
 
 ;; 1. 完整链定义解析（含无效节点过滤）
-(let* ((j (string->json "{\"id\":\"fast\",\"name\":\"Fast Chain\",\"nodes\":[{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\"},{\"provider\":\"bad\"},{\"provider\":\"google\",\"model\":\"gemini-2.5-flash\",\"thinkingLevel\":\"low\"}]}"))
+(let* ((j (string->json "{\"id\":\"fast\",\"name\":\"Fast Chain\",\"nodes\":[{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\"},{\"provider\":\"bad\"},{\"provider\":\"google\",\"model\":\"gemini-2.5-flash\",\"thinkingLevel\":\"low\"}]}"
+          ) ;string->json
+       ) ;j
        (c (json->chain-def j))
       ) ;
   (check-true (chain-def? c))
@@ -35,7 +37,10 @@
 ) ;let*
 
 ;; 2. 缺省或空白 name 回退为 id；nodes 非数组时为空列表
-(let ((c (json->chain-def (string->json "{\"id\":\"smart\",\"name\":\"  \",\"nodes\":\"bad\"}"))))
+(let ((c (json->chain-def (string->json "{\"id\":\"smart\",\"name\":\"  \",\"nodes\":\"bad\"}")
+         ) ;json->chain-def
+      ) ;c
+     ) ;
   (check-true (chain-def? c))
   (check (chain-def-name c) => "smart")
   (check (chain-def-nodes c) => '())
@@ -48,9 +53,7 @@
 (check-false (json->chain-def (string->json "{\"id\":\"  \"}")))
 
 ;; 4. 已是 record 原样返回
-(let* ((orig (make-chain-def "c1" "Chain 1" '()))
-       (out (json->chain-def orig))
-      ) ;
+(let* ((orig (make-chain-def "c1" "Chain 1" '())) (out (json->chain-def orig)))
   (check (eq? out orig) => #t)
 ) ;let*
 

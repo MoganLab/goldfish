@@ -161,7 +161,7 @@
   ;; HTTP 异常日志重定向到临时目录，便于断言 429 尝试次数
   (pi-log-init! (path LOG-DIR))
   (write-cfg-dir base-url)
-  (pi-chain-reset-sticky-state!)
+  (pi-chain-reset-state!)
 
   ;; 1. 投影状态：模型来源是 assistant 消息（实际服务节点）
   (let-values (((messages state diagnostics)

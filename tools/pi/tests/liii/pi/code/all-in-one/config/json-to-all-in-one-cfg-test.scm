@@ -25,7 +25,9 @@
 (check-true (procedure? json->all-in-one-cfg))
 
 ;; 1. 完整配置解析（含秒级参数换算与链解析）
-(let* ((j (string->json "{\"continuous\":false,\"maxWait\":120,\"retryInterval\":30,\"probeTimeout\":5,\"chains\":[{\"id\":\"fast\",\"nodes\":[{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\"}]}]}"))
+(let* ((j (string->json "{\"continuous\":false,\"maxWait\":120,\"retryInterval\":30,\"probeTimeout\":5,\"chains\":[{\"id\":\"fast\",\"nodes\":[{\"provider\":\"deepseek\",\"model\":\"deepseek-chat\"}]}]}"
+          ) ;string->json
+       ) ;j
        (cfg (json->all-in-one-cfg j))
       ) ;
   (check-true (all-in-one-cfg? cfg))
@@ -39,7 +41,10 @@
 
 ;; 2. 缺省字段使用默认值（含毫秒字段兼容）
 (let ((cfg1 (json->all-in-one-cfg (string->json "{}")))
-      (cfg2 (json->all-in-one-cfg (string->json "{\"maxWaitMs\":5000,\"retryIntervalMs\":2000,\"probeTimeoutMs\":1000}")))
+      (cfg2 (json->all-in-one-cfg (string->json "{\"maxWaitMs\":5000,\"retryIntervalMs\":2000,\"probeTimeoutMs\":1000}"
+                                  ) ;string->json
+            ) ;json->all-in-one-cfg
+      ) ;cfg2
      ) ;
   (check-true (all-in-one-cfg? cfg1))
   (check (all-in-one-cfg-continuous? cfg1) => #t)
@@ -55,7 +60,8 @@
 ;; 3. 非法输入与 chains 非数组返回 #f
 (check-false (json->all-in-one-cfg '()))
 (check-false (json->all-in-one-cfg "bad"))
-(check-false (json->all-in-one-cfg (string->json "{\"chains\":\"not-array\"}") "test.json"))
+(check-false (json->all-in-one-cfg (string->json "{\"chains\":\"not-array\"}") "test.json")
+) ;check-false
 
 ;; 4. 已是 record 原样返回
 (let* ((orig (make-all-in-one-cfg #t 1000 500 200 '()))

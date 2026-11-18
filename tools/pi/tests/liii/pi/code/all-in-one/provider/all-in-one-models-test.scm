@@ -52,7 +52,7 @@
   (check (length models) => 2)
   (check (cdr (assoc "id" (car models))) => "coding-fast")
   (check (cdr (assoc "id" (cadr models))) => "coding-high-quality")
-)
+) ;let
 
 ;; 2. 有两条链的配置文件，模型发现断言包含 coding-deep 与 coding-fast 且 provider 为 all-in-one
 (%write-cfg "\n{\n  \"provider\": \"all-in-one\",\n  \"chains\": [\n    {\n      \"id\": \"coding-deep\",\n      \"name\": \"深度思考链\",\n      \"nodes\": [{\"provider\": \"kimi1\", \"model\": \"kimi-k3\"}]\n    },\n    {\n      \"id\": \"coding-fast\",\n      \"name\": \"极速交互链\",\n      \"nodes\": [{\"provider\": \"ds1\", \"model\": \"chat\"}]\n    }\n  ]\n}\n"

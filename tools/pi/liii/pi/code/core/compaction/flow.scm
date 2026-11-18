@@ -21,6 +21,7 @@
     (liii pi code core compaction session)
     (liii pi code core session-projection)
     (liii pi code all-in-one types)
+    (liii pi code all-in-one defaults)
     (liii pi code all-in-one loader)
     (liii pi code all-in-one chain)
     (liii pi code all-in-one provider)
@@ -157,10 +158,8 @@
         (if (not (equal? p "all-in-one"))
           (%context-window cfg)
           (let* ((dir (pi-cfg-config-dir cfg))
-                 (raw-aio (all-in-one-load-config dir))
+                 (aio-cfg (all-in-one-load-or-default-config dir))
                  (default-chains (all-in-one-default-chains))
-                 (aio-cfg (or raw-aio (make-all-in-one-cfg #t 3600000 60000 8000 default-chains))
-                 ) ;aio-cfg
                  (chains (all-in-one-cfg-chains aio-cfg))
                  (chain-id (pi-cfg-ref cfg 'model-id))
                  (chain

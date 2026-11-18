@@ -66,7 +66,9 @@
 (path-write-text (path->string (path-join TMP-DIR "all-in-one.json"))
   "{\"provider\":\"all-in-one\",\"continuous\":true,\"retryIntervalMs\":600000,\"maxWaitMs\":600000,\"probeTimeoutMs\":1000,\"chains\":[{\"id\":\"coding-fast\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"}]}]}"
 ) ;path-write-text
-(path-write-text (path->string (path-join TMP-DIR "models" "providers.json")) "[\"stub\"]")
+(path-write-text (path->string (path-join TMP-DIR "models" "providers.json"))
+  "[\"stub\"]"
+) ;path-write-text
 (path-write-text (path->string (path-join TMP-DIR "auth.json"))
   "{\"stub\":{\"type\":\"api_key\",\"key\":\"k\"}}"
 ) ;path-write-text
@@ -90,6 +92,7 @@
 ) ;define
 
 ;; 虚拟时钟：sleep 只推进 now，不真实阻塞
+
 (define (make-clock)
   (let ((now 1000000))
     (cons (lambda () now) (lambda (ms) (set! now (+ now ms))))
@@ -99,42 +102,41 @@
 ;; ---------------------------------------------------------------------------
 ;; 1. 用户消息在首个步进即到达：立即返回 aborted，不推进时钟、不重试
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (pi-chain-record-node-failure! (make-chain-node "stub" "one") 1000000)
 (let* ((clock (make-clock))
        (pending (list "typed immediately"))
        (consumed '())
        (request-called #f)
-       (config (make-config
-                 (cons 'now-fn (car clock))
-                 (cons 'sleep-fn (cdr clock))
-                 (cons 'aborted? (lambda () #f))
-                 (cons 'get-steering-messages
-                   (lambda ()
-                     (if (pair? pending)
-                       (let ((m (car pending)))
-                         (set! pending (cdr pending))
-                         (set! consumed (cons m consumed))
-                         (list m)
-                       ) ;let
-                       '()
-                     ) ;if
-                   ) ;lambda
-                 ) ;cons
-               ) ;make-config
+       (config
+         (make-config (cons 'now-fn (car clock))
+           (cons 'sleep-fn (cdr clock))
+           (cons 'aborted? (lambda () #f))
+           (cons 'get-steering-messages
+             (lambda ()
+               (if (pair? pending)
+                 (let ((m (car pending)))
+                   (set! pending (cdr pending))
+                   (set! consumed (cons m consumed))
+                   (list m)
+                 ) ;let
+                 '()
+               ) ;if
+             ) ;lambda
+           ) ;cons
+         ) ;make-config
        ) ;config
       ) ;
-  (let ((response
-          (pi-all-in-one-request-stream "all-in-one"
-            config
-            (list (pi-user-message "start"))
-            "system"
-            '()
-            #f
-            60
-            (lambda (node timeout-ms dir request-fn) #f)
-            (lambda args (set! request-called #t) (pi-assistant-message '() "stop"))
-          ) ;pi-all-in-one-request-stream
+  (let ((response (pi-all-in-one-request-stream "all-in-one"
+                    config
+                    (list (pi-user-message "start"))
+                    "system"
+                    '()
+                    #f
+                    60
+                    (lambda (node timeout-ms dir request-fn) #f)
+                    (lambda args (set! request-called #t) (pi-assistant-message '() "stop"))
+                  ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
     (check (pi-assistant-message-stop-reason response) => "aborted")
@@ -149,48 +151,51 @@
 ;; ---------------------------------------------------------------------------
 ;; 2. 用户消息在等待若干步进后到达：立即结束，不等满 maxWaitMs
 ;; ---------------------------------------------------------------------------
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (pi-chain-record-node-failure! (make-chain-node "stub" "one") 1000000)
 (let* ((clock (make-clock))
        (pending (list "typed later"))
        (poll-count 0)
-       (config (make-config
-                 (cons 'now-fn (car clock))
-                 (cons 'sleep-fn (cdr clock))
-                 (cons 'aborted? (lambda () #f))
-                 (cons 'step-ms 100)
-                 (cons 'get-steering-messages
-                   (lambda ()
-                     ;; 前 5 次轮询为空，模拟用户过一会儿才输入（远早于到期重试）
-                     (set! poll-count (+ poll-count 1))
-                     (if (and (> poll-count 5) (pair? pending))
-                       (let ((m (car pending)))
-                         (set! pending (cdr pending))
-                         (list m)
-                       ) ;let
-                       '()
-                     ) ;if
-                   ) ;lambda
-                 ) ;cons
-               ) ;make-config
+       (config
+         (make-config (cons 'now-fn (car clock))
+           (cons 'sleep-fn (cdr clock))
+           (cons 'aborted? (lambda () #f))
+           (cons 'step-ms 100)
+           (cons 'get-steering-messages
+             (lambda ()
+               ;; 前 5 次轮询为空，模拟用户过一会儿才输入（远早于到期重试）
+               (set! poll-count (+ poll-count 1))
+               (if (and (> poll-count 5) (pair? pending))
+                 (let ((m (car pending)))
+                   (set! pending (cdr pending))
+                   (list m)
+                 ) ;let
+                 '()
+               ) ;if
+             ) ;lambda
+           ) ;cons
+         ) ;make-config
        ) ;config
       ) ;
-  (let ((response
-          (pi-all-in-one-request-stream "all-in-one"
-            config
-            (list (pi-user-message "start"))
-            ""
-            '()
-            #f
-            60
-            (lambda (node timeout-ms dir request-fn) #f)
-            (lambda args (pi-assistant-message '() "stop"))
-          ) ;pi-all-in-one-request-stream
+  (let ((response (pi-all-in-one-request-stream "all-in-one"
+                    config
+                    (list (pi-user-message "start"))
+                    ""
+                    '()
+                    #f
+                    60
+                    (lambda (node timeout-ms dir request-fn) #f)
+                    (lambda args (pi-assistant-message '() "stop"))
+                  ) ;pi-all-in-one-request-stream
         ) ;response
        ) ;
     (check (pi-assistant-message-stop-reason response) => "aborted")
     ;; 远小于 maxWaitMs(600000ms) 就结束
-    (check (< (- ((car clock)) 1000000) 1000) => #t)
+    (check
+      (< (- ((car clock)) 1000000) 1000)
+      =>
+      #t
+    ) ;check
   ) ;let
 ) ;let*
 

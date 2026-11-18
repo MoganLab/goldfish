@@ -41,13 +41,14 @@
     (list (make-chain-node "p1" "m1") (make-chain-node "p2" "m2"))
   ) ;make-chain-def
 ) ;define
+
 (define CFG (make-all-in-one-cfg #f 1000 10 1000 (list CHAIN)))
 
 (when (file-exists? TMP-DIR)
   (rmtree TMP-DIR #t)
 ) ;when
 (path-mkdir (path TMP-DIR) :parents #t :exist-ok #t)
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 
 (check-false (pi-chain-current-sticky-index "sticky-index-test"))
 (check

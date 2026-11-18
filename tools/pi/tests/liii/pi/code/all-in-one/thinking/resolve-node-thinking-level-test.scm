@@ -89,25 +89,19 @@
 ) ;check
 
 ;; 3. 手动高优先级：节点默认 low，用户显式 high，物理模型支持 high => 生效 high
-(check (resolve-node-thinking-level "high" "low" MOCK-CATALOG "google"
-         "gemini-full"
-       ) ;resolve-node-thinking-level
+(check (resolve-node-thinking-level "high" "low" MOCK-CATALOG "google" "gemini-full")
   =>
   "high"
 ) ;check
 
 ;; 4. 手动低延时：节点默认 high，用户显式 off，物理模型支持思考 => 生效 off
-(check (resolve-node-thinking-level "off" "high" MOCK-CATALOG "google"
-         "gemini-full"
-       ) ;resolve-node-thinking-level
+(check (resolve-node-thinking-level "off" "high" MOCK-CATALOG "google" "gemini-full")
   =>
   "off"
 ) ;check
 
 ;; 5. 模型不思考：节点默认 high，用户显式 high，物理模型 reasoning=false => 生效 off
-(check (resolve-node-thinking-level "high" "high" MOCK-CATALOG "google"
-         "plain-model"
-       ) ;resolve-node-thinking-level
+(check (resolve-node-thinking-level "high" "high" MOCK-CATALOG "google" "plain-model")
   =>
   "off"
 ) ;check
@@ -129,9 +123,7 @@
 ) ;check
 
 ;; 8. 节点默认也需防御：节点默认 max，用户显式无，物理模型最高 high => 防御收敛为 high
-(check (resolve-node-thinking-level #f "max" MOCK-CATALOG "google"
-         "gemini-up-to-high"
-       ) ;resolve-node-thinking-level
+(check (resolve-node-thinking-level #f "max" MOCK-CATALOG "google" "gemini-up-to-high")
   =>
   "high"
 ) ;check

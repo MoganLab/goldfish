@@ -15,11 +15,7 @@
 ;; alist
 ;; 可由 json->string 序列化的 JSON 对象，且可被 json->chain-def 往返还原。
 
-(import (scheme base)
-  (liii check)
-  (liii json)
-  (liii pi code all-in-one types)
-) ;import
+(import (scheme base) (liii check) (liii json) (liii pi code all-in-one types))
 
 (check-set-mode! 'report-failed)
 

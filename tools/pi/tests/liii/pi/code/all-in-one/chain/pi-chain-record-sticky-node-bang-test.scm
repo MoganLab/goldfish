@@ -16,14 +16,11 @@
 ;; ----
 ;; unspecified
 
-(import (scheme base)
-  (liii check)
-  (liii pi code all-in-one chain)
-) ;import
+(import (scheme base) (liii check) (liii pi code all-in-one chain))
 
 (check-set-mode! 'report-failed)
 
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (check (pi-chain-current-sticky-index "test-chain") => #f)
 
 (pi-chain-record-sticky-node! "test-chain" 1)
@@ -32,7 +29,7 @@
 (pi-chain-record-sticky-node! "test-chain" 2)
 (check (pi-chain-current-sticky-index "test-chain") => 2)
 
-(pi-chain-reset-sticky-state!)
+(pi-chain-reset-state!)
 (check (pi-chain-current-sticky-index "test-chain") => #f)
 
 (check-report)

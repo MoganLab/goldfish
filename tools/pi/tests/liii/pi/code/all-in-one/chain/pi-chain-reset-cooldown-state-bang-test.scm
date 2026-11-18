@@ -22,9 +22,7 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((node1 (make-chain-node "p1" "m1"))
-      (node2 (make-chain-node "p2" "m2"))
-     ) ;
+(let ((node1 (make-chain-node "p1" "m1")) (node2 (make-chain-node "p2" "m2")))
   (pi-chain-record-node-failure! node1 1000)
   (pi-chain-record-node-failure! node2 2000)
   (check-true (pi-chain-node-in-cooldown? node1 60000 5000))

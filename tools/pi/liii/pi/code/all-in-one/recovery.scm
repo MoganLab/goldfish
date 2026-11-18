@@ -10,7 +10,7 @@
 ;; 3. 短步进休眠期间持续检测 Esc 中止与用户直接输入的新消息；
 ;; 4. 收到新消息立即结束等待，交回前台作为新任务（不再盲目重试）；
 ;; 5. 到期重试成功后用原上下文继续当前 Agent 任务；
-;; 5. 纯 Scheme 调度循环，支持注入单调时钟、休眠与取消探测钩子。
+;; 6. 纯 Scheme 调度循环，支持注入单调时钟、休眠与取消探测钩子。
 (define-library (liii pi code all-in-one recovery)
   (import (scheme base)
     (liii date-time)
@@ -53,22 +53,18 @@
       (pi-assistant-message '() "aborted" "Request aborted by user")
     ) ;define
 
-    ;; 用户直接输入新消息而中止等待：本轮任务就地结束，新消息由前台接手
     (define (%interrupted-message)
       (pi-assistant-message '() "aborted" "Wait aborted by a new user message")
     ) ;define
 
-    ;; 一次到期重试：返回实际响应，或仍全链枯竭时返回 'all-nodes-exhausted
     (define (%attempt! attempt-fn emit chain-id)
       (emit 'recovery_retry chain-id)
       (attempt-fn)
     ) ;define
 
-    ;; 单次等待预算内的步进循环：
-    ;; 优先级为 Esc 中止 > 用户新消息唤醒 > 到期重试。
-    ;; 用户新消息到达时不再盲目重试（重试仍可能枯竭并重新进入等待），
-    ;; 而是返回 'interrupted，由调用方结束本轮 Agent 任务，前台把该消息
-    ;; 作为新任务处理，从而实现「输入即可中止等待并继续对话」。
+    ;; 等待阶段不变量：Esc 中止 > 用户新消息唤醒 > 到期重试。新消息到达时不
+    ;; 盲目重试（重试仍可能枯竭并重新进入等待），而是返回 'interrupted 交回
+    ;; 前台，由前台把该消息当作新任务处理。
     (define (%step-until-retry! ctx)
       (let* ((now-fn (%opt-ref ctx 'now-fn #f))
              (sleep-fn (%opt-ref ctx 'sleep-fn #f))
@@ -93,25 +89,23 @@
                          (step-elapsed (- (now-fn) wait-start))
                          (rem-in-wait (- wait-target-ms step-elapsed))
                         ) ;
-                    (cond
-                      ;; 用户直接输入新消息：立即结束等待，交回前台作为新任务
-                      ((pair? user-msgs)
-                       (emit 'recovery_end chain-id 'interrupted)
-                       (cons (%interrupted-message) user-msgs)
-                      ) ;
-                      ;; 到期：触发一次重试
-                      ((<= rem-in-wait 0) (cons (%attempt! attempt-fn emit chain-id) #f))
-                      (else
-                        (let* ((curr-sec (quotient (+ rem-in-wait 999) 1000))
-                               (to-sleep (min step-ms rem-in-wait))
-                              ) ;
-                          (when (not (eqv? curr-sec last-tick-sec))
-                            (emit 'recovery_tick chain-id rem-in-wait)
-                          ) ;when
-                          (sleep-fn to-sleep)
-                          (loop curr-sec)
-                        ) ;let*
-                      ) ;else
+                    (cond ((pair? user-msgs)
+                           (emit 'recovery_end chain-id 'interrupted)
+                           (cons (%interrupted-message) user-msgs)
+                          ) ;
+                          ;; 到期：触发一次重试
+                          ((<= rem-in-wait 0) (cons (%attempt! attempt-fn emit chain-id) #f))
+                          (else
+                            (let* ((curr-sec (quotient (+ rem-in-wait 999) 1000))
+                                   (to-sleep (min step-ms rem-in-wait))
+                                  ) ;
+                              (when (not (eqv? curr-sec last-tick-sec))
+                                (emit 'recovery_tick chain-id rem-in-wait)
+                              ) ;when
+                              (sleep-fn to-sleep)
+                              (loop curr-sec)
+                            ) ;let*
+                          ) ;else
                     ) ;cond
                   ) ;let*
                 ) ;else
@@ -120,7 +114,6 @@
       ) ;let*
     ) ;define
 
-    ;; 预算耗尽：写带 wait-timeout 的 [EXHAUSTED]，并返回可读错误消息
     (define (%wait-timeout! ctx)
       (let ((chain-id (%opt-ref ctx 'chain-id "all-in-one"))
             (config-dir (%opt-ref ctx 'config-dir #f))
@@ -139,10 +132,8 @@
       ) ;let
     ) ;define
 
-    ;; 一次等待结果的分派：
-    ;; - aborted / interrupted：就地结束，交回上层结算
-    ;; - 恢复成功：返回真实响应
-    ;; - 仍枯竭：进入下一轮等待
+    ;; 等待结果分派：aborted / interrupted 就地结束交回上层；恢复成功返回真实
+    ;; 响应；仍枯竭则进入下一轮等待。
     (define (%after-step! ctx resp loop)
       (let ((chain-id (%opt-ref ctx 'chain-id "all-in-one"))
             (emit (%opt-ref ctx 'emit #f))
@@ -221,7 +212,6 @@
       ) ;if
     ) ;define
 
-    ;; 为单次等待补上起点与等待目标
     (define (%ctx-with-wait ctx wait-target-ms)
       (cons (cons 'wait-start ((%opt-ref ctx 'now-fn current-monotonic-millis)))
         (cons (cons 'wait-target-ms wait-target-ms) ctx)

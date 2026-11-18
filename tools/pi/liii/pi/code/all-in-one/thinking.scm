@@ -16,11 +16,13 @@
     (liii pi code modes output)
     (liii pi code all-in-one alarm)
   ) ;import
-  (export resolve-node-thinking-level pi-log-thinking-clamp!)
+  (export resolve-node-thinking-level)
+  ;; 收敛诊断
+  (export pi-log-thinking-clamp!)
   (begin
 
-    ;; 计算节点最终生效的 Thinking Level：
-    ;; supports-thinking? = #f 收敛为 off；否则按可用集合 clamp（先向高、再向低）
+    ;; 优先级不变量：用户显式等级 > 节点 thinkingLevel > off，随后必须按
+    ;; 真实物理模型能力 clamp（#f 收敛为 off，否则先向高、再向低）。
     (define (resolve-node-thinking-level explicit-level node-default-level
               models-store provider model-id
             ) ;resolve-node-thinking-level
@@ -52,9 +54,6 @@
       ) ;let
     ) ;define
 
-    ;; 显式值被真实节点能力改变时写一条 [THINKING_CLAMP] 按天日志，
-    ;; 并通过 cfg 的 emit 通知前台一次（TUI 显示为状态卡片、脚本模式转 stderr）；
-    ;; 每个实际节点只提示一次，不随倒计时 tick 重复告警。
     (define (pi-log-thinking-clamp! config chain-id provider model-id requested effective)
       (when (not (equal? requested effective))
         (pi-alarm-log! "THINKING_CLAMP"
@@ -70,7 +69,6 @@
       ) ;when
     ) ;define
 
-    ;; 通知前台收敛结果：有 emit 时走事件（TUI 卡片），否则退回 stderr
     (define (%notify-clamp! config provider model-id requested effective)
       (let ((emit (and (pair? config) (assoc 'emit config))))
         (if (and emit (procedure? (cdr emit)))
