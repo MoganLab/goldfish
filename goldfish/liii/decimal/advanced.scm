@@ -26,7 +26,7 @@
     (liii decimal cast)
   ) ;import
 
-  (export decimal-pow decimal-sqrt apply-math-context decimal-add-with-context
+  (export decimal-pow decimal-sqrt decimal-add-with-context
     decimal-subtract-with-context decimal-multiply-with-context
     decimal-divide-with-context decimal-pow-with-context
     decimal-sqrt-with-context decimal-abs-with-context
@@ -122,20 +122,20 @@
       ) ;let
     ) ;define
 
-    (define (apply-math-context result mc)
+    (define (%apply-math-context result mc)
       (if (math-context? mc) (decimal-round result mc) result)
     ) ;define
 
     (define (decimal-add-with-context a b mc)
-      (apply-math-context (decimal-add a b) mc)
+      (%apply-math-context (decimal-add a b) mc)
     ) ;define
 
     (define (decimal-subtract-with-context a b mc)
-      (apply-math-context (decimal-subtract a b) mc)
+      (%apply-math-context (decimal-subtract a b) mc)
     ) ;define
 
     (define (decimal-multiply-with-context a b mc)
-      (apply-math-context (decimal-multiply a b) mc)
+      (%apply-math-context (decimal-multiply a b) mc)
     ) ;define
 
     (define (decimal-divide-with-context a b mc)
@@ -167,7 +167,7 @@
 
     (define (decimal-pow-with-context n exponent mc)
       (let ((raw-result (decimal-pow n exponent)))
-        (apply-math-context raw-result mc)
+        (%apply-math-context raw-result mc)
       ) ;let
     ) ;define
 
@@ -183,15 +183,15 @@
     ) ;define
 
     (define (decimal-abs-with-context n mc)
-      (apply-math-context (decimal-abs n) mc)
+      (%apply-math-context (decimal-abs n) mc)
     ) ;define
 
     (define (decimal-negate-with-context n mc)
-      (apply-math-context (decimal-negate n) mc)
+      (%apply-math-context (decimal-negate n) mc)
     ) ;define
 
     (define (decimal-plus-with-context n mc)
-      (apply-math-context (decimal-plus n) mc)
+      (%apply-math-context (decimal-plus n) mc)
     ) ;define
 
   ) ;begin
