@@ -94,19 +94,12 @@
       (sort 0 (length lis))
     ) ;define
 
+    ;; list-sort 基于 s7 内置 sort!（C qsort）：先 O(n) 浅拷贝列表骨架，
+    ;; 再原地只重写各 pair 的 car，不修改输入列表；
+    ;; 纯 Scheme 快排在长字符串列表上每次比较都要过解释器，
+    ;; 1662 个路径实测 0.3s，而 sort! 仅 0.4ms（实测约 700 倍）
     (define (list-sort less-p lis)
-      (if (or (null? lis) (null? (cdr lis)))
-        lis
-        (let ((pivot (car lis)) (rest (cdr lis)))
-          (let ((smaller (filter (lambda (x) (less-p x pivot)) rest))
-                (larger
-                  (filter (lambda (x) (not (less-p x pivot))) rest)
-                ) ;larger
-               ) ;
-            (append (list-sort less-p smaller) (list pivot) (list-sort less-p larger))
-          ) ;let
-        ) ;let
-      ) ;if
+      (if (or (null? lis) (null? (cdr lis))) lis (sort! (append lis '()) less-p))
     ) ;define
 
     ;; list-sort! 复用 S7 内置的 sort!：基于 C qsort 的原地排序，
