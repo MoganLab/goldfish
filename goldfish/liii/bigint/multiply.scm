@@ -17,7 +17,7 @@
 (define-library (liii bigint multiply)
   (import (scheme base) (liii list) (liii bigint record) (liii bigint mag))
 
-  (export multiply-mag)
+  (export %multiply-mag)
 
   (begin
     (define SMALL-BASE 65536)
@@ -181,7 +181,7 @@
       ) ;let
     ) ;define
 
-    (define (multiply-mag a b)
+    (define (%multiply-mag a b)
       (let ((len-a (length a)) (len-b (length b)))
         (cond ((or (null? a) (null? b)) '())
               ((or (< len-a KARATSUBA-THRESHOLD) (< len-b KARATSUBA-THRESHOLD))

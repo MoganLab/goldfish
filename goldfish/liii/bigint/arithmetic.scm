@@ -107,9 +107,9 @@
             ) ;
         (cond ((or (= signum-a 0) (= signum-b 0)) bigint-zero)
               ((= signum-a signum-b)
-               (make-bigint 1 (multiply-mag (bigint-mag left) (bigint-mag right)))
+               (make-bigint 1 (%multiply-mag (bigint-mag left) (bigint-mag right)))
               ) ;
-              (else (make-bigint -1 (multiply-mag (bigint-mag left) (bigint-mag right))))
+              (else (make-bigint -1 (%multiply-mag (bigint-mag left) (bigint-mag right))))
         ) ;cond
       ) ;let*
     ) ;define
