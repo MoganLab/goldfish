@@ -15,7 +15,7 @@
 ;; list
 ;;   返回四项列表 (user password host port)，缺失组件用 #f 表示。
 
-(import (liii check) (liii uri parse))
+(import (liii check) (liii uri internal parse))
 
 (check-set-mode! 'report-failed)
 

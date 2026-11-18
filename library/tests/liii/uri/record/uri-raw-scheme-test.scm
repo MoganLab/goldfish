@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; string? 或 #f
-;;   返回与 uri-scheme-raw 相同的值。
+;;   返回与 uri-scheme 相同的值。
 
 (import (liii check) (liii uri record))
 
@@ -21,7 +21,7 @@
 
 (define u (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-raw-scheme u) => "https")
-(check (uri-raw-scheme u) => (uri-scheme-raw u))
+(check (uri-raw-scheme u) => (uri-scheme u))
 (check (uri-raw-scheme (make-uri-raw #f "" "" '() #f)) => #f)
 
 (check-report)

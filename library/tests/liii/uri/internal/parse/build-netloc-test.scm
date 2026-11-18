@@ -21,7 +21,7 @@
 ;; string
 ;;   返回网络位置字符串；host 为 #f 时返回空字符串。
 
-(import (liii check) (liii uri parse))
+(import (liii check) (liii uri internal parse))
 
 (check-set-mode! 'report-failed)
 

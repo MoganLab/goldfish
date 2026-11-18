@@ -43,7 +43,7 @@
 (define u5 (make-uri-raw "https" "api.com" "/" '() #f))
 
 (define u6 (uri-without-query-param u5 "key"))
-(check (uri-query-raw u6) => '())
+(check (uri-query u6) => '())
 
 
 (check-report)

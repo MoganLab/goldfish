@@ -13,8 +13,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 ;;
-;; ; (liii uri make) - URI 构造器函数
-;; ; 本模块包含 URI 的构造器函数
+;; ; (liii uri make) - URI 构造器子库
+;; ; 函数文档见 bin/gf doc liii/uri 与 library/tests/liii/uri/make/README.md
 
 (define-library (liii uri make)
   (import (scheme base)
@@ -22,18 +22,19 @@
     (liii string)
     (liii error)
     (liii base)
+    (liii uri internal record)
+    (liii uri internal parse)
     (liii uri record)
-    (liii uri parse)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
-  (export make-uri)
+  ;; 构造 URI
+  (export make-uri string->uri)
   (export uri-build)
-  (export string->uri)
 
   (begin
-    ;; ; ---------- 解析辅助函数 ----------
-    ;; 分割 scheme 和剩余部分
+
+    ;; ; ---------- 解析辅助 ----------
     (define (split-scheme str)
       (let ((colon-pos (string-index str #\:)))
         (if colon-pos
@@ -45,9 +46,7 @@
       ) ;let
     ) ;define
 
-    ;; 分割 authority 和路径部分
     (define (split-authority str)
-      ;; 查找路径开始（/）、查询（?）或片段（#）
       (let loop
         ((i 0) (slash-pos #f) (question-pos #f) (hash-pos #f))
         (if (>= i (string-length str))
@@ -85,24 +84,10 @@
       ) ;let
     ) ;define
 
-    ;; 分割路径和查询字符串
-    (define (split-query path+query)
-      (let ((q-pos (string-index path+query #\?)))
-        (if q-pos
-          (cons (substring path+query 0 q-pos)
-            (substring path+query (+ q-pos 1) (string-length path+query))
-          ) ;cons
-          (cons path+query "")
-        ) ;if
-      ) ;let
-    ) ;define
-
     ;; ; ---------- 构造函数 ----------
-    ;; 从字符串构造 URI
     (define (make-uri str)
       (if (not (string? str))
         (type-error "make-uri: expected string")
-        ;; 检查是否是 Git SSH 格式：git@host:path
         (if
           (and (string-index str #\@)
             (not (string-starts? str "http://"))
@@ -112,16 +97,14 @@
               (and colon-pos (> colon-pos (string-index str #\@)))
             ) ;let
           ) ;and
-          ;; Git SSH 格式: git@host:path
           (let* ((at-pos (string-index str #\@))
                  (colon-pos (string-index str #\:))
                  (user (substring str 0 at-pos))
                  (host (substring str (+ at-pos 1) colon-pos))
                  (path (substring str colon-pos (string-length str)))
                 ) ;
-            (make-uri-raw "ssh" (build-netloc user #f host #f) path '() #f)
+            (%make-uri-record "ssh" (build-netloc user #f host #f) path '() #f)
           ) ;let*
-          ;; 标准 URI 格式
           (let* ((scheme+rest (split-scheme str))
                  (scheme (car scheme+rest))
                  (rest (cdr scheme+rest))
@@ -136,13 +119,12 @@
                  (query-str (list-ref authority+path+query+frag 2))
                  (fragment (list-ref authority+path+query+frag 3))
                 ) ;
-            (make-uri-raw scheme netloc path (query-string->alist query-str) fragment)
+            (%make-uri-record scheme netloc path (query-string->alist query-str) fragment)
           ) ;let*
         ) ;if
       ) ;if
     ) ;define
 
-    ;; 从组件构建 URI
     (define* (uri-build (scheme #f)
                (user #f)
                (password #f)
@@ -152,15 +134,14 @@
                (query '())
                (fragment #f)
              ) ;uri-build
-      (make-uri-raw scheme
+      (%make-uri-record scheme
         (build-netloc user password host port)
         (or path "")
         query
         fragment
-      ) ;make-uri-raw
+      ) ;%make-uri-record
     ) ;define*
 
-    ;; string->uri 是 make-uri 的别名
     (define (string->uri str)
       (make-uri str)
     ) ;define

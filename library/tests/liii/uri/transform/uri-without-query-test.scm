@@ -24,7 +24,7 @@
 (define u1 (make-uri-raw "https" "api.com" "/" '(("a" . "1") ("b" . "2")) #f))
 
 (define u2 (uri-without-query u1))
-(check (uri-query-raw u2) => '())
+(check (uri-query u2) => '())
 (check (uri-query-ref u2 "a") => #f)
 
 
@@ -33,7 +33,7 @@
 (define u3 (make-uri-raw "https" "api.com" "/" '() #f))
 
 (define u4 (uri-without-query u3))
-(check (uri-query-raw u4) => '())
+(check (uri-query u4) => '())
 
 
 ;; 保留其他字段

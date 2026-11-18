@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; string?
-;;   返回与 uri-netloc-raw 相同的 authority。
+;;   返回与 uri-authority 相同的 authority。
 
 (import (liii check) (liii uri record))
 
@@ -21,6 +21,6 @@
 
 (define u (make-uri-raw "https" "user:pass@example.com:8443" "/" '() #f))
 (check (uri-raw-authority u) => "user:pass@example.com:8443")
-(check (uri-raw-authority u) => (uri-netloc-raw u))
+(check (uri-raw-authority u) => (uri-authority u))
 
 (check-report)

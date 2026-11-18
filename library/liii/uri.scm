@@ -13,14 +13,11 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 ;;
-;; ; (liii uri) - URI 处理库
-;; ; 基于 RFC 3986 实现的 URI 解析与构造库
-;; ; 本模块是统一接口，实际实现分散在 uri-record、uri-parse、uri-predicate、
-;; ; uri-compare、uri-make、uri-transform、uri-convert 等子模块中
+;; ; (liii uri) - URI 处理库统一公开入口
+;; ; 函数分类索引见 bin/gf doc liii/uri（library/tests/liii/uri/README.md）
 
 (define-library (liii uri)
   (import (scheme base)
-    (liii uri parse)
     (liii uri record)
     (liii uri predicate)
     (liii uri compare)
@@ -30,73 +27,47 @@
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
-  ;; 从 uri-record 重新导出
-  (export make-uri-raw uri?)
-  (export uri-error)
+  ;; 构造 URI
+  (export make-uri string->uri)
+  (export make-uri-raw)
+  (export uri-build)
 
-  ;; scheme/host/port 访问器
+  ;; 访问 URI 组件
   (export uri-scheme uri-raw-scheme)
-  (export uri-host uri-raw-host)
-  (export uri-port uri-explicit-port)
-
-  ;; authority 访问器
-  (export uri-user uri-raw-user)
-  (export uri-password uri-raw-password)
+  (export uri-host uri-raw-host uri-port uri-explicit-port)
+  (export uri-user uri-raw-user uri-password uri-raw-password)
   (export uri-authority uri-raw-authority)
-
-  ;; path 访问器
   (export uri-path uri-raw-path uri-path->list)
-
-  ;; query 访问器
   (export uri-query uri-query-string uri-query-ref uri-query-ref*)
-
-  ;; fragment 访问器
   (export uri-fragment uri-raw-fragment)
-
-  ;; 路径相关访问器
   (export uri-parent uri-name uri-suffix uri-suffixes)
 
-  ;; 从 uri-predicate 重新导出
-  (export uri-absolute? uri-relative?)
-  (export uri-default-port uri-default-port? uri-network-scheme?)
-
-  ;; 从 uri-make 重新导出
-  (export make-uri uri-build string->uri)
-
-  ;; 从 uri-transform 重新导出 - with- 系列函数
-  (export uri-with-scheme)
-  (export uri-with-host)
-  (export uri-with-port)
-  (export uri-with-path)
-  (export uri-with-fragment)
-
-  ;; 从 uri-transform 重新导出 - query 更新函数
-  (export uri-update-query)
-  (export uri-extend-query)
-  (export uri-without-query)
-  (export uri-without-query-param)
-
-  ;; 从 uri-transform 重新导出 - 路径操作函数
-  (export uri-join-path)
-  (export uri-with-name)
-  (export uri-with-suffix)
-  (export uri-join)
+  ;; 修改 URI
+  (export uri-with-scheme uri-with-host uri-with-port)
+  (export uri-with-path uri-with-fragment)
+  (export uri-update-query uri-extend-query)
+  (export uri-without-query uri-without-query-param)
+  (export uri-join-path uri-join)
+  (export uri-with-name uri-with-suffix)
   (export uri-normalize)
 
-  ;; 从 uri-convert 重新导出 - 转换函数
+  ;; 转换、比较与编码
   (export uri->string)
   (export uri->human-string)
+  (export uri=? uri<? uri>?)
+  (export uri-hash)
+  (export uri-encode uri-decode)
+  (export uri-encode-path uri-decode-path)
+  (export query-string->alist alist->query-string)
 
-  ;; 从 uri-compare 重新导出
-  (export uri=? uri<? uri>? uri-hash)
+  ;; 谓词
+  (export uri?)
+  (export uri-absolute? uri-relative?)
+  (export uri-default-port? uri-network-scheme?)
 
-  ;; 编码/解码函数（从 uri-record 重新导出）
-  (export uri-encode)
-  (export uri-decode)
-  (export uri-encode-path)
-  (export uri-decode-path)
+  ;; 端口
+  (export uri-default-port)
 
-  ;; 查询字符串处理（从 uri-record 重新导出）
-  (export query-string->alist)
-  (export alist->query-string)
+  ;; 错误
+  (export uri-error)
 ) ;define-library

@@ -25,13 +25,16 @@
 
 ## 子模块
 
-- `(liii uri record)` - 记录类型定义、原始字段与组件访问器
-- `(liii uri parse)` - netloc 解析和构建辅助函数
-- `(liii uri predicate)` - URI 与网络协议谓词
-- `(liii uri compare)` - URI 比较与哈希函数
-- `(liii uri make)` - URI 构造器
-- `(liii uri transform)` - URI 修改、路径合并与归一化
-- `(liii uri convert)` - URI 字符串转换
+本库按职责拆分为多个子库，用户通常只需 `(import (liii uri))`：
+
+- 对外聚合子库：
+  - `(liii uri record)` - 构造与组件访问器、路径与查询参数处理、编码与解码
+  - `(liii uri predicate)` - URI 与网络协议谓词
+  - `(liii uri compare)` - URI 比较与哈希函数
+  - `(liii uri make)` - URI 构造器
+  - `(liii uri transform)` - URI 修改、路径合并与归一化
+  - `(liii uri convert)` - URI 字符串转换
+- 内部实现模块：`(liii uri internal record)`、`(liii uri internal parse)`
 
 ## 查看函数文档
 
@@ -69,19 +72,17 @@ bin/gf doc liii/uri "函数名"
 - `uri-with-name`、`uri-with-suffix` - 修改路径末级名称或后缀
 - `uri-normalize` - 归一化 URI
 
-### 转换与比较
+### 转换、比较与编码
 - `uri->string` - URI 转为完整字符串
 - `uri->human-string` - 生成隐藏敏感信息的字符串
 - `uri=?`、`uri<?`、`uri>?` - URI 相等与字典序比较
 - `uri-hash` - 计算 URI 哈希值
+- `uri-encode`、`uri-decode` - 百分比编码与解码
+- `uri-encode-path`、`uri-decode-path` - 路径编码与解码
+- `query-string->alist`、`alist->query-string` - 查询字符串与 alist 互转
 
 ### 谓词
 - `uri?` - 检查对象是否为 URI 记录
 - `uri-absolute?`、`uri-relative?` - 检查绝对或相对 URI
 - `uri-default-port?` - 检查是否使用默认端口
 - `uri-network-scheme?` - 检查是否为网络协议
-
-### 编码与查询字符串
-- `uri-encode`、`uri-decode` - 百分比编码与解码
-- `uri-encode-path`、`uri-decode-path` - 路径编码与解码
-- `query-string->alist`、`alist->query-string` - 查询字符串与 alist 互转
