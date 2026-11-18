@@ -92,6 +92,51 @@
       ) ;let
     ) ;define
 
+    ;; 模型来源条目的类型：model_change（用户显式切换模型）或 assistant
+    ;; （assistant 消息里记录的实际服务节点）。
+    ;; 两者都能提供 provider / model，但语义不同：前者是用户意图，
+    ;; 后者只是上一次请求实际落在哪个物理节点上。
+    (define (%model-source-type entry)
+      (let ((se (or (json->pi-session-entry entry) entry)))
+        (cond ((equal? (pi-session-entry-type se) "model_change") "model_change")
+              ((pi-session-message-entry? se) "assistant")
+              (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 用户模型意图：路径上最后一条 model_change 条目的模型。
+    ;; all-in-one 会话的 assistant 消息记的是实际服务节点，不是用户选择的模型，
+    ;; 因此只有在 model_change 里才能看到用户真正选过的模型（包括伪模型）。
+    (define (%last-model-intent path)
+      (let loop
+        ((rest (reverse path)))
+        (cond ((null? rest) #f)
+              (else
+                (let ((se (or (json->pi-session-entry (car rest)) (car rest))))
+                  (if (equal? (pi-session-entry-type se) "model_change")
+                    (car rest)
+                    (loop (cdr rest))
+                  ) ;if
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 模型意图条目里的 provider / modelId（model_change 条目自带这两个字段）
+    (define (%model-intent-value entry)
+      (let* ((provider (and entry (%model-field entry '("provider") '("provider"))))
+             (model-id (and entry (%model-field entry '("modelId" "model-id") '("model"))))
+            ) ;
+        (and (or provider model-id)
+          (append (if provider (list (cons 'provider provider)) '())
+            (if model-id (list (cons 'modelId model-id)) '())
+          ) ;append
+        ) ;and
+      ) ;let*
+    ) ;define
+
     ;; 模型来源条目的字段：model_change 自带 provider / modelId，
     ;; assistant 消息把 provider / model 放在 message 里；缺失返回 #f
     (define (%model-field entry type-keys message-keys)
@@ -125,11 +170,15 @@
     ;; pi-collect-projection-state：从完整路径提取会话设置（对齐上游 buildSessionContext 的第二步）：
     ;; - thinking_level_change 取思考等级；model 取路径上最后的模型来源：
     ;;   model_change 的 provider / modelId，或更靠后的 assistant 消息的 provider / model
+    ;; - modelSource 标明模型来源类型：model_change（用户显式切换）或 assistant（实际服务节点），
+    ;;   供会话状态合并时区分「用户意图」与「上一轮实际落点」
+    ;; - modelIntent 为用户模型意图：路径上最后一条 model_change 条目的模型（#f 表示从没切过）
     ;; - 同类条目多次出现时，路径上最后一条（最靠近叶子）为准
     ;; - 值缺失或非字符串时该字段按缺失处理，不产出字段也不记来源 id
     ;; - provider / modelId 任一可用即产出 model 子 alist，只放入可用键
     ;; 返回 #f（路径上没有可用的状态条目，沿用命令行与配置文件），
-    ;; 或 alist：thinkingLevel / thinkingLevelEntryId / model / modelEntryId，
+    ;; 或 alist：thinkingLevel / thinkingLevelEntryId / model（provider / modelId）/
+    ;; modelEntryId / modelSource / modelIntent，
     ;; 来源 id 为该字段实际取值的那条状态条目的 id
     (define (pi-collect-projection-state path)
       (let* ((thinking-entry (%last-path-entry-of-type path "thinking_level_change"))
@@ -143,6 +192,8 @@
              (model-id (and model-entry (%model-field model-entry '("modelId"
                                                                     "model-id") '("model")))
              ) ;model-id
+             (model-source (and model-entry (%model-source-type model-entry)))
+             (model-intent (%model-intent-value (%last-model-intent path)))
              (model
                (and (or provider model-id)
                  (append (if provider (list (cons 'provider provider)) '())
@@ -158,6 +209,8 @@
             (cons 'thinkingLevelEntryId thinking-entry-id)
             (cons 'model model)
             (cons 'modelEntryId model-entry-id)
+            (cons 'modelSource model-source)
+            (cons 'modelIntent model-intent)
           ) ;list
         ) ;if
       ) ;let*

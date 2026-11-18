@@ -207,4 +207,70 @@
   (check-false (string-contains? (screen-text app) "unknown thinking level"))
 ) ;let*
 
+;; 19. all-in-one 伪模型会话：状态里的 assistant 来源是上一轮实际服务的物理节点，
+;;     不得据此把会话切到物理节点（否则绕开链式调度，429 重试耗尽后不再切换节点）
+(let* ((aio-model (list (cons 'provider "all-in-one") (cons 'id "coding-fast")))
+       (node-model (list (cons 'provider "google") (cons 'id "gemini-3.8-flash")))
+       (vterm (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app
+              :terminal          vterm
+              :handler           (lambda (a msg) #t)
+              :provider          "all-in-one"
+              :model             "coding-fast"
+              :thinking-level    "low"
+              :supports-thinking #t
+              :models            (list aio-model node-model)
+            ) ;make-pi-app
+       ) ;app
+       (before (length (pi-app-chat app)))
+       (state
+         (list (cons 'model
+               (list (cons 'provider "google") (cons 'modelId "gemini-3.8-flash"))
+             ) ;cons
+           (cons 'modelSource "assistant")
+         ) ;list
+       ) ;state
+      ) ;
+  (pi-app-handle-resume-event! app
+    (list 'session_resumed "/tmp/aio.jsonl" "链式会话" state)
+  ) ;pi-app-handle-resume-event!
+  (check (pi-app-provider app) => "all-in-one")
+  (check (pi-app-model app) => "coding-fast")
+  (check (length (pi-app-chat app)) => (+ before 1))
+  (pi-app-render! app)
+  (check-true (string-contains? (screen-text app) "all-in-one/coding-fast"))
+) ;let*
+
+;; 20. all-in-one 伪模型会话中用户曾显式切到物理节点：/resume 照常切到该物理节点
+(let* ((aio-model (list (cons 'provider "all-in-one") (cons 'id "coding-fast")))
+       (node-model (list (cons 'provider "google") (cons 'id "gemini-3.8-flash")))
+       (vterm (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app
+              :terminal          vterm
+              :handler           (lambda (a msg) #t)
+              :provider          "all-in-one"
+              :model             "coding-fast"
+              :thinking-level    "low"
+              :supports-thinking #t
+              :models            (list aio-model node-model)
+            ) ;make-pi-app
+       ) ;app
+       (state
+         (list (cons 'model
+               (list (cons 'provider "google") (cons 'modelId "gemini-3.8-flash"))
+             ) ;cons
+           (cons 'modelSource "assistant")
+           (cons 'modelIntent
+             (list (cons 'provider "google") (cons 'modelId "gemini-3.8-flash"))
+           ) ;cons
+         ) ;list
+       ) ;state
+      ) ;
+  (pi-app-handle-resume-event! app
+    (list 'session_resumed "/tmp/aio2.jsonl" "已切走的会话" state)
+  ) ;pi-app-handle-resume-event!
+  (check (pi-app-provider app) => "google")
+  (check (pi-app-model app) => "gemini-3.8-flash")
+) ;let*
+
 (check-report)

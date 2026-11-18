@@ -45,7 +45,7 @@
   (check (pi-app-thinking-level app) => "high")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "thinking_level_change" (("level" . "high")))
+    '(session_state "thinking_level_change" (("thinkingLevel" . "high")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let
@@ -57,7 +57,7 @@
   (pi-app-submit! app "/thinking high")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "thinking_level_change" (("level" . "high")))
+    '(session_state "thinking_level_change" (("thinkingLevel" . "high")))
   ) ;check
   (pi-app-submit! app "/thinking high")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
@@ -71,7 +71,7 @@
   (check (pi-app-thinking-level app) => "off")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "thinking_level_change" (("level" . "off")))
+    '(session_state "thinking_level_change" (("thinkingLevel" . "off")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let
@@ -81,7 +81,7 @@
   (check (pi-app-cycle-thinking! app) => "high")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "thinking_level_change" (("level" . "high")))
+    '(session_state "thinking_level_change" (("thinkingLevel" . "high")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let

@@ -43,7 +43,10 @@
       (catch #t
         (lambda ()
           (chan-send! (pi-app-jobs-chan app)
-            (list 'session_state "thinking_level_change" (list (cons "level" level)))
+            (list 'session_state
+              "thinking_level_change"
+              (list (cons "thinkingLevel" level))
+            ) ;list
             1000
           ) ;chan-send!
         ) ;lambda

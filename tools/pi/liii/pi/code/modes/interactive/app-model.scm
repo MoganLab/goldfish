@@ -100,24 +100,30 @@
 
     ;; 记录模型切换状态到会话文件：前台不知道真实会话路径，
     ;; 投递 session_state 任务由后台 worker 惰性解析会话文件后落盘；
-    ;; 投递失败只提示警告卡片，不回滚已生效的界面状态
+    ;; 投递失败只提示警告卡片，不回滚已生效的界面状态。
+    ;; 会话文件需与上游 pi 双向兼容，因此：
+    ;; - 字段名用上游键名 provider / modelId（不写成本仓库内部的 model-id）
+    ;; - all-in-one 伪模型一律不落盘：会话条目里只允许出现真实供应商与模型，
+    ;;   伪模型仅存在于本次运行的进程内状态，恢复时由 modelIntent 判定
     (define (%record-model-change! app provider model-id)
-      (catch #t
-        (lambda ()
-          (chan-send! (pi-app-jobs-chan app)
-            (list 'session_state
-              "model_change"
-              (list (cons "provider" provider) (cons "model-id" model-id))
-            ) ;list
-            1000
-          ) ;chan-send!
-        ) ;lambda
-        (lambda (tag . args)
-          (container-add! (%pi-app-chat app)
-            (make-tool-card "session" '() 'error "Failed to record model change")
-          ) ;container-add!
-        ) ;lambda
-      ) ;catch
+      (unless (equal? provider "all-in-one")
+        (catch #t
+          (lambda ()
+            (chan-send! (pi-app-jobs-chan app)
+              (list 'session_state
+                "model_change"
+                (list (cons "provider" provider) (cons "modelId" model-id))
+              ) ;list
+              1000
+            ) ;chan-send!
+          ) ;lambda
+          (lambda (tag . args)
+            (container-add! (%pi-app-chat app)
+              (make-tool-card "session" '() 'error "Failed to record model change")
+            ) ;container-add!
+          ) ;lambda
+        ) ;catch
+      ) ;unless
     ) ;define
 
     ;; per-model 覆盖查找（键为 "provider/modelId"）：

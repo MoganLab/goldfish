@@ -69,8 +69,7 @@
   (check (pi-app-model app) => "glm-5")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "model_change"
-       (("provider" . "zai") ("model-id" . "glm-5")))
+    '(session_state "model_change" (("provider" . "zai") ("modelId" . "glm-5")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let
@@ -80,8 +79,7 @@
   (pi-app-submit! app "/model glm-5")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "model_change"
-       (("provider" . "zai") ("model-id" . "glm-5")))
+    '(session_state "model_change" (("provider" . "zai") ("modelId" . "glm-5")))
   ) ;check
   (pi-app-submit! app "/model glm-5")
   (check (pi-app-model app) => "glm-5")
@@ -96,8 +94,7 @@
   (check (pi-app-model app) => "glm-5")
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
-    '(session_state "model_change"
-       (("provider" . "zai") ("model-id" . "glm-5")))
+    '(session_state "model_change" (("provider" . "zai") ("modelId" . "glm-5")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let
@@ -110,7 +107,7 @@
   (check (chan-try-recv! (pi-app-jobs-chan app) #f)
     =>
     '(session_state "model_change"
-       (("provider" . "google") ("model-id" . "text-bison-99")))
+       (("provider" . "google") ("modelId" . "text-bison-99")))
   ) ;check
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
 ) ;let
@@ -129,5 +126,34 @@
   (pi-app-render! app)
   (check-true (string-contains? (screen-text app) "disk full"))
 ) ;let
+
+;; 6. 切到 all-in-one 伪模型不落盘 model_change：会话文件需与上游 pi 兼容，
+;;    里面不能出现伪模型
+(let* ((models
+         (append %test-models
+           (list (list (cons 'provider "all-in-one")
+                   (cons 'id "coding-fast")
+                   (cons 'name "快速")
+                   (cons 'reasoning #t)
+                 ) ;list
+           ) ;list
+         ) ;append
+       ) ;models
+       (app (make-pi-app
+              :terminal       (make-virtual-terminal :width 100 :height 40)
+              :handler        (lambda (a msg) #t)
+              :provider       "google"
+              :model          "gemini-2.5-pro"
+              :models         models
+              :thinking-level "medium"
+              :default-thinking-level "high"
+            ) ;make-pi-app
+       ) ;app
+      ) ;
+  (pi-app-submit! app "/model coding-fast")
+  (check (pi-app-provider app) => "all-in-one")
+  (check (pi-app-model app) => "coding-fast")
+  (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
+) ;let*
 
 (check-report)

@@ -17,4 +17,4 @@ gf doc pi-collect-projection-state
 ## 函数分类索引
 
 ### 状态汇总
-- `pi-collect-projection-state` - 汇总会话投影中的思考级别与模型来源状态
+- `pi-collect-projection-state` - 汇总会话投影中的思考级别与模型来源状态（模型来源带 `modelSource` 标记：`model_change` 为用户显式切换，`assistant` 为上一轮实际服务的物理节点）

@@ -50,11 +50,15 @@
     (define %projection-thinking-levels pi-thinking-levels)
     ;; 应用状态里的模型：重新解析凭证与元数据；
     ;; 无凭证、模型不在目录或元数据缺失时保留 cfg 的模型并返回警告
-    (define (%apply-state-model cfg provider model-id)
+    ;; source 为模型来源类型：model_change（用户显式切换）或 assistant
+    ;; （assistant 消息里记录的实际服务节点）；#f 表示来源未知
+    ;; intent 为用户模型意图（会话中最后一条 model_change 的模型，#f 表示从未切换过）
+    (define (%apply-state-model cfg provider model-id source intent)
       (let* ((config-dir (pi-cfg-config-dir cfg))
              (models-store (or (pi-cfg-ref cfg 'models-store) '()))
              (auth (pi-load-auth config-dir))
              (api-key (pi-resolve-provider-key provider auth))
+             (intent-provider (and (pair? intent) (%state-ref intent 'provider)))
              (meta (pi-ensure-catalog-meta (pi-resolve-model-metadata provider model-id models-store)
                      provider
                      model-id
@@ -62,57 +66,70 @@
                    ) ;pi-ensure-catalog-meta
              ) ;meta
             ) ;
-        (cond ((equal? provider "all-in-one") (values cfg '()))
-              ((not (%non-empty-string? api-key))
-               (values cfg
-                 (list (string-append "Session state model skipped: no credentials for provider \""
-                         provider
-                         "\"; using \""
-                         (pi-cfg-ref cfg 'provider)
-                         "/"
-                         (pi-cfg-ref cfg 'model-id)
-                         "\""
-                       ) ;string-append
-                 ) ;list
-               ) ;values
-              ) ;
-              ((not (and (pi-provider-has-model? provider model-id models-store)
-                      (pi-model-metadata-matched? meta)
-                    ) ;and
-               ) ;not
-               (values cfg
-                 (list (string-append "Session state model skipped: \""
-                         provider
-                         "/"
-                         model-id
-                         "\" is unavailable; using \""
-                         (pi-cfg-ref cfg 'provider)
-                         "/"
-                         (pi-cfg-ref cfg 'model-id)
-                         "\""
-                       ) ;string-append
-                 ) ;list
-               ) ;values
-              ) ;
-              (else
-                (values
-                  (pi-cfg-merge cfg
-                    (list (cons 'provider provider)
-                      ;; 协议标识随 provider 变化而更新
-                      (cons 'provider-api (pi-cfg-provider-api cfg provider))
-                      (cons 'model-id model-id)
-                      (cons 'model-meta meta)
-                      (cons 'api-key api-key)
-                      (cons 'supports-thinking
-                        (pi-model-supports-thinking? models-store provider model-id)
-                      ) ;cons
-                      ;; provider 级代理随 provider 变化而重算
-                      (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
-                    ) ;list
-                  ) ;pi-cfg-merge
-                  '()
-                ) ;values
-              ) ;else
+        (cond
+          ;; 元供应商伪模型会话：assistant 消息里记的是上一轮实际服务的物理节点，
+          ;; 不是用户选择的模型。若用它覆盖伪模型，请求就会绕开 all-in-one 链式调度，
+          ;; 节点 429 重试耗尽后不再切换备用节点。
+          ;; 仅当用户从没切过模型（intent 为 #f）或最后一次显式切换的目标仍是伪模型时
+          ;; 才保留伪模型；用户显式切到其他物理模型时照常应用。
+          ((and (equal? (pi-cfg-ref cfg 'provider) "all-in-one")
+             (equal? source "assistant")
+             (not (equal? provider "all-in-one"))
+             (or (not (pair? intent)) (equal? intent-provider "all-in-one"))
+           ) ;and
+           (values cfg '())
+          ) ;
+          ((equal? provider "all-in-one") (values cfg '()))
+          ((not (%non-empty-string? api-key))
+           (values cfg
+             (list (string-append "Session state model skipped: no credentials for provider \""
+                     provider
+                     "\"; using \""
+                     (pi-cfg-ref cfg 'provider)
+                     "/"
+                     (pi-cfg-ref cfg 'model-id)
+                     "\""
+                   ) ;string-append
+             ) ;list
+           ) ;values
+          ) ;
+          ((not (and (pi-provider-has-model? provider model-id models-store)
+                  (pi-model-metadata-matched? meta)
+                ) ;and
+           ) ;not
+           (values cfg
+             (list (string-append "Session state model skipped: \""
+                     provider
+                     "/"
+                     model-id
+                     "\" is unavailable; using \""
+                     (pi-cfg-ref cfg 'provider)
+                     "/"
+                     (pi-cfg-ref cfg 'model-id)
+                     "\""
+                   ) ;string-append
+             ) ;list
+           ) ;values
+          ) ;
+          (else
+            (values
+              (pi-cfg-merge cfg
+                (list (cons 'provider provider)
+                  ;; 协议标识随 provider 变化而更新
+                  (cons 'provider-api (pi-cfg-provider-api cfg provider))
+                  (cons 'model-id model-id)
+                  (cons 'model-meta meta)
+                  (cons 'api-key api-key)
+                  (cons 'supports-thinking
+                    (pi-model-supports-thinking? models-store provider model-id)
+                  ) ;cons
+                  ;; provider 级代理随 provider 变化而重算
+                  (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
+                ) ;list
+              ) ;pi-cfg-merge
+              '()
+            ) ;values
+          ) ;else
         ) ;cond
       ) ;let*
     ) ;define
@@ -172,6 +189,10 @@
                ;; 1201-09 用 modelId；兼容 TUI 状态条目写入的 model-id
                (state-model-id (or (%state-ref state-model 'modelId) (%state-ref state-model 'model-id))
                ) ;state-model-id
+               ;; 模型来源类型：model_change（用户显式切换）/ assistant（实际服务节点）
+               (state-source (%state-ref state 'modelSource))
+               ;; 用户模型意图：会话中最后一条 model_change 的模型（#f 表示从未切换过）
+               (state-intent (%state-ref state 'modelIntent))
                (apply-model? (and (not cli-provider?)
                                (not cli-model?)
                                (or (%non-empty-string? state-provider) (%non-empty-string? state-model-id))
@@ -189,6 +210,8 @@
                                state-model-id
                                (pi-cfg-ref cfg 'model-id)
                              ) ;if
+                             state-source
+                             state-intent
                            ) ;%apply-state-model
                            (values cfg '())
                          ) ;if
