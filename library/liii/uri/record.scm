@@ -44,7 +44,7 @@
   (export uri-fragment uri-raw-fragment)
   (export uri-parent uri-name uri-suffix uri-suffixes)
 
-  ;; 编码与查询字符串
+  ;; 转换与编码
   (export uri-encode uri-decode)
   (export uri-encode-path uri-decode-path)
   (export query-string->alist alist->query-string)

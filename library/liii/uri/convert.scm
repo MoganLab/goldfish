@@ -25,7 +25,7 @@
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
-  ;; 转换与比较
+  ;; 转换、比较与编码
   (export uri->string)
   (export uri->human-string)
 

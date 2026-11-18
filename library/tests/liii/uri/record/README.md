@@ -36,7 +36,7 @@ bin/gf doc liii/uri/record "函数名"
 
 ## 函数分类索引
 
-### 构造函数与谓词
+### 构造与谓词
 - `make-uri-raw` - 从组件创建原始 URI 记录
 - `uri?` - 检查对象是否为 URI 记录
 - `uri-error` - 抛出 URI 错误
@@ -59,10 +59,8 @@ bin/gf doc liii/uri/record "函数名"
 - `uri-name` - 获取路径末级名称
 - `uri-suffix`、`uri-suffixes` - 获取文件后缀
 
-### 编码与解码
+### 转换与编码
 - `uri-encode`、`uri-decode` - 百分比编码与解码
 - `uri-encode-path`、`uri-decode-path` - 路径编码与解码
-
-### 查询字符串处理
 - `query-string->alist` - 将查询字符串解析为 alist
 - `alist->query-string` - 将 alist 转换为查询字符串

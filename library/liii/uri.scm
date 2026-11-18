@@ -51,21 +51,19 @@
   (export uri-with-name uri-with-suffix)
   (export uri-normalize)
 
-  ;; 转换与比较
+  ;; 转换、比较与编码
   (export uri->string)
   (export uri->human-string)
   (export uri=? uri<? uri>?)
   (export uri-hash)
+  (export uri-encode uri-decode)
+  (export uri-encode-path uri-decode-path)
+  (export query-string->alist alist->query-string)
 
   ;; 谓词
   (export uri?)
   (export uri-absolute? uri-relative?)
   (export uri-default-port? uri-network-scheme?)
-
-  ;; 编码与查询字符串
-  (export uri-encode uri-decode)
-  (export uri-encode-path uri-decode-path)
-  (export query-string->alist alist->query-string)
 
   ;; 端口
   (export uri-default-port)

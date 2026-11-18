@@ -23,7 +23,7 @@
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
-  ;; 转换与比较
+  ;; 转换、比较与编码
   (export uri=? uri<? uri>?)
   (export uri-hash)
 

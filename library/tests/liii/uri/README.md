@@ -72,19 +72,17 @@ bin/gf doc liii/uri "函数名"
 - `uri-with-name`、`uri-with-suffix` - 修改路径末级名称或后缀
 - `uri-normalize` - 归一化 URI
 
-### 转换与比较
+### 转换、比较与编码
 - `uri->string` - URI 转为完整字符串
 - `uri->human-string` - 生成隐藏敏感信息的字符串
 - `uri=?`、`uri<?`、`uri>?` - URI 相等与字典序比较
 - `uri-hash` - 计算 URI 哈希值
+- `uri-encode`、`uri-decode` - 百分比编码与解码
+- `uri-encode-path`、`uri-decode-path` - 路径编码与解码
+- `query-string->alist`、`alist->query-string` - 查询字符串与 alist 互转
 
 ### 谓词
 - `uri?` - 检查对象是否为 URI 记录
 - `uri-absolute?`、`uri-relative?` - 检查绝对或相对 URI
 - `uri-default-port?` - 检查是否使用默认端口
 - `uri-network-scheme?` - 检查是否为网络协议
-
-### 编码与查询字符串
-- `uri-encode`、`uri-decode` - 百分比编码与解码
-- `uri-encode-path`、`uri-decode-path` - 路径编码与解码
-- `query-string->alist`、`alist->query-string` - 查询字符串与 alist 互转
