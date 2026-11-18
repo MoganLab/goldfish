@@ -142,10 +142,6 @@
         "reason": "$ 管道算子集单文件集中分派实现，拆分会破坏算子表完整性"
       },
       {
-        "path": "library/liii/uri/record.scm",
-        "reason": "URI 规范解析与记录模型"
-      },
-      {
         "path": "r7rs/scheme/base.scm",
         "reason": "R7RS 基础库聚合与核心导出定义"
       },
@@ -214,10 +210,6 @@
       {
         "path": "goldfish/liii/string-cursor.scm",
         "reason": "高效字符串游标实现"
-      },
-      {
-        "path": "library/liii/uri/record.scm",
-        "reason": "URI 规范解析与记录模型"
       },
       {
         "path": "goldfish/liii/string.scm",
