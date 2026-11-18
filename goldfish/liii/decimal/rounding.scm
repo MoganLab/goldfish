@@ -149,7 +149,7 @@
                                       decimal-round-unnecessary
                                       (car maybe-rounding-mode)
                                     ) ;if
-                                  ) ;ensure-rounding-mode
+                                  ) ;%ensure-rounding-mode
                    ) ;rounding-mode
                    (divisor (%power-of-ten (- current-scale target-scale)))
                   ) ;
@@ -161,7 +161,7 @@
                                              divisor
                                              (bigint-negative? (decimal-unscaled value))
                                              rounding-mode
-                                           ) ;apply-rounding
+                                           ) ;%apply-rounding
                     target-scale
                   ) ;make-decimal-with-scale
                 ) ;lambda

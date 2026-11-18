@@ -23,10 +23,10 @@
     (liii decimal rounding)
   ) ;import
 
-  (export decimal-unscaled-value decimal-signum decimal-ulp
-    decimal-add decimal-subtract decimal-multiply decimal-divide
-    decimal-move-point-left decimal-scale-by-power-of-ten
-    decimal-move-point-right decimal-divide-to-integral-value decimal-remainder
+  (export decimal-unscaled-value decimal-signum decimal-ulp decimal-add
+    decimal-subtract decimal-multiply decimal-divide decimal-move-point-left
+    decimal-scale-by-power-of-ten decimal-move-point-right
+    decimal-divide-to-integral-value decimal-remainder
     decimal-divide-and-remainder decimal-plus decimal-exact-integer? decimal-max
     decimal-min decimal-negate decimal-abs decimal-zero? decimal-positive?
     decimal-negative? decimal-equals?
@@ -113,7 +113,7 @@
                                 decimal-round-unnecessary
                                 (car maybe-rounding-mode)
                               ) ;if
-                            ) ;ensure-rounding-mode
+                            ) ;%ensure-rounding-mode
              ) ;rounding-mode
              (divisor-unscaled (decimal-unscaled right))
             ) ;
@@ -142,7 +142,7 @@
                     actual-divisor
                     (not (= (* (bigint-signum dividend) (bigint-signum actual-divisor)) 1))
                     rounding-mode
-                  ) ;apply-rounding
+                  ) ;%apply-rounding
                   target-scale
                 ) ;make-decimal-with-scale
               ) ;lambda
