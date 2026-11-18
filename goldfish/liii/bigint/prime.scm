@@ -27,9 +27,7 @@
     (liii bigint bitwise)
   ) ;import
 
-  (export make-random-bigint make-random-bigint-below bigint-prime?
-    bigint-next-prime
-  ) ;export
+  (export make-random-bigint bigint-prime? bigint-next-prime)
 
   (begin
     (define (normalize-certainty certainty)
