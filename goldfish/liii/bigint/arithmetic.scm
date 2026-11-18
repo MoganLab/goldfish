@@ -126,7 +126,9 @@
               ) ;
               ((= signum-a 0) (values bigint-zero bigint-zero))
               (else
-                (call-with-values (lambda () (positive-divide-and-remainder (bigint-abs left) (bigint-abs right)))
+                (call-with-values (lambda ()
+                                    (%positive-divide-and-remainder (bigint-abs left) (bigint-abs right))
+                                  ) ;lambda
                   (lambda (quotient remainder)
                     (let ((signed-quotient (if (or (bigint-zero? quotient) (= signum-a signum-b))
                                              quotient

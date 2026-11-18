@@ -17,10 +17,7 @@
 (define-library (liii bigint division)
   (import (scheme base) (liii error) (liii bigint record) (liii bigint string))
 
-  (export positive-divide-and-remainder
-    divide-decimal-strings
-    strip-leading-zero-chars
-  ) ;export
+  (export %positive-divide-and-remainder)
 
   (begin
     (define (strip-leading-zero-chars str)
@@ -153,7 +150,7 @@
       (string->bigint (strip-leading-zero-chars str))
     ) ;define
 
-    (define (positive-divide-and-remainder a b)
+    (define (%positive-divide-and-remainder a b)
       (let* ((result (divide-decimal-strings (bigint-abs-decimal-string a)
                        (bigint-abs-decimal-string b)
                      ) ;divide-decimal-strings
