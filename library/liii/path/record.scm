@@ -15,11 +15,16 @@
 ;;
 
 (define-library (liii path record)
-  (export path? path path-from-string path-of-drive path-from-parts path-from-env
-    path-cwd path-home path-temp-dir path-parts path-type path-drive path-root
-    path->string path-as-posix path-absolute? path-relative? path-equals?
-    path=?
+  ;; 类型谓词与构造函数
+  (export path? path path-from-string path-of-drive path-from-parts
+    path-from-env path-cwd path-home path-temp-dir
   ) ;export
+  ;; 属性访问与判断
+  (export path-parts path-type path-drive path-root path-absolute?
+    path-relative? path-equals? path=?
+  ) ;export
+  ;; 转换
+  (export path->string path-as-posix)
   (import (scheme base)
     (scheme char)
     (liii ascii)
