@@ -17,10 +17,7 @@
 ;; ; 函数文档见 bin/gf doc liii/uri 与 library/tests/liii/uri/compare/README.md
 
 (define-library (liii uri compare)
-  (import (scheme base)
-    (liii uri internal record)
-    (liii uri record)
-  ) ;import
+  (import (scheme base) (liii uri record))
 
   ;; ; ---------- 导出接口 ----------
   ;; 转换、比较与编码
@@ -31,13 +28,13 @@
 
     ;; ; ---------- 比较辅助 ----------
     (define (uri->string-for-compare uri-obj)
-      (if (not (%uri? uri-obj))
+      (if (not (uri? uri-obj))
         (error "uri->string-for-compare: expected uri")
-        (let* ((scheme (%uri-record-scheme uri-obj))
-               (netloc (%uri-record-netloc uri-obj))
-               (path (%uri-record-path uri-obj))
-               (query (%uri-record-query uri-obj))
-               (fragment (%uri-record-fragment uri-obj))
+        (let* ((scheme (uri-scheme uri-obj))
+               (netloc (uri-authority uri-obj))
+               (path (uri-path uri-obj))
+               (query (uri-query uri-obj))
+               (fragment (uri-fragment uri-obj))
               ) ;
           (string-append (if scheme (string-append scheme ":") "")
             (if (and scheme (not (string=? netloc ""))) "//" "")
@@ -52,35 +49,35 @@
 
     ;; ; ---------- 比较函数 ----------
     (define (uri=? uri1 uri2)
-      (and (%uri? uri1)
-        (%uri? uri2)
+      (and (uri? uri1)
+        (uri? uri2)
         (string=? (uri->string-for-compare uri1) (uri->string-for-compare uri2))
       ) ;and
     ) ;define
 
     (define (uri<? uri1 uri2)
-      (and (%uri? uri1)
-        (%uri? uri2)
+      (and (uri? uri1)
+        (uri? uri2)
         (string<? (uri->string-for-compare uri1) (uri->string-for-compare uri2))
       ) ;and
     ) ;define
 
     (define (uri>? uri1 uri2)
-      (and (%uri? uri1)
-        (%uri? uri2)
+      (and (uri? uri1)
+        (uri? uri2)
         (string>? (uri->string-for-compare uri1) (uri->string-for-compare uri2))
       ) ;and
     ) ;define
 
     ;; ; ---------- 哈希函数 ----------
     (define (uri-hash uri-obj)
-      (if (not (%uri? uri-obj))
+      (if (not (uri? uri-obj))
         (error "uri-hash: expected uri")
-        (let ((scheme (or (%uri-record-scheme uri-obj) ""))
-              (netloc (%uri-record-netloc uri-obj))
-              (path (or (%uri-record-path uri-obj) ""))
-              (query (%uri-record-query uri-obj))
-              (fragment (or (%uri-record-fragment uri-obj) ""))
+        (let ((scheme (or (uri-scheme uri-obj) ""))
+              (netloc (uri-authority uri-obj))
+              (path (or (uri-path uri-obj) ""))
+              (query (uri-query uri-obj))
+              (fragment (or (uri-fragment uri-obj) ""))
              ) ;
           (+ (string-length scheme)
             (string-length netloc)

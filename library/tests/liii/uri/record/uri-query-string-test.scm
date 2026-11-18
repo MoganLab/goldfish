@@ -20,9 +20,17 @@
 (check-set-mode! 'report-failed)
 
 (define u
-  (make-uri-raw "https" "example.com" "/" '(("a" . "1") ("q" . "hello world")) #f)
+  (make-uri-record "https"
+    "example.com"
+    "/"
+    '(("a" . "1") ("q" . "hello world"))
+    #f
+  ) ;make-uri-record
 ) ;define
 (check (uri-query-string u) => "a=1&q=hello%20world")
-(check (uri-query-string (make-uri-raw "https" "example.com" "/" '() #f)) => "")
+(check (uri-query-string (make-uri-record "https" "example.com" "/" '() #f))
+  =>
+  ""
+) ;check
 
 (check-report)

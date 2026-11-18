@@ -23,7 +23,9 @@
 
 ;; 移除单个参数
 
-(define u1 (make-uri-raw "https" "api.com" "/" '(("a" . "1") ("b" . "2")) #f))
+(define u1
+  (make-uri-record "https" "api.com" "/" '(("a" . "1") ("b" . "2")) #f)
+) ;define
 
 (define u2 (uri-without-query-param u1 "a"))
 (check (uri-query-ref u2 "a") => #f)
@@ -32,7 +34,7 @@
 
 ;; 移除不存在的参数（无变化）
 
-(define u3 (make-uri-raw "https" "api.com" "/" '(("a" . "1")) #f))
+(define u3 (make-uri-record "https" "api.com" "/" '(("a" . "1")) #f))
 
 (define u4 (uri-without-query-param u3 "nonexistent"))
 (check (uri-query-ref u4 "a") => "1")
@@ -40,7 +42,7 @@
 
 ;; 空 query 保持不变
 
-(define u5 (make-uri-raw "https" "api.com" "/" '() #f))
+(define u5 (make-uri-record "https" "api.com" "/" '() #f))
 
 (define u6 (uri-without-query-param u5 "key"))
 (check (uri-query u6) => '())

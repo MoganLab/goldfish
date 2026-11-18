@@ -12,10 +12,10 @@
 
 ```scheme
 (uri=?
-  (make-uri-raw "https" "example.com" "/" '() #f)
-  (make-uri-raw "https" "example.com" "/" '() #f))
+  (make-uri-record "https" "example.com" "/" '() #f)
+  (make-uri-record "https" "example.com" "/" '() #f))
 
-(uri-hash (make-uri-raw "https" "example.com" "/path" '() #f))
+(uri-hash (make-uri-record "https" "example.com" "/path" '() #f))
 ```
 
 ## 查看函数文档

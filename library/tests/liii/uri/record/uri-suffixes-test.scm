@@ -21,25 +21,25 @@
 
 ;; 单后缀
 
-(define u1 (make-uri-raw "https" "example.com" "/file.txt" '() #f))
+(define u1 (make-uri-record "https" "example.com" "/file.txt" '() #f))
 (check (uri-suffixes u1) => '("txt"))
 
 
 ;; 多后缀
 
-(define u2 (make-uri-raw "https" "example.com" "/file.tar.gz" '() #f))
+(define u2 (make-uri-record "https" "example.com" "/file.tar.gz" '() #f))
 (check (uri-suffixes u2) => '("tar" "gz"))
 
 
 ;; 无后缀
 
-(define u3 (make-uri-raw "https" "example.com" "/README" '() #f))
+(define u3 (make-uri-record "https" "example.com" "/README" '() #f))
 (check (uri-suffixes u3) => '())
 
 
 ;; 多后缀（三个）
 
-(define u4 (make-uri-raw "https" "example.com" "/file.a.b.c" '() #f))
+(define u4 (make-uri-record "https" "example.com" "/file.a.b.c" '() #f))
 (check (uri-suffixes u4) => '("a" "b" "c"))
 
 

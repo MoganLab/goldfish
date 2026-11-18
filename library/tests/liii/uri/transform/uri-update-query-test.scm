@@ -23,7 +23,7 @@
 
 ;; 更新现有查询参数
 
-(define u1 (make-uri-raw "https" "api.com" "/search" '(("page" . "1")) #f))
+(define u1 (make-uri-record "https" "api.com" "/search" '(("page" . "1")) #f))
 
 (define u2
   (uri-update-query u1 (lambda (query) (append query '(("limit" . "10")))))
@@ -40,7 +40,7 @@
 ;; 保留其他 URI 组件
 
 (define u4
-  (uri-update-query (make-uri-raw "https" "user@example.com:8443" "/v1" '() "section")
+  (uri-update-query (make-uri-record "https" "user@example.com:8443" "/v1" '() "section")
     (lambda (query) '(("key" . "value")))
   ) ;uri-update-query
 ) ;define

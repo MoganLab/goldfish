@@ -12,7 +12,7 @@
 
 ```scheme
 (define u
-  (make-uri-raw "https" "user:pass@example.com" "/path"
+  (make-uri-record "https" "user:pass@example.com" "/path"
     '(("a" . "1")) "frag"))
 
 (uri->string u)

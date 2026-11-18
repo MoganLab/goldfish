@@ -17,12 +17,7 @@
 ;; ; 函数文档见 bin/gf doc liii/uri 与 library/tests/liii/uri/convert/README.md
 
 (define-library (liii uri convert)
-  (import (scheme base)
-    (liii error)
-    (liii uri internal record)
-    (liii uri internal parse)
-    (liii uri record)
-  ) ;import
+  (import (scheme base) (liii error) (liii uri internal parse) (liii uri record))
 
   ;; ; ---------- 导出接口 ----------
   ;; 转换、比较与编码
@@ -33,13 +28,13 @@
 
     ;; ; ---------- 转换函数 ----------
     (define (uri->string uri-obj)
-      (if (not (%uri? uri-obj))
+      (if (not (uri? uri-obj))
         (error "uri->string: expected uri")
-        (let* ((scheme (%uri-record-scheme uri-obj))
-               (netloc (%uri-record-netloc uri-obj))
-               (path (%uri-record-path uri-obj))
-               (query (%uri-record-query uri-obj))
-               (fragment (%uri-record-fragment uri-obj))
+        (let* ((scheme (uri-scheme uri-obj))
+               (netloc (uri-authority uri-obj))
+               (path (uri-path uri-obj))
+               (query (uri-query uri-obj))
+               (fragment (uri-fragment uri-obj))
               ) ;
           (string-append (if scheme (string-append scheme ":") "")
             (if (and scheme (not (string=? netloc ""))) "//" "")
@@ -53,13 +48,13 @@
     ) ;define
 
     (define (uri->human-string uri-obj)
-      (if (not (%uri? uri-obj))
+      (if (not (uri? uri-obj))
         (error "uri->human-string: expected uri")
-        (let* ((scheme (%uri-record-scheme uri-obj))
-               (netloc-parts (parse-netloc (%uri-record-netloc uri-obj)))
+        (let* ((scheme (uri-scheme uri-obj))
+               (netloc-parts (parse-netloc (uri-authority uri-obj)))
                (host (list-ref netloc-parts 2))
                (port (list-ref netloc-parts 3))
-               (path (%uri-record-path uri-obj))
+               (path (uri-path uri-obj))
               ) ;
           (string-append (if scheme (string-append scheme "://") "")
             (or host "")

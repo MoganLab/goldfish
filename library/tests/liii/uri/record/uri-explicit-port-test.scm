@@ -19,9 +19,9 @@
 
 (check-set-mode! 'report-failed)
 
-(define explicit (make-uri-raw "https" "example.com:8443" "/" '() #f))
+(define explicit (make-uri-record "https" "example.com:8443" "/" '() #f))
 
-(define implicit (make-uri-raw "https" "example.com" "/" '() #f))
+(define implicit (make-uri-record "https" "example.com" "/" '() #f))
 (check (uri-explicit-port explicit) => 8443)
 (check (uri-explicit-port implicit) => #f)
 

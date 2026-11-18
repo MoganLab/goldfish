@@ -20,7 +20,7 @@
 (check-set-mode! 'report-failed)
 
 ;; URI 对象
-(check (uri? (make-uri-raw "http" "example.com" "/" '() #f)) => #t)
+(check (uri? (make-uri-record "http" "example.com" "/" '() #f)) => #t)
 
 
 ;; 非 URI 对象

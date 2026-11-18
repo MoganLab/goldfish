@@ -62,7 +62,7 @@ authority = [userinfo@]host[:port]
   - `(liii uri make)` - URI 构造器
   - `(liii uri transform)` - URI 修改、路径合并与归一化
   - `(liii uri convert)` - URI 字符串转换
-- 内部实现模块：`(liii uri internal record)`、`(liii uri internal parse)`
+- 内部实现模块：`(liii uri internal parse)`
 
 ## 查看函数文档
 
@@ -82,7 +82,7 @@ gf doc liii/uri "函数名"
 
 ### 构造 URI
 - `make-uri`、`string->uri` - 从字符串解析 URI
-- `make-uri-raw` - 从原始组件创建 URI 记录
+- `make-uri-record` - 从原始组件创建 URI 记录
 - `uri-build` - 使用关键字参数构造 URI
 
 ### 访问 URI 组件

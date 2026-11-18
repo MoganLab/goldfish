@@ -11,7 +11,7 @@
 ## 常见用法示例
 
 ```scheme
-(uri-absolute? (make-uri-raw "https" "example.com" "/" '() #f))
+(uri-absolute? (make-uri-record "https" "example.com" "/" '() #f))
 (uri-default-port "https")
 (uri-network-scheme? "https")
 ```

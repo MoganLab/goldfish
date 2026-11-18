@@ -19,9 +19,12 @@
 
 (check-set-mode! 'report-failed)
 
-(define u (make-uri-raw "https" "example.com" "/docs" '() "intro"))
+(define u (make-uri-record "https" "example.com" "/docs" '() "intro"))
 (check (uri-raw-fragment u) => "intro")
 (check (uri-raw-fragment u) => (uri-fragment u))
-(check (uri-raw-fragment (make-uri-raw "https" "example.com" "/" '() #f)) => #f)
+(check (uri-raw-fragment (make-uri-record "https" "example.com" "/" '() #f))
+  =>
+  #f
+) ;check
 
 (check-report)

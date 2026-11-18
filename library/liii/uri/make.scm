@@ -22,7 +22,6 @@
     (liii string)
     (liii error)
     (liii base)
-    (liii uri internal record)
     (liii uri internal parse)
     (liii uri record)
   ) ;import
@@ -103,7 +102,7 @@
                  (host (substring str (+ at-pos 1) colon-pos))
                  (path (substring str colon-pos (string-length str)))
                 ) ;
-            (%make-uri-record "ssh" (build-netloc user #f host #f) path '() #f)
+            (make-uri-record "ssh" (build-netloc user #f host #f) path '() #f)
           ) ;let*
           (let* ((scheme+rest (split-scheme str))
                  (scheme (car scheme+rest))
@@ -119,7 +118,7 @@
                  (query-str (list-ref authority+path+query+frag 2))
                  (fragment (list-ref authority+path+query+frag 3))
                 ) ;
-            (%make-uri-record scheme netloc path (query-string->alist query-str) fragment)
+            (make-uri-record scheme netloc path (query-string->alist query-str) fragment)
           ) ;let*
         ) ;if
       ) ;if
@@ -134,12 +133,12 @@
                (query '())
                (fragment #f)
              ) ;uri-build
-      (%make-uri-record scheme
+      (make-uri-record scheme
         (build-netloc user password host port)
         (or path "")
         query
         fragment
-      ) ;%make-uri-record
+      ) ;make-uri-record
     ) ;define*
 
     (define (string->uri str)

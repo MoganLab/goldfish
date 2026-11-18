@@ -29,7 +29,7 @@
   ;; ; ---------- 导出接口 ----------
   ;; 构造 URI
   (export make-uri string->uri)
-  (export make-uri-raw)
+  (export make-uri-record)
   (export uri-build)
 
   ;; 访问 URI 组件

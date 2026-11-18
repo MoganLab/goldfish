@@ -23,7 +23,7 @@
 
 (check-set-mode! 'report-failed)
 
-(define u (make-uri-raw "https" "example.com" "/" '(("a" . "1")) #f))
+(define u (make-uri-record "https" "example.com" "/" '(("a" . "1")) #f))
 
 
 ;; 存在的 key

@@ -21,23 +21,23 @@
 
 ;; 绝对 URI（有 scheme）
 
-(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u1 (make-uri-record "https" "example.com" "/" '() #f))
 (check (uri-absolute? u1) => #t)
 
 
-(define u2 (make-uri-raw "http" "example.com" "/" '() #f))
+(define u2 (make-uri-record "http" "example.com" "/" '() #f))
 (check (uri-absolute? u2) => #t)
 
 
 ;; 相对 URI（无 scheme）
 
-(define u3 (make-uri-raw #f "" "/path" '() #f))
+(define u3 (make-uri-record #f "" "/path" '() #f))
 (check (uri-absolute? u3) => #f)
 
 
 ;; 空 scheme
 
-(define u4 (make-uri-raw "" "" "/path" '() #f))
+(define u4 (make-uri-record "" "" "/path" '() #f))
 (check (uri-absolute? u4) => #f)
 
 

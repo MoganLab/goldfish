@@ -19,17 +19,17 @@
 
 (check-set-mode! 'report-failed)
 
-(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u1 (make-uri-record "https" "example.com" "/" '() #f))
 (check (uri-scheme u1) => "https")
 
 
-(define u2 (make-uri-raw "http" "example.com" "/" '() #f))
+(define u2 (make-uri-record "http" "example.com" "/" '() #f))
 (check (uri-scheme u2) => "http")
 
 
 ;; #f scheme
 
-(define u3 (make-uri-raw #f "" "/path" '() #f))
+(define u3 (make-uri-record #f "" "/path" '() #f))
 (check (uri-scheme u3) => #f)
 
 
