@@ -46,11 +46,11 @@
     "section"
   ) ;make-uri-raw
 ) ;define
-(check (uri-scheme-raw u) => "https")
-(check (uri-netloc-raw u) => "user@example.com:8080")
-(check (uri-path-raw u) => "/path/to/file")
-(check (uri-query-raw u) => '(("a" . "1") ("b" . "2")))
-(check (uri-fragment-raw u) => "section")
+(check (uri-scheme u) => "https")
+(check (uri-authority u) => "user@example.com:8080")
+(check (uri-path u) => "/path/to/file")
+(check (uri-query u) => '(("a" . "1") ("b" . "2")))
+(check (uri-fragment u) => "section")
 
 
 ;; 空值处理

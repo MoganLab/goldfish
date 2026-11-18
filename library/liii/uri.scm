@@ -15,12 +15,12 @@
 ;;
 ;; ; (liii uri) - URI 处理库
 ;; ; 基于 RFC 3986 实现的 URI 解析与构造库
-;; ; 本模块是统一接口，实际实现分散在 uri-record、uri-parse、uri-predicate、
-;; ; uri-compare、uri-make、uri-transform、uri-convert 等子模块中
+;; ; 本模块是统一接口，实际实现分散在 (liii uri record)、(liii uri predicate)、
+;; ; (liii uri compare)、(liii uri make)、(liii uri transform)、(liii uri convert)
+;; ; 等公开子库及 (liii uri internal ...) 内部模块中
 
 (define-library (liii uri)
   (import (scheme base)
-    (liii uri parse)
     (liii uri record)
     (liii uri predicate)
     (liii uri compare)

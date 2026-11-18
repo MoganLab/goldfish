@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; string? 或 #f
-;;   返回与 uri-path-raw 相同的路径值。
+;;   返回与 uri-path 相同的路径值。
 
 (import (liii check) (liii uri record))
 
@@ -21,7 +21,7 @@
 
 (define u (make-uri-raw "https" "example.com" "/a b" '() #f))
 (check (uri-raw-path u) => "/a b")
-(check (uri-raw-path u) => (uri-path-raw u))
+(check (uri-raw-path u) => (uri-path u))
 (check (uri-raw-path (make-uri-raw "https" "example.com" "" '() #f)) => "")
 
 (check-report)

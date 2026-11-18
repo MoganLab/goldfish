@@ -25,13 +25,16 @@
 
 ## 子模块
 
-- `(liii uri record)` - 记录类型定义、原始字段与组件访问器
-- `(liii uri parse)` - netloc 解析和构建辅助函数
-- `(liii uri predicate)` - URI 与网络协议谓词
-- `(liii uri compare)` - URI 比较与哈希函数
-- `(liii uri make)` - URI 构造器
-- `(liii uri transform)` - URI 修改、路径合并与归一化
-- `(liii uri convert)` - URI 字符串转换
+本库按职责拆分为多个子库，用户通常只需 `(import (liii uri))`：
+
+- 对外聚合子库：
+  - `(liii uri record)` - 构造与组件访问器、路径与查询参数处理、编码与解码
+  - `(liii uri predicate)` - URI 与网络协议谓词
+  - `(liii uri compare)` - URI 比较与哈希函数
+  - `(liii uri make)` - URI 构造器
+  - `(liii uri transform)` - URI 修改、路径合并与归一化
+  - `(liii uri convert)` - URI 字符串转换
+- 内部实现模块：`(liii uri internal record)`、`(liii uri internal parse)`
 
 ## 查看函数文档
 

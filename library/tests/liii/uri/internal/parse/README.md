@@ -1,11 +1,12 @@
-# (liii uri parse) 模块函数分类索引
+# (liii uri internal parse) 模块函数分类索引
 
-`(liii uri parse)` 提供 URI 网络位置（netloc）的解析和构造辅助函数。
+`(liii uri internal parse)` 提供 URI 网络位置（netloc）的底层解析与构造辅助函数，
+供 `(liii uri record)`、`(liii uri make)`、`(liii uri transform)`、`(liii uri convert)` 等模块内部使用。
 
 使用时导入：
 
 ```scheme
-(import (liii uri parse))
+(import (liii uri internal parse))
 ```
 
 ## 常见用法示例
@@ -26,7 +27,7 @@ bin/gf doc "函数名"
 或者指定库名：
 
 ```bash
-bin/gf doc liii/uri/parse "函数名"
+bin/gf doc liii/uri/internal/parse "函数名"
 ```
 
 ## 函数分类索引

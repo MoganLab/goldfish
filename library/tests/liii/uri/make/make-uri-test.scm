@@ -85,7 +85,7 @@
 
 ;; 无 fragment 的 URI，fragment 为 #f（而非空串），
 ;; 经 uri->string 往返不产生多余的 "#"
-(check (uri-fragment-raw (make-uri "mailto:bob@example.com")) => #f)
-(check (uri-fragment-raw (make-uri "https://example.com/a")) => #f)
+(check (uri-fragment (make-uri "mailto:bob@example.com")) => #f)
+(check (uri-fragment (make-uri "https://example.com/a")) => #f)
 
 (check-report)

@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; string? 或 #f
-;;   返回与 uri-fragment-raw 相同的片段值。
+;;   返回与 uri-fragment 相同的片段值。
 
 (import (liii check) (liii uri record))
 
@@ -21,7 +21,7 @@
 
 (define u (make-uri-raw "https" "example.com" "/docs" '() "intro"))
 (check (uri-raw-fragment u) => "intro")
-(check (uri-raw-fragment u) => (uri-fragment-raw u))
+(check (uri-raw-fragment u) => (uri-fragment u))
 (check (uri-raw-fragment (make-uri-raw "https" "example.com" "/" '() #f)) => #f)
 
 (check-report)

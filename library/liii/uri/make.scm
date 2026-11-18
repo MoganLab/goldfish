@@ -22,8 +22,9 @@
     (liii string)
     (liii error)
     (liii base)
+    (liii uri internal record)
+    (liii uri internal parse)
     (liii uri record)
-    (liii uri parse)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
@@ -85,18 +86,6 @@
       ) ;let
     ) ;define
 
-    ;; 分割路径和查询字符串
-    (define (split-query path+query)
-      (let ((q-pos (string-index path+query #\?)))
-        (if q-pos
-          (cons (substring path+query 0 q-pos)
-            (substring path+query (+ q-pos 1) (string-length path+query))
-          ) ;cons
-          (cons path+query "")
-        ) ;if
-      ) ;let
-    ) ;define
-
     ;; ; ---------- 构造函数 ----------
     ;; 从字符串构造 URI
     (define (make-uri str)
@@ -119,7 +108,7 @@
                  (host (substring str (+ at-pos 1) colon-pos))
                  (path (substring str colon-pos (string-length str)))
                 ) ;
-            (make-uri-raw "ssh" (build-netloc user #f host #f) path '() #f)
+            (%make-uri-record "ssh" (build-netloc user #f host #f) path '() #f)
           ) ;let*
           ;; 标准 URI 格式
           (let* ((scheme+rest (split-scheme str))
@@ -136,7 +125,7 @@
                  (query-str (list-ref authority+path+query+frag 2))
                  (fragment (list-ref authority+path+query+frag 3))
                 ) ;
-            (make-uri-raw scheme netloc path (query-string->alist query-str) fragment)
+            (%make-uri-record scheme netloc path (query-string->alist query-str) fragment)
           ) ;let*
         ) ;if
       ) ;if
@@ -152,12 +141,12 @@
                (query '())
                (fragment #f)
              ) ;uri-build
-      (make-uri-raw scheme
+      (%make-uri-record scheme
         (build-netloc user password host port)
         (or path "")
         query
         fragment
-      ) ;make-uri-raw
+      ) ;%make-uri-record
     ) ;define*
 
     ;; string->uri 是 make-uri 的别名

@@ -1,6 +1,6 @@
 # (liii uri record) 模块函数分类索引
 
-`(liii uri record)` 定义 URI 记录类型，并提供原始字段访问器、组件访问器、路径与查询参数处理、编码和解码能力。
+`(liii uri record)` 提供 URI 构造、类型谓词、组件访问器、路径与查询参数处理、编码和解码能力。
 
 使用时导入：
 
@@ -41,13 +41,6 @@ bin/gf doc liii/uri/record "函数名"
 - `uri?` - 检查对象是否为 URI 记录
 - `uri-error` - 抛出 URI 错误
 
-### 原始字段访问器与修改器
-- `uri-scheme-raw`、`uri-scheme-set!` - 读取、修改 scheme 字段
-- `uri-netloc-raw`、`uri-netloc-set!` - 读取、修改 netloc 字段
-- `uri-path-raw`、`uri-path-set!` - 读取、修改 path 字段
-- `uri-query-raw`、`uri-query-set!` - 读取、修改 query 字段
-- `uri-fragment-raw`、`uri-fragment-set!` - 读取、修改 fragment 字段
-
 ### URI 组件访问器
 - `uri-scheme`、`uri-raw-scheme` - 获取 scheme
 - `uri-host`、`uri-raw-host` - 获取 host
@@ -73,7 +66,3 @@ bin/gf doc liii/uri/record "函数名"
 ### 查询字符串处理
 - `query-string->alist` - 将查询字符串解析为 alist
 - `alist->query-string` - 将 alist 转换为查询字符串
-
-### 网络位置辅助函数
-- `parse-netloc` - 解析 netloc 字符串（由 `(liii uri parse)` 定义）
-- `build-netloc` - 从组件构建 netloc 字符串（由 `(liii uri parse)` 定义）
