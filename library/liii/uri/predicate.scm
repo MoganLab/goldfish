@@ -17,11 +17,7 @@
 ;; ; 函数文档见 bin/gf doc liii/uri 与 library/tests/liii/uri/predicate/README.md
 
 (define-library (liii uri predicate)
-  (import (scheme base)
-    (liii uri internal record)
-    (liii uri internal parse)
-    (liii uri record)
-  ) ;import
+  (import (scheme base) (liii uri internal parse) (liii uri record))
 
   ;; ; ---------- 导出接口 ----------
   ;; 谓词
@@ -35,20 +31,20 @@
 
     ;; ; ---------- 谓词函数 ----------
     (define (uri-absolute? uri-obj)
-      (and (%uri? uri-obj)
-        (%uri-record-scheme uri-obj)
-        (not (string=? (%uri-record-scheme uri-obj) ""))
+      (and (uri? uri-obj)
+        (uri-scheme uri-obj)
+        (not (string=? (uri-scheme uri-obj) ""))
       ) ;and
     ) ;define
 
     (define (uri-relative? uri-obj)
-      (and (%uri? uri-obj)
-        (or (not (%uri-record-scheme uri-obj)) (string=? (%uri-record-scheme uri-obj) ""))
+      (and (uri? uri-obj)
+        (or (not (uri-scheme uri-obj)) (string=? (uri-scheme uri-obj) ""))
       ) ;and
     ) ;define
 
     (define (uri-default-port? uri-obj)
-      (let* ((scheme (%uri-record-scheme uri-obj))
+      (let* ((scheme (uri-scheme uri-obj))
              (default-port (and scheme (%uri-default-port scheme)))
              (explicit-port (uri-explicit-port uri-obj))
             ) ;

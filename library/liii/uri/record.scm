@@ -19,17 +19,17 @@
 (define-library (liii uri record)
   (import (scheme base)
     (scheme char)
+    (liii base)
     (liii string)
     (liii list)
     (liii error)
     (liii unicode)
-    (liii uri internal record)
     (liii uri internal parse)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
   ;; 构造 URI
-  (export make-uri-raw)
+  (export make-uri-record)
 
   ;; 谓词
   (export uri?)
@@ -59,14 +59,16 @@
       (apply error 'uri-error args)
     ) ;define
 
-    ;; ; ---------- 记录构造与谓词 ----------
-    (define (make-uri-raw scheme netloc path query fragment)
-      (%make-uri-record scheme netloc path query fragment)
-    ) ;define
-
-    (define (uri? obj)
-      (%uri? obj)
-    ) ;define
+    ;; ; ---------- URI 记录类型 ----------
+    (define*-record-type <uri>
+      (make-uri-record (scheme #f) (netloc "") (path "") (query '()) (fragment #f))
+      uri?
+      (scheme uri-scheme)
+      (netloc uri-authority)
+      (path uri-path)
+      (query uri-query)
+      (fragment uri-fragment)
+    ) ;define*-record-type
 
     ;; ; ---------- 编码与解码 ----------
     (define UNRESERVED_CHARS
@@ -234,16 +236,12 @@
     ) ;define
 
     ;; ; ---------- scheme/host/port 访问器 ----------
-    (define (uri-scheme uri-obj)
-      (%uri-record-scheme uri-obj)
-    ) ;define
-
     (define (uri-raw-scheme uri-obj)
-      (%uri-record-scheme uri-obj)
+      (uri-scheme uri-obj)
     ) ;define
 
     (define (uri-host uri-obj)
-      (let ((netloc-parts (parse-netloc (%uri-record-netloc uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-authority uri-obj))))
         (list-ref netloc-parts 2)
       ) ;let
     ) ;define
@@ -253,23 +251,23 @@
     ) ;define
 
     (define (uri-port uri-obj)
-      (let* ((netloc-parts (parse-netloc (%uri-record-netloc uri-obj)))
+      (let* ((netloc-parts (parse-netloc (uri-authority uri-obj)))
              (explicit-port (list-ref netloc-parts 3))
-             (scheme (%uri-record-scheme uri-obj))
+             (scheme (uri-scheme uri-obj))
             ) ;
         (or explicit-port (and scheme (%uri-default-port scheme)) #f)
       ) ;let*
     ) ;define
 
     (define (uri-explicit-port uri-obj)
-      (let ((netloc-parts (parse-netloc (%uri-record-netloc uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-authority uri-obj))))
         (list-ref netloc-parts 3)
       ) ;let
     ) ;define
 
     ;; ; ---------- authority/user/password 访问器 ----------
     (define (uri-user uri-obj)
-      (let ((netloc-parts (parse-netloc (%uri-record-netloc uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-authority uri-obj))))
         (list-ref netloc-parts 0)
       ) ;let
     ) ;define
@@ -279,7 +277,7 @@
     ) ;define
 
     (define (uri-password uri-obj)
-      (let ((netloc-parts (parse-netloc (%uri-record-netloc uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-authority uri-obj))))
         (list-ref netloc-parts 1)
       ) ;let
     ) ;define
@@ -288,25 +286,17 @@
       (uri-password uri-obj)
     ) ;define
 
-    (define (uri-authority uri-obj)
-      (%uri-record-netloc uri-obj)
-    ) ;define
-
     (define (uri-raw-authority uri-obj)
-      (%uri-record-netloc uri-obj)
+      (uri-authority uri-obj)
     ) ;define
 
     ;; ; ---------- path 访问器 ----------
-    (define (uri-path uri-obj)
-      (%uri-record-path uri-obj)
-    ) ;define
-
     (define (uri-raw-path uri-obj)
-      (%uri-record-path uri-obj)
+      (uri-path uri-obj)
     ) ;define
 
     (define (uri-path->list uri-obj)
-      (let ((path (%uri-record-path uri-obj)))
+      (let ((path (uri-path uri-obj)))
         (if (or (not path) (string=? path "") (string=? path "/"))
           '()
           (let ((segments (string-split path "/")))
@@ -317,40 +307,32 @@
     ) ;define
 
     ;; ; ---------- query 访问器 ----------
-    (define (uri-query uri-obj)
-      (%uri-record-query uri-obj)
-    ) ;define
-
     (define (uri-query-string uri-obj)
-      (alist->query-string (%uri-record-query uri-obj))
+      (alist->query-string (uri-query uri-obj))
     ) ;define
 
     (define (uri-query-ref uri-obj key)
-      (let ((pair (assoc key (%uri-record-query uri-obj))))
+      (let ((pair (assoc key (uri-query uri-obj))))
         (if pair (cdr pair) #f)
       ) ;let
     ) ;define
 
     (define (uri-query-ref* uri-obj key . rest)
       (let ((default (if (null? rest) #f (car rest)))
-            (pair (assoc key (%uri-record-query uri-obj)))
+            (pair (assoc key (uri-query uri-obj)))
            ) ;
         (if pair (cdr pair) default)
       ) ;let
     ) ;define
 
     ;; ; ---------- fragment 访问器 ----------
-    (define (uri-fragment uri-obj)
-      (%uri-record-fragment uri-obj)
-    ) ;define
-
     (define (uri-raw-fragment uri-obj)
-      (%uri-record-fragment uri-obj)
+      (uri-fragment uri-obj)
     ) ;define
 
     ;; ; ---------- 路径相关访问器 ----------
     (define (uri-parent uri-obj)
-      (let ((path (%uri-record-path uri-obj)))
+      (let ((path (uri-path uri-obj)))
         (if (or (not path) (string=? path "") (string=? path "/"))
           #f
           (let ((last-slash (string-index-right path #\/)))
@@ -361,7 +343,7 @@
     ) ;define
 
     (define (uri-name uri-obj)
-      (let ((path (%uri-record-path uri-obj)))
+      (let ((path (uri-path uri-obj)))
         (if (or (not path) (string=? path ""))
           #f
           (let ((last-slash (string-index-right path #\/)))

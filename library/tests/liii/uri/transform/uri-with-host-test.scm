@@ -23,7 +23,7 @@
 
 ;; 修改 host
 
-(define u1 (make-uri-raw "https" "old.com" "/" '() #f))
+(define u1 (make-uri-record "https" "old.com" "/" '() #f))
 
 (define u2 (uri-with-host u1 "new.com"))
 (check (uri-host u2) => "new.com")
@@ -33,7 +33,7 @@
 
 ;; 保留其他 netloc 组件
 
-(define u3 (make-uri-raw "https" "user:pass@old.com:8080" "/" '() #f))
+(define u3 (make-uri-record "https" "user:pass@old.com:8080" "/" '() #f))
 
 (define u4 (uri-with-host u3 "new.com"))
 (check (uri-user u4) => "user")

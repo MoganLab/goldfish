@@ -19,9 +19,9 @@
 
 (check-set-mode! 'report-failed)
 
-(define u (make-uri-raw "https" "alice:secret@example.com" "/" '() #f))
+(define u (make-uri-record "https" "alice:secret@example.com" "/" '() #f))
 (check (uri-raw-user u) => "alice")
 (check (uri-raw-user u) => (uri-user u))
-(check (uri-raw-user (make-uri-raw "https" "example.com" "/" '() #f)) => #f)
+(check (uri-raw-user (make-uri-record "https" "example.com" "/" '() #f)) => #f)
 
 (check-report)

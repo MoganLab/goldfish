@@ -21,15 +21,15 @@
 
 ;; 相同 URI 有相同哈希值
 
-(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u1 (make-uri-record "https" "example.com" "/" '() #f))
 
-(define u2 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u2 (make-uri-record "https" "example.com" "/" '() #f))
 (check (uri-hash u1) => (uri-hash u2))
 
 
 ;; 不同 scheme，不同哈希值
 
-(define u3 (make-uri-raw "http" "example.com" "/" '() #f))
+(define u3 (make-uri-record "http" "example.com" "/" '() #f))
 (check (= (uri-hash u1) (uri-hash u3)) => #f)
 
 
@@ -40,25 +40,25 @@
 
 ;; 带 query 的 URI
 
-(define u4 (make-uri-raw "https" "example.com" "/" '(("a" . "1")) #f))
+(define u4 (make-uri-record "https" "example.com" "/" '(("a" . "1")) #f))
 (check (> (uri-hash u4) (uri-hash u1)) => #t)
 
 
 ;; 带 fragment 的 URI
 
-(define u5 (make-uri-raw "https" "example.com" "/" '() "section"))
+(define u5 (make-uri-record "https" "example.com" "/" '() "section"))
 (check (> (uri-hash u5) (uri-hash u1)) => #t)
 
 
 ;; 复杂 URI
 
 (define u6
-  (make-uri-raw "https"
+  (make-uri-record "https"
     "user@host:8080"
     "/path/to/file"
     '(("key1" . "val1") ("key2" . "val2"))
     "frag"
-  ) ;make-uri-raw
+  ) ;make-uri-record
 ) ;define
 (check (number? (uri-hash u6)) => #t)
 (check (>= (uri-hash u6) 0) => #t)
@@ -66,7 +66,7 @@
 
 ;; 空 URI
 
-(define u7 (make-uri-raw #f "" "" '() #f))
+(define u7 (make-uri-record #f "" "" '() #f))
 (check (uri-hash u7) => 0)
 
 

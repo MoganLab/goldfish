@@ -11,8 +11,8 @@
 ## 常见用法示例
 
 ```scheme
-(uri-with-scheme (make-uri-raw "http" "example.com" "/" '() #f) "https")
-(uri-extend-query (make-uri-raw "https" "api.com" "/" '() #f)
+(uri-with-scheme (make-uri-record "http" "example.com" "/" '() #f) "https")
+(uri-extend-query (make-uri-record "https" "api.com" "/" '() #f)
   '(("page" . "1") ("limit" . "10")))
 ```
 

@@ -19,10 +19,10 @@
 
 (check-set-mode! 'report-failed)
 
-(define u (make-uri-raw "https" "alice:secret@example.com" "/" '() #f))
+(define u (make-uri-record "https" "alice:secret@example.com" "/" '() #f))
 (check (uri-raw-password u) => "secret")
 (check (uri-raw-password u) => (uri-password u))
-(check (uri-raw-password (make-uri-raw "https" "alice@example.com" "/" '() #f))
+(check (uri-raw-password (make-uri-record "https" "alice@example.com" "/" '() #f))
   =>
   #f
 ) ;check

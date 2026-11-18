@@ -22,7 +22,7 @@
 (check-set-mode! 'report-failed)
 
 (define u
-  (make-uri-raw "https" "example.com" "/" '(("a" . "1") ("b" . "2")) #f)
+  (make-uri-record "https" "example.com" "/" '(("a" . "1") ("b" . "2")) #f)
 ) ;define
 
 

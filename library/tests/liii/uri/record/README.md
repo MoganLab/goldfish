@@ -12,7 +12,7 @@
 
 ```scheme
 (define u
-  (make-uri-raw "https" "user@example.com:8080" "/path"
+  (make-uri-record "https" "user@example.com:8080" "/path"
     '(("a" . "1")) "frag"))
 
 (uri-host u)
@@ -37,7 +37,7 @@ gf doc liii/uri/record "函数名"
 ## 函数分类索引
 
 ### 构造与谓词
-- `make-uri-raw` - 从组件创建原始 URI 记录
+- `make-uri-record` - 从组件创建原始 URI 记录
 - `uri?` - 检查对象是否为 URI 记录
 - `uri-error` - 抛出 URI 错误
 

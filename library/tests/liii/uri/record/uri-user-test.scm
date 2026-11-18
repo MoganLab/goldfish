@@ -20,12 +20,14 @@
 (check-set-mode! 'report-failed)
 
 (define with-password
-  (make-uri-raw "https" "alice:secret@example.com" "/" '() #f)
+  (make-uri-record "https" "alice:secret@example.com" "/" '() #f)
 ) ;define
 
-(define without-password (make-uri-raw "https" "alice@example.com" "/" '() #f))
+(define without-password
+  (make-uri-record "https" "alice@example.com" "/" '() #f)
+) ;define
 
-(define anonymous (make-uri-raw "https" "example.com" "/" '() #f))
+(define anonymous (make-uri-record "https" "example.com" "/" '() #f))
 (check (uri-user with-password) => "alice")
 (check (uri-user without-password) => "alice")
 (check (uri-user anonymous) => #f)

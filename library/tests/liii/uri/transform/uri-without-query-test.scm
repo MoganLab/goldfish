@@ -21,7 +21,9 @@
 
 ;; 移除所有 query
 
-(define u1 (make-uri-raw "https" "api.com" "/" '(("a" . "1") ("b" . "2")) #f))
+(define u1
+  (make-uri-record "https" "api.com" "/" '(("a" . "1") ("b" . "2")) #f)
+) ;define
 
 (define u2 (uri-without-query u1))
 (check (uri-query u2) => '())
@@ -30,7 +32,7 @@
 
 ;; 空 query 保持不变
 
-(define u3 (make-uri-raw "https" "api.com" "/" '() #f))
+(define u3 (make-uri-record "https" "api.com" "/" '() #f))
 
 (define u4 (uri-without-query u3))
 (check (uri-query u4) => '())
@@ -38,7 +40,7 @@
 
 ;; 保留其他字段
 
-(define u5 (make-uri-raw "https" "api.com" "/path" '(("k" . "v")) "frag"))
+(define u5 (make-uri-record "https" "api.com" "/path" '(("k" . "v")) "frag"))
 
 (define u6 (uri-without-query u5))
 (check (uri-path u6) => "/path")

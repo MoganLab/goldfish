@@ -22,7 +22,6 @@
     (liii string)
     (liii list)
     (liii error)
-    (liii uri internal record)
     (liii uri internal parse)
     (liii uri record)
     (liii uri predicate)
@@ -46,71 +45,71 @@
 
     ;; ; ---------- with- 系列函数 ----------
     (define (uri-with-scheme uri-obj new-scheme)
-      (%make-uri-record new-scheme
-        (%uri-record-netloc uri-obj)
-        (%uri-record-path uri-obj)
-        (%uri-record-query uri-obj)
-        (%uri-record-fragment uri-obj)
-      ) ;%make-uri-record
+      (make-uri-record new-scheme
+        (uri-authority uri-obj)
+        (uri-path uri-obj)
+        (uri-query uri-obj)
+        (uri-fragment uri-obj)
+      ) ;make-uri-record
     ) ;define
 
     (define (uri-with-host uri-obj new-host)
-      (let ((netloc-parts (parse-netloc (%uri-record-netloc uri-obj))))
-        (%make-uri-record (%uri-record-scheme uri-obj)
+      (let ((netloc-parts (parse-netloc (uri-authority uri-obj))))
+        (make-uri-record (uri-scheme uri-obj)
           (build-netloc (list-ref netloc-parts 0)
             (list-ref netloc-parts 1)
             new-host
             (list-ref netloc-parts 3)
           ) ;build-netloc
-          (%uri-record-path uri-obj)
-          (%uri-record-query uri-obj)
-          (%uri-record-fragment uri-obj)
-        ) ;%make-uri-record
+          (uri-path uri-obj)
+          (uri-query uri-obj)
+          (uri-fragment uri-obj)
+        ) ;make-uri-record
       ) ;let
     ) ;define
 
     (define (uri-with-port uri-obj new-port)
-      (let ((netloc-parts (parse-netloc (%uri-record-netloc uri-obj))))
-        (%make-uri-record (%uri-record-scheme uri-obj)
+      (let ((netloc-parts (parse-netloc (uri-authority uri-obj))))
+        (make-uri-record (uri-scheme uri-obj)
           (build-netloc (list-ref netloc-parts 0)
             (list-ref netloc-parts 1)
             (list-ref netloc-parts 2)
             new-port
           ) ;build-netloc
-          (%uri-record-path uri-obj)
-          (%uri-record-query uri-obj)
-          (%uri-record-fragment uri-obj)
-        ) ;%make-uri-record
+          (uri-path uri-obj)
+          (uri-query uri-obj)
+          (uri-fragment uri-obj)
+        ) ;make-uri-record
       ) ;let
     ) ;define
 
     (define (uri-with-path uri-obj new-path)
-      (%make-uri-record (%uri-record-scheme uri-obj)
-        (%uri-record-netloc uri-obj)
+      (make-uri-record (uri-scheme uri-obj)
+        (uri-authority uri-obj)
         new-path
-        (%uri-record-query uri-obj)
-        (%uri-record-fragment uri-obj)
-      ) ;%make-uri-record
+        (uri-query uri-obj)
+        (uri-fragment uri-obj)
+      ) ;make-uri-record
     ) ;define
 
     (define (uri-with-fragment uri-obj new-fragment)
-      (%make-uri-record (%uri-record-scheme uri-obj)
-        (%uri-record-netloc uri-obj)
-        (%uri-record-path uri-obj)
-        (%uri-record-query uri-obj)
+      (make-uri-record (uri-scheme uri-obj)
+        (uri-authority uri-obj)
+        (uri-path uri-obj)
+        (uri-query uri-obj)
         new-fragment
-      ) ;%make-uri-record
+      ) ;make-uri-record
     ) ;define
 
     ;; ; ---------- query 更新函数 ----------
     (define (uri-update-query uri-obj updater)
-      (let ((new-query (updater (%uri-record-query uri-obj))))
-        (%make-uri-record (%uri-record-scheme uri-obj)
-          (%uri-record-netloc uri-obj)
-          (%uri-record-path uri-obj)
+      (let ((new-query (updater (uri-query uri-obj))))
+        (make-uri-record (uri-scheme uri-obj)
+          (uri-authority uri-obj)
+          (uri-path uri-obj)
           new-query
-          (%uri-record-fragment uri-obj)
-        ) ;%make-uri-record
+          (uri-fragment uri-obj)
+        ) ;make-uri-record
       ) ;let
     ) ;define
 
@@ -130,13 +129,13 @@
 
     ;; ; ---------- 路径操作与归一化 ----------
     (define (uri-normalize uri-obj)
-      (if (not (%uri? uri-obj))
+      (if (not (uri? uri-obj))
         (type-error "uri-normalize: expected uri")
-        (let* ((scheme (%uri-record-scheme uri-obj))
+        (let* ((scheme (uri-scheme uri-obj))
                (network? (and scheme (uri-network-scheme? scheme)))
                (u
                  (if
-                   (and network? (string=? (or (%uri-record-path uri-obj) "") ""))
+                   (and network? (string=? (or (uri-path uri-obj) "") ""))
                    (uri-with-path uri-obj "/")
                    uri-obj
                  ) ;if
@@ -152,9 +151,7 @@
     ) ;define
 
     (define (uri-join-path uri-obj . segments)
-      (let ((current-path (%uri-record-path uri-obj))
-            (new-segments (string-join segments "/"))
-           ) ;
+      (let ((current-path (uri-path uri-obj)) (new-segments (string-join segments "/")))
         (uri-with-path uri-obj
           (string-append (if (string-ends? current-path "/")
                            current-path
@@ -168,7 +165,7 @@
 
     (define (uri-with-name uri-obj new-name)
       (let* ((parent (uri-parent uri-obj))
-             (path (%uri-record-path uri-obj))
+             (path (uri-path uri-obj))
              (root? (and (string? path) (> (string-length path) 0) (char=? (string-ref path 0) #\/))
              ) ;root?
             ) ;
@@ -199,7 +196,7 @@
     ) ;define
 
     (define (uri-join base-uri ref-uri)
-      (let ((base-path (%uri-record-path base-uri)) (ref-path (%uri-record-path ref-uri)))
+      (let ((base-path (uri-path base-uri)) (ref-path (uri-path ref-uri)))
         (if (or (not ref-path) (string=? ref-path ""))
           base-uri
           (if (char=? (string-ref ref-path 0) #\/)
