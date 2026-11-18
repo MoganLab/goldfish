@@ -48,30 +48,46 @@
 
 ```bash
 gf doc pi-chain-execute
-gf doc pi-chain-node-label
-gf doc pi-chain-node-key
-gf doc pi-chain-reset-rewind-state!
-gf doc pi-chain-reset-sticky-state!
-gf doc pi-chain-clear-sticky-node!
 gf doc pi-chain-current-sticky-index
+gf doc pi-chain-record-sticky-node!
+gf doc pi-chain-clear-sticky-node!
 gf doc pi-chain-record-node-failure!
 gf doc pi-chain-clear-node-failure!
 gf doc pi-chain-node-last-failure
 gf doc pi-chain-node-in-cooldown?
+gf doc pi-chain-reset-state!
 gf doc pi-chain-reset-cooldown-state!
 ```
 
 ## 函数分类索引
 
+### 调度
+
 - `pi-chain-execute` - 仅切换节点时探活、冷却期防雪崩、链头优先自愈回溯、边界清洗与真实请求执行
-- `pi-chain-node-label` - 构造 `provider/model` 日志标签
-- `pi-chain-node-key` - 生成节点唯一标识键字符串（`provider/model:thinkingLevel`）
-- `pi-chain-reset-rewind-state!` - 清空当前粘性节点记忆、REWIND 判定状态与节点冷却故障记录
-- `pi-chain-reset-sticky-state!` - 清空当前粘性节点记忆与节点冷却故障记录（`pi-chain-reset-rewind-state!` 别名）
-- `pi-chain-clear-sticky-node!` - 清除指定链的粘性节点记忆
+
+### 粘性节点状态
+
 - `pi-chain-current-sticky-index` - 查询指定链当前粘性节点的零基下标
+- `pi-chain-record-sticky-node!` - 记录指定链的粘性节点下标
+- `pi-chain-clear-sticky-node!` - 清除指定链的粘性节点记忆
+
+### 节点冷却状态
+
 - `pi-chain-record-node-failure!` - 记录或刷新节点的故障时间戳
 - `pi-chain-clear-node-failure!` - 清除指定节点的故障记录
 - `pi-chain-node-last-failure` - 查询节点的最近一次故障时间戳
 - `pi-chain-node-in-cooldown?` - 判定节点当前是否处于故障冷却期内
-- `pi-chain-reset-cooldown-state!` - 清空所有节点的故障时间戳与冷却状态
+
+### 状态重置
+
+- `pi-chain-reset-state!` - 同时清空粘性记忆与节点冷却，供场景测试回到初始状态
+- `pi-chain-reset-cooldown-state!` - 只清空节点冷却记录
+
+## 导出边界
+
+节点身份键（`provider/model:thinkingLevel`）与日志标签（`provider/model`）是调度内部实现，
+保持私有；它们的行为由 `pi-chain-execute` 的 SWITCH / REWIND / EXHAUSTED 日志断言覆盖。
+
+历史上曾把「只清粘性」和「只清 REWIND 记忆」拆成两个别名
+（`pi-chain-reset-sticky-state!`、`pi-chain-reset-rewind-state!`），两者实际都同时
+清空粘性与冷却，命名与行为不一致，已收敛为单一的 `pi-chain-reset-state!`。

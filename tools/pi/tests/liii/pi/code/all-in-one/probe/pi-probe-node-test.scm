@@ -70,17 +70,13 @@
 
 (define (check-failure status-msg expected-code expected-text)
   (reset-log!)
-  (check-false
-    (pi-probe-node NODE
-      4321
-      TMP-DIR
-      (lambda (provider config msgs sys-prompt tools timeout retry)
-        (pi-assistant-message '()
-          :stop-reason "error"
-          :error-message status-msg
-        ) ;pi-assistant-message
-      ) ;lambda
-    ) ;pi-probe-node
+  (check-false (pi-probe-node NODE
+                 4321
+                 TMP-DIR
+                 (lambda (provider config msgs sys-prompt tools timeout retry)
+                   (pi-assistant-message '() :stop-reason "error" :error-message status-msg)
+                 ) ;lambda
+               ) ;pi-probe-node
   ) ;check-false
   (let ((content (log-text)))
     (check-true (string-contains? content " [FAIL] provider=kimi1 model=kimi-k3 "))
@@ -131,7 +127,8 @@
       TMP-DIR
       (lambda (provider config msgs sys-prompt tools timeout retry)
         ;; 模拟真实底层协议的重试机制：只要没禁用重试，前 2 次 429，第 3 次成功
-        (let loop ((attempt 1))
+        (let loop
+          ((attempt 1))
           (set! simulated-attempts attempt)
           (if (< attempt 3)
             (loop (+ attempt 1))
@@ -154,7 +151,8 @@
       2000
       TMP-DIR
       (lambda (provider config msgs sys-prompt tools timeout retry)
-        (let loop ((attempt 1))
+        (let loop
+          ((attempt 1))
           (set! simulated-attempts attempt)
           (if (< attempt 3)
             (loop (+ attempt 1))
@@ -169,10 +167,16 @@
 ) ;let
 
 ;; 3. 429 达到 3 次重试上限仍未恢复时，判定为不可用（#f），并记录 429 FAIL 日志
-(check-failure "HTTP 429 after 3 attempts: rate limit exceeded" "429" "rate limit")
+(check-failure "HTTP 429 after 3 attempts: rate limit exceeded"
+  "429"
+  "rate limit"
+) ;check-failure
 
 ;; 3b. 超时达到重试上限仍未恢复时，判定为不可用（#f），并记录 timeout FAIL 日志
-(check-failure "Request timed out after 8s" "timeout" "Request timed out after 8s")
+(check-failure "Request timed out after 8s"
+  "timeout"
+  "Request timed out after 8s"
+) ;check-failure
 
 ;; 4. 显式传入 opt-retry 时，能正确透传覆盖（如显式禁用重试）
 (let ((captured-retry 'unset))
@@ -196,20 +200,22 @@
 (check-failure "HTTP 429: exceeded_current_quota_error" "429" "quota")
 (check-failure "HTTP 401: Invalid API Key" "401" "Invalid API Key")
 (check-failure "HTTP 402: insufficient balance" "402" "balance")
-(check-failure "Request failed: Could not resolve host" "network" "Could not resolve host")
+(check-failure "Request failed: Could not resolve host"
+  "network"
+  "Could not resolve host"
+) ;check-failure
 (check-failure "Request failed: connection timed out" "timeout" "timed out")
 
 ;; 3. 超时、网络异常与空响应均不会把失败当作健康
 (check-failure "probe timeout waiting for response" "timeout" "timeout")
 (reset-log!)
-(check-false
-  (pi-probe-node NODE
-    10
-    TMP-DIR
-    (lambda args
-      (pi-assistant-message '() :stop-reason "aborted" :error-message "timeout")
-    ) ;lambda
-  ) ;pi-probe-node
+(check-false (pi-probe-node NODE
+               10
+               TMP-DIR
+               (lambda args
+                 (pi-assistant-message '() :stop-reason "aborted" :error-message "timeout")
+               ) ;lambda
+             ) ;pi-probe-node
 ) ;check-false
 (check-true (string-contains? (log-text) "error=timeout"))
 (check-failure "connection refused" "error" "refused")
@@ -217,14 +223,11 @@
 ;; 截断响应（stop=length、正文为空）仍视为链路健康，
 ;; 因为探活用极小 max_tokens，不应要求必须输出正文
 (reset-log!)
-(check-true
-  (pi-probe-node NODE
-    1000
-    TMP-DIR
-    (lambda args
-      (pi-assistant-message '() :stop-reason "length" :error-message #f)
-    ) ;lambda
-  ) ;pi-probe-node
+(check-true (pi-probe-node NODE
+              1000
+              TMP-DIR
+              (lambda args (pi-assistant-message '() :stop-reason "length" :error-message #f))
+            ) ;pi-probe-node
 ) ;check-true
 (check-false (file-exists? (path->string (resolve-alarm-log-path TMP-DIR))))
 
@@ -241,7 +244,8 @@
 ;; 5. 缺省请求函数在无凭据/隔离目录下安全返回 #f 并记录日志
 (reset-log!)
 (check-false (pi-probe-node NODE 1000 TMP-DIR))
-(check-true (string-contains? (log-text) " [FAIL] provider=kimi1 model=kimi-k3 "))
+(check-true (string-contains? (log-text) " [FAIL] provider=kimi1 model=kimi-k3 ")
+) ;check-true
 
 (when (file-exists? TMP-DIR)
   (rmtree TMP-DIR #t)

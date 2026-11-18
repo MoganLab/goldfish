@@ -20,7 +20,7 @@
 (import (scheme base)
   (liii check)
   (liii pi ai config retry)
-    (liii pi ai config settings)
+  (liii pi ai config settings)
   (liii pi code all-in-one probe)
 ) ;import
 
@@ -35,11 +35,15 @@
 ) ;let
 
 ;; 2. 用户配置了 retry：退避基数沿用用户配置，但重试次数固定为 3 次
-(let ((cfg (pi-probe-retry-config
-              (pi-settings "google" "gemini-3.8-flash" #f #f
-                (pi-retry-config #t 2 500 60000 12)
-              ) ;pi-settings
-            )))
+(let ((cfg (pi-probe-retry-config (pi-settings "google"
+                                    "gemini-3.8-flash"
+                                    #f
+                                    #f
+                                    (pi-retry-config #t 2 500 60000 12)
+                                  ) ;pi-settings
+           ) ;pi-probe-retry-config
+      ) ;cfg
+     ) ;
   (check (cdr (assoc 'enabled cfg)) => #t)
   (check (cdr (assoc 'max-retries cfg)) => 3)
   (check (cdr (assoc 'base-delay-ms cfg)) => 500)
@@ -47,20 +51,28 @@
 ) ;let
 
 ;; 3. 用户退避基数过大时按 2000ms 封顶，避免探活等待过长
-(let ((cfg (pi-probe-retry-config
-              (pi-settings "google" "gemini-3.8-flash" #f #f
-                (pi-retry-config #t 3 30000 60000 12)
-              ) ;pi-settings
-            )))
+(let ((cfg (pi-probe-retry-config (pi-settings "google"
+                                    "gemini-3.8-flash"
+                                    #f
+                                    #f
+                                    (pi-retry-config #t 3 30000 60000 12)
+                                  ) ;pi-settings
+           ) ;pi-probe-retry-config
+      ) ;cfg
+     ) ;
   (check (cdr (assoc 'base-delay-ms cfg)) => 2000)
 ) ;let
 
 ;; 4. 用户显式禁用重试：探活不重试
-(let ((cfg (pi-probe-retry-config
-              (pi-settings "google" "gemini-3.8-flash" #f #f
-                (pi-retry-config #f 3 2000 60000 #f)
-              ) ;pi-settings
-            )))
+(let ((cfg (pi-probe-retry-config (pi-settings "google"
+                                    "gemini-3.8-flash"
+                                    #f
+                                    #f
+                                    (pi-retry-config #f 3 2000 60000 #f)
+                                  ) ;pi-settings
+           ) ;pi-probe-retry-config
+      ) ;cfg
+     ) ;
   (check cfg => '((enabled . #f)))
 ) ;let
 

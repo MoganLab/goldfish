@@ -13,8 +13,8 @@
     (liii string)
     (liii path)
     (liii pi code all-in-one types)
+    (liii pi code all-in-one defaults)
     (liii pi code all-in-one loader)
-    (liii pi code all-in-one provider)
     (liii pi code config json-write)
     (liii pi code modes config state)
   ) ;import
@@ -25,16 +25,7 @@
   (begin
 
     (define (%load-or-default-cfg st)
-      (let* ((dir (pi-config-state-dir st))
-             (cfg-file (path-join dir "all-in-one.json"))
-             (raw-cfg (and (file-exists? (path->string cfg-file)) (all-in-one-load-config dir))
-             ) ;raw-cfg
-            ) ;
-        (if (and raw-cfg (all-in-one-cfg? raw-cfg) (pair? (all-in-one-cfg-chains raw-cfg)))
-          raw-cfg
-          (make-all-in-one-cfg #t 3600000 60000 8000 (all-in-one-default-chains))
-        ) ;if
-      ) ;let*
+      (all-in-one-load-or-default-config (pi-config-state-dir st))
     ) ;define
 
     (define (%plan-result ok? msg writes)

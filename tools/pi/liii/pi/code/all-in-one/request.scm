@@ -18,6 +18,7 @@
     (liii pi code config)
     (liii pi code modes output)
     (liii pi code all-in-one chain)
+    (liii pi code all-in-one defaults)
     (liii pi code all-in-one loader)
     (liii pi code all-in-one probe)
     (liii pi code all-in-one provider)
@@ -25,20 +26,19 @@
     (liii pi code all-in-one thinking)
     (liii pi code all-in-one types)
   ) ;import
-  (export pi-all-in-one-request-stream pi-all-in-one-exhausted-message)
+  ;; 请求门面：Agent 主循环与压缩摘要共用的唯一公开入口
+  (export pi-all-in-one-request-stream)
   (begin
 
-    (define (pi-all-in-one-exhausted-message)
+    (define (%exhausted-message)
       (pi-assistant-message '()
         "error"
         "All nodes in the all-in-one chain failed probe"
       ) ;pi-assistant-message
     ) ;define
 
-    ;; 从已解析的节点配置中挑出请求层需要的键，节点等级一律以节点默认值为准；
-    ;; 主 cfg 的额外键（emit、get-steering-messages、now-fn 等）追加在末尾
-    ;; supports-thinking 必须取节点真实模型的能力，否则会被主 cfg 中伪模型的值
-    ;; 覆盖，导致页脚按伪模型判断是否渲染等级后缀
+    ;; 节点键不变量：thinking-level 一律以节点默认值为准，supports-thinking 必须取
+    ;; 节点真实模型能力，否则会被主 cfg 中伪模型的值覆盖，导致页脚判错等级后缀。
     (define (%node-request-keys)
       '(provider provider-api model-id api-key model-meta models-store
          thinking-level supports-thinking proxy-url config-dir
@@ -64,7 +64,6 @@
       ) ;let*
     ) ;define
 
-    ;; 节点级请求的等级与显式标记不被节点解析结果覆盖
     (define (%node-config-pair key node-cfg thinking-level)
       (cond ((eq? key 'thinking-level) (cons 'thinking-level thinking-level))
             ((eq? key 'thinking-level-explicit?) (cons key #f))
@@ -72,8 +71,6 @@
       ) ;cond
     ) ;define
 
-    ;; 当前实际节点上报给 TUI：emit 为 agent 事件回调（来自 cfg），
-    ;; 与请求层只接单参数的流式 on-event 区分开。
     (define (%node-context-window node-config)
       (let ((meta (pi-cfg-ref node-config 'model-meta)))
         (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
@@ -100,7 +97,6 @@
       ) ;and
     ) ;define
 
-    ;; 用户是否本次显式指定了思考等级（CLI /thinking / Shift+Tab）
     (define (%cfg-ref cfg key default-val)
       (pi-cfg-ref cfg key default-val)
     ) ;define
@@ -140,7 +136,7 @@
                (node-config (%node-config config provider model-id eff-tl))
                (request (or request-fn pi-request-provider-stream))
               ) ;
-          ;; 交接前把实际节点告知前台，供页脚展示
+          ;; 交接前把实际节点告知前台，供页脚展示（active_node 载荷不变）
           (%emit-active-node config provider model-id eff-tl node-config)
           (request provider node-config messages system-prompt tools on-event timeout)
         ) ;let*
@@ -161,7 +157,6 @@
       ) ;let
     ) ;define
 
-    ;; 探活配置：继承节点配置但覆盖 model-meta 的 max-tokens
     (define (%probe-config base-cfg)
       (let* ((raw-meta (pi-cfg-ref base-cfg 'model-meta #f))
              (probe-meta (pi-probe-max-tokens-metadata raw-meta))
@@ -170,7 +165,6 @@
       ) ;let*
     ) ;define
 
-    ;; 探活与业务请求共用同一套节点等级收敛，避免探活通过而正式请求 HTTP 400
     (define (%probe-node cfg)
       (lambda (node timeout-ms dir request-fn)
         (let* ((dir-str (if (string? dir) dir (path->string dir)))
@@ -201,7 +195,8 @@
       ) ;lambda
     ) ;define
 
-    ;; 粘性节点下的一次完整链式尝试；真实请求失败时记录故障并顺延到下一节点
+    ;; 一轮链式尝试：真实请求失败即记录故障并顺延到下一节点，
+    ;; 仍有未试候选就继续，全部失败才把 exhausted 哨兵交回门面。
     (define (%run-chain-turn chain chain-id messages skip-idx execute aio-cfg
               dir probe-adapter config last-exec-box
             ) ;%run-chain-turn
@@ -248,7 +243,6 @@
       ) ;let
     ) ;define
 
-    ;; 记录失败节点的时间戳并清掉粘性，使下一轮能从链头重新选择
     (define (%record-and-skip chain chain-id failed-index)
       (let* ((nodes (chain-def-nodes chain))
              (failed-node (and (integer? failed-index)
@@ -265,7 +259,6 @@
       ) ;let*
     ) ;define
 
-    ;; 全链枯竭时构造 recovery 选项：只传递时钟、取消、轮询与事件回调
     (define (%recovery-options config chain-id dir)
       (let* ((poll-steering (%cfg-ref config 'get-steering-messages (lambda () '())))
              (emit (or (%cfg-ref config 'emit #f) (lambda args #f)))
@@ -307,7 +300,8 @@
       ) ;let*
     ) ;define
 
-    ;; 预检后解析实际节点的凭据、协议与模型元数据；普通供应商不经过此入口。
+    ;; 请求门面五步：加载或回退配置 -> 解析伪模型对应的链（含既有旧 ID 别名）
+    ;; -> 组装执行器与探活器 -> 执行一整轮调度 -> 全链枯竭时接入 recovery。
     (define* (pi-all-in-one-request-stream provider
                config
                messages
@@ -319,15 +313,12 @@
                (request-fn #f)
              ) ;pi-all-in-one-request-stream
       (let* ((dir (pi-cfg-config-dir config))
-             (aio-cfg (or (all-in-one-load-config dir)
-                        (make-all-in-one-cfg #t 3600000 60000 8000 (all-in-one-default-chains))
-                      ) ;or
-             ) ;aio-cfg
+             (aio-cfg (all-in-one-load-or-default-config dir))
              (raw-model-id (%cfg-ref config 'model-id #f))
              (chain (%resolve-chain aio-cfg raw-model-id))
             ) ;
         (if (not chain)
-          (pi-all-in-one-exhausted-message)
+          (%exhausted-message)
           (let* ((canonical-id (chain-def-id chain))
                  (last-exec-box (vector #f))
                  (execute (%execute-node config system-prompt tools on-event

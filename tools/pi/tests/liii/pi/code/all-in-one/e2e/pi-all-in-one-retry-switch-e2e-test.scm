@@ -159,7 +159,7 @@
   (write-cfg-dir base-url
     "{\"retry\":{\"enabled\":true,\"maxRetries\":2,\"baseDelayMs\":1,\"provider\":{\"maxRetries\":12}}}"
   ) ;write-cfg-dir
-  (pi-chain-reset-sticky-state!)
+  (pi-chain-reset-state!)
   (let ((response (pi-all-in-one-request-stream "all-in-one"
                     (make-config)
                     (list (pi-user-message "do the work"))
@@ -184,7 +184,7 @@
 
   ;; 2. 未配置 retry 段：行为一致，同样切换备用节点
   (write-cfg-dir base-url #f)
-  (pi-chain-reset-sticky-state!)
+  (pi-chain-reset-state!)
   (let ((response (pi-all-in-one-request-stream "all-in-one"
                     (make-config)
                     (list (pi-user-message "do the work"))

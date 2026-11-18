@@ -124,33 +124,34 @@
        (attempts 0)
        (steering-queue (list "user typed while waiting"))
        (events '())
-       (resp (pi-recovery-run
-               (lambda () (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
-               cfg
-               (list (cons 'now-fn (lambda () now-ms))
-                 (cons 'sleep-fn (lambda (ms) (set! now-ms (+ now-ms ms))))
-                 (cons 'aborted? (lambda () #f))
-                 (cons 'poll-steering
-                   (lambda ()
-                     (if (pair? steering-queue)
-                       (let ((m (car steering-queue)))
-                         (set! steering-queue (cdr steering-queue))
-                         (list m)
-                       ) ;let
-                       '()
-                     ) ;if
-                   ) ;lambda
-                 ) ;cons
-                 (cons 'emit (lambda (ev . args) (set! events (cons (cons ev args) events))))
-                 (cons 'chain-id "coding-fast")
-               ) ;list
-             ) ;pi-recovery-run
+       (resp
+         (pi-recovery-run (lambda () (set! attempts (+ attempts 1)) 'all-nodes-exhausted)
+           cfg
+           (list (cons 'now-fn (lambda () now-ms))
+             (cons 'sleep-fn (lambda (ms) (set! now-ms (+ now-ms ms))))
+             (cons 'aborted? (lambda () #f))
+             (cons 'poll-steering
+               (lambda ()
+                 (if (pair? steering-queue)
+                   (let ((m (car steering-queue)))
+                     (set! steering-queue (cdr steering-queue))
+                     (list m)
+                   ) ;let
+                   '()
+                 ) ;if
+               ) ;lambda
+             ) ;cons
+             (cons 'emit (lambda (ev . args) (set! events (cons (cons ev args) events))))
+             (cons 'chain-id "coding-fast")
+           ) ;list
+         ) ;pi-recovery-run
        ) ;resp
       ) ;
   ;; 用户消息到达即结束等待，不触发任何重试
   (check attempts => 0)
   (check (pi-assistant-message-stop-reason resp) => "aborted")
-  (check-true (string-contains? (pi-assistant-message-error-message resp) "new user message"))
+  (check-true (string-contains? (pi-assistant-message-error-message resp) "new user message")
+  ) ;check-true
   (check (list-ref (assoc 'recovery_end events) 2) => 'interrupted)
   ;; 等待远未耗尽预算就结束
   (check (< (- now-ms 1000) 60000) => #t)

@@ -2,8 +2,11 @@
 ;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;
 ;; Licensed under the MIT License
-;;
+;; all-in-one 元供应商的伪模型目录投影。
 
+;; provider 只负责把配置里的链投影成模型目录条目：
+;; 默认链与默认配置的唯一真值源在 defaults.scm，
+;; 加载与缺省回退的统一入口在 loader.scm。
 (define-library (liii pi code all-in-one provider)
   (import (scheme base)
     (liii list)
@@ -11,32 +14,14 @@
     (liii pi code all-in-one types)
     (liii pi code all-in-one loader)
   ) ;import
-  (export all-in-one-chain->model all-in-one-chains->models all-in-one-models
-    all-in-one-provider-available? all-in-one-provider-entry
-    all-in-one-default-chains chain-conservative-context-window
-  ) ;export
-  (begin
 
-    ;; all-in-one-default-chains
-    ;; 默认双链路定义：
-    ;; 1. 快速推进链路：google -> minimax-cn -> deepseek
-    ;; 2. 高质攻坚链路：kimi-coding -> zai-coding-cn
-    (define (all-in-one-default-chains)
-      (list (make-chain-def "coding-fast"
-              "快速"
-              (list (make-chain-node "google" "gemini-3.8-flash" "medium")
-                (make-chain-node "minimax-cn" "MiniMax-M3.1-Flash" "medium")
-                (make-chain-node "deepseek" "deepseek-v4-pro" "high")
-              ) ;list
-            ) ;make-chain-def
-        (make-chain-def "coding-high-quality"
-          "高质量"
-          (list (make-chain-node "kimi-coding" "k3.1-pro" "high")
-            (make-chain-node "zai-coding-cn" "glm-5.3" "high")
-          ) ;list
-        ) ;make-chain-def
-      ) ;list
-    ) ;define
+  ;; 模型目录
+  (export all-in-one-models all-in-one-provider-entry)
+  ;; 可用性
+  (export all-in-one-provider-available?)
+  ;; 链元数据
+  (export chain-conservative-context-window)
+  (begin
 
     ;; 查找节点在内置模型目录中的上下文窗口
     (define (%node-builtin-context-window provider model)
@@ -52,8 +37,7 @@
       ) ;let*
     ) ;define
 
-    ;; chain-conservative-context-window
-    ;; 计算链路的保守上下文窗口（所有节点中 contextWindow 的最小值），作为安全兜底
+    ;; 链路保守上下文窗口：所有候选节点 contextWindow 的最小值，作为安全兜底。
     (define (chain-conservative-context-window chain)
       (let ((nodes (chain-def-nodes chain)))
         (if (not (pair? nodes))
@@ -69,9 +53,8 @@
       ) ;let
     ) ;define
 
-    ;; all-in-one-chain->model
-    ;; 将 <chain-def> 映射为标准模型元数据 alist。
-    (define (all-in-one-chain->model chain)
+    ;; 将 <chain-def> 投影为标准模型元数据 alist（伪模型）。
+    (define (%chain->model chain)
       (list (cons "id" (chain-def-id chain))
         (cons "name" (chain-def-name chain))
         (cons "provider" "all-in-one")
@@ -82,33 +65,22 @@
       ) ;list
     ) ;define
 
-    ;; all-in-one-chains->models
-    ;; 将 <chain-def> 列表映射为模型元数据 alist 列表。
-    (define (all-in-one-chains->models chains)
-      (map all-in-one-chain->model chains)
-    ) ;define
-
-    ;; all-in-one-models
-    ;; 读取配置并发现伪模型列表。若未配置或非法回退为默认伪模型列表。
+    ;; 读取配置并发现伪模型列表；未配置或非法时回退默认链。
     (define (all-in-one-models . opt-config-dir)
-      (let ((cfg (apply all-in-one-load-config opt-config-dir)))
-        (if (and cfg (all-in-one-cfg? cfg) (pair? (all-in-one-cfg-chains cfg)))
-          (all-in-one-chains->models (all-in-one-cfg-chains cfg))
-          (all-in-one-chains->models (all-in-one-default-chains))
-        ) ;if
+      (let ((cfg (apply all-in-one-load-or-default-config opt-config-dir)))
+        (map %chain->model (all-in-one-cfg-chains cfg))
       ) ;let
     ) ;define
 
-    ;; all-in-one-provider-available?
-    ;; 检查元供应商在给定配置目录下是否有效可用（存在有效配置且至少配置了一条链）。
+    ;; 元供应商是否有效可用：存在可解析的用户配置且至少配置了一条链。
+    ;; 该判定只表示“用户显式配置过 all-in-one”，不因默认回退而恒为真。
     (define (all-in-one-provider-available? . opt-config-dir)
       (let ((cfg (apply all-in-one-load-config opt-config-dir)))
         (and cfg (all-in-one-cfg? cfg) (pair? (all-in-one-cfg-chains cfg)))
       ) ;let
     ) ;define
 
-    ;; all-in-one-provider-entry
-    ;; 构造元供应商目录条目 ("all-in-one" ("name" . "all-in-one") ("api" . "all-in-one") ("models" ...))
+    ;; 元供应商目录条目 ("all-in-one" ("name" . "all-in-one") ("api" . "all-in-one") ("models" ...))
     (define (all-in-one-provider-entry . opt-config-dir)
       (cons "all-in-one"
         (list (cons "name" "all-in-one")

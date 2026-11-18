@@ -15,26 +15,23 @@
 ;; alist
 ;; 可由 json->string 序列化的 JSON 对象，且可被 json->all-in-one-cfg 往返还原。
 
-(import (scheme base)
-  (liii check)
-  (liii json)
-  (liii pi code all-in-one types)
-) ;import
+(import (scheme base) (liii check) (liii json) (liii pi code all-in-one types))
 
 (check-set-mode! 'report-failed)
 
 (check-true (procedure? all-in-one-cfg->json))
 
-(let* ((orig (make-all-in-one-cfg #f
-               120000
-               30000
-               5000
-               (list (make-chain-def "fast"
-                       "Fast"
-                       (list (make-chain-node "deepseek" "deepseek-chat" "low"))
-                     ) ;make-chain-def
-               ) ;list
-             ) ;make-all-in-one-cfg
+(let* ((orig
+         (make-all-in-one-cfg #f
+           120000
+           30000
+           5000
+           (list (make-chain-def "fast"
+                   "Fast"
+                   (list (make-chain-node "deepseek" "deepseek-chat" "low"))
+                 ) ;make-chain-def
+           ) ;list
+         ) ;make-all-in-one-cfg
        ) ;orig
        (j (all-in-one-cfg->json orig))
        (rt (json->all-in-one-cfg (string->json (json->string j))))

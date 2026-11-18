@@ -7,10 +7,7 @@
 ;; 跨模型交接前回滚尾部不可用 assistant，保留完整消息和已执行工具结果。
 (define-library (liii pi code all-in-one boundary)
   (import (scheme base) (liii string) (liii pi ai message))
-  (export pi-boundary-recover-messages pi-boundary-message-role
-    pi-boundary-message-stop-reason pi-boundary-message-content
-    pi-boundary-assistant-usable?
-  ) ;export
+  (export pi-boundary-recover-messages)
   (begin
 
     (define (%field obj key default)
@@ -56,8 +53,8 @@
       ) ;let
     ) ;define
 
-    ;; 错误、中止、截断、空内容和未执行的 toolUse 均不可交接。
-    (define (pi-boundary-assistant-usable? msg)
+    ;; 错误、中止、截断、空内容和未执行的 toolUse 均不可交接（协议不变量）。
+    (define (%assistant-usable? msg)
       (let ((error (cond ((pi-assistant-message? msg) (pi-assistant-message-error-message msg))
                          ((pair? msg) (%field msg "errorMessage" #f))
                          (else #f)
@@ -84,7 +81,7 @@
           '()
           (let ((tail (car (reverse msgs))))
             (if (and (equal? (pi-boundary-message-role tail) "assistant")
-                  (not (pi-boundary-assistant-usable? tail))
+                  (not (%assistant-usable? tail))
                 ) ;and
               (loop (reverse (cdr (reverse msgs))))
               msgs
