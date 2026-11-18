@@ -91,13 +91,13 @@
                (b0 (cdr split-b))
                (z0 (karatsuba-mag a0 b0))
                (z2 (karatsuba-mag a1 b1))
-               (s1 (add-mag a1 a0))
-               (s2 (add-mag b1 b0))
+               (s1 (%add-mag a1 a0))
+               (s2 (%add-mag b1 b0))
                (z1-temp (karatsuba-mag s1 s2))
-               (z2-plus-z0 (add-mag z2 z0))
-               (z1 (sub-mag z1-temp z2-plus-z0))
+               (z2-plus-z0 (%add-mag z2 z0))
+               (z1 (%sub-mag z1-temp z2-plus-z0))
               ) ;
-          (add-mag (add-mag (shift-mag z2 (* 2 m)) (shift-mag z1 m)) z0)
+          (%add-mag (%add-mag (%shift-mag z2 (* 2 m)) (%shift-mag z1 m)) z0)
         ) ;let*
       ) ;if
     ) ;define
@@ -169,9 +169,9 @@
             ((digits (reverse b16)) (shift 0) (result '()))
             (if (null? digits)
               result
-              (let* ((partial (mul-mag-small-with-base a16 (car digits) SMALL-BASE))
-                     (shifted (shift-mag partial shift))
-                     (next-result (add-mag-with-base result shifted SMALL-BASE))
+              (let* ((partial (%mul-mag-small-with-base a16 (car digits) SMALL-BASE))
+                     (shifted (%shift-mag partial shift))
+                     (next-result (%add-mag-with-base result shifted SMALL-BASE))
                     ) ;
                 (loop (cdr digits) (+ shift 1) next-result)
               ) ;let*

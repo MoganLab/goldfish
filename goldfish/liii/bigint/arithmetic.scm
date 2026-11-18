@@ -71,22 +71,22 @@
         (cond ((= signum-a 0) right)
               ((= signum-b 0) left)
               ((= signum-a signum-b)
-               (make-bigint signum-a (add-mag (bigint-mag left) (bigint-mag right)))
+               (make-bigint signum-a (%add-mag (bigint-mag left) (bigint-mag right)))
               ) ;
               ((= signum-a 1)
-               (let ((cmp (compare-mag (bigint-mag left) (bigint-mag right))))
+               (let ((cmp (%compare-mag (bigint-mag left) (bigint-mag right))))
                  (cond
-                  ((> cmp 0) (make-bigint 1 (sub-mag (bigint-mag left) (bigint-mag right))))
-                  ((< cmp 0) (make-bigint -1 (sub-mag (bigint-mag right) (bigint-mag left))))
+                  ((> cmp 0) (make-bigint 1 (%sub-mag (bigint-mag left) (bigint-mag right))))
+                  ((< cmp 0) (make-bigint -1 (%sub-mag (bigint-mag right) (bigint-mag left))))
                   (else bigint-zero)
                  ) ;cond
                ) ;let
               ) ;
               (else
-                (let ((cmp (compare-mag (bigint-mag right) (bigint-mag left))))
+                (let ((cmp (%compare-mag (bigint-mag right) (bigint-mag left))))
                   (cond
-                   ((> cmp 0) (make-bigint 1 (sub-mag (bigint-mag right) (bigint-mag left))))
-                   ((< cmp 0) (make-bigint -1 (sub-mag (bigint-mag left) (bigint-mag right))))
+                   ((> cmp 0) (make-bigint 1 (%sub-mag (bigint-mag right) (bigint-mag left))))
+                   ((< cmp 0) (make-bigint -1 (%sub-mag (bigint-mag left) (bigint-mag right))))
                    (else bigint-zero)
                   ) ;cond
                 ) ;let
