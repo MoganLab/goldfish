@@ -3,6 +3,12 @@
 `(liii path)` 是一个跨平台的路径抽象，支持 POSIX 和 Windows 两种路径格式。
 与直接拼接字符串相比，它更适合表达路径层级、父目录和文件系统操作。
 
+本库的 API 设计来源于 Python 标准库 `pathlib`（`PurePath` / `PurePosixPath` /
+`PureWindowsPath` / `Path`）：路径构造、属性访问、纯路径计算、文件系统操作
+等均对齐 pathlib 的语义与行为，仅在命名风格（谓词加 `?`、函数式接口替代
+方法链）与个别细节上保留 Scheme 惯例，各函数与 pathlib 的对应关系及差异
+详见子库文档中的说明。
+
 本库按职责拆分为多个子库，用户通常只需 `(import (liii path))`（或按需导入 `(liii path stat)`）：
 
 - 对外聚合子库：`(liii path record)` 路径构造与基础属性、`(liii path pure)` 纯路径计算、
@@ -48,7 +54,6 @@ gf doc liii/path "path-join"
 用于创建 path 对象的函数
 
 - `path` - 从字符串或其他 path 创建路径对象
-- `path-from-string` - 从字符串创建路径（path 的别名）
 - `path-from-parts` - 从路径各部分（向量）创建路径
 - `path-of-drive` - 创建 Windows 驱动器路径
 - `path-root` - 创建根路径 "/"

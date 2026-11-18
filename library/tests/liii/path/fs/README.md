@@ -40,30 +40,36 @@ gf doc liii/path/fs "函数名"
 
 ## 函数分类索引
 
-### 一、存在性与类型判断
+### 一、谓词
 
 - `path-exists?` - 判断路径是否存在
 - `path-file?` - 判断是否为普通文件
 - `path-dir?` - 判断是否为目录
 
-### 二、读写操作
+### 二、读操作
 
-- `path-read-text` / `path-write-text` / `path-append-text` - 文本读写与追加
-- `path-read-bytes` / `path-write-bytes` - 字节读写
+- `path-read-text` - 读取文件为文本
 - `path-read-lines` - 按行读取文本
+- `path-read-bytes` - 读取文件为字节向量
 - `path-getsize` - 获取文件大小
 
-### 三、目录操作
+### 三、写操作
+
+- `path-write-text` - 覆盖写入文本
+- `path-write-bytes` - 覆盖写入字节
+- `path-append-text` - 追加文本到文件末尾
+- `path-touch` - 创建空文件或更新时间戳
+
+### 四、目录操作
 
 - `path-mkdir` - 递归创建目录
 - `path-rmdir` - 删除空目录
 - `path-list` - 列出目录中的文件名（返回向量）
 - `path-list-path` - 列出目录中的路径对象（返回向量）
 
-### 四、文件管理
+### 五、文件管理
 
 - `path-copy` - 复制文件到目标路径
 - `path-copy-into` - 复制文件到目标目录
 - `path-rename` - 重命名/移动文件
 - `path-unlink` - 删除文件
-- `path-touch` - 创建空文件或更新时间戳
