@@ -15,11 +15,16 @@
 ;;
 
 (define-library (liii path fs)
-  (export path-copy path-copy-into path-dir? path-file? path-exists?
-    path-getsize path-read-text path-read-lines path-read-bytes path-write-text
-    path-write-bytes path-append-text path-touch path-list path-list-path
-    path-rmdir path-unlink path-rename path-mkdir
-  ) ;export
+  ;; 谓词
+  (export path-dir? path-file? path-exists?)
+  ;; 读操作
+  (export path-getsize path-read-text path-read-lines path-read-bytes)
+  ;; 写操作
+  (export path-write-text path-write-bytes path-append-text path-touch)
+  ;; 目录操作
+  (export path-list path-list-path path-rmdir path-mkdir)
+  ;; 文件管理
+  (export path-copy path-copy-into path-unlink path-rename)
   (import (scheme base)
     (liii base)
     (liii error)
@@ -30,7 +35,6 @@
   ) ;import
   (begin
 
-    ;; ; 复制文件(跨平台行为:依赖底层 g_path-copy 原语)。
     (define (path-copy source target)
       (let ((src (path->string source)) (dst (path->string target)))
         (if (not (file-exists? src))
@@ -40,31 +44,24 @@
       ) ;let
     ) ;define
 
-    ;; ; 复制文件到目标目录(自动取源文件名作为目标名)。
     (define (path-copy-into source target-dir)
-      (let ((filename (path-name (path-from-string source))))
-        (path-copy source
-          (path->string (path-join (path-from-string target-dir) (path filename)))
-        ) ;path-copy
+      (let ((filename (path-name (path source))))
+        (path-copy source (path->string (path-join (path target-dir) (path filename))))
       ) ;let
     ) ;define
 
-    ;; ; 判断是否为目录。跨平台行为一致。
     (define (path-dir? p)
       (isdir (path->string p))
     ) ;define
 
-    ;; ; 判断是否为普通文件。跨平台行为一致。
     (define (path-file? p)
       (g_isfile (path->string p))
     ) ;define
 
-    ;; ; 判断路径是否存在(文件或目录)。跨平台行为一致。
     (define (path-exists? p)
       (file-exists? (path->string p))
     ) ;define
 
-    ;; ; 获取文件大小(字节)。不存在时抛 file-not-found-error。
     (define (path-getsize p)
       (let ((s (path->string p)))
         (if (not (file-exists? s))
@@ -74,7 +71,6 @@
       ) ;let
     ) ;define
 
-    ;; ; 读取文件为文本。不存在时抛 file-not-found-error。目录时抛 file-error。
     (define (path-read-text p)
       (let ((s (path->string p)))
         (cond ((not (file-exists? s))
@@ -86,10 +82,6 @@
       ) ;let
     ) ;define
 
-    ;; ; 按行读取文本文件，返回行字符串列表
-    ;; ; keepends 为 #t 时保留每行末尾的换行符
-    ;; ; offset 指定从第几行（0-based）开始读取
-    ;; ; limit 指定最多读取的行数，#f 表示读到文件末尾
     (define* (path-read-lines p (keepends #f) (offset 0) (limit #f))
       (if (not (or (string? p) (path? p)))
         (type-error "path-read-lines: path must be string or path")
@@ -117,7 +109,6 @@
       ) ;let
     ) ;define*
 
-    ;; ; 读取文件为字节向量。不存在时抛 file-not-found-error。目录时抛 file-error。
     (define (path-read-bytes p)
       (let ((s (path->string p)))
         (cond ((not (file-exists? s))
@@ -129,7 +120,6 @@
       ) ;let
     ) ;define
 
-    ;; ; 覆盖写入文本。content 必须为 string。
     (define (path-write-text p content)
       (if (not (string? content))
         (type-error "path-write-text: content must be string")
@@ -137,7 +127,6 @@
       ) ;if
     ) ;define
 
-    ;; ; 覆盖写入字节。data 必须为 bytevector。
     (define (path-write-bytes p data)
       (if (not (byte-vector? data))
         (type-error "path-write-bytes: data must be bytevector")
@@ -145,7 +134,6 @@
       ) ;if
     ) ;define
 
-    ;; ; 追加文本到文件末尾。
     (define (path-append-text p content)
       (if (not (string? content))
         (type-error "path-append-text: content must be string")
@@ -153,17 +141,14 @@
       ) ;if
     ) ;define
 
-    ;; ; 创建空文件(若不存在),已存在则更新访问时间。
     (define (path-touch p)
       (g_path-touch (path->string p))
     ) ;define
 
-    ;; ; 列出目录内容(字符串向量)。
     (define (path-list p)
       (listdir (path->string p))
     ) ;define
 
-    ;; ; 列出目录内容(path 对象向量,每个元素 = base join entry)。
     (define (path-list-path p)
       (let ((base (path->string p)))
         (let ((entries (listdir base)))
@@ -172,12 +157,10 @@
       ) ;let
     ) ;define
 
-    ;; ; 删除目录(必须为空)。
     (define (path-rmdir p)
       (rmdir (path->string p))
     ) ;define
 
-    ;; ; 删除文件。missing-ok=#t 时文件不存在不报错(对齐 pathlib.Path.unlink)。
     (define* (path-unlink p (missing-ok #f))
       (let ((s (path->string p)))
         (cond ((file-exists? s) (remove s))
@@ -187,14 +170,10 @@
       ) ;let
     ) ;define*
 
-    ;; ; 重命名/移动文件或目录(对齐 pathlib.Path.rename)。
     (define (path-rename src dst)
       (rename (path->string src) (path->string dst))
     ) ;define
 
-    ;; ; 对齐 pathlib.Path.mkdir(parents, exist_ok)
-    ;; ; 差异:parents=#t 递归创建中间目录(从根向下,跳过已存在的);
-    ;; ; exist_ok=#t 时已存在不报错。跨平台行为一致。
     (define* (path-mkdir p (parents #f) (exist-ok #f))
       (define (ensure-one s)
         (if (file-exists? s) #t (mkdir s))
@@ -213,7 +192,6 @@
                ) ;let*
               ) ;
               (else
-                ;; parents:从根向下逐级创建(跳过已存在的)
                 (let loop
                   ((rest (reverse (vector->list (path-parents (path s))))))
                   (if (null? rest)

@@ -15,11 +15,16 @@
 ;;
 
 (define-library (liii path record)
-  (export path? path path-from-string path-of-drive path-from-parts path-from-env
-    path-cwd path-home path-temp-dir path-parts path-type path-drive path-root
-    path->string path-as-posix path-absolute? path-relative? path-equals?
-    path=?
+  ;; 构造函数
+  (export path path-of-drive path-from-parts path-from-env path-cwd path-home
+    path-temp-dir
   ) ;export
+  ;; 谓词
+  (export path? path-absolute? path-relative? path-equals? path=?)
+  ;; 属性访问
+  (export path-parts path-type path-drive path-root)
+  ;; 转换
+  (export path->string path-as-posix)
   (import (scheme base)
     (scheme char)
     (liii ascii)
@@ -210,11 +215,6 @@
        ((string? p) p)
        (else (type-error "path->string: argument must be path or string"))
       ) ;cond
-    ) ;define
-
-    ;; ; 对齐 pathlib.PurePath(s)
-    (define (path-from-string s)
-      (path s)
     ) ;define
 
     ;; ; 对应 pathlib 的 == 操作符
