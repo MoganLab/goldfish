@@ -1,13 +1,13 @@
-# (liii path parse) 模块函数分类索引
+# (liii path internal parse) 模块函数分类索引
 
-`(liii path parse)` 提供路径字符串的底层解析函数，
+`(liii path internal parse)` 提供路径字符串的底层解析函数，
 负责把 posix 与 Windows 路径切分为段向量、盘符与根锚点，
 供 `(liii path record)` 等上层模块构造路径记录使用。
 
 ## 常见用法示例
 
 ```scheme
-(import (liii path parse)
+(import (liii path internal parse)
         (srfi srfi-11))
 
 ;; 示例1：解析 posix 普通路径
@@ -34,15 +34,13 @@ gf doc "函数名"
 或者指定库名：
 
 ```bash
-gf doc liii/path/parse "函数名"
+gf doc liii/path/internal/parse "函数名"
 ```
 
 ## 函数分类索引
 
-### 一、字符串切分
+### 一、字符串清理
 
-- `string-split-vec` - 按分隔符切分字符串为向量（保留空段）
-- `drop-dot-parts` - 过滤 "." 段与空段
 - `clean-tail` - 过滤 anchor 之后的空段与分隔符残段
 
 ### 二、前缀判断与盘符
@@ -54,5 +52,4 @@ gf doc liii/path/parse "函数名"
 ### 三、路径解析
 
 - `parse-path-string` - 解析 posix/普通路径为段向量与根
-- `parse-unc` - 解析 UNC 路径为段向量、盘符与根
 - `parse-windows-path` - 解析 Windows 路径为段向量、盘符与根

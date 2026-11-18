@@ -3,9 +3,12 @@
 `(liii path)` 是一个跨平台的路径抽象，支持 POSIX 和 Windows 两种路径格式。
 与直接拼接字符串相比，它更适合表达路径层级、父目录和文件系统操作。
 
-本库按职责拆分为多个子库：`(liii path pure)` 纯字符串路径计算、
-`(liii path record)` 路径记录、`(liii path component)` 分量访问、
-`(liii path stat)` 与 `(liii path fs)` 文件系统查询、`(liii path glob)` 通配检索。
+本库按职责拆分为多个子库，用户通常只需 `(import (liii path))`（或按需导入 `(liii path stat)`）：
+
+- 对外聚合子库：`(liii path record)` 路径构造与基础属性、`(liii path pure)` 纯路径计算、
+  `(liii path fs)` 文件系统操作、`(liii path glob)` 通配检索
+- 独立子库：`(liii path stat)` 文件元数据 `<path-stat>` 查询
+- 内部实现模块：`(liii path internal record)`、`(liii path internal parse)`、`(liii path internal component)`
 
 ## 常见用法示例
 

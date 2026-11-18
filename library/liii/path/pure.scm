@@ -26,9 +26,10 @@
     (liii os)
     (liii string)
     (liii vector)
-    (liii path parse)
+    (liii path internal parse)
+    (liii path internal record)
     (liii path record)
-    (liii path component)
+    (liii path internal component)
   ) ;import
   (begin
 
@@ -36,15 +37,15 @@
     ;; ; g_realpath 原语解析符号链接。
     (define (normalize-absolute p)
       (let* ((pp (path-absolute p))
-             (segs (vector->list (path-record-parts pp)))
-             (root (path-record-root pp))
-             (type (path-record-type pp))
-             (drive (path-record-drive pp))
+             (segs (vector->list (%path-record-parts pp)))
+             (root (%path-record-root pp))
+             (type (%path-record-type pp))
+             (drive (%path-record-drive pp))
             ) ;
         (let loop
           ((rest segs) (acc '()))
           (cond
-           ((null? rest) (make-path-record (list->vector (reverse acc)) type drive root))
+           ((null? rest) (%make-path-record (list->vector (reverse acc)) type drive root))
            ((string=? (car rest) "..")
             (if (null? acc)
               ;; .. 在根之上:丢弃(不能越过根)
@@ -64,19 +65,19 @@
     (define (path-relative-to p base)
       (let* ((pp (path p))
              (bp (path base))
-             (p-segs (path-record-parts pp))
-             (b-segs (path-record-parts bp))
-             (p-drive (path-record-drive pp))
-             (b-drive (path-record-drive bp))
-             (p-root (path-record-root pp))
-             (b-root (path-record-root bp))
+             (p-segs (%path-record-parts pp))
+             (b-segs (%path-record-parts bp))
+             (p-drive (%path-record-drive pp))
+             (b-drive (%path-record-drive bp))
+             (p-root (%path-record-root pp))
+             (b-root (%path-record-root bp))
              (pn (vector-length p-segs))
              (bn (vector-length b-segs))
             ) ;
         (define (same-anchor?)
           (and (string=? p-drive b-drive)
             (eq? p-root b-root)
-            (eq? (path-record-type pp) (path-record-type bp))
+            (eq? (%path-record-type pp) (%path-record-type bp))
           ) ;and
         ) ;define
         (define (prefix-match?)
@@ -112,7 +113,7 @@
                (value-error "path-relative-to: path is not relative to base")
               ) ;
               ((= bn pn) (path "."))
-              (else (make-path-record (remaining-segments) (path-record-type pp) "" #f))
+              (else (%make-path-record (remaining-segments) (%path-record-type pp) "" #f))
         ) ;cond
       ) ;let*
     ) ;define
@@ -122,19 +123,19 @@
     (define (path-starts-with? p base)
       (let* ((pp (path p))
              (bp (path base))
-             (p-segs (path-record-parts pp))
-             (b-segs (path-record-parts bp))
-             (p-drive (path-record-drive pp))
-             (b-drive (path-record-drive bp))
-             (p-root (path-record-root pp))
-             (b-root (path-record-root bp))
+             (p-segs (%path-record-parts pp))
+             (b-segs (%path-record-parts bp))
+             (p-drive (%path-record-drive pp))
+             (b-drive (%path-record-drive bp))
+             (p-root (%path-record-root pp))
+             (b-root (%path-record-root bp))
              (pn (vector-length p-segs))
              (bn (vector-length b-segs))
             ) ;
         (define (same-anchor?)
           (and (string=? p-drive b-drive)
             (eq? p-root b-root)
-            (eq? (path-record-type pp) (path-record-type bp))
+            (eq? (%path-record-type pp) (%path-record-type bp))
           ) ;and
         ) ;define
         (define (prefix-match?)
@@ -162,21 +163,21 @@
           (define (drop-dots v)
             (vector-filter (lambda (x) (not (string=? x "."))) v)
           ) ;define
-          (let ((acc-parts (drop-dots (path-record-parts acc)))
-                (seg-parts (drop-dots (path-record-parts seg)))
+          (let ((acc-parts (drop-dots (%path-record-parts acc)))
+                (seg-parts (drop-dots (%path-record-parts seg)))
                ) ;
-            (make-path-record (vector-append acc-parts seg-parts)
-              (path-record-type acc)
-              (path-record-drive acc)
-              (path-record-root acc)
-            ) ;make-path-record
+            (%make-path-record (vector-append acc-parts seg-parts)
+              (%path-record-type acc)
+              (%path-record-drive acc)
+              (%path-record-root acc)
+            ) ;%make-path-record
           ) ;let
         ) ;define
         (define (join-one acc seg)
-          (let ((seg-type (path-record-type seg))
-                (seg-drive (path-record-drive seg))
-                (seg-root (path-record-root seg))
-                (acc-drive (path-record-drive acc))
+          (let ((seg-type (%path-record-type seg))
+                (seg-drive (%path-record-drive seg))
+                (seg-root (%path-record-root seg))
+                (acc-drive (%path-record-drive acc))
                ) ;
             (cond
               ;; 完整绝对段:替换 acc
@@ -187,7 +188,7 @@
               ) ;
               ;; Windows current-drive root 段(无 drive 有 root):继承 acc drive,重置主体
               ((and (eq? seg-type 'windows) (string-null? seg-drive) seg-root)
-               (make-path-record (path-record-parts seg) 'windows acc-drive seg-root)
+               (%make-path-record (%path-record-parts seg) 'windows acc-drive seg-root)
               ) ;
               ;; 纯相对段:追加 parts
               (else (append-parts acc seg))
@@ -213,10 +214,10 @@
     ;; ; 相对单段(a) parent 是当前目录 "."。
     (define (path-parent p)
       (let* ((pp (path p))
-             (parts (path-record-parts pp))
-             (type (path-record-type pp))
-             (drive (path-record-drive pp))
-             (root (path-record-root pp))
+             (parts (%path-record-parts pp))
+             (type (%path-record-type pp))
+             (drive (%path-record-drive pp))
+             (root (%path-record-root pp))
              (n (vector-length parts))
             ) ;
         (cond
@@ -229,25 +230,25 @@
           ((= n 1)
            (if root
              (cond ((and (eq? type 'posix) (string-null? drive))
-                    (make-path-record #() 'posix "" #\/)
+                    (%make-path-record #() 'posix "" #\/)
                    ) ;
                    ;; UNC 单段(\\srv\sh\a → \\srv\sh):drive 存的是 share anchor
                    ;; ("\\server\share" 以 \\ 开头,与单字母盘符区分),直接回到
                    ;; 空 parts + 原 drive/root。
-                   ((unc-prefix? drive) (make-path-record #() 'windows drive root))
+                   ((unc-prefix? drive) (%make-path-record #() 'windows drive root))
                    ((not (string-null? drive)) (path-of-drive (string-ref drive 0)))
                    ;; 无 drive 但有 root:windows current-drive root (\foo → \)
-                   (else (make-path-record #() 'windows "" root))
+                   (else (%make-path-record #() 'windows "" root))
              ) ;cond
              (if (not (string-null? drive))
                ;; drive-relative 单段:C:foo → C:(保留 drive、root 空、parts 空)
-               (make-path-record #() 'windows drive #f)
+               (%make-path-record #() 'windows drive #f)
                (path ".")
              ) ;if
            ) ;if
           ) ;
           ;; 多段:去掉末段,保留 drive/root
-          (else (make-path-record (vector-drop-right parts 1) type drive root))
+          (else (%make-path-record (vector-drop-right parts 1) type drive root))
         ) ;cond
       ) ;let*
     ) ;define

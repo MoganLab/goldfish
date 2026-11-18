@@ -15,7 +15,7 @@
 ;; boolean
 ;; 以连续两个反斜杠开头返回 #t，否则 #f。
 
-(import (liii check) (liii path parse))
+(import (liii check) (liii path internal parse))
 
 (check-set-mode! 'report-failed)
 

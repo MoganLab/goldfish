@@ -15,7 +15,7 @@
 ;; vector?
 ;; 去掉首段后，过滤空串、"/" 与 "\\" 残段的新向量。
 
-(import (liii check) (liii path parse))
+(import (liii check) (liii path internal parse))
 
 (check-set-mode! 'report-failed)
 

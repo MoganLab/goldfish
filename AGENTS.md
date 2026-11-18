@@ -178,3 +178,10 @@ tools/ → library/ → goldfish/ → r7rs/
 - `json->xxx` 负责将 `(liii json)` 解析出的 JSON 对象规范化构造为对应的 record：
   - 优先使用 `(liii json)` 提供的成熟接口（`json-object?`、`json-ref`、`json-ref-string`、`json-ref-integer`、`json-ref-boolean`、`json-null?` 等），避免在业务模块中重复手写 `%json-dict-ref` / `%normalize-json-bool` 等 alist 检索或布尔归一化辅助函数；
   - 缺失或非法字段应回退安全默认值；入参非 `json-object?` / `'()`（且非目标 record）时使用 `(unless ... (type-error ...))` 报错，若传入已是目标 record 可幂等返回。
+
+## 4. 库拆分与内部模块规范
+
+- **公开入口库与 `internal/` 隔离**：按职责拆分的标准库，公开入口库分为顶层公开入口库（如 `(liii path)`）与可按需单独导入的非顶层公开入口库（如 `(liii path stat)`）；不期望用户直接 `import` 的底层实现应放在 `(liii <pkg> internal <submod>)`（如 `(liii path internal record)`、`parse`、`component`），仅由同库内的公开入口库或兄弟内部模块导入。
+- **最小化导出边界**：仅在当前文件内部使用的辅助函数应作为私有 `define` 保留在 `(begin ...)` 内，不列入 `(export ...)`；无实际调用方的可变 setter 不盲目生成或导出。
+- **`%` 前缀内部跨模块接口**：必须在子模块间共享、但不作为公开 API 的底层原语（如 `%make-path-record`、`%path?`、`%path-record-*`），统一使用 `%` 前缀命名并导出；`bin/gf check` 的 `unit-test` 规则不对 `%` 开头的导出强制要求单独的单元测试文件（由上层公开 API 单测覆盖即可）。
+- **重导出与文档同步**：顶层公开入口库 `(liii <pkg>)` 重导出的各子库之间避免重复导出；调整模块划分后，同步更新对应 `tests/` 根目录的 `README.md`，确保 `bin/gf doc` 展示与实际结构一致。

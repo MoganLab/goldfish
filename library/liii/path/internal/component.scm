@@ -14,15 +14,16 @@
 ;; limitations under the License.
 ;;
 
-(define-library (liii path component)
-  (export split-name-dots replace-last-segment path-name path-stem path-suffix
-    path-suffixes path-with-name path-with-stem path-with-suffix
+(define-library (liii path internal component)
+  (export path-name path-stem path-suffix path-suffixes path-with-name
+    path-with-stem path-with-suffix
   ) ;export
   (import (scheme base)
     (liii base)
     (liii error)
     (liii string)
     (liii vector)
+    (liii path internal record)
     (liii path record)
   ) ;import
   (begin
@@ -51,20 +52,20 @@
     ;; ; 空路径(parts 为空或仅 ".")直接返回单段 new-name 的相对路径。
     (define (replace-last-segment p new-name)
       (let* ((pp (path p))
-             (parts (path-record-parts pp))
+             (parts (%path-record-parts pp))
              (n (vector-length parts))
-             (type (path-record-type pp))
-             (drive (path-record-drive pp))
-             (root (path-record-root pp))
+             (type (%path-record-type pp))
+             (drive (%path-record-drive pp))
+             (root (%path-record-root pp))
             ) ;
         (cond
          ((or (= n 0) (and (= n 1) (string=? (vector-ref parts 0) ".")))
-          (make-path-record (vector new-name) 'posix "" #f)
+          (%make-path-record (vector new-name) 'posix "" #f)
          ) ;
          (else
            (let ((new-parts (vector-copy parts)))
              (vector-set! new-parts (- n 1) new-name)
-             (make-path-record new-parts type drive root)
+             (%make-path-record new-parts type drive root)
            ) ;let
          ) ;else
         ) ;cond
@@ -75,7 +76,7 @@
     ;; ; 差异:跨平台一致 — 直接取 record parts 末段,不依赖 path->string
     ;; ; 与平台 sep。空 parts 或仅 "." 返回 ""。
     (define (path-name p)
-      (let* ((pp (path p)) (parts (path-record-parts pp)) (n (vector-length parts)))
+      (let* ((pp (path p)) (parts (%path-record-parts pp)) (n (vector-length parts)))
         (cond ((= n 0) "")
               ((and (= n 1) (string=? (vector-ref parts 0) ".")) "")
               (else (vector-ref parts (- n 1)))
