@@ -26,14 +26,13 @@
     (liii bigint string)
   ) ;import
 
-  (export ensure-bigint bigint-even-internal? bigint-negate bigint-abs
+  (export %ensure-bigint %bigint-even-internal? bigint-negate bigint-abs
     bigint-add bigint-subtract bigint-multiply bigint-divide-and-remainder
-    bigint-divide bigint-quotient bigint-remainder bigint-modulo
-    normalize-exponent bigint-expt
+    bigint-divide bigint-quotient bigint-remainder bigint-modulo bigint-expt
   ) ;export
 
   (begin
-    (define (ensure-bigint who obj)
+    (define (%ensure-bigint who obj)
       (if (bigint? obj)
         obj
         (type-error (string-append who " in (liii bigint arithmetic): not a bigint")
@@ -42,14 +41,14 @@
       ) ;if
     ) ;define
 
-    (define (bigint-even-internal? n)
+    (define (%bigint-even-internal? n)
       (let ((mag (bigint-mag n)))
         (or (null? mag) (= (remainder (car (reverse mag)) 2) 0))
       ) ;let
     ) ;define
 
     (define (bigint-negate n)
-      (let* ((value (ensure-bigint "bigint-negate" n)) (signum (bigint-signum value)))
+      (let* ((value (%ensure-bigint "bigint-negate" n)) (signum (bigint-signum value)))
         (cond ((= signum 0) value)
               ((= signum 1) (make-bigint -1 (bigint-mag value)))
               (else (make-bigint 1 (bigint-mag value)))
@@ -58,14 +57,14 @@
     ) ;define
 
     (define (bigint-abs n)
-      (let ((value (ensure-bigint "bigint-abs" n)))
+      (let ((value (%ensure-bigint "bigint-abs" n)))
         (if (= (bigint-signum value) -1) (bigint-negate value) value)
       ) ;let
     ) ;define
 
     (define (bigint-add a b)
-      (let* ((left (ensure-bigint "bigint-add" a))
-             (right (ensure-bigint "bigint-add" b))
+      (let* ((left (%ensure-bigint "bigint-add" a))
+             (right (%ensure-bigint "bigint-add" b))
              (signum-a (bigint-signum left))
              (signum-b (bigint-signum right))
             ) ;
@@ -101,8 +100,8 @@
     ) ;define
 
     (define (bigint-multiply a b)
-      (let* ((left (ensure-bigint "bigint-multiply" a))
-             (right (ensure-bigint "bigint-multiply" b))
+      (let* ((left (%ensure-bigint "bigint-multiply" a))
+             (right (%ensure-bigint "bigint-multiply" b))
              (signum-a (bigint-signum left))
              (signum-b (bigint-signum right))
             ) ;
@@ -116,8 +115,8 @@
     ) ;define
 
     (define (bigint-divide-and-remainder a b)
-      (let* ((left (ensure-bigint "bigint-divide-and-remainder" a))
-             (right (ensure-bigint "bigint-divide-and-remainder" b))
+      (let* ((left (%ensure-bigint "bigint-divide-and-remainder" a))
+             (right (%ensure-bigint "bigint-divide-and-remainder" b))
              (signum-a (bigint-signum left))
              (signum-b (bigint-signum right))
             ) ;
@@ -164,7 +163,7 @@
     ) ;define
 
     (define (bigint-modulo a b)
-      (let ((divisor (ensure-bigint "bigint-modulo" b)))
+      (let ((divisor (%ensure-bigint "bigint-modulo" b)))
         (if (bigint-zero? divisor)
           (value-error "bigint-modulo in (liii bigint arithmetic): division by zero")
           (let ((remainder (bigint-remainder a divisor)))
@@ -206,12 +205,13 @@
     (define (bigint-expt base exponent)
       (let loop
         ((acc bigint-one)
-         (factor (ensure-bigint "bigint-expt" base))
+         (factor (%ensure-bigint "bigint-expt" base))
          (power (normalize-exponent exponent))
         ) ;
         (if (bigint-zero? power)
           acc
-          (let ((next-acc (if (bigint-even-internal? power) acc (bigint-multiply acc factor))))
+          (let ((next-acc (if (%bigint-even-internal? power) acc (bigint-multiply acc factor)))
+               ) ;
             (loop next-acc (bigint-multiply factor factor) (bigint-divide power bigint-two))
           ) ;let
         ) ;if

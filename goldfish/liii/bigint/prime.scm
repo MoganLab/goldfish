@@ -73,7 +73,7 @@
     ) ;define
 
     (define (make-random-bigint-below bound)
-      (let ((value (ensure-bigint "make-random-bigint-below" bound)))
+      (let ((value (%ensure-bigint "make-random-bigint-below" bound)))
         (if (bigint<=? value bigint-zero)
           bigint-zero
           (let ((bits (bigint-bit-length value)))
@@ -144,7 +144,7 @@
     ) ;define
 
     (define (bigint-prime? n . maybe-certainty)
-      (let* ((value (ensure-bigint "bigint-prime?" n))
+      (let* ((value (%ensure-bigint "bigint-prime?" n))
              (certainty (if (null? maybe-certainty) 10 (normalize-certainty (car maybe-certainty)))
              ) ;certainty
              (rounds (if (= certainty 0) 1 certainty))
@@ -169,7 +169,7 @@
     ) ;define
 
     (define (bigint-next-prime n)
-      (let ((value (ensure-bigint "bigint-next-prime" n)))
+      (let ((value (%ensure-bigint "bigint-next-prime" n)))
         (if (bigint<? value bigint-two)
           bigint-two
           (let ((start (bigint-add value bigint-one)))
