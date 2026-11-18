@@ -13,6 +13,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 ;;
+;; ; (liii uri internal record) - URI 底层记录类型
+;; ; 仅由 (liii uri ...) 家族内部模块导入，不作为公开 API
 
 (define-library (liii uri internal record)
   (export %make-uri-record %uri? %uri-record-scheme %uri-record-netloc

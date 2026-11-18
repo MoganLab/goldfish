@@ -13,21 +13,23 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 ;;
-;; ; (liii uri compare) - URI 比较函数
-;; ; 本模块包含 URI 的比较和哈希函数
+;; ; (liii uri compare) - URI 比较与哈希子库
+;; ; 函数文档见 bin/gf doc liii/uri 与 library/tests/liii/uri/compare/README.md
 
 (define-library (liii uri compare)
-  (import (scheme base) (liii uri internal record) (liii uri record))
+  (import (scheme base)
+    (liii uri internal record)
+    (liii uri record)
+  ) ;import
 
   ;; ; ---------- 导出接口 ----------
-  (export uri=?)
-  (export uri<?)
-  (export uri>?)
+  ;; 转换与比较
+  (export uri=? uri<? uri>?)
   (export uri-hash)
 
   (begin
-    ;; ; ---------- 转换辅助函数 ----------
-    ;; 将 URI 转换为字符串表示（用于比较）
+
+    ;; ; ---------- 比较辅助 ----------
     (define (uri->string-for-compare uri-obj)
       (if (not (%uri? uri-obj))
         (error "uri->string-for-compare: expected uri")
@@ -49,7 +51,6 @@
     ) ;define
 
     ;; ; ---------- 比较函数 ----------
-    ;; URI 相等比较
     (define (uri=? uri1 uri2)
       (and (%uri? uri1)
         (%uri? uri2)
@@ -57,7 +58,6 @@
       ) ;and
     ) ;define
 
-    ;; URI 小于比较（字典序）
     (define (uri<? uri1 uri2)
       (and (%uri? uri1)
         (%uri? uri2)
@@ -65,7 +65,6 @@
       ) ;and
     ) ;define
 
-    ;; URI 大于比较（字典序）
     (define (uri>? uri1 uri2)
       (and (%uri? uri1)
         (%uri? uri2)
@@ -73,7 +72,7 @@
       ) ;and
     ) ;define
 
-    ;; 计算 URI 的哈希值
+    ;; ; ---------- 哈希函数 ----------
     (define (uri-hash uri-obj)
       (if (not (%uri? uri-obj))
         (error "uri-hash: expected uri")
@@ -83,7 +82,6 @@
               (query (%uri-record-query uri-obj))
               (fragment (or (%uri-record-fragment uri-obj) ""))
              ) ;
-          ;; 简单哈希：字符串长度之和（实际应使用更好的哈希算法）
           (+ (string-length scheme)
             (string-length netloc)
             (string-length path)

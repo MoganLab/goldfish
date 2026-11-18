@@ -13,8 +13,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 ;;
-;; ; (liii uri convert) - URI 转换函数
-;; ; 本模块包含 URI 的转换函数（uri->string, uri->human-string）
+;; ; (liii uri convert) - URI 字符串转换子库
+;; ; 函数文档见 bin/gf doc liii/uri 与 library/tests/liii/uri/convert/README.md
 
 (define-library (liii uri convert)
   (import (scheme base)
@@ -25,10 +25,12 @@
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
+  ;; 转换与比较
   (export uri->string)
   (export uri->human-string)
 
   (begin
+
     ;; ; ---------- 转换函数 ----------
     (define (uri->string uri-obj)
       (if (not (%uri? uri-obj))
@@ -51,7 +53,6 @@
     ) ;define
 
     (define (uri->human-string uri-obj)
-      ;; 生成人类可读的 URI 字符串（去除敏感信息如密码）
       (if (not (%uri? uri-obj))
         (error "uri->human-string: expected uri")
         (let* ((scheme (%uri-record-scheme uri-obj))

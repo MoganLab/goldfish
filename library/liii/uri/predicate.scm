@@ -13,8 +13,8 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 ;;
-;; ; (liii uri predicate) - URI 谓词函数
-;; ; 本模块包含 URI 相关的所有谓词函数
+;; ; (liii uri predicate) - URI 谓词子库
+;; ; 函数文档见 bin/gf doc liii/uri 与 library/tests/liii/uri/predicate/README.md
 
 (define-library (liii uri predicate)
   (import (scheme base)
@@ -24,15 +24,16 @@
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
-  (export uri-absolute?)
-  (export uri-relative?)
+  ;; 谓词
+  (export uri-absolute? uri-relative?)
+  (export uri-default-port? uri-network-scheme?)
+
+  ;; 端口
   (export uri-default-port)
-  (export uri-default-port?)
-  (export uri-network-scheme?)
 
   (begin
+
     ;; ; ---------- 谓词函数 ----------
-    ;; 检查是否为绝对 URI（有 scheme）
     (define (uri-absolute? uri-obj)
       (and (%uri? uri-obj)
         (%uri-record-scheme uri-obj)
@@ -40,19 +41,12 @@
       ) ;and
     ) ;define
 
-    ;; 检查是否为相对 URI（无 scheme）
     (define (uri-relative? uri-obj)
       (and (%uri? uri-obj)
         (or (not (%uri-record-scheme uri-obj)) (string=? (%uri-record-scheme uri-obj) ""))
       ) ;and
     ) ;define
 
-    ;; 获取 scheme 的默认端口
-    (define (uri-default-port scheme)
-      (%uri-default-port scheme)
-    ) ;define
-
-    ;; 检查 URI 是否使用默认端口
     (define (uri-default-port? uri-obj)
       (let* ((scheme (%uri-record-scheme uri-obj))
              (default-port (and scheme (%uri-default-port scheme)))
@@ -62,10 +56,14 @@
       ) ;let*
     ) ;define
 
-    ;; 检查是否为网络 scheme
     (define (uri-network-scheme? scheme)
       (and (%uri-default-port scheme) #t)
     ) ;define
-  ) ;begin
 
+    ;; ; ---------- 端口 ----------
+    (define (uri-default-port scheme)
+      (%uri-default-port scheme)
+    ) ;define
+
+  ) ;begin
 ) ;define-library

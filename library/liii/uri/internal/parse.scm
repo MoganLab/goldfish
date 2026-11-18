@@ -13,19 +13,18 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 ;;
-;; ; (liii uri internal parse) - URI 解析辅助函数
-;; ; 本模块包含 URI 解析和构造的内部辅助函数
+;; ; (liii uri internal parse) - URI 内部解析辅助
+;; ; 仅由 (liii uri ...) 家族内部模块导入，不作为公开 API
 
 (define-library (liii uri internal parse)
   (import (scheme base) (scheme char) (liii string) (liii error))
 
   ;; ; ---------- 导出接口 ----------
-  (export parse-netloc)
-  (export build-netloc)
-  (export %uri-default-port)
+  (export parse-netloc build-netloc %uri-default-port)
 
   (begin
-    ;; 默认端口映射表
+
+    ;; ; ---------- 默认端口映射表 ----------
     (define DEFAULT-PORTS
       '(("http" . 80)
         ("https" . 443)
@@ -38,14 +37,13 @@
         ("ldap" . 389))
     ) ;define
 
-    ;; 获取 scheme 的默认端口
     (define (%uri-default-port scheme)
       (let ((pair (assoc scheme DEFAULT-PORTS)))
         (if pair (cdr pair) #f)
       ) ;let
     ) ;define
-    ;; ; ---------- 解析辅助函数 ----------
-    ;; 解析 netloc 部分为 (user password host port) 列表
+
+    ;; ; ---------- netloc 解析与构造 ----------
     (define (parse-netloc netloc-str)
       (if (string=? netloc-str "")
         '(#f #f #f #f)
@@ -93,7 +91,6 @@
       ) ;if
     ) ;define
 
-    ;; 从组件构造 netloc 字符串
     (define (build-netloc user password host port)
       (if (not host)
         ""
