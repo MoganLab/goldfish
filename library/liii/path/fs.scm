@@ -15,11 +15,16 @@
 ;;
 
 (define-library (liii path fs)
-  (export path-copy path-copy-into path-dir? path-file? path-exists?
-    path-getsize path-read-text path-read-lines path-read-bytes path-write-text
-    path-write-bytes path-append-text path-touch path-list path-list-path
-    path-rmdir path-unlink path-rename path-mkdir
-  ) ;export
+  ;; 谓词
+  (export path-dir? path-file? path-exists?)
+  ;; 读操作
+  (export path-getsize path-read-text path-read-lines path-read-bytes)
+  ;; 写操作
+  (export path-write-text path-write-bytes path-append-text path-touch)
+  ;; 目录操作
+  (export path-list path-list-path path-rmdir path-mkdir)
+  ;; 文件管理
+  (export path-copy path-copy-into path-unlink path-rename)
   (import (scheme base)
     (liii base)
     (liii error)
@@ -43,9 +48,7 @@
     ;; ; 复制文件到目标目录(自动取源文件名作为目标名)。
     (define (path-copy-into source target-dir)
       (let ((filename (path-name (path source))))
-        (path-copy source
-          (path->string (path-join (path target-dir) (path filename)))
-        ) ;path-copy
+        (path-copy source (path->string (path-join (path target-dir) (path filename))))
       ) ;let
     ) ;define
 
