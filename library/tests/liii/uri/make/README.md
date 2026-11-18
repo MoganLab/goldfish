@@ -25,13 +25,13 @@
 使用以下命令查看函数文档和测试用例：
 
 ```bash
-bin/gf doc "函数名"
+gf doc "函数名"
 ```
 
 或者指定库名：
 
 ```bash
-bin/gf doc liii/uri/make "函数名"
+gf doc liii/uri/make "函数名"
 ```
 
 ## 函数分类索引

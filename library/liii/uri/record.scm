@@ -134,35 +134,39 @@
       ) ;if
     ) ;define
 
+    (define (%decode-percent-hex chars)
+      (and (not (null? (cdr chars)))
+        (not (null? (cddr chars)))
+        (let ((high (char->hex (cadr chars))) (low (char->hex (caddr chars))))
+          (and high low (integer->char (+ (* high 16) low)))
+        ) ;let
+      ) ;and
+    ) ;define
+
     (define (uri-decode str)
-      (if (not (string? str))
+      (unless (string? str)
         (type-error "uri-decode: expected string")
-        (let loop
-          ((chars (string->list str)) (result '()))
-          (if (null? chars)
-            (list->string (reverse result))
-            (let ((c (car chars)))
-              (cond
-               ((char=? c #\%)
-                (if
-                  (and (not (null? (cdr chars)))
-                    (not (null? (cddr chars)))
-                    (char->hex (cadr chars))
-                    (char->hex (caddr chars))
-                  ) ;and
-                  (let ((high (char->hex (cadr chars))) (low (char->hex (caddr chars))))
-                    (loop (cdddr chars) (cons (integer->char (+ (* high 16) low)) result))
-                  ) ;let
+      ) ;unless
+      (let loop
+        ((chars (string->list str)) (result '()))
+        (if (null? chars)
+          (list->string (reverse result))
+          (let ((c (car chars)))
+            (cond
+             ((char=? c #\%)
+              (let ((ch (%decode-percent-hex chars)))
+                (if ch
+                  (loop (cdddr chars) (cons ch result))
                   (error "uri-decode: invalid percent encoding")
                 ) ;if
-               ) ;
-               ((char=? c #\+) (loop (cdr chars) (cons #\space result)))
-               (else (loop (cdr chars) (cons c result)))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;if
+              ) ;let
+             ) ;
+             ((char=? c #\+) (loop (cdr chars) (cons #\space result)))
+             (else (loop (cdr chars) (cons c result)))
+            ) ;cond
+          ) ;let
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (uri-encode-path path)
@@ -322,18 +326,16 @@
     ) ;define
 
     (define (uri-query-ref uri-obj key)
-      (let ((query (%uri-record-query uri-obj)))
-        (let ((pair (assoc key query)))
-          (if pair (cdr pair) #f)
-        ) ;let
+      (let ((pair (assoc key (%uri-record-query uri-obj))))
+        (if pair (cdr pair) #f)
       ) ;let
     ) ;define
 
     (define (uri-query-ref* uri-obj key . rest)
-      (let ((default (if (null? rest) #f (car rest))) (query (%uri-record-query uri-obj)))
-        (let ((pair (assoc key query)))
-          (if pair (cdr pair) default)
-        ) ;let
+      (let ((default (if (null? rest) #f (car rest)))
+            (pair (assoc key (%uri-record-query uri-obj)))
+           ) ;
+        (if pair (cdr pair) default)
       ) ;let
     ) ;define
 
