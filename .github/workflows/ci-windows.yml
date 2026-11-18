@@ -39,7 +39,6 @@ jobs:
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: v3.0.8
-          actions-cache-folder: '.xmake-cache'
       - name: update repo
         run: xmake repo -u
       - name: git crlf

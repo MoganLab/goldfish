@@ -14,8 +14,10 @@ set_project("Goldfish Scheme")
 add_repositories("goldfish-repo xmake")
 
 option("reproducible")
-    set_description("Enable reproducible build")
-    set_default(false)
+    set_description("Enable reproducible build (default on for Windows)")
+    -- 仅 Windows 下生效（/experimental:deterministic + /Brepro），故默认开启；
+    -- 其余平台该选项无效果，保持默认关闭
+    set_default(is_plat("windows"))
     set_values(false, true)
 option_end()
 
