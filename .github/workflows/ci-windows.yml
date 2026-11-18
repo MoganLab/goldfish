@@ -46,6 +46,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: cache packages from xrepo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+            build/.packages
+          key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+
+      - name: cache test results
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/goldfish/test
+          key: windows-2025-test-cache-${{ github.sha }}
+          restore-keys: |
+            windows-2025-test-cache-
       - name: Detect changes
         id: filter
         uses: dorny/paths-filter@v3
@@ -79,7 +94,7 @@ jobs:
             tools_repl:
               - 'tools/repl/**'
       - name: config
-        run: xmake config --yes -vD
+        run: xmake config --yes -vD --reproducible=y
       - name: build
         run: xmake build --yes -vD goldfish
       - name: test r7rs

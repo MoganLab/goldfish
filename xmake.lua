@@ -13,6 +13,12 @@ set_project("Goldfish Scheme")
 -- repo
 add_repositories("goldfish-repo xmake")
 
+option("reproducible")
+    set_description("Enable reproducible build (default on for Windows)")
+    set_default(true)
+    set_values(false, true)
+option_end()
+
 option("tbox")
     set_description("Use tbox installed via apt")
     set_default(false)
@@ -187,6 +193,11 @@ target ("goldfish") do
         -- 需 ≥4MB 栈，1MB 下 GC 时爆栈（0xC0000409，CI windowsbuild 失败）。
         -- 提升到 8MB 与 Unix 默认对齐（量化：1MB/2MB 崩溃，4MB/8MB 通过）。
         add_ldflags("/STACK:8388608", {force = true})
+        if has_config("reproducible") then
+            add_cflags("/experimental:deterministic")
+            add_cxxflags("/experimental:deterministic")
+            add_ldflags("/Brepro", {force = true})
+        end
     end
 
 
