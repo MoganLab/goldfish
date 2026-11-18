@@ -76,8 +76,8 @@
     ) ;define
 
     (define (bytewise-op a b op-name op-func)
-      (let* ((left (ensure-bigint op-name a))
-             (right (ensure-bigint op-name b))
+      (let* ((left (%ensure-bigint op-name a))
+             (right (%ensure-bigint op-name b))
              (left-bytes (bytevector->u8-list (bigint->bytes left)))
              (right-bytes (bytevector->u8-list (bigint->bytes right)))
              (target-len (max (length left-bytes) (length right-bytes)))
@@ -143,13 +143,13 @@
     ) ;define
 
     (define (bigint-not n)
-      (let ((value (ensure-bigint "bigint-not" n)))
+      (let ((value (%ensure-bigint "bigint-not" n)))
         (bigint-subtract (bigint-negate value) (integer->bigint 1))
       ) ;let
     ) ;define
 
     (define (bigint-arithmetic-shift a n)
-      (let ((value (ensure-bigint "bigint-arithmetic-shift" a)))
+      (let ((value (%ensure-bigint "bigint-arithmetic-shift" a)))
         (cond ((= n 0) value)
               ((> n 0) (bigint-multiply value (bigint-expt (integer->bigint 2) n)))
               (else
@@ -171,7 +171,7 @@
     ;;; ---------- 位测试与操作 ----------
 
     (define (bigint-bit-set? a n)
-      (let ((value (ensure-bigint "bigint-bit-set?" a)))
+      (let ((value (%ensure-bigint "bigint-bit-set?" a)))
         (if (< n 0)
           (value-error "bigint-bit-set? in (liii bigint bitwise): bit index must be non-negative"
             n
@@ -182,7 +182,7 @@
     ) ;define
 
     (define (bigint-bit-set a n)
-      (let ((value (ensure-bigint "bigint-bit-set" a)))
+      (let ((value (%ensure-bigint "bigint-bit-set" a)))
         (if (< n 0)
           (value-error "bigint-bit-set in (liii bigint bitwise): bit index must be non-negative"
             n
@@ -193,7 +193,7 @@
     ) ;define
 
     (define (bigint-bit-clear a n)
-      (let ((value (ensure-bigint "bigint-bit-clear" a)))
+      (let ((value (%ensure-bigint "bigint-bit-clear" a)))
         (if (< n 0)
           (value-error "bigint-bit-clear in (liii bigint bitwise): bit index must be non-negative"
             n
@@ -210,7 +210,7 @@
     ) ;define
 
     (define (bigint-bit-flip a n)
-      (let ((value (ensure-bigint "bigint-bit-flip" a)))
+      (let ((value (%ensure-bigint "bigint-bit-flip" a)))
         (if (< n 0)
           (value-error "bigint-bit-flip in (liii bigint bitwise): bit index must be non-negative"
             n
@@ -223,7 +223,7 @@
     ;;; ---------- 位查询 ----------
 
     (define (bigint-bit-length a)
-      (let ((value (ensure-bigint "bigint-bit-length" a)))
+      (let ((value (%ensure-bigint "bigint-bit-length" a)))
         (let ((mag (bigint-mag value)))
           (if (null? mag)
             0
@@ -236,7 +236,7 @@
     ) ;define
 
     (define (bigint-bit-count a)
-      (let ((value (ensure-bigint "bigint-bit-count" a)))
+      (let ((value (%ensure-bigint "bigint-bit-count" a)))
         (cond ((bigint-zero? value) 0)
               ((bigint-negative? value)
                (mag-popcount (bigint-mag (bigint-subtract (bigint-abs value) (integer->bigint 1)))
@@ -248,7 +248,7 @@
     ) ;define
 
     (define (bigint-lowest-bit-set a)
-      (let ((value (ensure-bigint "bigint-lowest-bit-set" a)))
+      (let ((value (%ensure-bigint "bigint-lowest-bit-set" a)))
         (let ((mag (bigint-mag value)))
           (if (null? mag)
             -1

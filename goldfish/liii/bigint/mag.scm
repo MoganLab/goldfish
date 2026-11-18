@@ -17,13 +17,13 @@
 (define-library (liii bigint mag)
   (import (scheme base) (liii error) (liii bigint record))
 
-  (export add-mag sub-mag add-mag-with-base sub-mag-with-base compare-mag
-    shift-mag mul-mag-small-with-base
+  (export %add-mag %sub-mag %add-mag-with-base %compare-mag %shift-mag
+    %mul-mag-small-with-base
   ) ;export
 
   (begin
     ;; 通用的同进制 mag 加法，输入与输出均为大端序。
-    (define (add-mag-with-base a b base)
+    (define (%add-mag-with-base a b base)
       (let loop
         ((a (reverse a)) (b (reverse b)) (carry 0) (result '()))
         (cond ((and (null? a) (null? b)) (if (= carry 0) result (cons carry result)))
@@ -80,7 +80,7 @@
       ) ;let
     ) ;define
 
-    (define (mul-mag-small-with-base mag multiplier base)
+    (define (%mul-mag-small-with-base mag multiplier base)
       (if (or (null? mag) (= multiplier 0))
         '()
         (let loop
@@ -98,7 +98,7 @@
       ) ;if
     ) ;define
 
-    (define (compare-mag a b)
+    (define (%compare-mag a b)
       (let ((len-a (length a)) (len-b (length b)))
         (cond ((< len-a len-b) -1)
               ((> len-a len-b) 1)
@@ -116,15 +116,15 @@
       ) ;let
     ) ;define
 
-    (define (add-mag a b)
-      (add-mag-with-base a b BIGINT-BASE)
+    (define (%add-mag a b)
+      (%add-mag-with-base a b BIGINT-BASE)
     ) ;define
 
-    (define (sub-mag a b)
+    (define (%sub-mag a b)
       (sub-mag-with-base a b BIGINT-BASE)
     ) ;define
 
-    (define (shift-mag mag places)
+    (define (%shift-mag mag places)
       (if (null? mag) '() (append mag (make-list places 0)))
     ) ;define
 

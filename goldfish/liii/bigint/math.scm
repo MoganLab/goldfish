@@ -32,8 +32,8 @@
   (begin
     (define (bigint-gcd a b)
       (let loop
-        ((x (bigint-abs (ensure-bigint "bigint-gcd" a)))
-         (y (bigint-abs (ensure-bigint "bigint-gcd" b)))
+        ((x (bigint-abs (%ensure-bigint "bigint-gcd" a)))
+         (y (bigint-abs (%ensure-bigint "bigint-gcd" b)))
         ) ;
         (if (bigint-zero? y) x (loop y (bigint-remainder x y)))
       ) ;let
@@ -43,8 +43,8 @@
     ;; 返回与 a 模 m 同余的非负 bigint，结果始终在 [0, m-1] 范围内
     ;; 如果 m 不是正数，则抛出错误
     (define (bigint-mod a m)
-      (let* ((value (ensure-bigint "bigint-mod" a))
-             (modulus (ensure-bigint "bigint-mod" m))
+      (let* ((value (%ensure-bigint "bigint-mod" a))
+             (modulus (%ensure-bigint "bigint-mod" m))
              (signum-m (bigint-signum modulus))
             ) ;
         (if (not (= signum-m 1))
@@ -58,9 +58,9 @@
 
     ;; 返回 base^exponent mod m
     (define (bigint-mod-expt base exponent m)
-      (let* ((b (ensure-bigint "bigint-mod-expt" base))
-             (e (ensure-bigint "bigint-mod-expt" exponent))
-             (modulus (ensure-bigint "bigint-mod-expt" m))
+      (let* ((b (%ensure-bigint "bigint-mod-expt" base))
+             (e (%ensure-bigint "bigint-mod-expt" exponent))
+             (modulus (%ensure-bigint "bigint-mod-expt" m))
             ) ;
         (cond
          ((not (= (bigint-signum modulus) 1))
@@ -79,7 +79,7 @@
              ) ;
              (if (bigint-zero? power)
                acc
-               (let ((next-acc (if (bigint-even-internal? power)
+               (let ((next-acc (if (%bigint-even-internal? power)
                                  acc
                                  (bigint-mod (bigint-multiply acc factor) modulus)
                                ) ;if
@@ -113,8 +113,8 @@
 
     ;; 返回 a 模 m 的模乘法逆元
     (define (bigint-mod-inverse a m)
-      (let* ((value (ensure-bigint "bigint-mod-inverse" a))
-             (modulus (ensure-bigint "bigint-mod-inverse" m))
+      (let* ((value (%ensure-bigint "bigint-mod-inverse" a))
+             (modulus (%ensure-bigint "bigint-mod-inverse" m))
             ) ;
         (cond
          ((not (= (bigint-signum modulus) 1))
@@ -143,7 +143,7 @@
     ) ;define
 
     (define (bigint-sqrt-and-remainder n)
-      (let ((value (ensure-bigint "bigint-sqrt-and-remainder" n)))
+      (let ((value (%ensure-bigint "bigint-sqrt-and-remainder" n)))
         (cond ((bigint-negative? value)
                (value-error "bigint-sqrt-and-remainder in (liii bigint math): square root of negative bigint"
                  value
@@ -219,7 +219,7 @@
     ) ;define
 
     (define (bigint-rootn-and-remainder n degree)
-      (let* ((value (ensure-bigint "bigint-rootn-and-remainder" n))
+      (let* ((value (%ensure-bigint "bigint-rootn-and-remainder" n))
              (root-degree (normalize-root-degree "bigint-rootn-and-remainder" degree))
             ) ;
         (cond

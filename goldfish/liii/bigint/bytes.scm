@@ -20,6 +20,13 @@
   (export bytes->bigint bigint->bytes)
 
   (begin
+    (define (ensure-bigint who obj)
+      (if (bigint? obj)
+        obj
+        (type-error (string-append who " in (liii bigint bytes): not a bigint") obj)
+      ) ;if
+    ) ;define
+
     (define (drop-while pred lst)
       (if (null? lst) '() (if (pred (car lst)) (drop-while pred (cdr lst)) lst))
     ) ;define
@@ -54,7 +61,7 @@
     ) ;define
 
     (define (byte->hex byte)
-      (string (digit->char (quotient byte 16)) (digit->char (remainder byte 16)))
+      (string (%digit->char (quotient byte 16)) (%digit->char (remainder byte 16)))
     ) ;define
 
     (define (bytes->hex-string bytes)
@@ -76,8 +83,8 @@
           ((index 0) (result '()))
           (if (= index norm-len)
             (reverse result)
-            (let* ((hi (char->digit (string-ref normalized index)))
-                   (lo (char->digit (string-ref normalized (+ index 1))))
+            (let* ((hi (%char->digit (string-ref normalized index)))
+                   (lo (%char->digit (string-ref normalized (+ index 1))))
                   ) ;
               (loop (+ index 2) (cons (+ (* hi 16) lo) result))
             ) ;let*
