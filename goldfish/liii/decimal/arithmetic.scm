@@ -23,8 +23,8 @@
     (liii decimal rounding)
   ) ;import
 
-  (export decimal-unscaled-value decimal-signum decimal-ulp rescaled-unscaled
-    align-decimals decimal-add decimal-subtract decimal-multiply decimal-divide
+  (export decimal-unscaled-value decimal-signum decimal-ulp
+    decimal-add decimal-subtract decimal-multiply decimal-divide
     decimal-move-point-left decimal-scale-by-power-of-ten
     decimal-move-point-right decimal-divide-to-integral-value decimal-remainder
     decimal-divide-and-remainder decimal-plus decimal-exact-integer? decimal-max
@@ -47,7 +47,7 @@
       ) ;let
     ) ;define
 
-    (define (rescaled-unscaled value target-scale)
+    (define (%rescaled-unscaled value target-scale)
       (let* ((number (ensure-decimal "rescaled-unscaled" value))
              (current-scale (decimal-scale number))
             ) ;
@@ -60,20 +60,20 @@
       ) ;let*
     ) ;define
 
-    (define (align-decimals a b)
+    (define (%align-decimals a b)
       (let* ((left (ensure-decimal "align-decimals" a))
              (right (ensure-decimal "align-decimals" b))
              (target-scale (max (decimal-scale left) (decimal-scale right)))
             ) ;
-        (values (rescaled-unscaled left target-scale)
-          (rescaled-unscaled right target-scale)
+        (values (%rescaled-unscaled left target-scale)
+          (%rescaled-unscaled right target-scale)
           target-scale
         ) ;values
       ) ;let*
     ) ;define
 
     (define (decimal-add a b)
-      (call-with-values (lambda () (align-decimals a b))
+      (call-with-values (lambda () (%align-decimals a b))
         (lambda (left right scale)
           (make-decimal-with-scale (bigint-add left right) scale)
         ) ;lambda
@@ -81,7 +81,7 @@
     ) ;define
 
     (define (decimal-subtract a b)
-      (call-with-values (lambda () (align-decimals a b))
+      (call-with-values (lambda () (%align-decimals a b))
         (lambda (left right scale)
           (make-decimal-with-scale (bigint-subtract left right) scale)
         ) ;lambda
