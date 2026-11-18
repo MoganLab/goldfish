@@ -30,7 +30,7 @@
   (begin
     ;; decimal->long: 将decimal转换为long（带舍入）
     (define (decimal->long n)
-      (let* ((value (ensure-decimal "decimal->long" n))
+      (let* ((value (%ensure-decimal "decimal->long" n))
              (scale (decimal-scale value))
              (unscaled (decimal-unscaled value))
              (int-part
@@ -46,7 +46,7 @@
 
     ;; decimal->long-exact: 精确转换，如果丢失信息则报错
     (define (decimal->long-exact n)
-      (let ((value (ensure-decimal "decimal->long-exact" n)))
+      (let ((value (%ensure-decimal "decimal->long-exact" n)))
         (if (not (= (decimal-scale value) 0))
           (value-error "decimal->long-exact in (liii decimal type): decimal has fractional part"
             n
@@ -68,7 +68,7 @@
 
     ;; decimal->int-exact: 精确转换，如果丢失信息则报错
     (define (decimal->int-exact n)
-      (let ((value (ensure-decimal "decimal->int-exact" n)))
+      (let ((value (%ensure-decimal "decimal->int-exact" n)))
         (if (not (= (decimal-scale value) 0))
           (value-error "decimal->int-exact in (liii decimal type): decimal has fractional part"
             n
@@ -101,7 +101,7 @@
 
     ;; decimal->short-exact: 精确转换，如果丢失信息则报错
     (define (decimal->short-exact n)
-      (let ((value (ensure-decimal "decimal->short-exact" n)))
+      (let ((value (%ensure-decimal "decimal->short-exact" n)))
         (if (not (= (decimal-scale value) 0))
           (value-error "decimal->short-exact in (liii decimal type): decimal has fractional part"
             n
@@ -123,7 +123,7 @@
 
     ;; decimal->byte-exact: 精确转换，如果丢失信息则报错
     (define (decimal->byte-exact n)
-      (let ((value (ensure-decimal "decimal->byte-exact" n)))
+      (let ((value (%ensure-decimal "decimal->byte-exact" n)))
         (if (not (= (decimal-scale value) 0))
           (value-error "decimal->byte-exact in (liii decimal type): decimal has fractional part"
             n
@@ -135,21 +135,21 @@
 
     ;; decimal->double: 将decimal转换为double（可能丢失精度）
     (define (decimal->double n)
-      (let ((value (ensure-decimal "decimal->double" n)))
+      (let ((value (%ensure-decimal "decimal->double" n)))
         (string->number (decimal->string value))
       ) ;let
     ) ;define
 
     ;; decimal->float: 将decimal转换为float（可能丢失精度）
     (define (decimal->float n)
-      (let ((value (ensure-decimal "decimal->float" n)))
+      (let ((value (%ensure-decimal "decimal->float" n)))
         (exact->inexact (string->number (decimal->string value)))
       ) ;let
     ) ;define
 
     ;; decimal->rational: 将decimal转换为有理数（返回分子分母对）
     (define (decimal->rational n)
-      (let* ((value (ensure-decimal "decimal->rational" n))
+      (let* ((value (%ensure-decimal "decimal->rational" n))
              (scale (decimal-scale value))
              (unscaled (decimal-unscaled value))
             ) ;

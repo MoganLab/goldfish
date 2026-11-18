@@ -183,5 +183,7 @@ tools/ → library/ → goldfish/ → r7rs/
 
 - **公开入口库与 `internal/` 隔离**：按职责拆分的标准库，公开入口库分为顶层公开入口库（如 `(liii path)`）与可按需单独导入的非顶层公开入口库（如 `(liii path stat)`）；不期望用户直接 `import` 的底层实现应放在 `(liii <pkg> internal <submod>)`（如 `(liii path internal record)`、`parse`、`component`），仅由同库内的公开入口库或兄弟内部模块导入。
 - **最小化导出边界**：仅在当前文件内部使用的辅助函数应作为私有 `define` 保留在 `(begin ...)` 内，不列入 `(export ...)`；无实际调用方的可变 setter 不盲目生成或导出。
-- **`%` 前缀内部跨模块接口**：必须在子模块间共享、但不作为公开 API 的底层原语（如 `%make-path-record`、`%path?`、`%path-record-*`），统一使用 `%` 前缀命名并导出；`bin/gf check` 的 `unit-test` 规则不对 `%` 开头的导出强制要求单独的单元测试文件（由上层公开 API 单测覆盖即可）。
+- **`%` 前缀内部原语**：不作为公开 API 的底层辅助函数统一使用 `%` 前缀命名，`bin/gf check` 的 `unit-test` 规则不对 `%` 开头的导出强制要求单独的单元测试文件（由上层公开 API 单测覆盖即可）。具体分两种情形：
+  - 仅在单个模块内部使用的辅助函数，加 `%` 前缀后作为私有 `define` 保留，不列入 `(export ...)`；
+  - 必须在于模块间共享的底层原语（如 `%make-path-record`、`%path?`、`%path-record-*`），加 `%` 前缀命名并导出，仅供同库内兄弟模块导入，不对最终用户开放。
 - **重导出与文档同步**：顶层公开入口库 `(liii <pkg>)` 重导出的各子库之间避免重复导出；调整模块划分后，同步更新对应 `tests/` 根目录的 `README.md`，确保 `bin/gf doc` 展示与实际结构一致。

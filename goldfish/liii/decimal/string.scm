@@ -17,12 +17,12 @@
 (define-library (liii decimal string)
   (import (scheme base) (liii error) (liii bigint) (liii decimal record))
 
-  (export ensure-decimal string->decimal decimal->string decimal->plain-string
+  (export %ensure-decimal string->decimal decimal->string decimal->plain-string
     decimal->engineering-string decimal->scientific-string
   ) ;export
 
   (begin
-    (define (ensure-decimal who obj)
+    (define (%ensure-decimal who obj)
       (if (decimal? obj)
         obj
         (type-error (string-append who " in (liii decimal string): not a decimal") obj)
@@ -194,7 +194,7 @@
     ) ;define
 
     (define (decimal->string n)
-      (let* ((value (ensure-decimal "decimal->string" n))
+      (let* ((value (%ensure-decimal "decimal->string" n))
              (unscaled (decimal-unscaled value))
              (scale (decimal-scale value))
             ) ;
@@ -232,7 +232,7 @@
     ) ;define
 
     (define (decimal->scientific-string n)
-      (let* ((value (ensure-decimal "decimal->scientific-string" n))
+      (let* ((value (%ensure-decimal "decimal->scientific-string" n))
              (unscaled (decimal-unscaled value))
              (scale (decimal-scale value))
              (negative? (bigint-negative? unscaled))
@@ -261,7 +261,7 @@
     ) ;define
 
     (define (decimal->engineering-string n)
-      (let* ((value (ensure-decimal "decimal->engineering-string" n))
+      (let* ((value (%ensure-decimal "decimal->engineering-string" n))
              (unscaled (decimal-unscaled value))
              (scale (decimal-scale value))
              (negative? (bigint-negative? unscaled))

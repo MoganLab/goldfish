@@ -26,7 +26,7 @@
     (liii decimal cast)
   ) ;import
 
-  (export decimal-pow decimal-sqrt apply-math-context decimal-add-with-context
+  (export decimal-pow decimal-sqrt decimal-add-with-context
     decimal-subtract-with-context decimal-multiply-with-context
     decimal-divide-with-context decimal-pow-with-context
     decimal-sqrt-with-context decimal-abs-with-context
@@ -35,7 +35,7 @@
 
   (begin
     (define (decimal-pow n exponent . args)
-      (let* ((value (ensure-decimal "decimal-pow" n))
+      (let* ((value (%ensure-decimal "decimal-pow" n))
              (exp (if (not (integer? exponent))
                     (type-error "decimal-pow in (liii decimal advanced): exponent must be an integer"
                       exponent
@@ -71,7 +71,7 @@
     ) ;define
 
     (define (decimal-sqrt n . args)
-      (let ((value (ensure-decimal "decimal-sqrt" n)))
+      (let ((value (%ensure-decimal "decimal-sqrt" n)))
         (cond ((decimal-negative? value)
                (value-error "decimal-sqrt in (liii decimal advanced): cannot compute square root of negative number"
                  value
@@ -122,25 +122,25 @@
       ) ;let
     ) ;define
 
-    (define (apply-math-context result mc)
+    (define (%apply-math-context result mc)
       (if (math-context? mc) (decimal-round result mc) result)
     ) ;define
 
     (define (decimal-add-with-context a b mc)
-      (apply-math-context (decimal-add a b) mc)
+      (%apply-math-context (decimal-add a b) mc)
     ) ;define
 
     (define (decimal-subtract-with-context a b mc)
-      (apply-math-context (decimal-subtract a b) mc)
+      (%apply-math-context (decimal-subtract a b) mc)
     ) ;define
 
     (define (decimal-multiply-with-context a b mc)
-      (apply-math-context (decimal-multiply a b) mc)
+      (%apply-math-context (decimal-multiply a b) mc)
     ) ;define
 
     (define (decimal-divide-with-context a b mc)
-      (let ((left (ensure-decimal "decimal-divide-with-context" a))
-            (right (ensure-decimal "decimal-divide-with-context" b))
+      (let ((left (%ensure-decimal "decimal-divide-with-context" a))
+            (right (%ensure-decimal "decimal-divide-with-context" b))
             (precision (math-context-precision mc))
             (rounding-mode (math-context-rounding-mode mc))
            ) ;
@@ -167,7 +167,7 @@
 
     (define (decimal-pow-with-context n exponent mc)
       (let ((raw-result (decimal-pow n exponent)))
-        (apply-math-context raw-result mc)
+        (%apply-math-context raw-result mc)
       ) ;let
     ) ;define
 
@@ -183,15 +183,15 @@
     ) ;define
 
     (define (decimal-abs-with-context n mc)
-      (apply-math-context (decimal-abs n) mc)
+      (%apply-math-context (decimal-abs n) mc)
     ) ;define
 
     (define (decimal-negate-with-context n mc)
-      (apply-math-context (decimal-negate n) mc)
+      (%apply-math-context (decimal-negate n) mc)
     ) ;define
 
     (define (decimal-plus-with-context n mc)
-      (apply-math-context (decimal-plus n) mc)
+      (%apply-math-context (decimal-plus n) mc)
     ) ;define
 
   ) ;begin
