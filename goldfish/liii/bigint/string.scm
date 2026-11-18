@@ -17,9 +17,7 @@
 (define-library (liii bigint string)
   (import (scheme base) (liii error) (liii bigint record))
 
-  (export ensure-bigint char->digit digit->char string->bigint integer->bigint
-    bigint->string
-  ) ;export
+  (export %char->digit %digit->char string->bigint integer->bigint bigint->string)
 
   (begin
     (define (ensure-bigint who obj)
@@ -43,7 +41,7 @@
       ) ;if
     ) ;define
 
-    (define (char->digit c)
+    (define (%char->digit c)
       (cond ((and (char>=? c #\0) (char<=? c #\9))
              (- (char->integer c) (char->integer #\0))
             ) ;
@@ -57,7 +55,7 @@
       ) ;cond
     ) ;define
 
-    (define (digit->char digit)
+    (define (%digit->char digit)
       (if (< digit 10)
         (integer->char (+ (char->integer #\0) digit))
         (integer->char (+ (char->integer #\a) (- digit 10)))
@@ -146,7 +144,7 @@
             (list->string chars)
             (call-with-values (lambda () (div-mag-small-with-base current radix BIGINT-BASE))
               (lambda (quotient-val remainder-val)
-                (loop quotient-val (cons (digit->char remainder-val) chars))
+                (loop quotient-val (cons (%digit->char remainder-val) chars))
               ) ;lambda
             ) ;call-with-values
           ) ;if
@@ -159,7 +157,7 @@
         ((index start-index) (mag '()))
         (if (= index len)
           (strip-leading-zeros mag)
-          (let* ((ch (string-ref str index)) (digit (char->digit ch)))
+          (let* ((ch (string-ref str index)) (digit (%char->digit ch)))
             (if (or (< digit 0) (>= digit radix))
               (value-error "string->bigint in (liii bigint string): invalid digit for radix"
                 ch radix str
