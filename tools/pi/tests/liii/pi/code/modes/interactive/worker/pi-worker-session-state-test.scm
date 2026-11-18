@@ -57,7 +57,7 @@
   ;; 1. session_state 任务惰性创建会话文件并追加状态条目，父链指向已有条目
   (pi-worker-handle-job (list 'session_state
                           "model_change"
-                          (list (cons "provider" "zai") (cons "model-id" "glm-5"))
+                          (list (cons "provider" "zai") (cons "modelId" "glm-5"))
                         ) ;list
     parsed
     cfg
@@ -65,7 +65,7 @@
     ev-chan
     #f
   ) ;pi-worker-handle-job
-  (pi-worker-handle-job (list 'session_state "thinking_level_change" (list (cons "level" "off")))
+  (pi-worker-handle-job (list 'session_state "thinking_level_change" (list (cons "thinkingLevel" "off")))
     parsed
     cfg
     box
@@ -81,8 +81,8 @@
     (check (length entries) => 3)
     (check (cdr (assoc "type" (car entries))) => "session")
     (check (cdr (assoc "provider" model)) => "zai")
-    (check (cdr (assoc "model-id" model)) => "glm-5")
-    (check (cdr (assoc "level" thinking)) => "off")
+    (check (cdr (assoc "modelId" model)) => "glm-5")
+    (check (cdr (assoc "thinkingLevel" thinking)) => "off")
     (check (cdr (assoc "parentId" thinking)) => (cdr (assoc "id" model)))
     (check (chan-try-recv! ev-chan #f) => #f)
   ) ;let*
@@ -97,7 +97,7 @@
       ) ;
   (pi-worker-handle-job (list 'session_state
                           "model_change"
-                          (list (cons "provider" "zai") (cons "model-id" "glm-5"))
+                          (list (cons "provider" "zai") (cons "modelId" "glm-5"))
                         ) ;list
     parsed
     cfg
@@ -117,7 +117,7 @@
        (box (vector (path->string (path-temp-dir))))
        (ev-chan (make-chan 16))
       ) ;
-  (pi-worker-handle-job (list 'session_state "thinking_level_change" (list (cons "level" "high")))
+  (pi-worker-handle-job (list 'session_state "thinking_level_change" (list (cons "thinkingLevel" "high")))
     parsed
     cfg
     box

@@ -20,5 +20,5 @@ gf doc pi-session-state-of
 
 ### 投影状态
 - `pi-load-session-state` - 从启动时恢复的会话文件读取投影状态
-- `pi-resolve-session-state` - 将恢复的投影状态合并进 Agent 配置
+- `pi-resolve-session-state` - 将恢复的投影状态合并进 Agent 配置（all-in-one 伪模型会话不被 assistant 来源的物理节点覆盖）
 - `pi-session-state-of` - 按会话文件路径读取投影状态

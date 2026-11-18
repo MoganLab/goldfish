@@ -159,6 +159,20 @@
       ) ;let
     ) ;define
 
+    ;; 元供应商伪模型会话：assistant 消息里记的是上一轮实际服务的物理节点，
+    ;; 不是用户选择的模型。若据此把会话切到物理节点，请求就绕开 all-in-one
+    ;; 链式调度，节点 429 重试耗尽后不再切换备用节点。
+    ;; 只有用户从没切过模型（modelIntent 为 #f）或最后一次显式切换的目标仍是
+    ;; 伪模型时才保留当前伪模型；用户显式切到其他物理模型时照常切换。
+    (define (%resume-assistant-node? app state)
+      (let ((intent (%resume-ref state 'modelIntent)))
+        (and (equal? (%resume-ref state 'modelSource) "assistant")
+          (equal? (pi-app-provider app) "all-in-one")
+          (or (not (pair? intent)) (equal? (%resume-ref intent 'provider) "all-in-one"))
+        ) ;and
+      ) ;let
+    ) ;define
+
     ;; 应用目标会话的投影状态，返回 (values applied? note label)：
     ;; - state 缺失或未记录模型：保留当前界面值，applied? = #t
     ;; - 模型不在可用列表：保留当前值，applied? = #f，note 为警告文案
@@ -177,23 +191,30 @@
               ) ;
           (if (not (and (string? provider) (string? model-id)))
             (values #t #f #f)
-            (let ((model (%resume-find-model app provider model-id)))
-              (if (not model)
-                (values #f
-                  (string-append "model " provider "/" model-id
-                    " is unavailable; keeping current model"
-                  ) ;string-append
-                  #f
-                ) ;values
-                (begin
-                  (pi-app-apply-model-ui! app model)
-                  (values #t
-                    (%apply-resume-thinking! app state)
-                    (string-append provider "/" model-id)
+            (if (%resume-assistant-node? app state)
+              ;; 保留当前 all-in-one 伪模型：状态里的物理节点不是用户选择的模型
+              (values #t
+                #f
+                (string-append (pi-app-provider app) "/" (or (pi-app-model app) ""))
+              ) ;values
+              (let ((model (%resume-find-model app provider model-id)))
+                (if (not model)
+                  (values #f
+                    (string-append "model " provider "/" model-id
+                      " is unavailable; keeping current model"
+                    ) ;string-append
+                    #f
                   ) ;values
-                ) ;begin
-              ) ;if
-            ) ;let
+                  (begin
+                    (pi-app-apply-model-ui! app model)
+                    (values #t
+                      (%apply-resume-thinking! app state)
+                      (string-append provider "/" model-id)
+                    ) ;values
+                  ) ;begin
+                ) ;if
+              ) ;let
+            ) ;if
           ) ;if
         ) ;let*
       ) ;if
