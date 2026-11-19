@@ -25,10 +25,11 @@
     (liii string)
   ) ;import
   (export gfproject-root gfproject-get-gf-lib gfproject-find-lib-path
-    gfproject-find-local-path gfproject-extract-tools gfproject-deep-merge
-    gfproject-load-config-bundle gfproject-load-config gfproject-read-file
-    gfproject--opt-gf-lib bundle-ref gfproject-extract-domains gfproject-domains
-    gfproject-domains-list gfproject-hint-dirs
+    gfproject-find-local-path gfproject-find-user-path gfproject-extract-tools
+    gfproject-deep-merge gfproject-load-config-bundle gfproject-load-config
+    gfproject-read-file gfproject--opt-gf-lib bundle-ref
+    gfproject-extract-domains gfproject-domains gfproject-domains-list
+    gfproject-hint-dirs
   ) ;export
   (begin
 
@@ -54,6 +55,21 @@
     (define (gfproject-find-local-path)
       (let ((root (gfproject-root)))
         (and root (path->string (path-join root "gfproject.json")))
+      ) ;let
+    ) ;define
+
+    ;; 用户全局配置文件：~/.gf/gfproject.json。
+    ;; 与 gfproject-find-local-path 严格区分：用户层不是项目根，
+    ;; g_project-root 不受影响，fmt/test/check 等项目语义保持原样。
+    (define (gfproject-find-user-path)
+      (let ((p
+              (catch #t
+                (lambda () (path-join (path-home) ".gf" "gfproject.json"))
+                (lambda (type info) #f)
+              ) ;catch
+            ) ;p
+           ) ;
+        (and p (path-file? p) (path->string p))
       ) ;let
     ) ;define
 
@@ -126,47 +142,60 @@
 
     (define (gfproject-load-config-bundle . opt-gf-lib)
       (let* ((lib-path (apply gfproject-find-lib-path opt-gf-lib))
+             (user-path (gfproject-find-user-path))
              (local-path (gfproject-find-local-path))
              (lib-config (gfproject-read-file lib-path))
+             (user-config (gfproject-read-file user-path))
              (local-config (gfproject-read-file local-path))
              (lib-tools (gfproject-extract-tools lib-config))
+             (user-tools (gfproject-extract-tools user-config))
              (local-tools (gfproject-extract-tools local-config))
-             (merged-tools (gfproject-deep-merge lib-tools local-tools))
+             ;; tools 三层合并：lib -> user -> local
+             (merged-tools (gfproject-deep-merge (gfproject-deep-merge lib-tools user-tools) local-tools)
+             ) ;merged-tools
              (lib-domains (gfproject-extract-domains lib-config))
+             (user-domains (gfproject-extract-domains user-config))
              (local-domains (gfproject-extract-domains local-config))
+             ;; domains 不跨层合并：只合并 lib + local，保持既有加载语义。
+             ;; user_domains 单独暴露，供显式按用户层根展开的调用方使用。
              (merged-domains (gfproject-deep-merge lib-domains local-domains))
              (merged-config
-               (let* ((c1 (gfproject-deep-merge lib-config local-config))
-                      (c2 (if (equal? merged-tools '(()))
-                            c1
-                            (if (json-contains-key? c1 "tools")
-                              (json-set c1 "tools" merged-tools)
-                              (json-push c1 "tools" merged-tools)
-                            ) ;if
-                          ) ;if
-                      ) ;c2
-                      (c3 (if (equal? merged-domains '(()))
+               (let* ((c1 (gfproject-deep-merge lib-config user-config))
+                      (c2 (gfproject-deep-merge c1 local-config))
+                      (c3 (if (equal? merged-tools '(()))
                             c2
-                            (if (json-contains-key? c2 "domains")
-                              (json-set c2 "domains" merged-domains)
-                              (json-push c2 "domains" merged-domains)
+                            (if (json-contains-key? c2 "tools")
+                              (json-set c2 "tools" merged-tools)
+                              (json-push c2 "tools" merged-tools)
                             ) ;if
                           ) ;if
                       ) ;c3
+                      (c4 (if (equal? merged-domains '(()))
+                            c3
+                            (if (json-contains-key? c3 "domains")
+                              (json-set c3 "domains" merged-domains)
+                              (json-push c3 "domains" merged-domains)
+                            ) ;if
+                          ) ;if
+                      ) ;c4
                      ) ;
-                 c3
+                 c4
                ) ;let*
              ) ;merged-config
             ) ;
         (list (cons "lib_config" lib-config)
+          (cons "user_config" user-config)
           (cons "local_config" local-config)
           (cons "lib_path" lib-path)
+          (cons "user_path" user-path)
           (cons "local_path" local-path)
           (cons "merged_config" merged-config)
           (cons "lib_tools" lib-tools)
+          (cons "user_tools" user-tools)
           (cons "local_tools" local-tools)
           (cons "merged_tools" merged-tools)
           (cons "lib_domains" lib-domains)
+          (cons "user_domains" user-domains)
           (cons "local_domains" local-domains)
           (cons "merged_domains" merged-domains)
         ) ;list

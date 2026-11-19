@@ -20,6 +20,7 @@
 
 (import (liii check)
   (liii json)
+  (liii path)
   (liii gfproject tools)
 ) ;import
 
@@ -28,6 +29,14 @@
 (let ((bundle (gfproject-resolve-tool-bundle "doc")))
   (check (not (not bundle)) => #t)
   (check (json-ref (cdr (assoc "merged-tool" bundle)) "module") => "golddoc")
+  ;; 用户层 / 来源基准信息
+  (check (bundle-ref bundle "has-user-tool") => #f)
+  (check (bundle-ref bundle "has-local-override") => #f)
+  (check (bundle-ref bundle "user-tool") => '(()))
+  ;; 内置工具的相对 tools_dir 以所属 gfproject.json 目录为基准
+  (check (bundle-ref bundle "tool_base_dir")
+    => (path->string (path-parent (bundle-ref bundle "lib_path")))
+  ) ;check
 ) ;let
 
 (check (gfproject-resolve-tool-bundle "non-existent-tool-xyz") => #f)
