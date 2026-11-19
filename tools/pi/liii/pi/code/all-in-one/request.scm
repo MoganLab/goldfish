@@ -17,12 +17,13 @@
     (liii pi code cli args query)
     (liii pi code config)
     (liii pi code modes output)
-    (liii pi code all-in-one chain)
     (liii pi code all-in-one defaults)
     (liii pi code all-in-one loader)
     (liii pi code all-in-one probe)
     (liii pi code all-in-one provider)
     (liii pi code all-in-one recovery)
+    (liii pi code all-in-one scheduler)
+    (liii pi code all-in-one state)
     (liii pi code all-in-one thinking)
     (liii pi code all-in-one types)
   ) ;import
@@ -195,8 +196,9 @@
       ) ;lambda
     ) ;define
 
-    ;; 一轮链式尝试：真实请求失败即记录故障并顺延到下一节点，
-    ;; 仍有未试候选就继续，全部失败才把 exhausted 哨兵交回门面。
+    ;; 一轮链式尝试：真实请求失败即记录故障并顺延到下一节点，仍有未试候选就继续；
+    ;; 真实请求预算用尽（含单节点链与末节点失败）时统一按全链结算，返回 exhausted
+    ;; 哨兵交给门面进入 recovery，而不是把该节点的错误响应当作整轮结果。
     (define (%run-chain-turn chain chain-id messages skip-idx execute aio-cfg
               dir probe-adapter config last-exec-box
             ) ;%run-chain-turn
@@ -214,31 +216,30 @@
                       ) ;pi-chain-execute
               ) ;result
              ) ;
-          (if
-            (and (%request-failed? result)
-              (< attempts (- (length (chain-def-nodes chain)) 1))
-            ) ;and
-            (let* ((last-exec (and (vector? last-exec-box) (vector-ref last-exec-box 0)))
-                   (nodes (chain-def-nodes chain))
-                   (exec-idx (and (pair? last-exec)
-                               (%find-node-index nodes (car last-exec) (cadr last-exec))
-                             ) ;and
-                   ) ;exec-idx
-                   (failed-index (or exec-idx
-                                   (pi-chain-current-sticky-index chain-id)
-                                   (and (integer? skip) skip)
-                                   0
-                                 ) ;or
-                   ) ;failed-index
-                  ) ;
-              (%record-and-skip chain chain-id failed-index)
-              (when (vector? last-exec-box)
-                (vector-set! last-exec-box 0 #f)
-              ) ;when
-              (loop (+ attempts 1) failed-index)
-            ) ;let*
-            result
-          ) ;if
+          (cond ((not (%request-failed? result)) result)
+                ((< attempts (- (length (chain-def-nodes chain)) 1))
+                 (let* ((last-exec (and (vector? last-exec-box) (vector-ref last-exec-box 0)))
+                        (nodes (chain-def-nodes chain))
+                        (exec-idx (and (pair? last-exec)
+                                    (%find-node-index nodes (car last-exec) (cadr last-exec))
+                                  ) ;and
+                        ) ;exec-idx
+                        (failed-index (or exec-idx
+                                        (pi-chain-current-sticky-index chain-id)
+                                        (and (integer? skip) skip)
+                                        0
+                                      ) ;or
+                        ) ;failed-index
+                       ) ;
+                   (%record-and-skip chain chain-id failed-index)
+                   (when (vector? last-exec-box)
+                     (vector-set! last-exec-box 0 #f)
+                   ) ;when
+                   (loop (+ attempts 1) failed-index)
+                 ) ;let*
+                ) ;
+                (else (pi-chain-settle-exhausted! chain dir))
+          ) ;cond
         ) ;let
       ) ;let
     ) ;define

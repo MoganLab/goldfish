@@ -31,6 +31,12 @@
 ;; 本文件同时覆盖全链枯竭的错误响应文案（stopReason=error，
 ;; 错误说明为 "All nodes in the all-in-one chain failed probe"），
 ;; 该文案构造器是 request 的内部实现，不单独公开导出。
+;;
+;; 整轮真实请求预算：一轮调度内的真实请求次数上限等于链长（每个候选节点最多一次）。
+;; 单节点链、双节点链的两个节点都真实失败、以及所有探活都成功但末节点真实失败，
+;; 都用尽预算，此时 request 调用 scheduler 的全链结算（写 [EXHAUSTED] 日志并清除
+;; 粘性）后把 all-nodes-exhausted 交回门面，由 recovery 统一接管；成功路径不多发
+;; 请求，单节点也不额外重试。
 
 (import (scheme base)
   (scheme file)
@@ -39,9 +45,11 @@
   (liii os)
   (liii path)
   (liii shutil)
+  (liii string)
   (liii pi ai message)
+  (liii pi code all-in-one alarm)
   (liii pi code all-in-one request)
-  (liii pi code all-in-one chain)
+  (liii pi code all-in-one state)
   (liii pi code all-in-one types)
 ) ;import
 
@@ -60,7 +68,7 @@
 ) ;when
 (path-mkdir (path (path-join TMP-DIR "models" "stub")) :parents #t :exist-ok #t)
 (path-write-text (path->string (path-join TMP-DIR "all-in-one.json"))
-  "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1234,\"continuous\":false,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"},{\"provider\":\"stub\",\"model\":\"two\",\"thinkingLevel\":\"high\"}]}]}"
+  "{\"provider\":\"all-in-one\",\"probeTimeoutMs\":1234,\"continuous\":false,\"chains\":[{\"id\":\"coding-deep\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"},{\"provider\":\"stub\",\"model\":\"two\",\"thinkingLevel\":\"high\"}]},{\"id\":\"coding-single\",\"nodes\":[{\"provider\":\"stub\",\"model\":\"one\"}]}]}"
 ) ;path-write-text
 (path-write-text (path->string (path-join TMP-DIR "models" "providers.json"))
   "[\"stub\"]"
@@ -277,6 +285,95 @@
        ) ;
     (check (pi-assistant-message-stop-reason response) => "stop")
     (check (reverse executed) => '("one" "two"))
+  ) ;let
+) ;let
+
+;; 先清空本轮日志，使下面的 [EXHAUSTED] 断言只反映 A3-a 场景本身的结算
+(when (file-exists? (path->string (path-join TMP-DIR "logs")))
+  (rmtree (path->string (path-join TMP-DIR "logs")) #t)
+) ;when
+
+;; A3-a：单节点链的真实请求失败必须按全链结算成 exhausted，而不是把该节点的
+;; 错误响应直接当作整轮结果交回调用方（continuous=false 时 recovery 只返回
+;; 枯竭错误消息，因此停止原因仍为 error，但必须写 EXHAUSTED 日志并清粘性）。
+(pi-chain-reset-state!)
+(let ((requested '()))
+  (let ((response
+          (pi-all-in-one-request-stream "all-in-one"
+            (list (cons 'provider "all-in-one")
+              (cons 'model-id "coding-single")
+              (cons 'config-dir TMP-DIR)
+            ) ;list
+            '()
+            ""
+            '()
+            #f
+            60
+            (lambda (node timeout-ms config-dir request-fn) #t)
+            (lambda (provider node-cfg messages system-prompt tools on-event timeout)
+              (set! requested (cons (cdr (assoc 'model-id node-cfg)) requested))
+              (pi-assistant-message '()
+                :stop-reason   "error"
+                :error-message "HTTP 503: unavailable"
+              ) ;pi-assistant-message
+            ) ;lambda
+          ) ;pi-all-in-one-request-stream
+        ) ;response
+       ) ;
+    ;; 只发一次真实请求，不再重试，也不触发切换探活
+    (check (reverse requested) => '("one"))
+    (check (pi-assistant-message-stop-reason response) => "error")
+    (check-false (pi-chain-current-sticky-index "coding-single"))
+    (check-true
+      (string-contains? (path-read-text (path->string (resolve-alarm-log-path TMP-DIR)))
+        "[EXHAUSTED]"
+      ) ;string-contains?
+    ) ;check-true
+  ) ;let
+) ;let
+
+;; A3-a：双节点链的首节点与末节点真实请求都失败时，第二轮失败也要按全链
+;; 结算成 exhausted（修复前末节点失败会直接返回该节点错误响应）。
+(pi-chain-reset-state!)
+(let ((requested '()) (probed '()))
+  (let ((response
+          (pi-all-in-one-request-stream "all-in-one"
+            (list (cons 'provider "all-in-one")
+              (cons 'model-id "coding-deep")
+              (cons 'config-dir TMP-DIR)
+            ) ;list
+            '()
+            ""
+            '()
+            #f
+            60
+            ;; 末节点的探活必须成功，真实请求才会落到末节点
+            (lambda (node timeout-ms config-dir request-fn)
+              (set! probed (cons (chain-node-model node) probed))
+              #t
+            ) ;lambda
+            (lambda (provider node-cfg messages system-prompt tools on-event timeout)
+              (let ((m (cdr (assoc 'model-id node-cfg))))
+                (set! requested (cons m requested))
+                (pi-assistant-message '()
+                  :stop-reason   "error"
+                  :error-message "HTTP 503: unavailable"
+                ) ;pi-assistant-message
+              ) ;let
+            ) ;lambda
+          ) ;pi-all-in-one-request-stream
+        ) ;response
+       ) ;
+    ;; 顺序是：首节点真实失败一次 -> 探活末节点 -> 末节点真实失败一次
+    (check (reverse requested) => '("one" "two"))
+    (check (reverse probed) => '("two"))
+    (check (pi-assistant-message-stop-reason response) => "error")
+    (check-false (pi-chain-current-sticky-index "coding-deep"))
+    (check-true
+      (string-contains? (path-read-text (path->string (resolve-alarm-log-path TMP-DIR)))
+        "[EXHAUSTED]"
+      ) ;string-contains?
+    ) ;check-true
   ) ;let
 ) ;let
 

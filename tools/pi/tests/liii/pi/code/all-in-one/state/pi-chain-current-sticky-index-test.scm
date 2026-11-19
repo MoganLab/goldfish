@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; integer or #f
-;; 当前粘性节点的零基下标；没有粘性节点时返回 #f。
+;; 当前粘性节点的零基下标；没有粘性节点时返回 #f。chain-id 非字符串时抛 type-error。
 
 (import (scheme base)
   (scheme file)
@@ -21,7 +21,8 @@
   (liii os)
   (liii path)
   (liii shutil)
-  (liii pi code all-in-one chain)
+  (liii pi code all-in-one scheduler)
+  (liii pi code all-in-one state)
   (liii pi code all-in-one types)
 ) ;import
 
@@ -67,6 +68,7 @@
 (check (pi-chain-current-sticky-index "sticky-index-test") => 1)
 (pi-chain-clear-sticky-node! "sticky-index-test")
 (check-false (pi-chain-current-sticky-index "sticky-index-test"))
+(check-catch 'type-error (pi-chain-current-sticky-index #f))
 
 (when (file-exists? TMP-DIR)
   (rmtree TMP-DIR #t)

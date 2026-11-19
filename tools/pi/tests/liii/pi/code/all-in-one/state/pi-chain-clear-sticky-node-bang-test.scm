@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; unspecified
-;; 指定链下一次调度从链头探活。
+;; 指定链下一次调度从链头探活。chain-id 非字符串时抛 type-error。
 
 (import (scheme base)
   (scheme file)
@@ -21,7 +21,8 @@
   (liii os)
   (liii path)
   (liii shutil)
-  (liii pi code all-in-one chain)
+  (liii pi code all-in-one scheduler)
+  (liii pi code all-in-one state)
   (liii pi code all-in-one types)
 ) ;import
 
@@ -78,6 +79,8 @@
   ) ;check
   (check probed => '())
 ) ;let
+
+(check-catch 'type-error (pi-chain-clear-sticky-node! #f))
 
 (when (file-exists? TMP-DIR)
   (rmtree TMP-DIR #t)

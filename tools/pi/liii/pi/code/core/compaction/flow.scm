@@ -23,7 +23,7 @@
     (liii pi code all-in-one types)
     (liii pi code all-in-one defaults)
     (liii pi code all-in-one loader)
-    (liii pi code all-in-one chain)
+    (liii pi code all-in-one state)
     (liii pi code all-in-one provider)
   ) ;import
   (export pi-format-compaction-summary

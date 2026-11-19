@@ -15,8 +15,9 @@
 ;; 返回值
 ;; ----
 ;; unspecified
+;; 同一链重复记录会覆盖旧下标。chain-id 非字符串或 node-idx 非非负整数时抛 type-error。
 
-(import (scheme base) (liii check) (liii pi code all-in-one chain))
+(import (scheme base) (liii check) (liii pi code all-in-one state))
 
 (check-set-mode! 'report-failed)
 
@@ -31,5 +32,11 @@
 
 (pi-chain-reset-state!)
 (check (pi-chain-current-sticky-index "test-chain") => #f)
+
+;; 入参类型错误明确暴露
+(check-catch 'type-error (pi-chain-record-sticky-node! #f 0))
+(check-catch 'type-error (pi-chain-record-sticky-node! "test-chain" -1))
+(check-catch 'type-error (pi-chain-record-sticky-node! "test-chain" "0"))
+(check-false (pi-chain-current-sticky-index "test-chain"))
 
 (check-report)

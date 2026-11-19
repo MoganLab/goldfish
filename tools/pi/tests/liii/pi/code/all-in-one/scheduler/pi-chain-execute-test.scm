@@ -1,10 +1,17 @@
 ;; pi-chain-execute
-;; 粘性节点探活、冷却期防雪崩与优先自愈回溯。
+;; 粘性节点复用、冷却期防雪崩与优先自愈回溯。
 ;;
 ;; 本文件是调度的端到端场景测试：首次与粘性复用都不探活，只有真实请求失败后
 ;; 才探活候选节点；冷却跳过、自愈回溯、全链枯竭与日志标签都由真实调用序列断言。
 ;; 节点身份键（provider/model:thinkingLevel）与日志标签（provider/model）是
-;; 内部实现细节，不单独导出，由本文件的 SWITCH/REWIND/FAIL 断言间接覆盖。
+;; 内部实现细节，不单独导出，由本文件的 SWITCH/REWIND/EXHAUSTED 日志断言覆盖。
+;;
+;; 说明
+;; ----
+;; 粘性下标、节点身份与冷却时间戳都归 (liii pi code all-in-one state) 所有；
+;; 本文件用 state 的公开接口喂入故障时间戳、断言粘性下标，再验证调度行为，
+;; 因此同时是 state 与 scheduler 的协作回归。冷却期到期后节点重新参与探活
+;; 是既定行为，本文件不假设“本轮失败节点被永久排除”。
 ;;
 ;; 语法
 ;; ----
@@ -37,7 +44,8 @@
   (liii shutil)
   (liii string)
   (liii pi ai message)
-  (liii pi code all-in-one chain)
+  (liii pi code all-in-one scheduler)
+  (liii pi code all-in-one state)
   (liii pi code all-in-one alarm)
   (liii pi code all-in-one types)
 ) ;import
