@@ -11,6 +11,7 @@
     (liii list)
     (liii pi ai message)
     (liii pi ai tools definition)
+    (liii pi ai api openai-completions thinking)
   ) ;import
   (export openai-build-tool-declarations openai-build-messages
     openai-build-request-body openai-clamp-prompt-cache-key
@@ -31,11 +32,9 @@
         ) ;let
       ) ;if
     ) ;define
-
     (define (%msg-role msg)
       (if (pi-message? msg) (pi-message-role msg) (%val 'role msg ""))
     ) ;define
-
     (define (openai-build-tool-declarations tool-defs)
       (map
         (lambda (def)
@@ -66,7 +65,6 @@
         tool-defs
       ) ;map
     ) ;define
-
     (define (%block->text blk)
       (cond ((string? blk) blk)
             ((pi-text-block? blk) (pi-text-block-text blk))
@@ -74,7 +72,6 @@
             (else "")
       ) ;cond
     ) ;define
-
     (define (%msg-text-content content)
       (cond ((string? content) content)
             ((vector? content) (%msg-text-content (vector->list content)))
@@ -82,7 +79,6 @@
             (else "")
       ) ;cond
     ) ;define
-
     (define (%assistant-text-block? blk)
       (or (pi-text-block? blk) (equal? (%val 'type blk "") "text"))
     ) ;define
@@ -343,7 +339,6 @@
         ) ;if
       ) ;let
     ) ;define*
-
     ;; OpenAI prompt_cache_key 最大长度（对齐上游 OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH）
     (define %prompt-cache-key-max-length 64)
 
@@ -353,7 +348,6 @@
         key
       ) ;if
     ) ;define
-
     ;; 仅 OpenAI 官方端点注入：第三方兼容端点对未知字段可能报错
     (define (openai-resolve-prompt-cache-key base-url session-id)
       (if (and (string? base-url)
@@ -372,28 +366,34 @@
                tool-decls
                max-tokens
                (prompt-cache-key #f)
+               (thinking-level #f)
+               (model-entry #f)
              ) ;openai-build-request-body
-      (let loop
-        ((pairs
-           (list (and stream? (cons "stream" #t))
-             (and (integer? max-tokens) (> max-tokens 0) (cons "max_tokens" max-tokens))
-             (and (pair? tool-decls)
-               (> (length tool-decls) 0)
-               (cons "tools" (list->vector tool-decls))
-             ) ;and
-             (and (string? prompt-cache-key)
-               (> (string-length prompt-cache-key) 0)
-               (cons "prompt_cache_key" prompt-cache-key)
-             ) ;and
-           ) ;list
-         ) ;pairs
-         (acc (list (cons "model" model-id) (cons "messages" messages)))
-        ) ;
-        (cond ((null? pairs) acc)
-              ((car pairs) (loop (cdr pairs) (append acc (list (car pairs)))))
-              (else (loop (cdr pairs) acc))
-        ) ;cond
-      ) ;let
+      (let* ((thinking-pairs (openai-thinking-request-params model-entry thinking-level))
+             (pairs
+               (append thinking-pairs
+                 (list (and stream? (cons "stream" #t))
+                   (and (integer? max-tokens) (> max-tokens 0) (cons "max_tokens" max-tokens))
+                   (and (pair? tool-decls)
+                     (> (length tool-decls) 0)
+                     (cons "tools" (list->vector tool-decls))
+                   ) ;and
+                   (and (string? prompt-cache-key)
+                     (> (string-length prompt-cache-key) 0)
+                     (cons "prompt_cache_key" prompt-cache-key)
+                   ) ;and
+                 ) ;list
+               ) ;append
+             ) ;pairs
+            ) ;
+        (let loop
+          ((rest pairs) (acc (list (cons "model" model-id) (cons "messages" messages))))
+          (cond ((null? rest) acc)
+                ((car rest) (loop (cdr rest) (append acc (list (car rest)))))
+                (else (loop (cdr rest) acc))
+          ) ;cond
+        ) ;let
+      ) ;let*
     ) ;define*
 
   ) ;begin

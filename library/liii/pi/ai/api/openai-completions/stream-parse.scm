@@ -48,13 +48,75 @@
       ) ;catch
     ) ;define
 
+    ;; 查找已有 thinking 块下标（每轮最多一个）
+    (define (%thinking-block-index blocks)
+      (let loop
+        ((i 0) (rest blocks))
+        (cond ((null? rest) #f)
+              ((pi-thinking-block? (car rest)) i)
+              (else (loop (+ i 1) (cdr rest)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%replace-list-index lst idx val)
+      (let loop
+        ((i 0) (rest lst) (acc '()))
+        (cond ((null? rest) (reverse acc))
+              ((= i idx) (append (reverse acc) (cons val (cdr rest))))
+              (else (loop (+ i 1) (cdr rest) (cons (car rest) acc)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (append-openai-stream-reasoning stream-state reasoning on-event)
       (when (and (string? reasoning) (not (string-null? reasoning)))
-        (let* ((last-reasoning (openai-stream-state-last-reasoning stream-state))
+        (let* ((blocks (openai-stream-state-blocks stream-state))
+               (idx (%thinking-block-index blocks))
+               (last-reasoning (openai-stream-state-last-reasoning stream-state))
                (new-reasoning (if last-reasoning (string-append last-reasoning reasoning) reasoning)
                ) ;new-reasoning
+               (usage (openai-stream-state-usage stream-state))
               ) ;
           (openai-stream-state-last-reasoning-set! stream-state new-reasoning)
+          (if idx
+            (let* ((blk (list-ref blocks idx))
+                   (new-blk (pi-thinking-block new-reasoning
+                              (pi-thinking-block-thinking-signature blk)
+                            ) ;pi-thinking-block
+                   ) ;new-blk
+                  ) ;
+              (openai-stream-state-blocks-set! stream-state
+                (%replace-list-index blocks idx new-blk)
+              ) ;openai-stream-state-blocks-set!
+              (when (procedure? on-event)
+                (on-event (list (cons 'type "thinking_delta")
+                            (cons 'contentIndex idx)
+                            (cons 'delta reasoning)
+                            (cons 'usage usage)
+                          ) ;list
+                ) ;on-event
+              ) ;when
+            ) ;let*
+            (let ((cur-idx (length blocks)))
+              (openai-stream-state-blocks-set! stream-state
+                (append blocks (list (pi-thinking-block new-reasoning "reasoning_content")))
+              ) ;openai-stream-state-blocks-set!
+              (when (procedure? on-event)
+                (on-event (list (cons 'type "thinking_start")
+                            (cons 'contentIndex cur-idx)
+                            (cons 'usage usage)
+                          ) ;list
+                ) ;on-event
+                (on-event (list (cons 'type "thinking_delta")
+                            (cons 'contentIndex cur-idx)
+                            (cons 'delta reasoning)
+                            (cons 'usage usage)
+                          ) ;list
+                ) ;on-event
+              ) ;when
+            ) ;let
+          ) ;if
         ) ;let*
       ) ;when
     ) ;define
@@ -66,7 +128,17 @@
                (usage (openai-stream-state-usage stream-state))
               ) ;
           (if (not (string? last-text))
-            (let ((cur-idx (length blocks)))
+            (let ((cur-idx (length blocks))
+                  (think-idx (%thinking-block-index blocks))
+                 ) ;
+              ;; 正文开始前关闭思考卡片，避免思考与正文卡片粘在一起
+              (when (and think-idx (procedure? on-event))
+                (on-event (list (cons 'type "thinking_end")
+                            (cons 'contentIndex think-idx)
+                            (cons 'usage usage)
+                          ) ;list
+                ) ;on-event
+              ) ;when
               (openai-stream-state-blocks-set! stream-state
                 (append blocks (list (pi-text-block text)))
               ) ;openai-stream-state-blocks-set!
@@ -185,6 +257,16 @@
             (blocks (openai-stream-state-blocks stream-state))
             (usage (openai-stream-state-usage stream-state))
            ) ;
+        ;; 纯思考无正文时也要显式结束思考卡片
+        (let ((think-idx (%thinking-block-index blocks)))
+          (when (and think-idx (procedure? on-event))
+            (on-event (list (cons 'type "thinking_end")
+                        (cons 'contentIndex think-idx)
+                        (cons 'usage usage)
+                      ) ;list
+            ) ;on-event
+          ) ;when
+        ) ;let
         (if (pair? tools-alist)
           (begin
             (for-each

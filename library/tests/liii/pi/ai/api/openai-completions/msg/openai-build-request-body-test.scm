@@ -3,7 +3,8 @@
 ;;
 ;; 语法
 ;; ----
-;; (openai-build-request-body model-id messages stream? tool-decls max-tokens (prompt-cache-key #f))
+;; (openai-build-request-body model-id messages stream? tool-decls max-tokens
+;;   (prompt-cache-key #f) (thinking-level #f) (model-entry #f))
 ;;
 ;; 参数
 ;; ----
@@ -20,6 +21,10 @@
 ;; prompt-cache-key : (or string? #f)
 ;; 可选，OpenAI 官方端点的 prompt_cache_key，同会话路由到同一缓存分片；
 ;; 非字符串时省略。
+;; thinking-level : (or string? #f)
+;; 可选，思考级别；配合 model-entry 生成 thinking / reasoning_effort 字段。
+;; model-entry : (or alist? #f)
+;; 可选，模型目录原始条目；提供 reasoning、thinkingLevelMap 与 compat 字段。
 ;;
 ;; 返回值
 ;; ----
@@ -57,5 +62,66 @@
   (check (assoc "prompt_cache_key" body) => #f)
   (let ((body2 (openai-build-request-body "gpt-5.2" msgs #t '() 4096 #f)))
     (check (assoc "prompt_cache_key" body2) => #f)))
+
+;; ---- thinking / reasoning 请求字段 ----
+
+(define DEEPSEEK-MODEL
+  '(("id" . "deepseek-ai/deepseek-v4.1-flash-1017-maas")
+    ("reasoning" . true)
+    ("thinkingLevelMap" ("low" . "low") ("medium" . null)
+      ("high" . "high") ("max" . "max")
+    ) ;thinkingLevelMap
+    ("compat" ("thinkingFormat" . "deepseek") ("supportsReasoningEffort" . true))
+   ) ;list
+) ;define
+
+(define OPENAI-MODEL
+  '(("id" . "reasoning-model")
+    ("reasoning" . true)
+    ("compat" ("thinkingFormat" . "openai"))
+   ) ;list
+) ;define
+
+(define NO-REASONING-MODEL
+  '(("id" . "plain-model")
+    ("reasoning" . false)
+    ("compat" ("thinkingFormat" . "deepseek"))
+   ) ;list
+) ;define
+
+;; deepseek 格式：非 off 级别同时写入 thinking.type 与 reasoning_effort
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "m" msgs #f '() #f #f "high" DEEPSEEK-MODEL)))
+  (check (cdr (assoc "thinking" body)) => '(("type" . "enabled")))
+  (check (cdr (assoc "reasoning_effort" body)) => "high"))
+
+;; deepseek 格式：thinkingLevelMap 映射生效
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "m" msgs #f '() #f #f "low" DEEPSEEK-MODEL)))
+  (check (cdr (assoc "reasoning_effort" body)) => "low"))
+
+;; deepseek 格式：off 写入 thinking.type=disabled，且不写 reasoning_effort
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "m" msgs #f '() #f #f "off" DEEPSEEK-MODEL)))
+  (check (cdr (assoc "thinking" body)) => '(("type" . "disabled")))
+  (check (assoc "reasoning_effort" body) => #f))
+
+;; openai 格式：只写 reasoning_effort，不写 thinking
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "m" msgs #f '() #f #f "high" OPENAI-MODEL)))
+  (check (assoc "thinking" body) => #f)
+  (check (cdr (assoc "reasoning_effort" body)) => "high"))
+
+;; reasoning=false：不注入任何思考字段
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "m" msgs #f '() #f #f "high" NO-REASONING-MODEL)))
+  (check (assoc "thinking" body) => #f)
+  (check (assoc "reasoning_effort" body) => #f))
+
+;; 未提供 model-entry：保持旧行为，不注入思考字段
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "m" msgs #f '() #f #f "high")))
+  (check (assoc "thinking" body) => #f)
+  (check (assoc "reasoning_effort" body) => #f))
 
 (check-report)
