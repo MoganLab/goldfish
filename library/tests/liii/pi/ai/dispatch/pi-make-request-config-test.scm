@@ -87,4 +87,10 @@
   (check (pi-model-metadata-base-url meta) => "")
 ) ;let*
 
+;; 5. 传入 headers 参数
+(let ((cfg (pi-make-request-config "deepseek" "deepseek-chat" "k"
+             :headers '(("x-goog-api-key" . "my-key")))))
+  (check (cdr (assoc 'headers cfg)) => '(("x-goog-api-key" . "my-key")))
+) ;let
+
 (check-report)
