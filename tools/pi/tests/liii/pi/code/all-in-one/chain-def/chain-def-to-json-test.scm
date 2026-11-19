@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; chain : chain-def? | alist
-;; 链定义 record 或已是 JSON alist。
+;; chain : <chain-def>
+;; 链定义 record；传入 alist 或非 record 时抛 type-error。
 ;;
 ;; 返回值
 ;; ----

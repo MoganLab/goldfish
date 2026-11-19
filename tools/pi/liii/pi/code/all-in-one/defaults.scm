@@ -16,7 +16,6 @@
   ) ;export
   (begin
 
-    ;; 默认配置文件的展示名称，仅在首次生成 all-in-one.json 时写入。
     (define all-in-one-default-config-name "高可用长程推进总线")
 
     ;; 默认双链：快速推进链 google -> minimax-cn -> deepseek，
@@ -38,8 +37,8 @@
       ) ;list
     ) ;define
 
-    ;; 默认全局调度参数：continuous=#t、最长等待 1 小时、
-    ;; 冷却/重试间隔 60 秒、单节点探活超时 8 秒。
+    ;; 默认调度参数的唯一真值源：任何默认值调整只改这一处，
+    ;; 调用方不得再自行拼写默认参数。
     (define (make-default-all-in-one-config)
       (make-all-in-one-cfg #t 3600000 60000 8000 (all-in-one-default-chains))
     ) ;define

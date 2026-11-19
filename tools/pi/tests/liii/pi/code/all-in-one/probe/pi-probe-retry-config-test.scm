@@ -1,5 +1,5 @@
 ;; pi-probe-retry-config
-;; 计算 all-in-one 节点探活的���试预算配置。
+;; 计算 all-in-one 节点探活的重试预算配置。
 ;;
 ;; 语法
 ;; ----

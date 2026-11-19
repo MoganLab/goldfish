@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; node : chain-node? | alist
-;; 链节点 record 或已是 JSON alist。
+;; node : <chain-node>
+;; 链节点 record；传入 alist 或非 record 时抛 type-error。
 ;;
 ;; 返回值
 ;; ----

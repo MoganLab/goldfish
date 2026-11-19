@@ -81,7 +81,7 @@ gf doc pi-chain-reset-cooldown-state!
 ### 状态重置
 
 - `pi-chain-reset-state!` - 同时清空粘性记忆与节点冷却，供场景测试回到初始状态
-- `pi-chain-reset-cooldown-state!` - 只清空节点冷却记录
+- `pi-chain-reset-cooldown-state!` - 只清空节点冷却记录（压缩窗口等只关心冷却的调用方使用）
 
 ## 导出边界
 

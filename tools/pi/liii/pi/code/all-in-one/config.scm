@@ -16,11 +16,17 @@
     (liii pi code all-in-one chain-def)
     (liii pi code config user-fs)
   ) ;import
-  (export make-all-in-one-cfg all-in-one-cfg? all-in-one-cfg-continuous?
-    all-in-one-cfg-max-wait-ms all-in-one-cfg-retry-interval-ms
-    all-in-one-cfg-probe-timeout-ms all-in-one-cfg-chains json->all-in-one-cfg
-    all-in-one-cfg->json
+  ;; 构造
+  (export make-all-in-one-cfg)
+  ;; 谓词
+  (export all-in-one-cfg?)
+  ;; 属性访问
+  (export all-in-one-cfg-continuous? all-in-one-cfg-max-wait-ms
+    all-in-one-cfg-retry-interval-ms all-in-one-cfg-probe-timeout-ms
+    all-in-one-cfg-chains
   ) ;export
+  ;; JSON 转换
+  (export all-in-one-cfg->json json->all-in-one-cfg)
   (begin
 
     (define*-record-type <all-in-one-cfg>
@@ -56,7 +62,7 @@
       ) ;let
     ) ;define
 
-    ;; 解析 chains 数组为有效 <chain-def> 列表；根不是数组时告警并返回 #f。
+    ;; 解析 chains 数组；根不是数组时告警并返回 #f，由调用方折叠成回退。
     (define (%parse-chains cfg-path raw-chains)
       (let ((chains-list (pi-user-vector->list raw-chains)))
         (if (not (list? chains-list))

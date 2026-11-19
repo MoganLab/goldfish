@@ -22,7 +22,8 @@
 ;; 返回值
 ;; ----
 ;; boolean
-;; 响应正常且存在文本内容时返回 #t；否则记录 FAIL 并返回 #f。
+;; 响应未标记 error/aborted 时返回 #t（max_tokens 截断导致正文为空也算健康）；
+;; 失败时记录一条 FAIL 日志并返回 #f。
 
 (import (scheme base)
   (scheme file)

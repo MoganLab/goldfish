@@ -7,8 +7,8 @@
 ;;
 ;; 参数
 ;; ----
-;; cfg : all-in-one-cfg? | alist
-;; all-in-one 全局配置 record 或已是 JSON alist。
+;; cfg : <all-in-one-cfg>
+;; all-in-one 全局配置 record；传入 alist 或非 record 时抛 type-error。
 ;;
 ;; 返回值
 ;; ----

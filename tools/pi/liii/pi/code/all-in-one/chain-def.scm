@@ -16,9 +16,14 @@
     (liii pi code all-in-one chain-node)
     (liii pi code config user-fs)
   ) ;import
-  (export make-chain-def chain-def? chain-def-id chain-def-name chain-def-nodes
-    json->chain-def chain-def->json
-  ) ;export
+  ;; 构造
+  (export make-chain-def)
+  ;; 谓词
+  (export chain-def?)
+  ;; 属性访问
+  (export chain-def-id chain-def-name chain-def-nodes)
+  ;; JSON 转换
+  (export chain-def->json json->chain-def)
   (begin
 
     (define*-record-type <chain-def>

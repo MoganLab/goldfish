@@ -14,10 +14,16 @@
     (liii string)
     (liii pi code config user-fs)
   ) ;import
-  (export make-chain-node chain-node? chain-node-provider chain-node-model
-    chain-node-thinking-level json->chain-node chain-node->json
-    %non-empty-string?
-  ) ;export
+  ;; 构造
+  (export make-chain-node)
+  ;; 谓词
+  (export chain-node?)
+  ;; 属性访问
+  (export chain-node-provider chain-node-model chain-node-thinking-level)
+  ;; JSON 转换
+  (export chain-node->json json->chain-node)
+  ;; 跨模块共享的底层原语：chain-def 解析链 ID 与展示名时复用同一判定
+  (export %non-empty-string?)
   (begin
 
     (define*-record-type <chain-node>
