@@ -7,6 +7,7 @@
 (define-library (liii pi ai api openai-completions request)
   (import (scheme base)
     (scheme write)
+    (scheme char)
     (liii string)
     (liii list)
     (liii uri)
@@ -61,14 +62,37 @@
     ) ;define
 
     (define* (openai-build-headers api-key (extra-headers '()))
+      (unless (or (string? api-key) (not api-key))
+        (type-error "openai-build-headers: api-key must be a string or #f" api-key)
+      ) ;unless
       (let ((base
               (list (cons "Content-Type" "application/json")
                 (cons "Authorization" (string-append "Bearer " (or api-key "")))
                 (cons "User-Agent" "Goldfish-Pi/1.0")
               ) ;list
             ) ;base
+            ;; 延迟展开 ${API_KEY}：每次尝试（含密钥轮换）使用本次 api-key。
+            (extras
+              (map
+                (lambda (h)
+                  (unless (and (pair? h) (string? (car h)) (string? (cdr h)))
+                    (type-error "openai-build-headers: expected (string . string) header" h)
+                  ) ;unless
+                  (cons (car h) (string-replace (cdr h) "${API_KEY}" (or api-key "")))
+                ) ;lambda
+                extra-headers
+              ) ;map
+            ) ;extras
            ) ;
-        (if (pair? extra-headers) (append base extra-headers) base)
+        (append
+          (filter
+            (lambda (h)
+              (not (find (lambda (extra) (string-ci=? (car h) (car extra))) extras))
+            ) ;lambda
+            base
+          ) ;filter
+          extras
+        ) ;append
       ) ;let
     ) ;define*
 
