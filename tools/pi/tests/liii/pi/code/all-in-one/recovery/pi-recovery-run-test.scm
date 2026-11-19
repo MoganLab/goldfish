@@ -8,7 +8,7 @@
 ;; 参数
 ;; ----
 ;; attempt-fn : procedure
-;; 接受等待期间新增 steering 文本列表，重新执行一次既有链式请求。
+;; 无参过程，重新执行一次既有链式请求并返回本轮结果。
 ;; aio-cfg : all-in-one-cfg?
 ;; 链式配置，提供 continuous、maxWaitMs 与 retryIntervalMs。
 ;; options : alist

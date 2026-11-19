@@ -82,7 +82,6 @@
       ) ;let
     ) ;define
 
-    ;; 从错误文本或响应中提取 HTTP 状态码；无状态码时保留超时类别。
     (define (pi-probe-error-code message)
       (cond ((number? message) message)
             ((symbol? message) message)
@@ -241,7 +240,7 @@
       ) ;let*
     ) ;define
 
-    ;; 失败统一写 FAIL 并按错误码返回 #f，成功后不写日志。
+    ;; 失败统一写 FAIL 日志后返回 #f，成功不写日志；调用方只看布尔值。
     (define* (pi-probe-node node
                (timeout-ms 8000)
                (config-dir #f)

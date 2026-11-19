@@ -14,6 +14,13 @@
 ;; ----
 ;; pair
 ;; 目录条目 ("all-in-one" ("name" . "all-in-one") ("api" . "all-in-one") ("models" ...))。
+;;
+;; 说明
+;; ----
+;; 条目形态属于目录协议：provider id 为 all-in-one、name 与 api 均为 all-in-one，
+;; models 为 all-in-one-models 的返回值（未配置时是 defaults 的默认双链伪模型）。
+;; 当前生产代码通过 user-models / user-catalog 读取伪模型列表，本接口留作
+;; 完整目录条目的构造入口，由本文件保证形态不漂移。
 
 (import (scheme base)
   (scheme file)

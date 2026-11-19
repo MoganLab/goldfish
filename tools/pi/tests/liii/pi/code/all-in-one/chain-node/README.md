@@ -24,6 +24,8 @@ gf doc chain-node->json
 gf doc json->chain-node
 ```
 
+`%non-empty-string?` 是 chain-node 与 chain-def 共享的底层原语（带 `%` 前缀，仅供同库兄弟模块导入），因此不提供独立单测文件，由两个模块的 `json->*` 解析测试覆盖。
+
 ## 函数分类索引
 
 ### 构造

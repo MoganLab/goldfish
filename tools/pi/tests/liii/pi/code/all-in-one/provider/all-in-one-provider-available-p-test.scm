@@ -14,6 +14,12 @@
 ;; ----
 ;; boolean
 ;; 存在有效配置且至少包含一条链时返回 #t，否则返回 #f。
+;;
+;; 说明
+;; ----
+;; 本判定与 all-in-one-models 的分工：后者在无配置时回退 defaults 的默认链，
+;; 因此永不返回空列表；前者只表达“用户显式配置过 all-in-one”，不读默认链，
+;; 否则元供应商会被误当成内置 provider 反复出现在目录里。
 
 (import (scheme base)
   (scheme file)

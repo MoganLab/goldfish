@@ -13,7 +13,14 @@
 ;; 返回值
 ;; ----
 ;; list of alist
-;; 伪模型元数据列表；未配置或配置非法时返回空列表。
+;; 伪模型元数据列表；未配置或配置非法时回退 defaults 的默认双链，因此永不返回空列表。
+;;
+;; 说明
+;; ----
+;; 单链投影 %chain->model 是内部实现：把 <chain-def> 摊成标准模型元数据 alist
+;; （id 取链 ID、name 取链展示名、provider/api 固定为 all-in-one、reasoning 恒为 #t、
+;; contextWindow 取整链保守窗口、maxTokens 固定 65536）。字段顺序与取值属于
+;; 目录投影契约，由本文件逐字段断言。
 
 (import (scheme base)
   (scheme file)

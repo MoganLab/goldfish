@@ -24,8 +24,22 @@ gf doc pi-probe-retry-config
 
 ## 函数分类索引
 
+### 探活入口
+
 - `pi-probe-node` - 进程内轻量预检节点，支持非流式请求、超时控制、隔离配置与失败日志记录
-- `pi-probe-error-code` - 从预检错误文本或状态码提取 HTTP 状态码、timeout 或 error
+
+### 探活常量与配置
+
 - `pi-probe-prompt` - 微型预检提示词常量 `ping`
 - `pi-probe-max-tokens-metadata` - 把节点模型元数据的 max-tokens 覆盖为探活专用的 16
 - `pi-probe-retry-config` - 计算探活专用的重试预算配置（最多 3 次重试，退避有界）
+
+### 错误分类
+
+- `pi-probe-error-code` - 从预检失败文本或异常信息提取 HTTP 状态码、timeout 或 error
+
+## 导出边界
+
+失败分类与日志拼接（`%probe-response-failure`、`%assistant-probe-failure`、
+`%network-error-code`、`%failure`）都是实现细节，不导出；它们的行为由
+`pi-probe-node-test.scm` 的日志断言与 `pi-probe-error-code-test.scm` 的错误码断言覆盖。

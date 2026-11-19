@@ -21,13 +21,13 @@
     (liii pi code config user-fs)
   ) ;import
 
-  ;; 路径：resolve-all-in-one-config-path
+  ;; 路径
   (export resolve-all-in-one-config-path)
-  ;; 读取：all-in-one-load-config（读到用户配置才返回 record，#f 表示未读到）
+  ;; 读取：读到用户配置才返回 record，#f 表示未读到
   (export all-in-one-load-config)
-  ;; 缺省回退：all-in-one-load-or-default-config
+  ;; 缺省回退：把上一步的 #f 折叠成默认记录
   (export all-in-one-load-or-default-config)
-  ;; 初始化：ensure-all-in-one-config!
+  ;; 初始化
   (export ensure-all-in-one-config!)
   (begin
 
@@ -42,9 +42,8 @@
       ) ;let
     ) ;define
 
-    ;; 默认 all-in-one.json 由 defaults 的默认记录序列化得到，
-    ;; 不维护第二份手写默认链 JSON。默认值都是整秒（3600/60/8），
-    ;; 因此按秒写回，与历史默认文件的字段形式保持一致。
+    ;; 默认值都是整秒（3600/60/8），按秒写回是为了与历史默认文件的字段形式
+    ;; 保持一致。
     (define (%default-all-in-one-json)
       (let* ((cfg (make-default-all-in-one-config))
              (chains (all-in-one-cfg-chains cfg))
@@ -63,7 +62,7 @@
       ) ;let*
     ) ;define
 
-    ;; 仅在目标文件不存在时原子写入默认配置；已存在的用户配置绝不覆盖。
+    ;; 用户配置文件绝不被覆盖：仅在目标文件不存在时原子写入默认配置。
     (define (ensure-all-in-one-config! . opt-config-dir)
       (let* ((cfg-path (apply resolve-all-in-one-config-path opt-config-dir)))
         (if (file-exists? cfg-path)
@@ -134,8 +133,6 @@
       ) ;let
     ) ;define
 
-    ;; 表达“是否成功读到用户配置”：文件不存在、JSON 非法、根 provider 不是
-    ;; "all-in-one" 或 chains 非法时告警并返回 #f，由调用方决定回退策略。
     (define (all-in-one-load-config . opt-config-dir)
       (when (or (null? opt-config-dir) (not (car opt-config-dir)))
         (ensure-all-in-one-config!)
@@ -162,8 +159,8 @@
       ) ;let*
     ) ;define
 
-    ;; 请求、压缩摘要与配置 TUI 的统一回退入口：读到有效用户配置则用用户配置，
-    ;; 否则用 defaults 的默认记录，避免各处重复构造默认参数与默认链。
+    ;; 分层不变量：读取失败（#f）与“配置存在但没有任何链”同样回退默认记录，
+    ;; 因此请求、压缩摘要与配置 TUI 不必各自重复构造默认参数与默认链。
     (define (all-in-one-load-or-default-config . opt-config-dir)
       (let ((cfg (apply all-in-one-load-config opt-config-dir)))
         (if (and cfg (all-in-one-cfg? cfg) (pair? (all-in-one-cfg-chains cfg)))

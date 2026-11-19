@@ -36,8 +36,9 @@ gf doc chain-conservative-context-window
 
 ## 行为契约
 
-- `all-in-one-models` 始终返回非空列表：未配置或配置非法时回退默认链，保证伪模型始终可选；
-- `all-in-one-provider-available?` 只表示“用户显式配置过 all-in-one”，不因默认回退而恒为真，因此不会被误当成内置 provider 反复出现在目录里；
+- `all-in-one-models` 始终返回非空列表：未配置或配置非法时回退 `defaults` 的默认链，保证伪模型始终可选；
+- `all-in-one-provider-available?` 只表示“用户显式配置过 all-in-one”，不因默认回退而恒为真，因此不会被误当成内置 provider 反复出现在目录里；判定本身不读默认链；
 - 伪模型元数据固定为 `provider=all-in-one`、`api=all-in-one`、`reasoning=#t`；
-- 单链投影（`chain->model`）与批量投影（`chains->models`）是实现细节，保持私有；
+- 单链投影 `%chain->model` 是实现细节，保持私有；
+- `all-in-one-provider-entry` 保留为模型目录条目的构造接口，当前只有本模块与目录测试使用；
 - 上下文窗口取链内最小值，避免压缩判定按最强节点高估容量。

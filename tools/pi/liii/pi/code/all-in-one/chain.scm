@@ -37,7 +37,6 @@
 
     (define %node-failure-timestamps '())
 
-    ;; 同时清空粘性记忆与节点冷却，供场景测试回到初始状态。
     (define (pi-chain-reset-state!)
       (set! %last-success-index '())
       (set! %node-failure-timestamps '())
