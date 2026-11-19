@@ -17,18 +17,18 @@
 ;; list
 ;; Anthropic API 的 tool 声明列表，解析失败的工具会被过滤。
 
-(set! *load-path* (append (list "../tools/pi" ".") *load-path*))
-
 (import (liii check)
   (liii pi ai api anthropic-messages request)
-  (liii pi code core tools)
+  (liii pi ai tools definition)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-(let ((decls (anthropic-build-tool-declarations-from-names '("bash" "read")
-               get-tool-definition
-             ) ;anthropic-build-tool-declarations-from-names
+(define (mock-resolver name)
+  (pi-tool-definition name (string-append name " description") '() (lambda () #t))
+) ;define
+
+(let ((decls (anthropic-build-tool-declarations-from-names '("bash" "read") mock-resolver)
       ) ;decls
      ) ;
   (check (length decls) => 2)

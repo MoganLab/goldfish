@@ -30,6 +30,7 @@
                (tools '())
                (proxy-url #f)
                (settings '())
+               (headers '())
              ) ;pi-make-request-config
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (eff-api (or provider-api (pi-provider-api p-str)))
@@ -53,6 +54,7 @@
           (cons 'tools (or tools '()))
           (cons 'proxy-url proxy-url)
           (cons 'settings (or settings '()))
+          (cons 'headers (or headers '()))
         ) ;list
       ) ;let*
     ) ;define*
@@ -65,7 +67,8 @@
              (c3 (if (pi-cfg-ref c2 'tools) c2 (pi-cfg-set c2 'tools (or tools '()))))
              (c4 (if (pi-cfg-ref c3 'proxy-url) c3 (pi-cfg-set c3 'proxy-url #f)))
              (c5 (if (pi-cfg-ref c4 'settings) c4 (pi-cfg-set c4 'settings '())))
-             (raw-meta (pi-cfg-ref c5 'model-meta))
+             (c5h (if (pi-cfg-ref c5 'headers) c5 (pi-cfg-set c5 'headers '())))
+             (raw-meta (pi-cfg-ref c5h 'model-meta))
              ;; model-meta 统一为 record：旧 alist（含会话 JSON 载入）规范化，
              ;; 缺失时用注册表默认值补齐；不再把 record 降级为 alist
              (c6

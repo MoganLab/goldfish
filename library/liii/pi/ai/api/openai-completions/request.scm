@@ -72,23 +72,32 @@
       ) ;let
     ) ;define*
 
-    (define (%opencode-extra-headers url provider session-id)
-      (if
-        (or (and (string? url) (string-contains? url "opencode.ai"))
-          (and (string? provider)
-            (or (string=? provider "opencode") (string=? provider "opencode-go"))
-          ) ;and
-        ) ;or
-        (list
-          (cons "x-opencode-session"
-            (if (and (string? session-id) (> (string-length session-id) 0))
-              session-id
-              (uuid4)
-            ) ;if
-          ) ;cons
-        ) ;list
-        '()
-      ) ;if
+    (define (%openai-extra-headers url provider session-id config settings)
+      (let* ((cfg-hdrs (or (pi-cfg-ref config 'headers) '()))
+             (set-hdrs
+               (or (and (pair? settings) (cdr (or (assoc 'headers settings) '(#f . #f)))) '())
+             ) ;set-hdrs
+             (opencode-hdrs
+               (if
+                 (or (and (string? url) (string-contains? url "opencode.ai"))
+                   (and (string? provider)
+                     (or (string=? provider "opencode") (string=? provider "opencode-go"))
+                   ) ;and
+                 ) ;or
+                 (list
+                   (cons "x-opencode-session"
+                     (if (and (string? session-id) (> (string-length session-id) 0))
+                       session-id
+                       (uuid4)
+                     ) ;if
+                   ) ;cons
+                 ) ;list
+                 '()
+               ) ;if
+             ) ;opencode-hdrs
+            ) ;
+        (append cfg-hdrs set-hdrs opencode-hdrs)
+      ) ;let*
     ) ;define
 
     (define (openai-build-proxy-alist proxy-url)
@@ -232,7 +241,7 @@
              ) ;
           (let loop
             ((attempt 1) (api-key (pi-request-api-key config)))
-            (let* ((extra-hdrs (%opencode-extra-headers url provider session-id))
+            (let* ((extra-hdrs (%openai-extra-headers url provider session-id config settings))
                    (headers (openai-build-headers api-key extra-hdrs))
                    (resp (%post-openai url req-json-str headers proxy-alist timeout))
                    (status (or (%resp-field resp 'status-code) 0))
