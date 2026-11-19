@@ -53,3 +53,4 @@ bin/gf test tools/pi/tests/liii/pi/ai/api/openai-completions/request/
 - `openai-build-proxy-alist-test.scm` — `openai-build-proxy-alist`：代理配置构造
 - `openai-build-tool-declarations-from-names-test.scm` — `openai-build-tool-declarations-from-names`：按名生成工具声明
 - `openai-request-test.scm` — `openai-request`：非流式请求与额度耗尽测试
+- `openai-request-headers-test.scm` — Vertex OpenAI 兼容认证头的非流式/流式 HTTP 集成
