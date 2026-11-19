@@ -17,13 +17,18 @@
 ;; list
 ;; OpenAI 格式的 tools 声明列表。
 
-(set! *load-path* (append (list "../tools/pi" ".") *load-path*))
-
-(import (liii check) (liii pi ai api openai-completions) (liii pi code core tools))
+(import (liii check)
+  (liii pi ai api openai-completions)
+  (liii pi ai tools definition)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-(let ((decls (openai-build-tool-declarations-from-names '("bash" "read") get-tool-definition)))
+(define (mock-resolver name)
+  (pi-tool-definition name (string-append name " description") '() (lambda () #t))
+) ;define
+
+(let ((decls (openai-build-tool-declarations-from-names '("bash" "read") mock-resolver)))
   (check (length decls) => 2)
   (let* ((d1 (car decls))
          (fn1 (cdr (assoc "function" d1))))
