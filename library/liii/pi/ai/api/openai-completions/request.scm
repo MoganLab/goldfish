@@ -21,6 +21,7 @@
     (liii pi ai message)
     (liii pi ai api openai-completions core)
     (liii pi ai api openai-completions msg)
+    (liii pi ai api openai-completions thinking)
     (liii pi ai retry)
     (liii pi ai limits)
     (liii pi ai log)
@@ -215,6 +216,12 @@
                     ((proxy-url) (pi-cfg-ref config 'proxy-url))
                     ((settings) (pi-cfg-ref config 'settings))
                     ((provider) (pi-cfg-ref config 'provider))
+                    ((thinking-level) (pi-cfg-ref config 'thinking-level))
+                    ((model-entry)
+                     (openai-resolve-model-entry (pi-cfg-ref config 'models-store '())
+                       provider model-id
+                     ) ;openai-resolve-model-entry
+                    ) ;
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
                     ) ;
@@ -254,7 +261,7 @@
                     ((openai-msgs) (openai-build-messages messages system-instruction))
                     ((req-body)
                      (openai-build-request-body model-id openai-msgs #f
-                       tool-decls max-tokens prompt-cache-key
+                       tool-decls max-tokens prompt-cache-key thinking-level model-entry
                      ) ;openai-build-request-body
                     ) ;
                     ((req-json-str) (json->string req-body))

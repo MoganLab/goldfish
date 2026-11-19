@@ -23,6 +23,7 @@
     (liii pi ai message)
     (liii pi ai api openai-completions core)
     (liii pi ai api openai-completions msg)
+    (liii pi ai api openai-completions thinking)
     (liii pi ai api openai-completions request)
     (liii pi ai api openai-completions stream-parse)
     (liii pi ai api openai-completions stream-state)
@@ -37,7 +38,6 @@
             (else #f)
       ) ;cond
     ) ;define
-
     (define (%build-stream-cb stream-state on-event effective-idle on-idle on-abort err-acc)
       (let* ((last-act (pi-current-monotonic-seconds))
              (decoder (make-openai-stream-decoder stream-state on-event))
@@ -66,7 +66,6 @@
         ) ;lambda
       ) ;let*
     ) ;define
-
     (define (%finalize-stream stream-state provider model-id)
       (finish-openai-stream stream-state #f)
       (let* ((blocks (openai-stream-state-blocks stream-state))
@@ -83,7 +82,6 @@
         ) ;pi-assistant-message
       ) ;let*
     ) ;define
-
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
     (define (%finalize-aborted-stream stream-state provider model-id)
       (finish-openai-stream stream-state #f)
@@ -120,7 +118,6 @@
         ) ;if
       ) ;let
     ) ;define
-
     ;; 流式响应中的错误正文：优先取回调累积的 chunk，其次取 http 响应体
     (define (%stream-error-body resp err-acc)
       (let ((acc-body (vector-ref err-acc 0)) (resp-body (or (%resp-field resp 'text) "")))
@@ -383,6 +380,10 @@
              (openai-msgs (openai-build-messages messages system-instruction))
              (req-body (openai-build-request-body model-id openai-msgs #t
                          tool-decls max-tokens prompt-cache-key
+                         (pi-cfg-ref config 'thinking-level)
+                         (openai-resolve-model-entry (pi-cfg-ref config 'models-store '())
+                           (pi-cfg-ref config 'provider) model-id
+                         ) ;openai-resolve-model-entry
                        ) ;openai-build-request-body
              ) ;req-body
              (req-json-str (json->string req-body))
