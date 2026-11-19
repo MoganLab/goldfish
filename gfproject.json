@@ -139,15 +139,6 @@
         "goldfish"
       ],
       "mode": "r7rs"
-    },
-    "pi": {
-      "root": "tools/pi/",
-      "depends-on": [
-        "tui",
-        "library",
-        "goldfish"
-      ],
-      "mode": "r7rs"
     }
   },
   "tools": {
@@ -263,14 +254,6 @@
       "description": {
         "en_US": "Fetch a GitHub pull request into a local pr_NUM branch",
         "zh_CN": "拉取 GitHub PR 到本地 pr_NUM 分支"
-      }
-    },
-    "pi": {
-      "organization": "liii",
-      "module": "pi/code/cli",
-      "description": {
-        "en_US": "Pi coding agent script mode",
-        "zh_CN": "Pi coding agent 脚本模式"
       }
     }
   }
