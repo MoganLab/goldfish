@@ -37,6 +37,7 @@
         "goldfish",
         "r7rs",
         "library",
+        "tui",
         "tools",
         "demo",
         "src",

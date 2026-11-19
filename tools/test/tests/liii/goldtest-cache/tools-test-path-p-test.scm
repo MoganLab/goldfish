@@ -32,6 +32,7 @@
 (check-false (tools-test-path? "library/tests/liii/json-test.scm"))
 (check-false (tools-test-path? "goldfish/tests/liii/list-test.scm"))
 (check-false (tools-test-path? "r7rs/tests/scheme/base-test.scm"))
+(check-false (tools-test-path? "tui/tests/liii/tui/editor-test.scm"))
 
 ;; ===== 场景4: 域内相对路径（cwd 含 /tools/ 时判定为启用） =====
 ;; 本测试在 tools/test 域内运行，tests/ 前缀同样属于 tools 测试

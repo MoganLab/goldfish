@@ -42,6 +42,8 @@
             ((or (string-starts? path "library/")
                (string-starts? path "goldfish/")
                (string-starts? path "r7rs/")
+               (string-starts? path "bignum/")
+               (string-starts? path "tui/")
              ) ;or
              #f
             ) ;

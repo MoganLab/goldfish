@@ -165,8 +165,8 @@
                (gf-roots
                  (if gf-lib
                    (map (lambda (s) (string-append gf-lib s))
-                     '("" "/r7rs" "/library" "/bignum" "/../r7rs" "/../library"
-                       "/../bignum")
+                     '("" "/r7rs" "/library" "/bignum" "/tui" "/../r7rs"
+                       "/../library" "/../bignum" "/../tui")
                    ) ;map
                    '()
                  ) ;if

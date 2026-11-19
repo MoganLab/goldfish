@@ -26,9 +26,18 @@
       ],
       "mode": "r7rs"
     },
+    "tui": {
+      "root": "tui/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ],
+      "mode": "r7rs"
+    },
     "demo": {
       "root": "demo/",
       "depends-on": [
+        "tui",
         "library",
         "goldfish"
       ],
@@ -109,6 +118,7 @@
     "repl": {
       "root": "tools/repl/",
       "depends-on": [
+        "tui",
         "library",
         "goldfish"
       ],
@@ -133,6 +143,7 @@
     "pi": {
       "root": "tools/pi/",
       "depends-on": [
+        "tui",
         "library",
         "goldfish"
       ],

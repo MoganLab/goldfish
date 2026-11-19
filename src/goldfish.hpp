@@ -1333,6 +1333,14 @@ add_goldfish_load_paths (s7_scheme* sc, const char* gf_lib) {
   else if (fs::is_directory (source_bignum)) {
     s7_add_to_load_path (sc, source_bignum.string ().c_str ());
   }
+  fs::path installed_tui= fs::path (gf_lib) / "tui";
+  fs::path source_tui   = fs::path (gf_lib).parent_path () / "tui";
+  if (fs::is_directory (installed_tui)) {
+    s7_add_to_load_path (sc, installed_tui.string ().c_str ());
+  }
+  else if (fs::is_directory (source_tui)) {
+    s7_add_to_load_path (sc, source_tui.string ().c_str ());
+  }
 }
 
 s7_scheme*
