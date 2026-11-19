@@ -25,6 +25,7 @@
     (liii sort)
     (liii hash-table)
     (liii gfproject config)
+    (liii goldtest-project)
   ) ;import
   (export extract-file-imports resolve-import-path find-test-dependencies
     test-no-cache-directive?
@@ -155,12 +156,7 @@
 
     (define (%base-search-roots)
       (unless *cached-base-roots*
-        (let* ((dom-roots
-                 (map
-                   (lambda (d) (string-trim-right (cdr (assq 'root d)) #\/))
-                   (gfproject-domains-list)
-                 ) ;map
-               ) ;dom-roots
+        (let* ((dom-roots (%project-domain-search-roots))
                (gf-lib (gfproject-get-gf-lib))
                (gf-roots
                  (if gf-lib
