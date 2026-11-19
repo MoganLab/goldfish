@@ -18,10 +18,7 @@
 ;; alist or #f
 ;; 成功时返回工具的配置字典，未找到返回 #f。
 
-(import (liii check)
-  (liii json)
-  (liii gfproject tools)
-) ;import
+(import (liii check) (liii json) (liii gfproject tools))
 
 (check-set-mode! 'report-failed)
 

@@ -18,9 +18,7 @@
 ;; integer or #f
 ;; 工具退出码；若未注册该工具则返回 #f。
 
-(import (liii check)
-  (liii gfproject tools)
-) ;import
+(import (liii check) (liii gfproject tools))
 
 (check-set-mode! 'report-failed)
 

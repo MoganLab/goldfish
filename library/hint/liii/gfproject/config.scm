@@ -41,6 +41,7 @@
       '((-> (or #f string?)) (string? -> (or #f string?)))
     ) ;define
     (define hint-gfproject-find-local-path '((-> (or #f string?))))
+    (define hint-gfproject-find-user-path '((-> (or #f string?))))
 
     ;; JSON 配置统一使用 any?，避免把空配置 '(()) 误标为普通 alist。
     (define hint-gfproject-read-file '((any? -> any?)))
@@ -66,6 +67,7 @@
        ((gfproject--opt-gf-lib) hint-gfproject--opt-gf-lib)
        ((gfproject-find-lib-path) hint-gfproject-find-lib-path)
        ((gfproject-find-local-path) hint-gfproject-find-local-path)
+       ((gfproject-find-user-path) hint-gfproject-find-user-path)
        ((gfproject-read-file) hint-gfproject-read-file)
        ((gfproject-extract-tools) hint-gfproject-extract-tools)
        ((gfproject-extract-domains) hint-gfproject-extract-domains)

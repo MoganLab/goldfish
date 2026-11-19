@@ -172,15 +172,28 @@
                ) ;if
              ) ;tools
              (tool-cfg (json-ref tools tool-name))
-             (actual-tool (if (json-object? tool-cfg)
-                            (json-ref-string tool-cfg "tool" tool-name)
+             ;; 用户层/项目层的 tools_dir 需相对其自身 gfproject.json 展开，
+             ;; 因此优先取 resolve-tool-bundle 给出的工具配置与基准目录。
+             (bundle (and (json-object? tool-cfg) (gfproject-resolve-tool-bundle tool-name)))
+             (effective-cfg (if bundle (bundle-ref bundle "merged-tool") tool-cfg))
+             (actual-tool (if (json-object? effective-cfg)
+                            (json-ref-string effective-cfg "tool" tool-name)
                             tool-name
                           ) ;if
              ) ;actual-tool
-             (tools-dir (if (json-object? tool-cfg) (json-ref-string tool-cfg "tools_dir" #f) #f)
+             (tools-dir (if (json-object? effective-cfg)
+                          (json-ref-string effective-cfg "tools_dir" #f)
+                          #f
+                        ) ;if
              ) ;tools-dir
+             (has-tools-dir? (and tools-dir (not (string-null? tools-dir))))
+             (base-dir (if bundle (bundle-ref bundle "tool_base_dir") #f))
+             (expanded-tools-dir (and has-tools-dir? (gfproject-expand-tools-dir tools-dir base-dir))
+             ) ;expanded-tools-dir
             ) ;
-        (let ((tool-root (gfproject-find-tool-root actual-tool tools-dir)))
+        (let ((tool-root (gfproject-find-tool-root actual-tool (or expanded-tools-dir tools-dir))
+              ) ;tool-root
+             ) ;
           (and tool-root
             (let ((readme-path (path->string (path-join tool-root "README.md"))))
               (and (file-exists? readme-path) readme-path)

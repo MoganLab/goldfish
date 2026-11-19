@@ -25,6 +25,7 @@
     (liii path)
     (liii string)
     (liii gfproject config)
+    (liii gfproject external)
   ) ;import
   (export gfproject-find-tool-root
     gfproject-resolve-tool
@@ -33,37 +34,55 @@
     gfproject-run-tool
     gfproject-expand-tools-dir
     gfproject-parse-import-spec
+    gfproject-find-project-root
     gfproject-tool-conflict?
     gfproject-error->string
+    gfproject-tool-base-dir
     ;; re-export 自 (liii gfproject config)，保持旧 API 兼容
     gfproject-root
     gfproject-get-gf-lib
     gfproject-find-lib-path
     gfproject-find-local-path
+    gfproject-find-user-path
     gfproject-extract-tools
     gfproject-deep-merge
     gfproject-load-config-bundle
     gfproject-load-config
+    bundle-ref
   ) ;export
   (begin
 
-    ;; 将 s7 的错误 info 转换为可读字符串：完整格式化占位符、
-    ;; 附加错误发生位置（文件与行号）并追加缺失模块的 import 提示
+    ;; 将 s7 的错误 info 转换为可读字符串，并追加缺失模块的 import 提示
     (define (gfproject-error->string info)
       (catch-error->string #f info)
     ) ;define
 
-    (define (gfproject-expand-tools-dir dir)
-      (let ((p (path-expanduser dir)))
+    ;; (gfproject-expand-tools-dir dir [base-dir])
+    ;; base-dir 为 #f 时保持旧行为（相对项目根/cwd）；否则相对 base-dir 展开。
+    ;; 用户层配置的 tools_dir 以 ~/.gf 为基准，项目层以项目根为基准。
+    (define (gfproject-expand-tools-dir dir . rest)
+      (let* ((base-dir (if (pair? rest) (car rest) #f)) (p (path-expanduser dir)))
         (path->string
-          (if (path-absolute? p)
-            p
-            (let ((root (gfproject-root)))
-              (path-join (or root (getcwd)) p)
-            ) ;let
-          ) ;if
+          (if (path-absolute? p) p (path-join (or base-dir (gfproject-root) (getcwd)) p))
         ) ;path->string
-      ) ;let
+      ) ;let*
+    ) ;define
+
+    ;; 工具配置所在的 gfproject.json 目录；#f 时回退旧基准。
+    (define (%gfproject-config-dir path)
+      (and path (path->string (path-parent path)))
+    ) ;define
+
+    ;; 命令最终采用的配置来源目录：项目层 > 用户层 > 内置层。
+    (define (gfproject-tool-base-dir bundle)
+      (cond ((bundle-ref bundle "has-local-override")
+             (%gfproject-config-dir (bundle-ref bundle "local_path"))
+            ) ;
+            ((bundle-ref bundle "has-user-tool")
+             (%gfproject-config-dir (bundle-ref bundle "user_path"))
+            ) ;
+            (else (%gfproject-config-dir (bundle-ref bundle "lib_path")))
+      ) ;cond
     ) ;define
 
     (define (gfproject-find-tool-root tool-name . rest)
@@ -75,11 +94,8 @@
             (and (path-dir? target) (path->string target))
           ) ;let
           (let* ((gf-lib (gfproject--opt-gf-lib opt-gf-lib))
-                 ;; ; [1131] 内置插件优先：cwd 下的同名目录仅作自定义工具的
-                 ;; ; 兜底，不得遮蔽 gf-lib 侧的内置插件
-                 ;; ; [1265] 候选统一 realpath 归一化：gf-lib 可能来自环境变量
-                 ;; ; (逻辑路径)，cwd 候选为物理路径，未归一时返回形态取决于
-                 ;; ; 命中哪个候选，不可预测
+                 ;; ; [1131] 内置插件优先：cwd 同名目录仅作兜底，不得遮蔽内置插件
+                 ;; ; [1265] 候选统一 realpath 归一化，避免逻辑路径与物理路径形态不一致
                  (candidates (list (path-join gf-lib "tools" tool-name)
                                (path-join (path-parent gf-lib) "tools" tool-name)
                                (path-join (getcwd) "tools" tool-name)
@@ -103,20 +119,34 @@
 
     (define (gfproject-resolve-tool-bundle command . opt-gf-lib)
       (let* ((bundle (apply gfproject-load-config-bundle opt-gf-lib))
-             (local-tools (bundle-ref bundle "local_tools"))
              (lib-tools (bundle-ref bundle "lib_tools"))
+             (user-tools (bundle-ref bundle "user_tools"))
+             (local-tools (bundle-ref bundle "local_tools"))
              (merged-tools (bundle-ref bundle "merged_tools"))
              (has-lib? (json-contains-key? lib-tools command))
+             (has-user? (json-contains-key? user-tools command))
+             (has-local? (json-contains-key? local-tools command))
+             (base-dir
+               (cond (has-local? (%gfproject-config-dir (bundle-ref bundle "local_path")))
+                     (has-user? (%gfproject-config-dir (bundle-ref bundle "user_path")))
+                     (else (%gfproject-config-dir (bundle-ref bundle "lib_path")))
+               ) ;cond
+             ) ;base-dir
             ) ;
         (and (json-contains-key? merged-tools command)
-          (list (cons "has-local-override" (json-contains-key? local-tools command))
+          (list (cons "has-local-override" has-local?)
+            (cons "has-user-tool" has-user?)
             (cons "has-lib-tool" has-lib?)
             (cons "lib_path" (bundle-ref bundle "lib_path"))
+            (cons "user_path" (bundle-ref bundle "user_path"))
             (cons "local_path" (bundle-ref bundle "local_path"))
             (cons "lib_tools" lib-tools)
+            (cons "user_tools" user-tools)
             (cons "local_tools" local-tools)
             (cons "merged-tool" (json-ref merged-tools command))
             (cons "lib-tool" (if has-lib? (json-ref lib-tools command) '(())))
+            (cons "user-tool" (if has-user? (json-ref user-tools command) '(())))
+            (cons "tool_base_dir" base-dir)
           ) ;list
         ) ;and
       ) ;let*
@@ -133,45 +163,60 @@
       ) ;let
     ) ;define
 
-    ;; ; [1131] 内置工具隔离：本地 gfproject.json 注册的命令与内置注册表
-    ;; ; 重名、且两者并非同一份配置文件时，判定为冲突。bin/gf 在仓库内
-    ;; ; 开发时 lib_path 与 local_path 指向同一个文件，不算冲突。
+    ;; ; [1131] 内置工具隔离：用户/本地注册与内置注册表重名且来源不同时判定冲突；
+    ;; ; 仓库内开发时 lib_path 与 local_path 指向同一文件，不算冲突。
+    (define (%gfproject-same-source? a b)
+      (and a
+        b
+        (string=? (path->string (path-resolve a)) (path->string (path-resolve b)))
+      ) ;and
+    ) ;define
+
     (define (gfproject-tool-conflict? command bundle)
       (let* ((lib-path (bundle-ref bundle "lib_path"))
+             (user-path (bundle-ref bundle "user_path"))
              (local-path (bundle-ref bundle "local_path"))
-             (same-source?
-               (and lib-path
-                 local-path
-                 (string=? (path->string (path-resolve lib-path))
-                   (path->string (path-resolve local-path))
-                 ) ;string=?
-               ) ;and
-             ) ;same-source?
              (lib-tools (bundle-ref bundle "lib_tools"))
+             (user-tools (bundle-ref bundle "user_tools"))
              (local-tools (bundle-ref bundle "local_tools"))
+             (has-lib? (json-contains-key? lib-tools command))
+             (user-conflict? (and has-lib?
+                               (json-contains-key? user-tools command)
+                               (not (%gfproject-same-source? lib-path user-path))
+                             ) ;and
+             ) ;user-conflict?
+             (local-conflict? (and has-lib?
+                                (json-contains-key? local-tools command)
+                                (not (%gfproject-same-source? lib-path local-path))
+                              ) ;and
+             ) ;local-conflict?
             ) ;
-        (and (not same-source?)
-          (json-contains-key? lib-tools command)
-          (json-contains-key? local-tools command)
-        ) ;and
+        (or user-conflict? local-conflict?)
       ) ;let*
     ) ;define
 
-    ;; ; [1131] 冲突提示：内置插件不受本地同名注册影响，提示后继续用内置实现。
+    ;; ; 冲突提示：内置插件不受用户/本地同名注册影响，提示后继续用内置实现。
     ;; ; 直写 *stderr*（进程 fd）：工具的 main 可能直接 (exit)，若写入被捕获的
     ;; ; current-error-port，提示会随捕获 port 一起丢失
     (define (gfproject--warn-tool-conflict command bundle)
-      (let ((p (if (defined? '*stderr*) *stderr* (current-error-port))))
-        (display (string-append "Warning: Tool '"
-                   command
-                   "' is a built-in tool (defined in "
-                   (bundle-ref bundle "lib_path")
-                   "); ignoring local registration in "
-                   (bundle-ref bundle "local_path")
-                   ".\n"
-                 ) ;string-append
-          p
-        ) ;display
+      (let ((p (if (defined? '*stderr*) *stderr* (current-error-port)))
+            (lib-path (bundle-ref bundle "lib_path"))
+            (user-tools (bundle-ref bundle "user_tools"))
+            (local-tools (bundle-ref bundle "local_tools"))
+           ) ;
+        (let ((source (cond ((json-contains-key? user-tools command) (bundle-ref bundle "user_path"))
+                            ((json-contains-key? local-tools command) (bundle-ref bundle "local_path"))
+                            (else "<unknown>")
+                      ) ;cond
+              ) ;source
+             ) ;
+          (display (string-append "Warning: Tool '" command
+                     "' is a built-in tool (defined in " lib-path
+                     "); ignoring local registration in " source ".\n"
+                   ) ;string-append
+            p
+          ) ;display
+        ) ;let
       ) ;let
     ) ;define
 
@@ -227,6 +272,12 @@
     ) ;define
 
     (define (gfproject-prepare-and-run-tool command tool-config gf-lib allow-fallback)
+      (gfproject-prepare-and-run-tool* command tool-config gf-lib allow-fallback #f)
+    ) ;define
+
+    (define (gfproject-prepare-and-run-tool* command tool-config gf-lib
+              allow-fallback base-dir
+            ) ;gfproject-prepare-and-run-tool*
       (let* ((tool-name (if (json-object? tool-config)
                           (json-ref-string tool-config "tool" command)
                           command
@@ -236,7 +287,8 @@
              ) ;tools-dir
              (has-tools-dir? (and tools-dir (not (string-null? tools-dir))))
              (effective-fallback (if has-tools-dir? #f allow-fallback))
-             (expanded-tools-dir (and has-tools-dir? (gfproject-expand-tools-dir tools-dir)))
+             (expanded-tools-dir (and has-tools-dir? (gfproject-expand-tools-dir tools-dir base-dir))
+             ) ;expanded-tools-dir
             ) ;
         (define (fail . parts)
           (if effective-fallback
@@ -272,6 +324,9 @@
                   ) ;if
                   (begin
                     (set! *load-path* (cons tool-root *load-path*))
+                    ;; 外部项目：读取其自身 gfproject.json 的 domains，
+                    ;; 把项目根与 domain 根注入 *load-path*，避免复制 domains。
+                    (if has-tools-dir? (gfproject-external-project-load-path! tool-root) #f)
                     (gfproject--run-loaded-tool (gfproject-parse-import-spec org module) fail)
                   ) ;begin
                 ) ;if
@@ -285,7 +340,7 @@
     (define (gfproject-run-tool command . opt-gf-lib)
       (let ((bundle (apply gfproject-resolve-tool-bundle command opt-gf-lib)))
         (cond ((not bundle) #f)
-              ;; ; [1131] 内置插件隔离：本地重名时提示并强制使用内置实现
+              ;; ; [1131] 内置插件隔离：用户/本地重名时提示并强制使用内置实现
               ((gfproject-tool-conflict? command bundle)
                (gfproject--warn-tool-conflict command bundle)
                (gfproject--dispatch-tool command bundle opt-gf-lib #t)
@@ -295,27 +350,36 @@
       ) ;let
     ) ;define
 
-    ;; ; force-lib? 为 #t 时跳过本地配置，直接用内置（lib 侧）配置执行
+    ;; ; force-lib? 为 #t 时跳过用户/本地配置，直接用内置（lib 侧）配置执行
     (define (gfproject--dispatch-tool command bundle opt-gf-lib force-lib?)
       (let* ((gf-lib (gfproject--opt-gf-lib opt-gf-lib))
              (has-local? (bundle-ref bundle "has-local-override"))
+             (has-user? (bundle-ref bundle "has-user-tool"))
              (has-lib? (bundle-ref bundle "has-lib-tool"))
              (merged-tool (bundle-ref bundle "merged-tool"))
              (lib-tool (bundle-ref bundle "lib-tool"))
+             (base-dir (bundle-ref bundle "tool_base_dir"))
+             (lib-base (%gfproject-config-dir (bundle-ref bundle "lib_path")))
              (builtin-fallback? (member command '("help" "version" "eval" "load"
                                                   "repl" "run"))
              ) ;builtin-fallback?
             ) ;
-        (cond (force-lib? (gfproject-prepare-and-run-tool command lib-tool gf-lib builtin-fallback?)
+        (cond (force-lib? (gfproject-prepare-and-run-tool* command lib-tool
+                            gf-lib builtin-fallback? lib-base
+                          ) ;gfproject-prepare-and-run-tool*
               ) ;force-lib?
-              ((and has-local? has-lib?)
-               (let ((ret (gfproject-prepare-and-run-tool command merged-tool gf-lib #t)))
+              ((and (or has-local? has-user?) has-lib?)
+               (let ((ret (gfproject-prepare-and-run-tool* command merged-tool gf-lib #t base-dir)))
                  (or ret
-                   (gfproject-prepare-and-run-tool command lib-tool gf-lib builtin-fallback?)
+                   (gfproject-prepare-and-run-tool* command lib-tool gf-lib
+                     builtin-fallback? lib-base
+                   ) ;gfproject-prepare-and-run-tool*
                  ) ;or
                ) ;let
               ) ;
-              (else (gfproject-prepare-and-run-tool command merged-tool gf-lib builtin-fallback?)
+              (else (gfproject-prepare-and-run-tool* command merged-tool gf-lib
+                      builtin-fallback? base-dir
+                    ) ;gfproject-prepare-and-run-tool*
               ) ;else
         ) ;cond
       ) ;let*

@@ -21,10 +21,7 @@
 ;; string or #f
 ;; 找到时返回工具根目录的绝对或相对路径，否则返回 #f。
 
-(import (liii check)
-  (liii path)
-  (liii gfproject tools)
-) ;import
+(import (liii check) (liii path) (liii gfproject tools))
 
 (check-set-mode! 'report-failed)
 
@@ -34,7 +31,10 @@
 ) ;let
 
 (check (gfproject-find-tool-root "non-existent-tool-xyz") => #f)
-(check (gfproject-find-tool-root "version" "~/non_existent_tools_dir_xyz") => #f)
+(check (gfproject-find-tool-root "version" "~/non_existent_tools_dir_xyz")
+  =>
+  #f
+) ;check
 (check (gfproject-find-tool-root "doc" #f) => (gfproject-find-tool-root "doc"))
 
 (check-report)
