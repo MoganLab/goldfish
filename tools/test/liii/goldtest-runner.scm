@@ -27,7 +27,7 @@
     (liii subprocess)
     (liii format base)
     (liii format color)
-    (liii gfproject config)
+    (liii goldtest-project)
     (liii goldtest-cache)
     (liii goldtest-cache-deps)
     (liii goldtest-runner-report)
@@ -100,58 +100,6 @@
         ) ;lambda
         (lambda args #f)
       ) ;catch
-    ) ;define
-
-    (define (%find-domain-for-test-file test-file)
-      (let ((cwd (string-replace (string-trim-right (getcwd) #\/) "\\" "/")))
-        (let loop
-          ((ds (gfproject-domains-list)))
-          (if (null? ds)
-            #f
-            (let* ((d (car ds))
-                   (root (string-trim-right (cdr (assq 'root d)) #\/))
-                   (prefix (string-append (cdr (assq 'tests d)) "/"))
-                  ) ;
-              (if
-                (or (string-starts? test-file prefix)
-                  (and (string-starts? test-file "tests/")
-                    (> (string-length root) 0)
-                    (or (string-ends? cwd (string-append "/" root)) (string=? cwd root))
-                  ) ;and
-                ) ;or
-                d
-                (loop (cdr ds))
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    ;; 这些域根已内置在 *load-path*，运行其测试无需 -I 追加搜索路径
-    (define %builtin-domain-roots
-      '("" "goldfish/" "r7rs/" "library/" "bignum/" "tui/")
-    ) ;define
-
-    (define (%goldfish-cmd-flags test-file)
-      (let* ((d (and test-file (%find-domain-for-test-file test-file)))
-             (root (and d (cdr (assq 'root d))))
-             (m (and d (assq 'mode d)))
-             (mode
-               (if (and m (string? (cdr m))) (cdr m) "r7rs")
-             ) ;mode
-             (inc (if (or (not root)
-                        (not test-file)
-                        (string-starts? test-file "tests/")
-                        (member root %builtin-domain-roots string=?)
-                      ) ;or
-                    ""
-                    (string-append "-I " (string-trim-right root #\/) " ")
-                  ) ;if
-             ) ;inc
-            ) ;
-        (string-append " -m " mode " " inc)
-      ) ;let*
     ) ;define
 
     (define (goldfish-cmd . maybe-test-file)

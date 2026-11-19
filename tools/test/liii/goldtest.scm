@@ -24,7 +24,7 @@
     (liii os)
     (liii path)
     (liii sys)
-    (liii gfproject config)
+    (liii goldtest-project)
     (liii goldtest-args)
     (liii goldtest-route)
     (liii goldtest-runner)
@@ -163,7 +163,7 @@
     ) ;define
 
     (define (find-all-domain-test-files)
-      (let* ((domains (gfproject-domains-list))
+      (let* ((domains (%project-domains-list))
              (test-dirs
                (map (lambda (d) (cdr (assq 'tests d))) domains)
              ) ;test-dirs
