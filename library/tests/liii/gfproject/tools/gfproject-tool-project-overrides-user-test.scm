@@ -29,14 +29,49 @@
   (liii os)
   (liii path)
   (liii string)
+  (liii subprocess)
+  (liii either)
   (liii sys)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+(define orig-profile (getenv "USERPROFILE"))
 
 (define orig-cwd (getcwd))
+
+;; Windows 上 path-home 优先读取 USERPROFILE，POSIX 读取 HOME。
+;; 两个变量都指向隔离目录，保证跨平台一致。
+(define (set-test-home! dir)
+  (putenv "HOME" dir)
+  (when (os-windows?) (putenv "USERPROFILE" dir))
+) ;define
+
+(define (restore-test-home!)
+  (if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+  (when (os-windows?)
+    (if orig-profile
+      (putenv "USERPROFILE" orig-profile)
+      (unsetenv "USERPROFILE")
+    ) ;if
+  ) ;when
+) ;define
+
+;; 捕获子进程的输出；不依赖 sh，Windows 下同样可运行。
+(define (capture-output . args)
+  (let ((res (run-either (cons (executable) args)
+               :stdout 'capture
+               :stderr 'capture
+             ) ;run-either
+       ) ;res
+        ) ;
+    (if (either-left? res)
+      (process-error-stdout (to-left res))
+      (to-right res)
+    ) ;if
+  ) ;let
+) ;define
 
 (define (write-text path-str text)
   (path-write-text (path path-str) text)
@@ -82,7 +117,6 @@
        (work-dir (path->string (path-join base "work")))
        (user-ext (path->string (path-join base "ext-user")))
        (local-ext (path->string (path-join base "ext-local")))
-       (output (path->string (path-join work-dir "output.txt")))
       ) ;
   (mkdir base)
   (mkdir home-dir)
@@ -114,21 +148,19 @@
     ) ;string-append
   ) ;write-text
 
-  (putenv "HOME" home-dir)
+  (set-test-home! home-dir)
   (chdir work-dir)
 
   ;; 从项目目录启动：项目层配置应覆盖用户层同名 demo
-  (os-call (string-append "sh -c \"" (executable) " demo > " output " 2>&1\""))
-  (check (string-trim-right (path-read-text output)) => "2")
+  (check (string-trim-right (capture-output "demo")) => "2")
 
   ;; 帮助描述也来自项目层
-  (os-call (string-append "sh -c \"" (executable) " help > " output " 2>&1\""))
-  (check-true (string-contains? (path-read-text output) "demo from 2"))
+  (check-true (string-contains? (capture-output "help") "demo from 2"))
 
   (chdir orig-cwd)
 ) ;let*
 
-(if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+(restore-test-home!)
 (chdir orig-cwd)
 
 (check-report)

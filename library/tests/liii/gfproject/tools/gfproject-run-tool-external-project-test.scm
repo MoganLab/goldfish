@@ -40,7 +40,25 @@
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+(define orig-profile (getenv "USERPROFILE"))
 (define orig-cwd (getcwd))
+
+;; Windows 上 path-home 优先读取 USERPROFILE，POSIX 读取 HOME。
+;; 两个变量都指向隔离目录，保证跨平台一致。
+(define (set-test-home! dir)
+  (putenv "HOME" dir)
+  (when (os-windows?) (putenv "USERPROFILE" dir))
+) ;define
+
+(define (restore-test-home!)
+  (if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+  (when (os-windows?)
+    (if orig-profile
+      (putenv "USERPROFILE" orig-profile)
+      (unsetenv "USERPROFILE")
+    ) ;if
+  ) ;when
+) ;define
 
 (define (write-text path-str text)
   (path-write-text (path path-str) text)
@@ -111,7 +129,7 @@
     ) ;string-append
   ) ;write-text
 
-  (putenv "HOME" home-dir)
+  (set-test-home! home-dir)
   (chdir work-dir)
 
   ;; 外部项目根应能以工具根向上定位
@@ -124,7 +142,7 @@
   (delete-file (path->string (path-join gf-dir "gfproject.json")))
 ) ;let*
 
-(if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+(restore-test-home!)
 (chdir orig-cwd)
 
 (check-report)

@@ -36,6 +36,24 @@
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+(define orig-profile (getenv "USERPROFILE"))
+
+;; Windows 上 path-home 优先读取 USERPROFILE，POSIX 读取 HOME。
+;; 两个变量都指向隔离目录，保证跨平台一致。
+(define (set-test-home! dir)
+  (putenv "HOME" dir)
+  (when (os-windows?) (putenv "USERPROFILE" dir))
+) ;define
+
+(define (restore-test-home!)
+  (if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+  (when (os-windows?)
+    (if orig-profile
+      (putenv "USERPROFILE" orig-profile)
+      (unsetenv "USERPROFILE")
+    ) ;if
+  ) ;when
+) ;define
 
 (let* ((base
          (path->string
@@ -49,7 +67,7 @@
       ) ;
   (mkdir base)
   (mkdir gf-dir)
-  (putenv "HOME" base)
+  (set-test-home! base)
 
   ;; 用户层只写增量字段：只覆盖 pi 的 tools_dir 与 description，
   ;; 并额外声明一个用户层独有 domain。
@@ -91,6 +109,6 @@
   (path-rmdir (path base))
 ) ;let*
 
-(if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+(restore-test-home!)
 
 (check-report)

@@ -30,6 +30,24 @@
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+(define orig-profile (getenv "USERPROFILE"))
+
+;; Windows 上 path-home 优先读取 USERPROFILE，POSIX 读取 HOME。
+;; 两个变量都指向隔离目录，保证跨平台一致。
+(define (set-test-home! dir)
+  (putenv "HOME" dir)
+  (when (os-windows?) (putenv "USERPROFILE" dir))
+) ;define
+
+(define (restore-test-home!)
+  (if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+  (when (os-windows?)
+    (if orig-profile
+      (putenv "USERPROFILE" orig-profile)
+      (unsetenv "USERPROFILE")
+    ) ;if
+  ) ;when
+) ;define
 
 (let* ((tmp-home
          (path->string
@@ -43,7 +61,7 @@
       ) ;
   (mkdir tmp-home)
   (mkdir gf-dir)
-  (putenv "HOME" tmp-home)
+  (set-test-home! tmp-home)
 
   ;; 1. 用户配置不存在时返回 #f
   (check (gfproject-find-user-path) => #f)
@@ -58,6 +76,6 @@
   (path-rmdir (path tmp-home))
 ) ;let*
 
-(if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
+(restore-test-home!)
 
 (check-report)
