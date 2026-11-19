@@ -24,6 +24,10 @@
 ) ;check-true
 (check-true (string-contains (goldfish-cmd "r7rs/tests/scheme/base/abs-test.scm") "-m r7rs ")
 ) ;check-true
+(check-true (string-contains (goldfish-cmd "tui/tests/liii/tui/editor-test.scm") "-m r7rs ")
+) ;check-true
+(check-false (string-contains (goldfish-cmd "tui/tests/liii/tui/editor-test.scm") "-I ")
+) ;check-false
 (check-true (string-contains (goldfish-cmd "tools/fmt/tests/liii/goldfmt/dir-test.scm")
               "-m r7rs -I tools/fmt "
             ) ;string-contains

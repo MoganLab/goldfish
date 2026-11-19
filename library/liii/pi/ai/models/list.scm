@@ -11,7 +11,7 @@
     (liii list)
     (liii vector)
     (liii sort)
-    (liii tui)
+    (liii unicode)
     (liii pi ai models catalog)
     (liii pi ai models search)
     (liii pi ai thinking)
@@ -208,8 +208,36 @@
       ) ;apply
     ) ;define
 
+    (define (%strip-ansi str)
+      (let* ((bv (string->byte-vector str))
+             (len (bytevector-length bv))
+            ) ;bv
+        (let loop
+          ((i 0) (out (list)))
+          (cond
+           ((>= i len) (byte-vector->string (apply byte-vector (reverse out))))
+           ((and (< (+ i 1) len) (= (bytevector-u8-ref bv i) 27) (= (bytevector-u8-ref bv (+ i 1)) 91))
+            (let scan
+              ((j (+ i 2)))
+              (cond
+               ((>= j len) (loop len out))
+               ((and (>= (bytevector-u8-ref bv j) 64) (<= (bytevector-u8-ref bv j) 126))
+                (loop (+ j 1) out)
+               ) ;and
+               (else (scan (+ j 1)))
+              ) ;cond
+            ) ;let
+           ) ;and
+           (else
+             (loop (+ i 1) (cons (bytevector-u8-ref bv i) out))
+           ) ;else
+          ) ;cond
+        ) ;let
+      ) ;let*
+    ) ;define
+
     (define (%pad-cell text width)
-      (let* ((plain (strip-ansi text)) (len (display-width plain)))
+      (let* ((plain (%strip-ansi text)) (len (utf8-string-length plain)))
         (if (<= len width)
           (string-append text (make-string (- width len) #\space))
           text

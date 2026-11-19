@@ -1,10 +1,8 @@
 ;;
 ;; Copyright (C) 2026 The Goldfish Scheme Authors
-;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
 ;; You may obtain a copy of the License at
-;;
 ;;     http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
@@ -12,12 +10,10 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-;;
-
-;; 测试运行器：
-;; 1. 每个测试文件在独立子进程中执行，stdin 接 null 并施加超时（默认 300s，GOLDFISH_TEST_TIMEOUT 可覆盖）；
-;; 2. 并行模式逐文件在执行完毕后原子打印进度，失败时输出捕获的 stdout/stderr 尾部；
-;; 注意：并行闭包经 (liii par) 跨 (liii go) worker 会话执行，自由符号必须是主库导出绑定。
+;; 测试运行器：每个测试文件在独立子进程中执行（stdin 接 null，超时默认
+;; 300s，GOLDFISH_TEST_TIMEOUT 可覆盖）；并行模式逐文件原子打印进度，失败
+;; 时输出捕获尾部；并行闭包经 (liii par) 跨 worker 会话执行，自由符号必须
+;; 是主库导出绑定。
 (define-library (liii goldtest-runner)
   (import (scheme base)
     (scheme file)
@@ -132,6 +128,11 @@
       ) ;let
     ) ;define
 
+    ;; 这些域根已内置在 *load-path*，运行其测试无需 -I 追加搜索路径
+    (define %builtin-domain-roots
+      '("" "goldfish/" "r7rs/" "library/" "bignum/" "tui/")
+    ) ;define
+
     (define (%goldfish-cmd-flags test-file)
       (let* ((d (and test-file (%find-domain-for-test-file test-file)))
              (root (and d (cdr (assq 'root d))))
@@ -139,15 +140,14 @@
              (mode
                (if (and m (string? (cdr m))) (cdr m) "r7rs")
              ) ;mode
-             (inc
-               (if (or (not root)
-                     (not test-file)
-                     (string-starts? test-file "tests/")
-                     (member root '("" "goldfish/" "r7rs/" "library/" "bignum/") string=?)
-                   ) ;or
-                 ""
-                 (string-append "-I " (string-trim-right root #\/) " ")
-               ) ;if
+             (inc (if (or (not root)
+                        (not test-file)
+                        (string-starts? test-file "tests/")
+                        (member root %builtin-domain-roots string=?)
+                      ) ;or
+                    ""
+                    (string-append "-I " (string-trim-right root #\/) " ")
+                  ) ;if
              ) ;inc
             ) ;
         (string-append " -m " mode " " inc)
