@@ -54,6 +54,9 @@
   (mkdir base)
   (mkdir ext)
   (mkdir tool-root)
+  ;; domain root 必须是真实目录：macOS 上 /var 是符号链接，
+  ;; path-resolve 对不存在的路径不会展开符号链接，会导致与注入值不一致。
+  (mkdir (path->string (path-join ext "bar")))
   (mkdir plain-root)
 
   (write-text (path->string (path-join ext "gfproject.json"))
@@ -86,6 +89,7 @@
 
   (delete-file (path->string (path-join ext "gfproject.json")))
   (path-rmdir (path tool-root))
+  (path-rmdir (path (path->string (path-join ext "bar"))))
   (path-rmdir (path ext))
   (path-rmdir (path plain-root))
   (path-rmdir (path base))

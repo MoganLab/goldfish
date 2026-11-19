@@ -60,6 +60,8 @@
     ) ;define
 
     ;; 项目 gfproject.json 中声明的全部 domain 根（去重、保持声明顺序）。
+    ;; domain 根同样做 realpath 归一化：项目根已经归一化，若 domain 根只做
+    ;; 词法拼接，macOS 上 /var -> /private/var 这类符号链接会让两者形态不一致。
     (define (%all-domain-roots project-root domains)
       (if (equal? domains '(()))
         '()
@@ -69,11 +71,12 @@
             (reverse roots)
             (let* ((d (json-ref domains (car names)))
                    (root (json-ref-string d "root" ""))
+                   (absolute (%absolute-root project-root root))
                   ) ;
               (loop (cdr names)
-                (if (or (string-null? root) (member root roots string=?))
+                (if (or (string-null? root) (member absolute roots string=?))
                   roots
-                  (cons (%absolute-root project-root root) roots)
+                  (cons (%normalize-root absolute) roots)
                 ) ;if
               ) ;loop
             ) ;let*
