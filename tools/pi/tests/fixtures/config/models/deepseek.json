@@ -1,7 +1,0 @@
-{
-  "baseUrl": "https://api.deepseek.com",
-  "api": "anthropic",
-  "models": [
-    "deepseek-v4-pro"
-  ]
-}
