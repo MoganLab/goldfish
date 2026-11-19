@@ -37,39 +37,33 @@
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+
 (define orig-profile (getenv "USERPROFILE"))
 
 (define orig-cwd (getcwd))
 
 ;; Windows 上 path-home 优先读取 USERPROFILE，POSIX 读取 HOME。
 ;; 两个变量都指向隔离目录，保证跨平台一致。
+
 (define (set-test-home! dir)
   (putenv "HOME" dir)
-  (when (os-windows?) (putenv "USERPROFILE" dir))
+  (when (os-windows?)
+    (putenv "USERPROFILE" dir)
+  ) ;when
 ) ;define
 
 (define (restore-test-home!)
   (if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
   (when (os-windows?)
-    (if orig-profile
-      (putenv "USERPROFILE" orig-profile)
-      (unsetenv "USERPROFILE")
-    ) ;if
+    (if orig-profile (putenv "USERPROFILE" orig-profile) (unsetenv "USERPROFILE"))
   ) ;when
 ) ;define
 
 ;; 捕获子进程的输出；不依赖 sh，Windows 下同样可运行。
+
 (define (capture-output . args)
-  (let ((res (run-either (cons (executable) args)
-               :stdout 'capture
-               :stderr 'capture
-             ) ;run-either
-       ) ;res
-        ) ;
-    (if (either-left? res)
-      (process-error-stdout (to-left res))
-      (to-right res)
-    ) ;if
+  (let ((res (run-either (cons (executable) args) :stdout 'capture :stderr 'capture)))
+    (if (either-left? res) (process-error-stdout (to-left res)) (to-right res))
   ) ;let
 ) ;define
 
@@ -94,7 +88,7 @@
     (write-text config
       (string-append "{\"domains\": {\"foo\": {\"root\": \"foo/\"}},"
         " \"tools\": {\"demo\": {\"tools_dir\": \""
-        (string-replace root "\\\\" "\\\\\\\\")
+        (string-replace root "\\" "\\\\")
         "\", \"tool\": \"foo\", \"organization\": \"liii\","
         " \"module\": \"demo/cli\","
         " \"description\": {\"en_US\": \"demo from "
@@ -131,7 +125,7 @@
 
   (write-text (path->string (path-join gf-dir "gfproject.json"))
     (string-append "{\"tools\": {\"demo\": {\"tools_dir\": \""
-      (string-replace user-ext "\\\\" "\\\\\\\\")
+      (string-replace user-ext "\\" "\\\\")
       "\", \"tool\": \"foo\", \"organization\": \"liii\","
       " \"module\": \"demo/cli\","
       " \"description\": {\"en_US\": \"demo from 1\"}}}}"
@@ -141,7 +135,7 @@
   ;; 当前项目把 demo 指向另一个外部项目，项目层应覆盖用户层
   (write-text (path->string (path-join work-dir "gfproject.json"))
     (string-append "{\"tools\": {\"demo\": {\"tools_dir\": \""
-      (string-replace local-ext "\\\\" "\\\\\\\\")
+      (string-replace local-ext "\\" "\\\\")
       "\", \"tool\": \"foo\", \"organization\": \"liii\","
       " \"module\": \"demo/cli\","
       " \"description\": {\"en_US\": \"demo from 2\"}}}}"

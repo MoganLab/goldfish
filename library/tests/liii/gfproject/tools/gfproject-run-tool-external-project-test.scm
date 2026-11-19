@@ -40,23 +40,25 @@
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+
 (define orig-profile (getenv "USERPROFILE"))
+
 (define orig-cwd (getcwd))
 
 ;; Windows 上 path-home 优先读取 USERPROFILE，POSIX 读取 HOME。
 ;; 两个变量都指向隔离目录，保证跨平台一致。
+
 (define (set-test-home! dir)
   (putenv "HOME" dir)
-  (when (os-windows?) (putenv "USERPROFILE" dir))
+  (when (os-windows?)
+    (putenv "USERPROFILE" dir)
+  ) ;when
 ) ;define
 
 (define (restore-test-home!)
   (if orig-home (putenv "HOME" orig-home) (unsetenv "HOME"))
   (when (os-windows?)
-    (if orig-profile
-      (putenv "USERPROFILE" orig-profile)
-      (unsetenv "USERPROFILE")
-    ) ;if
+    (if orig-profile (putenv "USERPROFILE" orig-profile) (unsetenv "USERPROFILE"))
   ) ;when
 ) ;define
 
@@ -70,7 +72,7 @@
              (string-append "gfproject-ext-tool-" (number->string (getpid)))
            ) ;path-join
          ) ;path->string
-        ) ;base
+       ) ;base
        (home-dir (path->string (path-join base "home")))
        (gf-dir (path->string (path-join home-dir ".gf")))
        (work-dir (path->string (path-join base "work")))
@@ -93,8 +95,7 @@
 
   ;; 外部项目自身配置：domains 相对 ext 根；工具 cha 位于 foo domain
   (write-text (path->string (path-join ext-dir "gfproject.json"))
-    (string-append
-      "{\"domains\": {\"base\": {\"root\": \"base/\"},"
+    (string-append "{\"domains\": {\"base\": {\"root\": \"base/\"},"
       " \"foo\": {\"root\": \"foo/\", \"depends-on\": [\"base\"]}},"
       " \"tools\": {\"demo\": {\"tools_dir\": \".\", \"tool\": \"foo\","
       " \"organization\": \"liii\", \"module\": \"demo/cli\"}}}"
@@ -104,16 +105,14 @@
   ;; 依赖 domain 的库
   (write-text (path->string (path-join base-domain "liii" "demo" "base.scm"))
     (string-append "(define-library (liii demo base)\n"
-      "  (export demo-base-value)\n"
-      "  (import (scheme base))\n"
+      "  (export demo-base-value)\n" "  (import (scheme base))\n"
       "  (begin (define demo-base-value 42)))\n"
     ) ;string-append
   ) ;write-text
 
   ;; 工具模块：import 依赖 domain 的库，main 返回 0
   (write-text (path->string (path-join foo-domain "liii" "demo" "cli.scm"))
-    (string-append "(define-library (liii demo cli)\n"
-      "  (export main)\n"
+    (string-append "(define-library (liii demo cli)\n" "  (export main)\n"
       "  (import (scheme base) (liii demo base))\n"
       "  (begin (define (main) (if (= demo-base-value 42) 0 1))))\n"
     ) ;string-append
@@ -121,9 +120,8 @@
 
   ;; 用户层只登记工具，不复制 ext 的 domains
   (write-text (path->string (path-join gf-dir "gfproject.json"))
-    (string-append
-      "{\"tools\": {\"demo\": {\"tools_dir\": \""
-      (string-replace ext-dir "\\\\" "\\\\\\\\")
+    (string-append "{\"tools\": {\"demo\": {\"tools_dir\": \""
+      (string-replace ext-dir "\\" "\\\\")
       "\", \"tool\": \"foo\", \"organization\": \"liii\","
       " \"module\": \"demo/cli\"}}}"
     ) ;string-append

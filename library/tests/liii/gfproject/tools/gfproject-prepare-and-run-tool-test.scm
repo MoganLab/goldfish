@@ -24,16 +24,14 @@
 ;; integer or #f
 ;; 工具进程退出码，或者在允许回退且执行失败时返回 #f。
 
-(import (liii check)
-  (liii gfproject config)
-  (liii gfproject tools)
-) ;import
+(import (liii check) (liii gfproject config) (liii gfproject tools))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 指定不存在的 tools_dir 时严格返回 1（禁用 fallback）
 (let* ((gf-lib (gfproject-get-gf-lib))
-       (tool-cfg-no-fallback '(("tools_dir" . "~/non_existent_tools_dir_xyz_12345")
+       (tool-cfg-no-fallback '(("tools_dir"
+                                . "~/non_existent_tools_dir_xyz_12345")
                                ("organization" . "liii")
                                ("module" . "goldversion"))
        ) ;tool-cfg-no-fallback

@@ -32,7 +32,8 @@
   (when (and home (> (string-length home) 0))
     (check (gfproject-expand-tools-dir "~") => home)
     (check (gfproject-expand-tools-dir "~/foo")
-      => (path->string (path-join home "foo"))
+      =>
+      (path->string (path-join home "foo"))
     ) ;check
   ) ;when
 ) ;let
@@ -48,13 +49,9 @@
 ;; 指定 base-dir 时相对路径相对 base-dir 展开（用户层 ~/.gf、项目层项目根）
 (when (not (os-windows?))
   (check (gfproject-expand-tools-dir "." "/base/dir") => "/base/dir")
-  (check (gfproject-expand-tools-dir "tools" "/base/dir")
-    => "/base/dir/tools"
-  ) ;check
+  (check (gfproject-expand-tools-dir "tools" "/base/dir") => "/base/dir/tools")
   ;; 绝对路径不受 base-dir 影响
-  (check (gfproject-expand-tools-dir "/abs/path" "/base/dir")
-    => "/abs/path"
-  ) ;check
+  (check (gfproject-expand-tools-dir "/abs/path" "/base/dir") => "/abs/path")
 ) ;when
 
 (check-report)

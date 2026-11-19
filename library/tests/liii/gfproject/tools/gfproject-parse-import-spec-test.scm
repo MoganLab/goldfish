@@ -18,9 +18,7 @@
 ;; list
 ;; 解析出的符号列表导入形式，如 '(liii pi cli)。
 
-(import (liii check)
-  (liii gfproject tools)
-) ;import
+(import (liii check) (liii gfproject tools))
 
 (check-set-mode! 'report-failed)
 

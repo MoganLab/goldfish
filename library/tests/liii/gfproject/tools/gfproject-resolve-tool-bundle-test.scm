@@ -18,11 +18,7 @@
 ;; alist or #f
 ;; 成功时返回包含 merged-tool、lib-tool、has-local-override 等字段的 bundle 字典，未找到返回 #f。
 
-(import (liii check)
-  (liii json)
-  (liii path)
-  (liii gfproject tools)
-) ;import
+(import (liii check) (liii json) (liii path) (liii gfproject tools))
 
 (check-set-mode! 'report-failed)
 
@@ -35,7 +31,8 @@
   (check (bundle-ref bundle "user-tool") => '(()))
   ;; 内置工具的相对 tools_dir 以所属 gfproject.json 目录为基准
   (check (bundle-ref bundle "tool_base_dir")
-    => (path->string (path-parent (bundle-ref bundle "lib_path")))
+    =>
+    (path->string (path-parent (bundle-ref bundle "lib_path")))
   ) ;check
 ) ;let
 

@@ -15,16 +15,16 @@
 ;; string
 ;; 格式化后的完整错误提示字符串。
 
-(import (liii check)
-  (liii string)
-  (liii gfproject tools)
-) ;import
+(import (liii check) (liii string) (liii gfproject tools))
 
 (check-set-mode! 'report-failed)
 
 ;; 1. 标准格式化占位符替换
 (check (gfproject-error->string '("value is ~S" 42)) => "value is 42")
-(check (gfproject-error->string '("lib ~S missing" (no such lib))) => "lib (no such lib) missing")
+(check (gfproject-error->string '("lib ~S missing" (no such lib)))
+  =>
+  "lib (no such lib) missing"
+) ;check
 
 ;; 2. 非列表参数转换为字符串
 (check (gfproject-error->string 42) => "42")
