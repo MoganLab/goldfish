@@ -201,10 +201,14 @@
       ) ;if
     ) ;define
 
-    (define (%goldfish-cmd-flags test-file)
+    (define (%goldfish-cmd-flags test-file . maybe-domain)
       (let* ((project-root (%find-project-root (getcwd)))
              (domains (%project-domains-list))
-             (d (and test-file (%find-domain-for-test-file test-file)))
+             (d (if (pair? maybe-domain)
+                  (car maybe-domain)
+                  (and test-file (%find-domain-for-test-file test-file))
+                ) ;if
+             ) ;d
              (m (and d (assq 'mode d)))
              (mode
                (if (and m (string? (cdr m))) (cdr m) "r7rs")
