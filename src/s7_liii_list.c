@@ -922,7 +922,13 @@ s7_pointer g_fold(s7_scheme *sc, s7_pointer args)
   s7_pointer p = lst;
   while (s7_is_pair(p))
     {
-      s7_set_car(acc_cell, s7_apply_function(sc, f, s7i_set_plist_2(sc, s7_car(p), s7_car(acc_cell))));
+      /* 用 s7_call 而非 s7_apply_function：semisafe 的 g_fold 在 C 循环里回调用户过程，
+       * 若该过程内 (catch #t ...) 的异常处理函数被触发，需要 longjmp 回到 g_fold *内部*
+       * 才能继续下一轮迭代。s7_call 建立自己的跳转帧（局部 setjmp），catch 的 cstack 落在
+       * g_fold 帧内；而 s7_apply_function 不建帧，catch 会跳到 g_fold 之上（调用者帧），
+       * 导致 g_fold 栈帧被越过、永不返回（表现为串行测试静默中止）。
+       * 见 s7.h 对 s7_call / s7_apply_function 的说明。 */
+      s7_set_car(acc_cell, s7_call(sc, f, s7i_set_plist_2(sc, s7_car(p), s7_car(acc_cell))));
       p = s7_cdr(p);
     }
   if (!s7_is_null(sc, p))
@@ -968,7 +974,8 @@ s7_pointer g_fold_right(s7_scheme *sc, s7_pointer args)
   s7_pointer acc_cell = s7_cdr(anchor);
   while (s7_is_pair(rev))
     {
-      s7_set_car(acc_cell, s7_apply_function(sc, f, s7i_set_plist_2(sc, s7_car(rev), s7_car(acc_cell))));
+      /* 同 g_fold：用 s7_call 建立局部跳转帧，避免回调内的 (catch ...) 跳过 g_fold_right 帧而中止迭代。 */
+      s7_set_car(acc_cell, s7_call(sc, f, s7i_set_plist_2(sc, s7_car(rev), s7_car(acc_cell))));
       rev = s7_cdr(rev);
     }
   s7_pointer result = s7_car(acc_cell);

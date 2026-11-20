@@ -61,4 +61,32 @@
     (fold-right cons '() (map (lambda (x) (list x)) '(1 2 3 4 5))))
   (check (fold-right (lambda (x acc) (if (even? x) (+ acc 1) acc)) 0 l) => 5000))
 
+
+;; 回归测试：回调内 (catch ...) 抛异常并捕获后，fold-right 必须继续遍历到列表末尾。
+;; 旧实现的 g_fold_right 用 s7_apply_function 回调，不建立跳转帧；当回调内的
+;; (catch #t ...) 被触发，longjmp 会越过 g_fold_right 的 C 栈帧，迭代静默中止，
+;; fold-right 不返回。改用 s7_call 后，catch 的跳转帧落在 g_fold_right 帧内，
+;; 迭代可正常完成。
+(check
+  (fold-right
+    (lambda (x acc)
+      (catch #t
+        (lambda () (if (even? x) (error 'boom) acc))
+        (lambda (tag . info) (+ acc 1))))
+    0
+    '(1 2 3 4 5 6))
+  => 3)
+
+;; 大列表版本：确保遍历完整、不静默中止。
+(let ((l (iota 10000)))
+  (check
+    (fold-right
+      (lambda (x acc)
+        (catch #t
+          (lambda () (if (zero? (modulo x 7)) (error 'boom) acc))
+          (lambda (tag . info) (+ acc 1))))
+      0
+      l)
+    => (length (filter (lambda (x) (zero? (modulo x 7))) l))))
+
 (check-report)
