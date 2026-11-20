@@ -18,6 +18,7 @@
 (import (liii check) (liii pi ai providers registry))
 
 (check-set-mode! 'report-failed)
+(check (pi-provider-base-url "anthropic") => "https://api.anthropic.com")
 (check (pi-provider-base-url "deepseek")
   =>
   "https://api.deepseek.com/anthropic"
@@ -43,14 +44,8 @@
   =>
   "https://open.bigmodel.cn/api/coding/paas/v4"
 ) ;check
-(check (pi-provider-base-url "opencode")
-  =>
-  "https://opencode.ai/zen/go/v1"
-) ;check
-(check (pi-provider-base-url "opencode-go")
-  =>
-  "https://opencode.ai/zen/go/v1"
-) ;check
+(check (pi-provider-base-url "opencode") => "https://opencode.ai/zen/go/v1")
+(check (pi-provider-base-url "opencode-go") => "https://opencode.ai/zen/go/v1")
 
 ;; 未注册 provider 无默认端点
 (check (pi-provider-base-url "unknown-provider") => #f)

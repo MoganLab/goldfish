@@ -9,6 +9,7 @@
     (scheme char)
     (liii string)
     (liii pi ai providers all-in-one)
+    (liii pi ai providers anthropic)
     (liii pi ai providers deepseek)
     (liii pi ai providers google)
     (liii pi ai providers kimi-coding)
@@ -30,6 +31,7 @@
     ;; "zai" 为 "zai-coding-cn" 的路由别名，共享同一配置。
     (define PI_PROVIDERS
       (list (cons "all-in-one" PI_ALL_IN_ONE_PROVIDER)
+        (cons "anthropic" PI_ANTHROPIC_PROVIDER)
         (cons "deepseek" PI_DEEPSEEK_PROVIDER)
         (cons "google" PI_GOOGLE_PROVIDER)
         (cons "kimi-coding" PI_KIMI_CODING_PROVIDER)
@@ -42,17 +44,17 @@
       ) ;list
     ) ;define
 
-    ;; 实际可用的 provider（anthropic / glm 已移除：用户实际接入的是各家
-    ;; Anthropic 兼容端点，由 zai-coding-cn / minimax-cn / deepseek 覆盖；
-    ;; 需要其它端点时用自定义 provider：models/<id>.json）
+    ;; 实际可用的 provider。anthropic 为官方 API；glm 已移除（智谱由
+    ;; zai-coding-cn 覆盖）；需要其它端点时用自定义 provider：models/<id>.json
     (define PI_SUPPORTED_PROVIDERS
-      '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama"
-        "opencode")
+      '("google" "anthropic" "kimi-coding" "deepseek" "minimax-cn"
+        "zai-coding-cn" "ollama" "opencode")
     ) ;define
 
     ;; 各 provider 的内置模型目录（id -> models），与 PI_PROVIDERS 同源
     (define PI_PROVIDER_BUILTIN_MODELS
       (list (cons "all-in-one" PI_ALL_IN_ONE_BUILTIN_MODELS)
+        (cons "anthropic" PI_ANTHROPIC_BUILTIN_MODELS)
         (cons "deepseek" PI_DEEPSEEK_BUILTIN_MODELS)
         (cons "google" PI_GOOGLE_BUILTIN_MODELS)
         (cons "kimi-coding" PI_KIMI_CODING_BUILTIN_MODELS)

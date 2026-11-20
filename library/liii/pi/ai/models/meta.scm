@@ -109,7 +109,7 @@
 
     (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
-             (is-ant? #f)
+             (is-ant? (string=? p-str "anthropic"))
              (is-kimi? (string=? p-str "kimi-coding"))
              (is-glm? #f)
              (is-ds? (string=? p-str "deepseek"))
@@ -130,7 +130,7 @@
              ) ;def-url
              (m
                (or (%find-model-in-list (%get-provider-models models-store p-str) model-id)
-                 (and (or is-mm? is-zai? is-opencode? is-aio?)
+                 (and (or is-ant? is-mm? is-zai? is-opencode? is-aio?)
                    (%find-model-in-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()) model-id)
                  ) ;and
                ) ;or
@@ -147,7 +147,7 @@
                ) ;cond
              ) ;norm-url
              (def-cw (cond (is-aio? 1000000)
-                           (is-ant? 200000)
+                           (is-ant? 1000000)
                            (is-kimi? 262144)
                            (is-mm? 1000000)
                            (is-zai? 1000000)
@@ -156,7 +156,7 @@
                      ) ;cond
              ) ;def-cw
              (def-mt (cond (is-aio? 65536)
-                           (is-ant? 8192)
+                           (is-ant? 64000)
                            (is-kimi? 8192)
                            (is-glm? 8192)
                            (is-ds? 8192)

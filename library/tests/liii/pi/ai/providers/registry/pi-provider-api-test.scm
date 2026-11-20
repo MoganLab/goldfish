@@ -18,6 +18,7 @@
 (import (liii check) (liii pi ai providers registry))
 
 (check-set-mode! 'report-failed)
+(check (pi-provider-api "anthropic") => "anthropic-messages")
 (check (pi-provider-api "deepseek") => "anthropic-messages")
 (check (pi-provider-api "minimax-cn") => "anthropic-messages")
 (check (pi-provider-api "minimax-cn") => "anthropic-messages")

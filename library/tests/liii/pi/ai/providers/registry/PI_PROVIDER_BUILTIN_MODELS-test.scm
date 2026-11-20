@@ -19,7 +19,7 @@
 (check-set-mode! 'report-failed)
 
 (check-true (pair? PI_PROVIDER_BUILTIN_MODELS))
-(check (length PI_PROVIDER_BUILTIN_MODELS) => 8)
+(check (length PI_PROVIDER_BUILTIN_MODELS) => 9)
 
 (define (find-provider-models name)
   (let ((p (assoc name PI_PROVIDER_BUILTIN_MODELS)))
@@ -38,6 +38,7 @@
 ) ;define
 
 ;; 验证各 provider 及其模型数量
+(check (length (find-provider-models "anthropic")) => 4)
 (check (length (find-provider-models "deepseek")) => 3)
 (check (length (find-provider-models "google")) => 24)
 (check (length (find-provider-models "kimi-coding")) => 5)
@@ -51,6 +52,7 @@
 (check-true (has-model? (find-provider-models "all-in-one") "coding-fast"))
 (check-true (has-model? (find-provider-models "all-in-one") "coding-high-quality")
 ) ;check-true
+(check-true (has-model? (find-provider-models "anthropic") "claude-opus-5-5"))
 (check-true (has-model? (find-provider-models "deepseek") "deepseek-v4-pro"))
 (check-true (has-model? (find-provider-models "google") "gemini-3.8-flash"))
 (check-true (has-model? (find-provider-models "google") "gemini-4-hydrogen"))

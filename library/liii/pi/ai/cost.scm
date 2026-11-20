@@ -96,6 +96,35 @@
                    (cacheRead . 0.25)
                    (cacheWrite . 0.0))))))
         ("anthropic"
+         (("id" . "claude-opus-5-5")
+          ("cost"
+           (input . 4.0)
+           (output . 20.0)
+           (cacheRead . 0.2)
+           (cacheWrite . 5.0)))
+         (("id" . "claude-sonnet-5-5")
+          ("cost"
+           (input . 2.0)
+           (output . 10.0)
+           (cacheRead . 0.1)
+           (cacheWrite . 2.5)))
+         (("id" . "claude-haiku-5-5")
+          ("cost"
+           (input . 0.1)
+           (output . 0.5)
+           (cacheRead . 0.01)
+           (cacheWrite . 0.125)
+           (tiers ((inputTokensAbove . 100000)
+                   (input . 0.5)
+                   (output . 2.5)
+                   (cacheRead . 0.05)
+                   (cacheWrite . 0.625)))))
+         (("id" . "claude-fable-5-2")
+          ("cost"
+           (input . 8.0)
+           (output . 40.0)
+           (cacheRead . 0.2)
+           (cacheWrite . 10.0)))
          (("id" . "claude-3-7-sonnet-20250219")
           ("cost"
            (input . 3.0)
