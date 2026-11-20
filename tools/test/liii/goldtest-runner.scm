@@ -39,7 +39,7 @@
     %parallel-cached-result %run-one-parallel-test %build-indexed-vec
     display-fail-log cleanup-log failed-test-files display-summary
     %dump-captured-tail %report-test-failure cached-count-bump!
-    cached-count-reset! %count-cached-results
+    cached-count-reset! %count-cached-results %shorten-home %runnable-line
   ) ;export
   (begin
 
@@ -199,8 +199,8 @@
                  (cmd (car command))
                  (context (cdr command))
                 ) ;
-            (display "----------->\n")
-            (display cmd)
+            (display "\n----------->\n")
+            (display (%runnable-line (car context) cmd))
             (newline)
             (flush-output-port (current-output-port))
             (let* ((result (%run-test-process cmd 'inherit (car context)))

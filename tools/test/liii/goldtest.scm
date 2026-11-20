@@ -152,7 +152,7 @@
       (let ((test-results
               (if (> jobs 1)
                 (run-tests-parallel test-files jobs)
-                (fold (lambda (f acc) (newline) (cons (run-test-file f) acc)) (list) test-files)
+                (fold (lambda (f acc) (cons (run-test-file f) acc)) (list) test-files)
               ) ;if
             ) ;test-results
            ) ;

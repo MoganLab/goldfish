@@ -22,6 +22,7 @@
 (define-library (liii goldtest-runner-report)
   (import (scheme base)
     (scheme file)
+    (liii os)
     (liii list)
     (liii string)
     (liii format base)
@@ -29,7 +30,7 @@
   ) ;import
   (export display-fail-log cleanup-log failed-test-files display-summary
     cached-count-bump! cached-count-reset! %dump-captured-tail
-    %report-test-failure %count-cached-results
+    %report-test-failure %count-cached-results %shorten-home %runnable-line
   ) ;export
   (begin
 
@@ -167,6 +168,28 @@
           ) ;let
         ) ;let
       ) ;when
+    ) ;define
+
+    ;; 将路径中的家目录前缀压缩为 ~（便于复制命令行；不使用 $ 变量）
+    (define (%shorten-home path)
+      (let ((home (getenv "HOME")))
+        (if
+          (and home
+            (> (string-length home) 0)
+            (or (string=? path home) (string-starts? path (string-append home "/")))
+          ) ;and
+          (string-append "~" (substring path (string-length home)))
+          path
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 生成可直接复制运行的单行命令：cd <cwd> && <cmd>（cwd 用 ~ 缩写）
+    (define (%runnable-line cwd cmd)
+      (if (and (string? cwd) (> (string-length cwd) 0))
+        (string-append "cd " (%shorten-home cwd) " && " cmd)
+        cmd
+      ) ;if
     ) ;define
 
   ) ;begin
