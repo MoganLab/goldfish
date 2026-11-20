@@ -113,8 +113,8 @@
       ) ;let
     ) ;define
 
-    ;; --all 从项目根目录聚合所有 domain，但测试的执行约定与单独运行该
-    ;; domain 相同：cwd 为 domain root，路径为 root 下的 tests/...。
+    ;; --all 从项目根目录聚合所有 domain，但执行约定与单独运行该 domain 相同：
+    ;; cwd 为 domain root，路径为 root 下的 tests/...。
     (define (%test-execution-context test-file)
       (let* ((project-root (%find-project-root (getcwd)))
              (domain (%find-domain-for-test-file test-file))
@@ -160,8 +160,8 @@
       ) ;let
     ) ;define
 
-    ;; 在主会话执行单个测试子进程（串行模式用，stdout 实时透传）：
-    ;; 返回 (exit-code . timeout?)；timeout? 为 #t 表示被超时强杀
+    ;; 主会话执行单个测试子进程（串行模式用，stdout 实时透传）：
+    ;; 返回 (exit-code . timeout?)，timeout? 为 #t 表示被超时强杀。
     (define (%run-test-process cmd stdout-mode cwd)
       (let ((res
               (catch #t
@@ -227,7 +227,6 @@
       ) ;let
     ) ;define
 
-    ;; 构造 (idx file) 索引化任务向量
     (define (%build-indexed-vec test-files)
       (list->vector
         (let loop
@@ -237,8 +236,8 @@
       ) ;list->vector
     ) ;define
 
-    ;; 单个并行任务体（导出以便 worker 会话可见）：
-    ;; 先查缓存，命中静默返回（不打印，仅在 Summary 汇总），否则拉起子进程执行
+    ;; 单个并行任务体（导出以便 worker 会话可见）：先查缓存，命中静默返回
+    ;; （不打印，仅在 Summary 汇总），否则拉起子进程执行。
     (define (%run-one-parallel-test pair total tmo cache-force)
       (let* ((idx (car pair))
              (test-file (cadr pair))
@@ -272,9 +271,9 @@
       ) ;let*
     ) ;define
 
-    ;; 并行执行：逐文件即时打印进度与失败诊断。
-    ;; 闭包在 (liii go) worker 会话内执行，只能引用主库导出绑定；
-    ;; tmo/cache-force 等参数经 funclet 捕获环境以可序列化值传入
+    ;; 并行执行：逐文件即时打印进度与失败诊断。闭包在 (liii go) worker 会话
+    ;; 内执行，只能引用主库导出绑定；tmo/cache-force 等参数经 funclet 捕获环境
+    ;; 以可序列化值传入。
     (define (run-tests-parallel test-files jobs)
       (let* ((total (length test-files))
              (exe (executable))
@@ -306,7 +305,6 @@
       (list test-file 0 "cached")
     ) ;define
 
-    ;; 从 run-either 结果提取退出码（导出以便 worker 会话可见）
     (define (%process-exit-code res)
       (if (either-left? res)
         (let ((c (process-error-code (to-left res))))
@@ -316,7 +314,6 @@
       ) ;if
     ) ;define
 
-    ;; 从 run-either 结果提取捕获的 stdout/stderr（导出以便 worker 会话可见）
     (define (%captured-stdout res)
       (if (either-left? res) (process-error-stdout (to-left res)) "")
     ) ;define
@@ -336,16 +333,14 @@
       ) ;string-append
     ) ;define
 
-    ;; 打印 [n/total] file ... 进度标记并立即 flush（导出以便 worker 会话可见）
     (define (%print-progress-marker idx total test-file)
       (display (%progress-prefix idx total test-file))
       (flush-output-port (current-output-port))
     ) ;define
 
-    ;; 并行任务结果处置（导出以便 worker 会话可见）；
-    ;; 整体防御性 catch：报告路径出错时降级为 FAIL 结果，
-    ;; 不让单个异常炸掉整个 runner（之前 CI 上曾因处理超时结果时
-    ;; 的访问错误导致 runner 崩溃，掩盖真实卡点）
+    ;; 并行任务结果处置（导出以便 worker 会话可见）；整体防御性 catch：报告路径
+    ;; 出错时降级为 FAIL 结果，不让单个异常炸掉整个 runner（之前 CI 上曾因处理超
+    ;; 时结果时的访问错误导致 runner 崩溃，掩盖真实卡点）。
     (define (%parallel-result . args)
       (let* ((p5 (>= (length args) 5))
              (prefix (if p5
