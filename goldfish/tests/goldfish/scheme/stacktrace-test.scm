@@ -2,6 +2,16 @@
 
 (check-set-mode! 'report-failed)
 
+;; bin/gf 的安装位置随测试运行目录变化（域级运行时 cwd 为 goldfish/，
+;; --all 时为项目根），因此以可执行文件所在目录向上推导项目根，再拼接 demo
+;; 脚本的绝对路径，避免依赖固定的工作目录。
+
+(define project-root
+  (let ((exec (path (executable))))
+    (path-parent (path-parent exec))
+  ) ;let
+) ;define
+
 (define (run-shell-command command)
   (os-call (string-append "sh -c \"" command "\""))
 ) ;define
@@ -19,22 +29,26 @@
       (path-unlink output-path #t)
       (dynamic-wind (lambda () #t)
         (lambda ()
-          (check-true (path-exists? demo-file))
-          (let ((cmd (string-append (executable)
-                       " "
-                       (path->string demo-file)
-                       " > "
-                       (path->string output-path)
-                       " 2>&1"
-                     ) ;string-append
-                ) ;cmd
-               ) ;
-            (check-true (not (= (run-shell-command cmd) 0)))
+          (let ((demo-path (path->string (path-join project-root demo-file))))
+            (check-true (path-exists? demo-path))
+            (let ((cmd (string-append "cd "
+                         (path->string project-root)
+                         " && "
+                         (executable)
+                         " "
+                         (path->string demo-file)
+                         " > "
+                         (path->string output-path)
+                         " 2>&1"
+                       ) ;string-append
+                  ) ;cmd
+                 ) ;
+              (check-true (not (= (run-shell-command cmd) 0)))
+            ) ;let
           ) ;let
           (let ((output (path-read-text output-path)))
             (check-true (string-contains? output "Stack trace:"))
-            (for-each
-              (lambda (expected) (check-true (string-contains? output expected)))
+            (for-each (lambda (expected) (check-true (string-contains? output expected)))
               expected-substrings
             ) ;for-each
             (check-false (string-contains? output "gfproject.scm"))
@@ -46,42 +60,48 @@
   ) ;define
 
   ;; 1. 单文件简单调用栈测试
-  (check-demo-stacktrace "simple" (path "demo/stacktrace/simple.scm")
+  (check-demo-stacktrace "simple"
+    (path "demo/stacktrace/simple.scm")
     (list "demo/stacktrace/simple.scm:3:" "step-c"
-          "demo/stacktrace/simple.scm:7:" "step-b"
-          "demo/stacktrace/simple.scm:12:" "step-a"
+      "demo/stacktrace/simple.scm:7:" "step-b" "demo/stacktrace/simple.scm:12:"
+      "step-a"
     ) ;list
   ) ;check-demo-stacktrace
 
   ;; 2. 标准库 (liii string) 输入类型检查报错调用栈测试
-  (check-demo-stacktrace "string" (path "demo/stacktrace/liii_string.scm")
+  (check-demo-stacktrace "string"
+    (path "demo/stacktrace/liii_string.scm")
     (list "goldfish/liii/string.scm:59:" "string-remove-suffix"
-          "demo/stacktrace/liii_string.scm:8:" "clean-file-extension"
-          "demo/stacktrace/liii_string.scm:14:" "process-attachment"
-          "demo/stacktrace/liii_string.scm:20:" "handle-upload-job"
+      "demo/stacktrace/liii_string.scm:8:" "clean-file-extension"
+      "demo/stacktrace/liii_string.scm:14:" "process-attachment"
+      "demo/stacktrace/liii_string.scm:20:" "handle-upload-job"
     ) ;list
   ) ;check-demo-stacktrace
 
   ;; 3. 多文件跨模块协同调用栈测试
-  (check-demo-stacktrace "multi" (path "demo/stacktrace/multi_file.scm")
+  (check-demo-stacktrace "multi"
+    (path "demo/stacktrace/multi_file.scm")
     (list "demo/stacktrace/engine.scm:3:" "compute-ratio"
-          "demo/stacktrace/service.scm:4:" "format-score"
-          "demo/stacktrace/multi_file.scm:4:" "process-user-record"
-          "demo/stacktrace/multi_file.scm:9:" "run-batch"
+      "demo/stacktrace/service.scm:4:" "format-score"
+      "demo/stacktrace/multi_file.scm:4:" "process-user-record"
+      "demo/stacktrace/multi_file.scm:9:" "run-batch"
     ) ;list
   ) ;check-demo-stacktrace
 
   ;; 4. 递归树遍历与表达式求值调用栈测试
-  (check-demo-stacktrace "rec" (path "demo/stacktrace/recursive.scm")
-    (list "demo/stacktrace/recursive.scm:18:" "eval-expr"
-          "demo/stacktrace/recursive.scm:16:"
+  (check-demo-stacktrace "rec"
+    (path "demo/stacktrace/recursive.scm")
+    (list "demo/stacktrace/recursive.scm:18:"
+      "eval-expr"
+      "demo/stacktrace/recursive.scm:16:"
     ) ;list
   ) ;check-demo-stacktrace
 
   ;; 5. 高阶函数数据清洗流水线回调调用栈测试
-  (check-demo-stacktrace "ho" (path "demo/stacktrace/higher_order.scm")
+  (check-demo-stacktrace "ho"
+    (path "demo/stacktrace/higher_order.scm")
     (list "demo/stacktrace/higher_order.scm:16:" "extract-age"
-          "demo/stacktrace/higher_order.scm:25:" "pipeline"
+      "demo/stacktrace/higher_order.scm:25:" "pipeline"
     ) ;list
   ) ;check-demo-stacktrace
 
