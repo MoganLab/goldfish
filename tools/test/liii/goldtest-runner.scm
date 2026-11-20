@@ -67,6 +67,11 @@
       *test-cache-force*
     ) ;define
 
+    ;; 缓存按实际 domain 执行参数计算，聚合运行与单 domain 运行保持一致。
+    (define (%test-cache-key test-file)
+      (test-action-key test-file (caddr (%test-execution-context test-file)))
+    ) ;define
+
     ;; 检查缓存是否命中（未启用或强制绕过时返回 #f；force-flag 参数化传入 worker）
     (define (%cache-check test-file . maybe-force)
       (let ((force-flag (if (pair? maybe-force) (car maybe-force) *test-cache-force*)))
@@ -75,7 +80,7 @@
             (and (not force-flag)
               (file-exists? test-file)
               (not (test-no-cache-directive? test-file))
-              (let ((key (test-action-key test-file (%goldfish-cmd-flags test-file))))
+              (let ((key (%test-cache-key test-file)))
                 (and (test-cache-hit? (test-cache-path key)) key)
               ) ;let
             ) ;and
@@ -93,7 +98,7 @@
                   (not (test-no-cache-directive? test-file))
                   (zero? exit-code)
                 ) ;and
-            (let ((key (test-action-key test-file (%goldfish-cmd-flags test-file))))
+            (let ((key (%test-cache-key test-file)))
               (test-cache-record! (test-cache-path key) exit-code)
             ) ;let
           ) ;when
@@ -108,6 +113,44 @@
       ) ;let
     ) ;define
 
+    ;; --all 从项目根目录聚合所有 domain，但执行约定与单独运行该 domain 相同：
+    ;; cwd 为 domain root，路径为 root 下的 tests/...。
+    (define (%test-execution-context test-file)
+      (let* ((project-root (%find-project-root (getcwd)))
+             (domain (%find-domain-for-test-file test-file))
+             (root
+               (and domain (string-trim-right (cdr (assq 'root domain)) #\/))
+             ) ;root
+             (tests-prefix
+               (and domain (string-append (cdr (assq 'tests domain)) "/"))
+             ) ;tests-prefix
+             (local-file (if (and tests-prefix (string-starts? test-file tests-prefix))
+                           (substring test-file (string-length tests-prefix))
+                           test-file
+                         ) ;if
+             ) ;local-file
+            ) ;
+        (if (and domain project-root root (> (string-length root) 0))
+          (let* ((cwd (path->string (path-join project-root root)))
+                 (run-file (if (string-starts? test-file "tests/")
+                             test-file
+                             (string-append "tests/" local-file)
+                           ) ;if
+                 ) ;run-file
+                ) ;
+            (list cwd run-file (%goldfish-cmd-flags run-file domain))
+          ) ;let*
+          (list #f test-file (%goldfish-cmd-flags test-file domain))
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%test-command test-file)
+      (let ((context (%test-execution-context test-file)))
+        (cons (string-append (executable) (caddr context) (cadr context)) context)
+      ) ;let
+    ) ;define
+
     ;; 单个测试文件超时秒数：GOLDFISH_TEST_TIMEOUT 环境变量可覆盖
     (define (%test-timeout-seconds)
       (let ((env (getenv "GOLDFISH_TEST_TIMEOUT")))
@@ -117,13 +160,14 @@
       ) ;let
     ) ;define
 
-    ;; 在主会话执行单个测试子进程（串行模式用，stdout 实时透传）：
-    ;; 返回 (exit-code . timeout?)；timeout? 为 #t 表示被超时强杀
-    (define (%run-test-process cmd stdout-mode)
+    ;; 主会话执行单个测试子进程（串行模式用，stdout 实时透传）：
+    ;; 返回 (exit-code . timeout?)，timeout? 为 #t 表示被超时强杀。
+    (define (%run-test-process cmd stdout-mode cwd)
       (let ((res
               (catch #t
                 (lambda ()
                   (run-either cmd
+                    :cwd     cwd
                     :stdin   'null
                     :stdout  stdout-mode
                     :stderr  'stdout
@@ -151,12 +195,15 @@
             (cached-count-bump!)
             (cons test-file 0)
           ) ;begin
-          (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
+          (let* ((command (%test-command test-file))
+                 (cmd (car command))
+                 (context (cdr command))
+                ) ;
             (display "----------->\n")
             (display cmd)
             (newline)
             (flush-output-port (current-output-port))
-            (let* ((result (%run-test-process cmd 'inherit))
+            (let* ((result (%run-test-process cmd 'inherit (car context)))
                    (code (car result))
                    (timeout? (cdr result))
                   ) ;
@@ -175,12 +222,11 @@
               (%cache-record test-file code)
               (cons test-file code)
             ) ;let*
-          ) ;let
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
-    ;; 构造 (idx file) 索引化任务向量
     (define (%build-indexed-vec test-files)
       (list->vector
         (let loop
@@ -190,8 +236,8 @@
       ) ;list->vector
     ) ;define
 
-    ;; 单个并行任务体（导出以便 worker 会话可见）：
-    ;; 先查缓存，命中静默返回（不打印，仅在 Summary 汇总），否则拉起子进程执行
+    ;; 单个并行任务体（导出以便 worker 会话可见）：先查缓存，命中静默返回
+    ;; （不打印，仅在 Summary 汇总），否则拉起子进程执行。
     (define (%run-one-parallel-test pair total tmo cache-force)
       (let* ((idx (car pair))
              (test-file (cadr pair))
@@ -199,25 +245,35 @@
             ) ;
         (if cached
           (%parallel-cached-result idx total test-file)
-          (let ((cmd (string-append (goldfish-cmd test-file) test-file)))
-            (let ((res (catch #t
-                         (lambda ()
-                           (run-either cmd :stdin 'null :stdout 'capture :stderr 'capture :timeout tmo)
-                         ) ;lambda
-                         (lambda args #f)
-                       ) ;catch
+          (let* ((command (%test-command test-file))
+                 (cmd (car command))
+                 (context (cdr command))
+                ) ;
+            (let ((res
+                    (catch #t
+                      (lambda ()
+                        (run-either cmd
+                          :cwd     (car context)
+                          :stdin   'null
+                          :stdout  'capture
+                          :stderr  'capture
+                          :timeout tmo
+                        ) ;run-either
+                      ) ;lambda
+                      (lambda args #f)
+                    ) ;catch
                   ) ;res
                  ) ;
               (%parallel-result idx total res test-file tmo cache-force)
             ) ;let
-          ) ;let
+          ) ;let*
         ) ;if
       ) ;let*
     ) ;define
 
-    ;; 并行执行：逐文件即时打印进度与失败诊断。
-    ;; 闭包在 (liii go) worker 会话内执行，只能引用主库导出绑定；
-    ;; tmo/cache-force 等参数经 funclet 捕获环境以可序列化值传入
+    ;; 并行执行：逐文件即时打印进度与失败诊断。闭包在 (liii go) worker 会话
+    ;; 内执行，只能引用主库导出绑定；tmo/cache-force 等参数经 funclet 捕获环境
+    ;; 以可序列化值传入。
     (define (run-tests-parallel test-files jobs)
       (let* ((total (length test-files))
              (exe (executable))
@@ -249,7 +305,6 @@
       (list test-file 0 "cached")
     ) ;define
 
-    ;; 从 run-either 结果提取退出码（导出以便 worker 会话可见）
     (define (%process-exit-code res)
       (if (either-left? res)
         (let ((c (process-error-code (to-left res))))
@@ -259,7 +314,6 @@
       ) ;if
     ) ;define
 
-    ;; 从 run-either 结果提取捕获的 stdout/stderr（导出以便 worker 会话可见）
     (define (%captured-stdout res)
       (if (either-left? res) (process-error-stdout (to-left res)) "")
     ) ;define
@@ -279,16 +333,14 @@
       ) ;string-append
     ) ;define
 
-    ;; 打印 [n/total] file ... 进度标记并立即 flush（导出以便 worker 会话可见）
     (define (%print-progress-marker idx total test-file)
       (display (%progress-prefix idx total test-file))
       (flush-output-port (current-output-port))
     ) ;define
 
-    ;; 并行任务结果处置（导出以便 worker 会话可见）；
-    ;; 整体防御性 catch：报告路径出错时降级为 FAIL 结果，
-    ;; 不让单个异常炸掉整个 runner（之前 CI 上曾因处理超时结果时
-    ;; 的访问错误导致 runner 崩溃，掩盖真实卡点）
+    ;; 并行任务结果处置（导出以便 worker 会话可见）；整体防御性 catch：报告路径
+    ;; 出错时降级为 FAIL 结果，不让单个异常炸掉整个 runner（之前 CI 上曾因处理超
+    ;; 时结果时的访问错误导致 runner 崩溃，掩盖真实卡点）。
     (define (%parallel-result . args)
       (let* ((p5 (>= (length args) 5))
              (prefix (if p5
