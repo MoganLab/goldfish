@@ -199,7 +199,7 @@
                  (cmd (car command))
                  (context (cdr command))
                 ) ;
-            (display "----------->\n")
+            (display "\n----------->\n")
             (display cmd)
             (newline)
             (flush-output-port (current-output-port))
