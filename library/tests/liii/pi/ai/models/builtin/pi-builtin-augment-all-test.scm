@@ -20,9 +20,9 @@
 (check-set-mode! 'report-failed)
 
 (let* ((empty-store '()) (augmented (pi-builtin-augment-all empty-store)))
-  ;; 应该包含 8 个内置 provider
-  (check (length augmented) => 8)
-  (check-false (pair? (assoc "anthropic" augmented)))
+  ;; 应该包含 9 个内置 provider
+  (check (length augmented) => 9)
+  (check-true (pair? (assoc "anthropic" augmented)))
   (check-true (pair? (assoc "all-in-one" augmented)))
   (check-true (pair? (assoc "deepseek" augmented)))
   (check-true (pair? (assoc "google" augmented)))

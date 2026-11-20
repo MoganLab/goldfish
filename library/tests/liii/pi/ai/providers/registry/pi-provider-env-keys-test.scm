@@ -18,8 +18,8 @@
 (import (liii check) (liii pi ai providers registry))
 
 (check-set-mode! 'report-failed)
-;; anthropic / glm provider 已移除，未注册返回空表
-(check (pi-provider-env-keys "anthropic") => '())
+;; anthropic 为官方 API；glm provider 已移除，未注册返回空表
+(check (pi-provider-env-keys "anthropic") => '("ANTHROPIC_API_KEY"))
 (check (pi-provider-env-keys "glm") => '())
 (check (pi-provider-env-keys "deepseek") => '("DEEPSEEK_API_KEY"))
 (check (pi-provider-env-keys "google") => '("GEMINI_API_KEY"))

@@ -25,7 +25,10 @@
 ;; pi-model-metadata?
 ;; 包含模型名称、provider、base-url、context-window 和 max-tokens 的 record。
 
-(import (liii check) (liii pi ai config model-metadata) (liii pi ai models meta))
+(import (liii check)
+  (liii pi ai config model-metadata)
+  (liii pi ai models meta)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -44,6 +47,23 @@
   (check (pi-model-metadata-provider m) => "opencode")
   (check (pi-model-metadata-base-url m) => "https://opencode.ai/zen/go/v1")
   (check (pi-model-metadata-context-window m) => 1000000)
+  (check (pi-model-metadata-matched? m) => #f)
+) ;let
+
+;; anthropic：空目录时回退内置模型目录
+(let ((m (pi-resolve-model-metadata "anthropic" "claude-opus-5-5" '())))
+  (check (pi-model-metadata-name m) => "Claude Opus 5.5")
+  (check (pi-model-metadata-base-url m) => "https://api.anthropic.com")
+  (check (pi-model-metadata-context-window m) => 1000000)
+  (check (pi-model-metadata-max-tokens m) => 128000)
+  (check (pi-model-metadata-matched? m) => #t)
+) ;let
+
+;; anthropic：未知模型用 provider 默认值
+(let ((m (pi-resolve-model-metadata "anthropic" "unlisted" '())))
+  (check (pi-model-metadata-base-url m) => "https://api.anthropic.com")
+  (check (pi-model-metadata-context-window m) => 1000000)
+  (check (pi-model-metadata-max-tokens m) => 64000)
   (check (pi-model-metadata-matched? m) => #f)
 ) ;let
 

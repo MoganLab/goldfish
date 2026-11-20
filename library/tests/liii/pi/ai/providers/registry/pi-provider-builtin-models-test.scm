@@ -46,14 +46,15 @@
 (check (pi-provider-builtin-models "zai") => '())
 (check (pi-provider-builtin-models "opencode-go") => '())
 
-;; anthropic / glm provider 已移除，无内置模型目录
+;; glm provider 已移除，无内置模型目录
 (check (pi-provider-builtin-models "glm") => '())
-(check (pi-provider-builtin-models "anthropic") => '())
+(check (length (pi-provider-builtin-models "anthropic")) => 4)
 
 ;; 支持的 provider 列表
 (check PI_SUPPORTED_PROVIDERS
   =>
-  '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama" "opencode")
+  '("google" "anthropic" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn"
+    "ollama" "opencode")
 ) ;check
 
 (check-report)
