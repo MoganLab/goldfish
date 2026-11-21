@@ -16,12 +16,10 @@
     (liii goldcheck type-hint env)
     (liii goldcheck type-hint hint-data)
   ) ;import
-  (export resolve-library-library reexport-owner normalize-import-mapping
-    procedure-arity
-  ) ;export
+  (export resolve-library reexport-owner normalize-import-mapping procedure-arity)
   (begin
 
-    (define (resolve-library-library lib-name . maybe-roots)
+    (define (resolve-library lib-name . maybe-roots)
       (let* ((roots (if (null? maybe-roots) (all-hint-roots) (car maybe-roots)))
              (file (library-file roots lib-name #t))
             ) ;
@@ -82,8 +80,7 @@
     ) ;define
 
     (define (normalize-simple-import lib-name . maybe-roots)
-      (let ((resolved (apply resolve-library-library (append (list lib-name) maybe-roots)))
-           ) ;
+      (let ((resolved (apply resolve-library (append (list lib-name) maybe-roots))))
         (if (eq? (car resolved) 'resolved)
           (map string->symbol (export-name-list (cached-library-info (cadr resolved))))
           #f
@@ -229,8 +226,12 @@
         (let loop-owner
           ((current-lib lib-name) (current-name external-name) (seen '()))
           (if (member current-lib seen equal?)
-            (list 'ambiguous (list current-lib) current-name)
-            (let ((resolved (resolve-library-library current-lib roots)))
+            (list 'indeterminate
+              "ambiguous re-export source"
+              (list current-lib)
+              current-name
+            ) ;list
+            (let ((resolved (resolve-library current-lib roots)))
               (if (not (eq? (car resolved) 'resolved))
                 resolved
                 (let* ((file (cadr resolved))
@@ -252,7 +253,7 @@
                                  ((not (null? unique))
                                   (if (null? (cdr unique))
                                     (loop-owner (car unique) internal-name (cons current-lib seen))
-                                    (list 'ambiguous unique internal-name)
+                                    (list 'indeterminate "ambiguous re-export source" unique internal-name)
                                   ) ;if
                                  ) ;
                                  (indeterminate? (list 'indeterminate "re-export source could not be resolved"))
@@ -364,7 +365,7 @@
 
     (define (procedure-arity lib-name name . maybe-roots)
       (let ((roots (if (null? maybe-roots) (all-hint-roots) (car maybe-roots))))
-        (let* ((resolved (resolve-library-library lib-name roots))
+        (let* ((resolved (resolve-library lib-name roots))
                (file (and (eq? (car resolved) 'resolved) (cadr resolved)))
                (info (and file (cached-library-info file)))
                (d (and info (find-def name (lib-defines info))))
@@ -374,7 +375,7 @@
             (let ((owner (reexport-owner lib-name name roots)))
               (if (eq? (car owner) 'owner)
                 (let* ((owner-info
-                         (cached-library-info (cadr (resolve-library-library (cadr owner) roots)))
+                         (cached-library-info (cadr (resolve-library (cadr owner) roots)))
                        ) ;owner-info
                        (owner-name (caddr owner))
                        (owner-def (and owner-info (find-def owner-name (lib-defines owner-info))))

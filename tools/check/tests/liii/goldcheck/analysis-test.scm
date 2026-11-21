@@ -10,12 +10,12 @@
 ) ;define
 
 ;; Simple and renamed exports.
-(let ((resolved (resolve-library-library '(analysis first) (list fixture-root))))
+(let ((resolved (resolve-library '(analysis first) (list fixture-root))))
   (check (car resolved) => 'resolved)
   (check-true (pair? (member 'local-name (caddr resolved))))
 ) ;let
 
-(let ((resolved (resolve-library-library '(analysis reexport) (list fixture-root))))
+(let ((resolved (resolve-library '(analysis reexport) (list fixture-root))))
   (check (car resolved) => 'resolved)
   (check-true (pair? (member 'external-name (caddr resolved))))
 ) ;let
@@ -25,7 +25,7 @@
   => 'owner
 ) ;check
 (check (car (reexport-owner '(analysis ambiguous) 'shared-name (list fixture-root)))
-  => 'ambiguous
+  => 'indeterminate
 ) ;check
 
 ;; Import set normalization.
