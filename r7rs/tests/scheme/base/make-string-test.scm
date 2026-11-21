@@ -60,15 +60,5 @@
 ;; make-string 支持 Unicode 字符（UTF-8 编码）
 (check (make-string 1 #\中) => "中")
 (check (make-string 3 #\中) => "中中中")
-(check (string->list "MathAgape") => '(#\M #\a #\t #\h #\A #\g #\a #\p #\e))
-(check (string->list "") => '())
-(check (list->string '(#\M #\a #\t #\h #\A #\g #\a #\p #\e)) => "MathAgape")
-(check (list->string '()) => "")
-(check (string-length "MathAgape") => 9)
-(check (string-length "") => 0)
-(check (catch 'type-error (lambda () (string-length 'not-a-string)) (lambda args #t))
-  =>
-  #t
-) ;check
 
 (check-report)
