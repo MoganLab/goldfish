@@ -79583,10 +79583,48 @@ static s7_pointer g_is_bignum_enabled(s7_scheme *sc, s7_pointer args)
   return(sc->bignum_enabled ? sc->T : sc->F);
 }
 
+#if !MS_WINDOWS
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
+static s7_scheme* g_crash_sc= NULL;
+static void s7_sigsegv_handler (int sig)
+{
+  void* frames[64];
+  int n= backtrace (frames, 64);
+  const char banner[]= "\n===S7-SIGSEGV===\n";
+  write (2, banner, sizeof (banner) - 1);
+  backtrace_symbols_fd (frames, n, 2);
+  if (g_crash_sc)
+    {
+      char buf[1024];
+      int len= snprintf (buf, sizeof (buf),
+        "sc=%p code=%p stack_top=%ld stack_size=%u\n",
+        (void*) g_crash_sc, (void*) g_crash_sc->code,
+        (long) (g_crash_sc->stack_top - g_crash_sc->stack_start),
+        (unsigned) g_crash_sc->stack_size);
+      write (2, buf, len);
+      len= snprintf (buf, sizeof (buf), "cur_op=%d let_number=%ld value=%p args=%p\n",
+        (int) g_crash_sc->cur_op, (long) g_crash_sc->let_number,
+        (void*) g_crash_sc->value, (void*) g_crash_sc->args);
+      write (2, buf, len);
+    }
+  _exit (128 + sig);
+}
+#endif
+
 s7_scheme *s7_init(void)
 {
   s7_scheme *sc;
   static bool already_inited = false;
+
+#if !MS_WINDOWS
+  if (!g_crash_sc)
+    {
+      signal (SIGSEGV, s7_sigsegv_handler);
+      signal (SIGBUS, s7_sigsegv_handler);
+    }
+#endif
 
 #if !MS_WINDOWS
   setlocale(LC_NUMERIC, "C"); /* use decimal point in floats */
@@ -80127,6 +80165,7 @@ s7_scheme *s7_init(void)
 	  (int)sizeof(block_t), (int)sizeof(port_functions_t), (int)sizeof(s7_cell), (int)sizeof(s7_scheme), (int)sizeof(opt_info));
 #endif
 
+  g_crash_sc= sc;
   return(sc);
 }
 
