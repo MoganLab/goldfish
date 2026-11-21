@@ -19,6 +19,22 @@ extern s7_pointer *chars;
 /* Externally defined in s7.c - permanent error description strings */
 extern s7_pointer it_is_negative_string, it_is_too_large_string, it_is_too_small_string;
 
+/* liii_utf8_encode: encode a Unicode codepoint into UTF-8 bytes.
+ *   Returns the number of bytes written (1..4), or 0 if cp is out of range.
+ *   buf must have room for at least 4 bytes. */
+static int liii_utf8_encode(uint32_t cp, unsigned char *buf)
+{
+  if (cp <= 0x7F)
+    { buf[0] = (unsigned char)cp; return 1; }
+  if (cp <= 0x7FF)
+    { buf[0] = (unsigned char)(0xC0 | (cp >> 6)); buf[1] = (unsigned char)(0x80 | (cp & 0x3F)); return 2; }
+  if (cp <= 0xFFFF)
+    { buf[0] = (unsigned char)(0xE0 | (cp >> 12)); buf[1] = (unsigned char)(0x80 | ((cp >> 6) & 0x3F)); buf[2] = (unsigned char)(0x80 | (cp & 0x3F)); return 3; }
+  if (cp <= 0x10FFFF)
+    { buf[0] = (unsigned char)(0xF0 | (cp >> 18)); buf[1] = (unsigned char)(0x80 | ((cp >> 12) & 0x3F)); buf[2] = (unsigned char)(0x80 | ((cp >> 6) & 0x3F)); buf[3] = (unsigned char)(0x80 | (cp & 0x3F)); return 4; }
+  return 0;
+}
+
 /* Helper function for out-of-range errors */
 static s7_pointer string_ref_out_of_range(s7_scheme *sc, s7_int index, bool is_negative)
 {
@@ -211,6 +227,9 @@ s7_pointer g_string_set(s7_scheme *sc, s7_pointer args)
   if (!s7_is_character(c))
     return s7_wrong_type_arg_error(sc, "string-set!", 3, c, "a character");
 
+  if (s7_character(c) > 0xFF)
+    return s7_out_of_range_error(sc, "string-set!", 3, c,
+                                 "string-set! only accepts characters in range #x00..#xFF; use utf8-string-set! for Unicode characters");
   char *str = (char *)s7_string(strng);
   str[ind] = (char)s7_character(c);
   return c;
@@ -247,17 +266,36 @@ s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
     return(s7i_make_empty_string(sc, len, '\0'));
   {
     s7_pointer c = s7_cadr(args);
-    if (s7_character(c) > 0xFF)
-      return(s7_out_of_range_error(sc, "make-string", 2, c,
-                                   "make-string only accepts characters in range #x00..#xFF; use utf8-make-string for Unicode characters"));
-    char fill = (char)s7_character(c);
-    s7_pointer result = s7i_make_empty_string(sc, len, fill);
-    if (fill == '\0')
+    uint32_t cp = s7_character(c);
+    if (cp <= 0xFF)
       {
-        char *str = (char *)s7_string(result);
-        memset(str, 0, len);
+        char fill = (char)cp;
+        s7_pointer result = s7i_make_empty_string(sc, len, fill);
+        if (fill == '\0')
+          {
+            char *str = (char *)s7_string(result);
+            memset(str, 0, len);
+          }
+        return(result);
       }
-    return(result);
+    /* Unicode fill character: build a UTF-8 string of len codepoints. */
+    {
+      unsigned char ub[4];
+      int unit_len = liii_utf8_encode(cp, ub);
+      if (unit_len == 0)
+        return(s7_out_of_range_error(sc, "make-string", 2, c,
+                                     "make-string: character out of Unicode range"));
+      if (len > s7i_max_string_length(sc) / unit_len)
+        return(s7_out_of_range_error(sc, "make-string", 1, n, "it is too large"));
+      {
+        s7_int total = len * unit_len;
+        s7_pointer result = s7i_make_empty_string(sc, total, '\0');
+        unsigned char *dst = (unsigned char *)s7_string(result);
+        for (s7_int i = 0; i < len; i++)
+          memcpy(dst + i * unit_len, ub, unit_len);
+        return(result);
+      }
+    }
   }
 }
 
@@ -442,7 +480,56 @@ s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args)
 s7_pointer g_string(s7_scheme *sc, s7_pointer args)
 {
   if (s7_is_null(sc, args)) return(s7i_nil_string());
-  return(s7i_string_1(sc, args, s7_make_symbol(sc, "string")));
+  /* Fast path: if every character is ASCII/Latin-1, defer to the original
+     fixed-width constructor. Otherwise build a UTF-8 string in one pass. */
+  {
+    s7_pointer p;
+    bool has_unicode = false;
+    for (p = args; s7_is_pair(p); p = s7_cdr(p))
+      {
+        s7_pointer chr = s7_car(p);
+        if (!s7_is_character(chr))
+          break;                  /* let s7i_string_1 produce the type error */
+        if (s7_character(chr) > 0xFF)
+          { has_unicode = true; break; }
+      }
+    if (!has_unicode)
+      return(s7i_string_1(sc, args, s7_make_symbol(sc, "string")));
+  }
+  /* Slow path: encode all characters as UTF-8 into a single string. */
+  {
+    s7_pointer p;
+    s7_int total = 0;
+    for (p = args; s7_is_pair(p); p = s7_cdr(p))
+      {
+        s7_pointer chr = s7_car(p);
+        if (!s7_is_character(chr))
+          return(s7i_string_1(sc, args, s7_make_symbol(sc, "string")));
+        {
+          unsigned char ub[4];
+          int n = liii_utf8_encode(s7_character(chr), ub);
+          if (n == 0)
+            return(s7_out_of_range_error(sc, "string", 1, chr,
+                                         "string: character out of Unicode range"));
+          total += n;
+        }
+      }
+    if (total > s7i_max_string_length(sc))
+      return(s7_out_of_range_error(sc, "string", 0, s7_make_integer(sc, total),
+                                   "result string is too large"));
+    {
+      s7_pointer result = s7i_make_empty_string(sc, total, '\0');
+      unsigned char *dst = (unsigned char *)s7_string(result);
+      for (p = args; s7_is_pair(p); p = s7_cdr(p))
+        {
+          unsigned char ub[4];
+          int n = liii_utf8_encode(s7_character(s7_car(p)), ub);
+          memcpy(dst, ub, n);
+          dst += n;
+        }
+      return(result);
+    }
+  }
 }
 
 s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
@@ -578,15 +665,29 @@ s7_pointer substring_uncopied_p_pii(s7_scheme *sc, s7_pointer str, s7_int start,
 
 s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 {
-  s7_pointer str;
-  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
   if (!s7_is_character(c)) return(s7i_string_1(sc, s7i_set_plist_1(sc, c), s7_make_symbol(sc, "string")));
-  if (s7_character(c) > 0xFF)
-    out_of_range_error_nr(sc, s7_make_symbol(sc, "string"), s7i_wrap_integer(sc, 1), c,
-                          s7i_wrap_string(sc, unicode_string_hint, (s7_int)strlen(unicode_string_hint)));
-  str = s7i_make_empty_string(sc, 1, '\0');
-  s7i_string_value_ptr(str)[0] = (char)s7_character(c);
-  return(str);
+  {
+    uint32_t cp = s7_character(c);
+    if (cp <= 0xFF)
+      {
+        s7_pointer str = s7i_make_empty_string(sc, 1, '\0');
+        s7i_string_value_ptr(str)[0] = (char)cp;
+        return(str);
+      }
+    /* Unicode: encode as a multi-byte UTF-8 string. */
+    {
+      unsigned char ub[4];
+      int n = liii_utf8_encode(cp, ub);
+      if (n == 0)
+        out_of_range_error_nr(sc, s7_make_symbol(sc, "string"), s7i_wrap_integer(sc, 1), c,
+                              s7i_wrap_string(sc, "string: character out of Unicode range", 35));
+      {
+        s7_pointer str = s7i_make_empty_string(sc, n, '\0');
+        memcpy(s7i_string_value_ptr(str), ub, n);
+        return(str);
+      }
+    }
+  }
 }
 
 s7_pointer string_to_list_p_p(s7_scheme *sc, s7_pointer str)
