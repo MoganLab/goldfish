@@ -24,7 +24,7 @@
 ;; 1. 可以指定字符串长度和填充字符
 ;; 2. 若未指定 char，**默认字符未在 R7RS 中定义**
 ;; 3. 当 k 为 0 时返回空字符串 ""
-;; 4. char 为 Unicode 字符时按 UTF-8 编码构造，字符串字节长度为 k 的 UTF-8 字节数
+;; 4. char 为 Unicode 字符时按 UTF-8 编码构造，结果字符串的字节长度为 k × 该字符的 UTF-8 字节数
 ;;
 ;; 错误处理
 ;; ----
@@ -34,6 +34,8 @@
 ;; 当 k 不是精确整数或 char 不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为 1 或 2 个时抛出错误。
+
+;; 说明：char 为 Unicode 字符时不再报错，按 UTF-8 编码构造。
 
 (import (liii check))
 (import (scheme base))
