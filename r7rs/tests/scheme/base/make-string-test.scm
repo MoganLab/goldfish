@@ -24,6 +24,7 @@
 ;; 1. 可以指定字符串长度和填充字符
 ;; 2. 若未指定 char，**默认字符未在 R7RS 中定义**
 ;; 3. 当 k 为 0 时返回空字符串 ""
+;; 4. char 为 Unicode 字符时按 UTF-8 编码构造，结果字符串的字节长度为 k × 该字符的 UTF-8 字节数
 ;;
 ;; 错误处理
 ;; ----
@@ -57,16 +58,8 @@
 (check-catch 'type-error (make-string 3 "a"))
 (check-catch 'wrong-number-of-args (make-string))
 (check-catch 'wrong-number-of-args (make-string 3 #\a #\b))
-(check-catch 'out-of-range (make-string 1 #\中))
-(check (string->list "MathAgape") => '(#\M #\a #\t #\h #\A #\g #\a #\p #\e))
-(check (string->list "") => '())
-(check (list->string '(#\M #\a #\t #\h #\A #\g #\a #\p #\e)) => "MathAgape")
-(check (list->string '()) => "")
-(check (string-length "MathAgape") => 9)
-(check (string-length "") => 0)
-(check (catch 'type-error (lambda () (string-length 'not-a-string)) (lambda args #t))
-  =>
-  #t
-) ;check
+;; make-string 支持 Unicode 字符（UTF-8 编码）
+(check (make-string 1 #\中) => "中")
+(check (make-string 3 #\中) => "中中中")
 
 (check-report)

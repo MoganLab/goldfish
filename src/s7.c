@@ -16948,7 +16948,7 @@ s7_pointer s7i_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
   int32_t len;
   s7_pointer chrs, newstr;
   char *str;
-  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
+  bool has_unicode = false;
 
   /* get length for new string and check arg types */
   for (len = 0, chrs = args; is_pair(chrs); len++, chrs = cdr(chrs))
@@ -16973,20 +16973,54 @@ s7_pointer s7i_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 		}}
 	  wrong_type_error_nr(sc, sym, len + 1, chr, sc->type_names[T_CHARACTER]);
 	}
-      if (s7_character(chr) > 0xFF)
-        out_of_range_error_nr(sc, sym, wrap_integer(sc, len + 1), chr,
-                              wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
+      if (character(chr) > 0xFF)
+        has_unicode = true;
     }
-  if (len > sc->max_string_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_4(sc, wrap_string(sc, "~S result string is too large (> ~D ~D) (*s7* 'max-string-length)", 65),
-			 sym, wrap_integer(sc, len), wrap_integer(sc, sc->max_string_length)));
-  newstr = inline_make_empty_string(sc, len, '\0');
-  str = string_value(newstr);
-  chrs = args;
-  for (int32_t i = 0; is_pair(chrs); i++, chrs = cdr(chrs))
-    str[i] = character(car(chrs));
-  return(newstr);
+  if (!has_unicode)
+    {
+      if (len > sc->max_string_length)
+        error_nr(sc, sc->out_of_range_symbol,
+	         set_elist_4(sc, wrap_string(sc, "~S result string is too large (> ~D ~D) (*s7* 'max-string-length)", 65),
+			     sym, wrap_integer(sc, len), wrap_integer(sc, sc->max_string_length)));
+      newstr = inline_make_empty_string(sc, len, '\0');
+      str = string_value(newstr);
+      chrs = args;
+      for (int32_t i = 0; is_pair(chrs); i++, chrs = cdr(chrs))
+        str[i] = character(car(chrs));
+      return(newstr);
+    }
+  /* Slow path: encode as UTF-8. */
+  {
+    s7_int total = 0;
+    for (chrs = args; is_pair(chrs); chrs = cdr(chrs))
+      {
+        s7_int cp = character(car(chrs));
+        if (cp <= 0x7F) total += 1;
+        else if (cp <= 0x7FF) total += 2;
+        else if (cp <= 0xFFFF) total += 3;
+        else total += 4;
+      }
+    if (total > sc->max_string_length)
+      error_nr(sc, sc->out_of_range_symbol,
+               set_elist_4(sc, wrap_string(sc, "~S result string is too large (> ~D ~D) (*s7* 'max-string-length)", 65),
+                           sym, wrap_integer(sc, total), wrap_integer(sc, sc->max_string_length)));
+    newstr = inline_make_empty_string(sc, total, '\0');
+    str = string_value(newstr);
+    chrs = args;
+    for (int32_t i = 0; is_pair(chrs); chrs = cdr(chrs))
+      {
+        s7_int cp = character(car(chrs));
+        if (cp <= 0x7F)
+          str[i++] = (char)cp;
+        else if (cp <= 0x7FF)
+          { str[i++] = (char)(0xC0 | (cp >> 6)); str[i++] = (char)(0x80 | (cp & 0x3F)); }
+        else if (cp <= 0xFFFF)
+          { str[i++] = (char)(0xE0 | (cp >> 12)); str[i++] = (char)(0x80 | ((cp >> 6) & 0x3F)); str[i++] = (char)(0x80 | (cp & 0x3F)); }
+        else
+          { str[i++] = (char)(0xF0 | (cp >> 18)); str[i++] = (char)(0x80 | ((cp >> 12) & 0x3F)); str[i++] = (char)(0x80 | ((cp >> 6) & 0x3F)); str[i++] = (char)(0x80 | (cp & 0x3F)); }
+      }
+    return(newstr);
+  }
 }
 
 #define H_string "(string chr...) appends all its character arguments into one string"
@@ -16996,16 +17030,33 @@ s7_pointer s7i_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 s7_pointer s7i_string_c1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer c = car(args), str;
-  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
   /* no multiple values here because no pairs below */
   if (!is_character(c))
     return(method_or_bust(sc, c, sc->string_symbol, args, sc->type_names[T_CHARACTER], 1));
-  if (s7_character(c) > 0xFF)
-    out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
-                          wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
-  str = inline_make_empty_string(sc, 1, '\0'); /* can't put character(c) here because null is handled specially */
-  string_value(str)[0] = character(c);
-  return(str);
+  {
+    s7_int cp = (s7_int)character(c);
+    if (cp <= 0xFF)
+      {
+        str = inline_make_empty_string(sc, 1, '\0'); /* can't put character(c) here because null is handled specially */
+        string_value(str)[0] = (char)character(c);
+        return(str);
+      }
+    /* Unicode: build a multi-byte UTF-8 string. */
+    str = inline_make_empty_string(sc, 4, '\0');
+    {
+      unsigned char *dst = (unsigned char *)string_value(str);
+      int n = 0;
+      if (cp <= 0x7FF)
+        { dst[0] = (unsigned char)(0xC0 | (cp >> 6)); dst[1] = (unsigned char)(0x80 | (cp & 0x3F)); n = 2; }
+      else if (cp <= 0xFFFF)
+        { dst[0] = (unsigned char)(0xE0 | (cp >> 12)); dst[1] = (unsigned char)(0x80 | ((cp >> 6) & 0x3F)); dst[2] = (unsigned char)(0x80 | (cp & 0x3F)); n = 3; }
+      else
+        { dst[0] = (unsigned char)(0xF0 | (cp >> 18)); dst[1] = (unsigned char)(0x80 | ((cp >> 12) & 0x3F)); dst[2] = (unsigned char)(0x80 | ((cp >> 6) & 0x3F)); dst[3] = (unsigned char)(0x80 | (cp & 0x3F)); n = 4; }
+      string_length(str) = n;
+      dst[n] = 0;
+      return(str);
+    }
+  }
 }
 
 static s7_pointer string_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)

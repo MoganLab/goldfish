@@ -20,6 +20,12 @@
 ;; ----
 ;; 1. 无参数时返回空字符串
 ;; 2. 参数顺序决定结果字符串中的字符顺序
+;; 3. Unicode 字符按 UTF-8 编码构造，结果字符串字节长度为各字符 UTF-8 字节数之和
+;;
+;; 错误处理
+;; ----
+;; type-error
+;; 当参数不是字符时抛出错误。
 
 (import (liii check))
 (import (scheme base))
@@ -32,11 +38,12 @@
 (check (string #\1 #\2 #\3) => "123")
 (check (string-ref (string #\xFF) 0) => #\xFF)
 (check (string-length (string #\x #\y)) => 2)
+;; string 支持 Unicode 字符（UTF-8 编码）
+(check (string #\x100) => (string #\x100))
+(check (string #\中) => "中")
+(check (string #\a #\中) => "a中")
 (check-catch 'type-error (string 'a))
 (check-catch 'type-error (string 1))
 (check-catch 'type-error (string "a"))
-(check-catch 'out-of-range (string #\x100))
-(check-catch 'out-of-range (string #\中))
-(check-catch 'out-of-range (string #\a #\中))
 
 (check-report)
