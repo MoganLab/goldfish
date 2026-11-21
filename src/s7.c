@@ -80680,3 +80680,5 @@ block_t *s7i_number_to_string_with_radix(s7_scheme *sc, s7_pointer obj, int32_t 
 
 s7_pointer s7i_open_format_port(s7_scheme *sc) { return open_format_port(sc); }
 /* ========================================== */
+
+/* [CI-DEBUG] 布局敏感性验证：此注释本身不改变语义，用于改变二进制布局 */
