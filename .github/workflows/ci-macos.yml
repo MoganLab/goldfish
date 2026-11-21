@@ -105,8 +105,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true'
         run: |
           set +e
-          GOLDFISH_GO_WORKERS=1 lldb -b -o run -o "thread backtrace all" -o "register read" -- bin/gf test -j 1 r7rs/tests/ > /tmp/lldb-out.log 2>&1 || true
-          echo "=====LLDB LOG====="; cat /tmp/lldb-out.log | tail -150
+          GOLDFISH_GO_WORKERS=1 lldb -b -o run -o "bt" -o "frame variable sc->code" -o "memory read \$pc-32 \$pc+32" -- bin/gf test -j 1 r7rs/tests/ > /tmp/lldb-out.log 2>&1 || true
+          echo "=====LLDB LOG====="; cat /tmp/lldb-out.log | tail -200
       - name: run goldfish tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true'
         run: bin/gf test goldfish/tests/
