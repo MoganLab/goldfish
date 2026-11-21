@@ -71986,8 +71986,11 @@ static token_t read_sharp(s7_scheme *sc, s7_pointer port)
 	    }
 	  break;
 	}
-      if (read_sharp(sc, port) == token_vector)
-	return(token_int_vector);
+      /* 非 bignum 模式：#i 前缀语义依赖 bignum 钩子，此处不解析。
+       * 递归 read_sharp 会把紧跟的数字误当向量维度，遇 EOF 时在 C 层
+       * throw 'read-error “unexpected end of input while reading #n...”，
+       * 导致 (read "#i1") 等输入 crash。直接回退到 token_sharp_const，
+       * 与 #e（read_sharp 无 case 'e'）路径一致，最终读成符号。 */
       backchar('i', port);
       break;
 
