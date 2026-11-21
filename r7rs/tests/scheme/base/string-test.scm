@@ -20,6 +20,7 @@
 ;; ----
 ;; 1. 无参数时返回空字符串
 ;; 2. 参数顺序决定结果字符串中的字符顺序
+;; 3. Unicode 字符按 UTF-8 编码构造，结果字符串字节长度为各字符 UTF-8 字节数之和
 
 (import (liii check))
 (import (scheme base))
