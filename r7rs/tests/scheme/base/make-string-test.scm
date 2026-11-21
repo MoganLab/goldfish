@@ -35,8 +35,6 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为 1 或 2 个时抛出错误。
 
-;; 说明：char 为 Unicode 字符时不再报错，按 UTF-8 编码构造。
-
 (import (liii check))
 (import (scheme base))
 
