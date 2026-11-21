@@ -163,21 +163,39 @@
     ;; 主会话执行单个测试子进程（串行模式用，stdout 实时透传）：
     ;; 返回 (exit-code . timeout?)，timeout? 为 #t 表示被超时强杀。
     (define (%run-test-process cmd stdout-mode cwd)
+      ;; [CI-DEBUG] 定位 runner 主进程 SIGSEGV：拉起子进程前后打点，事后移除
+      (display "[dbg]before run-either: ")
+      (display cmd)
+      (newline)
+      (flush-output-port (current-error-port))
+      (flush-output-port (current-output-port))
       (let ((res
               (catch #t
                 (lambda ()
-                  (run-either cmd
-                    :cwd     cwd
-                    :stdin   'null
-                    :stdout  stdout-mode
-                    :stderr  'stdout
-                    :timeout (%test-timeout-seconds)
-                  ) ;run-either
+                  (let ((r (run-either cmd
+                             :cwd     cwd
+                             :stdin   'null
+                             :stdout  stdout-mode
+                             :stderr  'stdout
+                             :timeout (%test-timeout-seconds)
+                           ) ;run-either
+                        ) ;r
+                       ) ;
+                    (display "[dbg]after run-either\n")
+                    (flush-output-port (current-output-port))
+                    r
+                  ) ;let
                 ) ;lambda
-                (lambda args (from-left (make-process-error -1 "" "" cmd)))
+                (lambda args
+                  (display "[dbg]run-either threw\n")
+                  (flush-output-port (current-output-port))
+                  (from-left (make-process-error -1 "" "" cmd))
+                ) ;lambda
               ) ;catch
             ) ;res
            ) ;
+        (display "[dbg]run-test-process got res\n")
+        (flush-output-port (current-output-port))
         (if (either-right? res)
           (cons 0 #f)
           (let ((code (process-error-code (to-left res))))

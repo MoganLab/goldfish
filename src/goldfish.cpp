@@ -53,8 +53,38 @@ init_windows_utf8_argv (int& argc, char**& argv) {
 }
 #endif
 
+#ifndef TB_CONFIG_OS_WINDOWS
+#include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
+static void
+gf_sigsegv_handler (int sig) {
+  void* frames[64];
+  int    n= backtrace (frames, 64);
+  const char banner[]= "\n===SIGSEGV BACKTRACE===\n";
+  write (2, banner, sizeof (banner) - 1); // NOLINT
+  backtrace_symbols_fd (frames, n, 2);
+  /* 尽力打印 s7 栈顶（async-signal 不保证安全，但崩溃现场值得一试） */
+  extern s7_scheme* g_debug_sc;
+  if (g_debug_sc) {
+    const char b2[]= "\n===S7 TOP===\n";
+    write (2, b2, sizeof (b2) - 1);
+    char buf[512];
+    int len= snprintf (buf, sizeof (buf), "sc=%p\n", (void*) g_debug_sc);
+    write (2, buf, len);
+  }
+  _exit (128 + sig);
+}
+#endif
+
+s7_scheme* g_debug_sc= nullptr;
+
 int
 main (int argc, char** argv) {
+#ifndef TB_CONFIG_OS_WINDOWS
+  signal (SIGSEGV, gf_sigsegv_handler);
+  signal (SIGBUS, gf_sigsegv_handler);
+#endif
 #ifdef TB_CONFIG_OS_WINDOWS
   SetConsoleCP (65001);
   SetConsoleOutputCP (65001);
@@ -64,6 +94,7 @@ main (int argc, char** argv) {
   std::string gf_lib_dir= goldfish::find_goldfish_library ();
   const char* gf_lib    = gf_lib_dir.c_str ();
   s7_scheme*  sc        = goldfish::init_goldfish_scheme (gf_lib);
+  g_debug_sc= sc;
   int         ret       = goldfish::repl_for_community_edition (sc, argc, argv);
   s7_pointer  exit_hook = s7_name_to_value (sc, "*exit-hook*");
   s7_pointer  funcs     = s7_hook_functions (sc, exit_hook);

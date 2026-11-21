@@ -71986,8 +71986,11 @@ static token_t read_sharp(s7_scheme *sc, s7_pointer port)
 	    }
 	  break;
 	}
-      if (read_sharp(sc, port) == token_vector)
-	return(token_int_vector);
+      /* 非 bignum 模式：#i 前缀语义依赖 bignum 钩子，此处不解析。
+       * 递归 read_sharp 会把紧跟的数字误当向量维度，遇 EOF 时在 C 层
+       * throw 'read-error “unexpected end of input while reading #n...”，
+       * 导致 (read "#i1") 等输入 crash。直接回退到 token_sharp_const，
+       * 与 #e（read_sharp 无 case 'e'）路径一致，最终读成符号。 */
       backchar('i', port);
       break;
 
@@ -79580,10 +79583,48 @@ static s7_pointer g_is_bignum_enabled(s7_scheme *sc, s7_pointer args)
   return(sc->bignum_enabled ? sc->T : sc->F);
 }
 
+#if !MS_WINDOWS
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
+static s7_scheme* g_crash_sc= NULL;
+static void s7_sigsegv_handler (int sig)
+{
+  void* frames[64];
+  int n= backtrace (frames, 64);
+  const char banner[]= "\n===S7-SIGSEGV===\n";
+  write (2, banner, sizeof (banner) - 1);
+  backtrace_symbols_fd (frames, n, 2);
+  if (g_crash_sc)
+    {
+      char buf[1024];
+      int len= snprintf (buf, sizeof (buf),
+        "sc=%p code=%p stack_used=%ld stack_size=%ld\n",
+        (void*) g_crash_sc, (void*) g_crash_sc->code,
+        (long) (g_crash_sc->stack_end - g_crash_sc->stack_start),
+        (long) ((char*) g_crash_sc->stack_resize_trigger - (char*) g_crash_sc->stack_start));
+      write (2, buf, len);
+      len= snprintf (buf, sizeof (buf), "cur_op=%d let_number=%ld value=%p args=%p\n",
+        (int) g_crash_sc->cur_op, (long) g_crash_sc->let_number,
+        (void*) g_crash_sc->value, (void*) g_crash_sc->args);
+      write (2, buf, len);
+    }
+  _exit (128 + sig);
+}
+#endif
+
 s7_scheme *s7_init(void)
 {
   s7_scheme *sc;
   static bool already_inited = false;
+
+#if !MS_WINDOWS
+  if (!g_crash_sc)
+    {
+      signal (SIGSEGV, s7_sigsegv_handler);
+      signal (SIGBUS, s7_sigsegv_handler);
+    }
+#endif
 
 #if !MS_WINDOWS
   setlocale(LC_NUMERIC, "C"); /* use decimal point in floats */
@@ -80124,6 +80165,7 @@ s7_scheme *s7_init(void)
 	  (int)sizeof(block_t), (int)sizeof(port_functions_t), (int)sizeof(s7_cell), (int)sizeof(s7_scheme), (int)sizeof(opt_info));
 #endif
 
+  g_crash_sc= sc;
   return(sc);
 }
 
@@ -80677,3 +80719,5 @@ block_t *s7i_number_to_string_with_radix(s7_scheme *sc, s7_pointer obj, int32_t 
 
 s7_pointer s7i_open_format_port(s7_scheme *sc) { return open_format_port(sc); }
 /* ========================================== */
+
+/* [CI-DEBUG] 布局敏感性验证：此注释本身不改变语义，用于改变二进制布局 */
