@@ -53,8 +53,27 @@ init_windows_utf8_argv (int& argc, char**& argv) {
 }
 #endif
 
+#ifndef TB_CONFIG_OS_WINDOWS
+#include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
+static void
+gf_sigsegv_handler (int sig) {
+  void* frames[64];
+  int    n= backtrace (frames, 64);
+  const char banner[]= "\n===SIGSEGV BACKTRACE===\n";
+  write (2, banner, sizeof (banner) - 1); // NOLINT
+  backtrace_symbols_fd (frames, n, 2);
+  _exit (128 + sig);
+}
+#endif
+
 int
 main (int argc, char** argv) {
+#ifndef TB_CONFIG_OS_WINDOWS
+  signal (SIGSEGV, gf_sigsegv_handler);
+  signal (SIGBUS, gf_sigsegv_handler);
+#endif
 #ifdef TB_CONFIG_OS_WINDOWS
   SetConsoleCP (65001);
   SetConsoleOutputCP (65001);
