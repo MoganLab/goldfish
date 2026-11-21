@@ -79599,10 +79599,10 @@ static void s7_sigsegv_handler (int sig)
     {
       char buf[1024];
       int len= snprintf (buf, sizeof (buf),
-        "sc=%p code=%p stack_top=%ld stack_size=%u\n",
+        "sc=%p code=%p stack_used=%ld stack_size=%ld\n",
         (void*) g_crash_sc, (void*) g_crash_sc->code,
-        (long) (g_crash_sc->stack_top - g_crash_sc->stack_start),
-        (unsigned) g_crash_sc->stack_size);
+        (long) (g_crash_sc->stack_end - g_crash_sc->stack_start),
+        (long) ((char*) g_crash_sc->stack_resize_trigger - (char*) g_crash_sc->stack_start));
       write (2, buf, len);
       len= snprintf (buf, sizeof (buf), "cur_op=%d let_number=%ld value=%p args=%p\n",
         (int) g_crash_sc->cur_op, (long) g_crash_sc->let_number,
