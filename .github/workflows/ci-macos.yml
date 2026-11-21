@@ -103,7 +103,7 @@ jobs:
 
       - name: run r7rs tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true'
-        run: bin/gf test r7rs/tests/
+        run: GOLDFISH_GO_WORKERS=1 bin/gf test -j 1 r7rs/tests/
       - name: run goldfish tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true'
         run: bin/gf test goldfish/tests/
