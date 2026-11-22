@@ -23,20 +23,10 @@
   ) ;export
   (import (scheme base))
   (begin
-    ;; Unicode Nd（十进制数字）区间起点列表，每个区间宽 10。
-    ;; 数据来源：Unicode 15.1 的 Nd 类别，共 68 个区间。
-    ;; 查询走 native 的 g_digit-value（src/scheme_char.cpp，68 区间二分查找，
-    ;; 与 Guile 3.0.10 实测行为对齐），本表仅作为权威数据记录供对照。
-    (define *digit-value-nd-starts*
-      '(48 1632 1776 1984 2406 2534 2662 2790 2918 3046 3174 3302 3430 3558 3664
-        3792 3872 4160 4240 6112 6160 6470 6608 6784 6800 6992 7088 7232 7248
-        42528 43216 43264 43472 43504 43600 44016 65296 66720 68912 69734 69872
-        69942 70096 70384 70736 70864 71248 71360 71472 71904 72016 72784 73040
-        73120 73552 92768 92864 93008 120782 120792 120802 120812 120822 123200
-        123632 124144 125264 130032)
-    ) ;define
-
     ;; R7RS-small 6.6：digit-value 对 Nd（十进制数字）字符返回 0-9，否则 #f。
+    ;; Unicode 15.1 全部 68 个 Nd 区间的权威数据固化在
+    ;; r7rs/tests/scheme/char/digit-value-test.scm（68 区间 x 10 断言），
+    ;; native 实现见 src/scheme_char.cpp 的 g_digit-value。
     (define digit-value g_digit-value)
 
     (define char-upcase g_char-upcase)
