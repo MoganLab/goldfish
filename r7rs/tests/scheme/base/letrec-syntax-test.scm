@@ -59,4 +59,26 @@
   '(3 2 1)
 ) ;check
 
+;; 测试3：卫生性——递归宏模板内的 let/if 不被 use-site 同名局部绑定捕获（#1290）
+;; 模板 (let ((temp e1)) (if temp ... (my-or e2 ...))) 中的 let 与 if 必须引用
+;; 定义处的特殊形式，而非使用点 (let odd?)/(if even?) 里的过程值；
+;; temp 与 use-site 的 temp=8 也必须同名独立，互不捕获。
+(check
+  (letrec-syntax
+    ((my-or
+       (syntax-rules ()
+         ((my-or) #f)
+         ((my-or e) e)
+         ((my-or e1 e2 ...) (let ((temp e1)) (if temp temp (my-or e2 ...))))
+       ) ;syntax-rules
+     ) ;my-or
+    ) ;
+    (let ((x #f) (y 7) (temp 8) (let odd?) (if even?))
+      (my-or x (let temp) (if y) y)
+    ) ;let
+  ) ;letrec-syntax
+  =>
+  7
+) ;check
+
 (check-report)
