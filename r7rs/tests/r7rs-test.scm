@@ -42,7 +42,10 @@
  (lambda (runner)
    (display "PASS: ") (display (test-runner-pass-count runner))
    (display " FAIL: ") (display (test-runner-fail-count runner))
-   (newline)))
+   (newline)
+   (when (or (positive? (test-runner-fail-count runner))
+             (positive? (test-runner-xpass-count runner)))
+     (exit -1))))
 (test-runner-current %r7rs-runner)
 
 ;; R7RS test suite.  Covers all procedures and syntax in the small
