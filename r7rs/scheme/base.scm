@@ -1489,15 +1489,18 @@
                   (> (+ at (- end start)) (vector-length to))
                 ) ;or
                 (error 'out-of-range "vector-copy!")
-                (let loop
-                  ((to-i at) (from-i start))
-                  (if (>= from-i end)
-                    to
-                    (begin
-                      (vector-set! to to-i (vector-ref from from-i))
-                      (loop (+ to-i 1) (+ from-i 1))
-                    ) ;begin
-                  ) ;if
+                ;; 先拷到临时向量，再写入目标，天然满足重叠语义
+                (let ((tmp (vector-copy from start end)))
+                  (let loop
+                    ((to-i at) (from-i 0))
+                    (if (>= from-i (vector-length tmp))
+                      to
+                      (begin
+                        (vector-set! to to-i (vector-ref tmp from-i))
+                        (loop (+ to-i 1) (+ from-i 1))
+                      ) ;begin
+                    ) ;if
+                  ) ;let
                 ) ;let
               ) ;if
             ) ;if

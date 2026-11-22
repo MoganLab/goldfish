@@ -49,6 +49,16 @@
   (vector-copy! v 0 v 1)
   (check v => #(b c c))
 ) ;let
+;; 源与目标重叠且目标在源之前（向前拷贝）：必须保留原始源元素
+(let ((v (vector 1 2 3 4 5)))
+  (vector-copy! v 1 v 0 2)
+  (check v => #(1 1 2 4 5))
+) ;let
+;; 源与目标重叠且目标在源之后（向后拷贝）：尾部元素前移
+(let ((v (vector 1 2 3 4 5)))
+  (vector-copy! v 3 v 0 2)
+  (check v => #(1 2 3 1 2))
+) ;let
 (check-catch 'type-error (vector-copy! #(1) 0))
 (check-catch 'type-error (vector-copy! '() 0 #(1)))
 (check-catch 'type-error (vector-copy! #(1) 'a #(1)))
