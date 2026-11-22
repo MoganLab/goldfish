@@ -37,4 +37,10 @@ Summary 汇总统计（含 cached 命中数展示）。
 - `display-fail-log` - 回显失败日志文件内容
 - `cleanup-log` - 删除临时日志文件
 - `%report-test-failure` - 打印单文件失败行与捕获输出尾部
-- `%dump-captured-tail` - 打印捕获文本的末尾若干行
+- `%dump-captured-tail` - 打印捕获文本的末尾若干行（verbose 时不截断并提示重跑命令）
+
+### 进度与任务构造（内部原语，无独立单测）
+
+- `%progress-prefix` - 并行模式单文件进度前缀
+- `%print-progress-marker` - 打印并刷新单文件进度标记
+- `%build-indexed-vec` - 构造索引化任务向量

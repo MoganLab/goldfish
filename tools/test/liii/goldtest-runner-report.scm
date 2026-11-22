@@ -31,6 +31,7 @@
   (export display-fail-log cleanup-log failed-test-files display-summary
     cached-count-bump! cached-count-reset! %dump-captured-tail
     %report-test-failure %count-cached-results %shorten-home %runnable-line
+    %rerun-test-path %progress-prefix %print-progress-marker %build-indexed-vec
   ) ;export
   (begin
 
@@ -125,13 +126,18 @@
     ) ;define
 
     ;; 打印单文件失败行与捕获输出尾部（导出以便 worker 会话可见）
+    ;; verbose? 为 #t 时不截断输出尾部；rerun 为可直接复制的重跑命令
     (define (%report-test-failure . args)
-      (let* ((p5 (= (length args) 5))
-             (prefix (if p5 (car args) ""))
-             (tmo (if p5 (cadr args) (car args)))
-             (code (if p5 (caddr args) (cadr args)))
-             (out (if p5 (cadddr args) (caddr args)))
-             (err (if p5 (car (cddddr args)) (cadddr args)))
+      (let* ((n (length args))
+             (verbose? (and (>= n 6) (list-ref args 5)))
+             (rerun (and (>= n 6) (list-ref args 6)))
+             (base (if (>= n 6) (take args 5) args))
+             (p5 (= (length base) 5))
+             (prefix (if p5 (car base) ""))
+             (tmo (if p5 (cadr base) (car base)))
+             (code (if p5 (caddr base) (cadr base)))
+             (out (if p5 (cadddr base) (caddr base)))
+             (err (if p5 (car (cddddr base)) (cadddr base)))
              (reason (if (= code -1)
                        (string-append " (timeout " (number->string tmo) "s, killed)\n")
                        (string-append " exit-code=" (number->string code) "\n")
@@ -139,35 +145,52 @@
              ) ;reason
             ) ;
         (display (show #f prefix (as-red "FAIL") reason))
-        (%dump-captured-tail "stdout" out)
-        (%dump-captured-tail "stderr" err)
+        (%dump-captured-tail "stdout" out verbose? rerun)
+        (%dump-captured-tail "stderr" err verbose? rerun)
         (flush-output-port (current-output-port))
       ) ;let*
     ) ;define
 
     ;; 打印捕获文本的末尾若干行（供失败诊断；导出以便 worker 会话可见）
-    (define (%dump-captured-tail label text)
-      (when (and (string? text) (> (string-length text) 0))
-        (let ((lines (string-split text "\n")))
-          (let loop
-            ((rest (reverse lines)) (acc '()) (n 0))
-            (if (or (not (pair? rest)) (>= n 20))
-              (begin
-                (display (string-append "    -- "
-                           label
-                           " (last "
-                           (number->string (length acc))
-                           " lines) --"
-                         ) ;string-append
-                ) ;display
-                (newline)
-                (for-each (lambda (l) (display "    ") (display l) (newline)) acc)
-              ) ;begin
-              (loop (cdr rest) (cons (car rest) acc) (+ n 1))
-            ) ;if
-          ) ;let
-        ) ;let
-      ) ;when
+    ;; 默认只显示末尾 20 行；verbose? 为 #t 时不截断。发生截断且提供
+    ;; rerun 命令时，提示可复制重跑以查看完整输出。
+    (define (%dump-captured-tail label text . opts)
+      (let ((verbose? (and (pair? opts) (car opts)))
+            (rerun
+              (if (and (pair? opts) (> (length opts) 1)) (cadr opts) #f)
+            ) ;rerun
+           ) ;
+        (when (and (string? text) (> (string-length text) 0))
+          (let* ((lines (reverse (string-split text "\n")))
+                 (limit (if verbose? 0 20))
+                 (acc
+                   (let loop
+                     ((rest lines) (acc '()) (n 0))
+                     (if (or (not (pair? rest)) (and (> limit 0) (>= n limit)))
+                       acc
+                       (loop (cdr rest) (cons (car rest) acc) (+ n 1))
+                     ) ;if
+                   ) ;let
+                 ) ;acc
+                ) ;
+            (display (string-append "    -- "
+                       label
+                       " (last "
+                       (number->string (length acc))
+                       " lines) --"
+                     ) ;string-append
+            ) ;display
+            (newline)
+            (for-each (lambda (l) (display "    ") (display l) (newline)) acc)
+            (when (and rerun (not verbose?) (> (length lines) (length acc)))
+              (display "    (output truncated; rerun to see all lines: ")
+              (display rerun)
+              (display ")")
+              (newline)
+            ) ;when
+          ) ;let*
+        ) ;when
+      ) ;let
     ) ;define
 
     ;; 将路径中的家目录前缀压缩为 ~（便于复制命令行；不使用 $ 变量）
@@ -190,6 +213,48 @@
         (string-append "cd " (%shorten-home cwd) " && " cmd)
         cmd
       ) ;if
+    ) ;define
+
+    ;; 重跑路径：cwd 相对 project-root 的域目录 + tests 下相对路径；
+    ;; 无法推导时回退原始 test-file
+    (define (%rerun-test-path project-root cwd run-file fallback)
+      (let* ((cwd-norm (string-replace (string-trim-right cwd #\/) "\\" "/"))
+             (prefix (string-append project-root "/"))
+            ) ;
+        (if (and (string-starts? cwd-norm prefix)
+              (> (string-length cwd-norm) (string-length prefix))
+            ) ;and
+          (string-append (substring cwd-norm (string-length prefix)) "/" run-file)
+          fallback
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    ;; 并行模式单文件进度前缀：  [idx/total] file ...
+    (define (%progress-prefix idx total test-file)
+      (string-append "  ["
+        (number->string (+ idx 1))
+        "/"
+        (number->string total)
+        "] "
+        test-file
+        " ... "
+      ) ;string-append
+    ) ;define
+
+    (define (%print-progress-marker idx total test-file)
+      (display (%progress-prefix idx total test-file))
+      (flush-output-port (current-output-port))
+    ) ;define
+
+    ;; 索引化任务向量：元素为 (list idx file)，供并行闭包携带序号
+    (define (%build-indexed-vec test-files)
+      (list->vector
+        (let loop
+          ((i 0) (rest test-files))
+          (if (null? rest) '() (cons (list i (car rest)) (loop (+ i 1) (cdr rest))))
+        ) ;let
+      ) ;list->vector
     ) ;define
 
   ) ;begin

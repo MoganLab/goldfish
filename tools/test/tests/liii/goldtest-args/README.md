@@ -19,6 +19,9 @@ bin/gf doc "函数名"
 - `parse-test-changed-since`
 - `parse-test-jobs`
 - `parse-test-all`
+- `parse-test-force`
+- `parse-test-clear-cache`
+- `parse-test-verbose`
 - `test-help-requested?`
 - `show-help`
 - `split-tests-target`

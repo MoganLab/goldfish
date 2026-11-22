@@ -29,6 +29,10 @@ gf test string
 # Run only test files changed since a git revision
 gf test --changed-since=HEAD
 gf test --changed-since=main
+
+# Show full output for failed tests (default: last 20 lines per stream)
+gf test -V tests/liii/json/
+gf test --verbose tests/liii/json/
 ```
 
 ## Description
@@ -58,6 +62,17 @@ You can filter tests by:
 - **Changed files**: `gf test --changed-since=HEAD` runs changed `*-test.scm` files
 
 `--changed-since` uses `git diff --name-only` and does not include changed dependents.
+
+### Verbose Output
+
+By default, failed tests show only the last 20 lines of captured stdout/stderr,
+plus a hint line with the full rerun command for that single test:
+
+```
+    (output truncated; rerun to see all lines: cd ~/git/goldfish/r7rs && .../bin/gf -m r7rs tests/r7rs-test.scm)
+```
+
+Pass `-V` / `--verbose` to disable truncation and show the full output inline.
 
 ## Notes
 

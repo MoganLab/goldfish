@@ -32,27 +32,15 @@
     (liii goldtest-cache-deps)
     (liii goldtest-runner-report)
   ) ;import
-  (export ESC color GREEN RED YELLOW RESET goldfish-cmd run-test-file
-    run-tests-parallel %parallel-result %process-exit-code %captured-stdout
-    %captured-stderr %print-progress-marker *test-cache-force*
+  (export goldfish-cmd run-test-file run-tests-parallel %parallel-result
+    %process-exit-code %captured-stdout %captured-stderr *test-cache-force*
     set-test-cache-force! test-cache-force? %cache-check %cache-record
-    %parallel-cached-result %run-one-parallel-test %build-indexed-vec
-    display-fail-log cleanup-log failed-test-files display-summary
-    %dump-captured-tail %report-test-failure cached-count-bump!
-    cached-count-reset! %count-cached-results %shorten-home %runnable-line
+    %parallel-cached-result %run-one-parallel-test display-fail-log cleanup-log
+    failed-test-files display-summary %dump-captured-tail %report-test-failure
+    cached-count-bump! cached-count-reset! %count-cached-results %shorten-home
+    %runnable-line %test-rerun-line
   ) ;export
   (begin
-
-    (define ESC (string #\escape #\[))
-
-    (define (color code)
-      (string-append ESC (number->string code) "m")
-    ) ;define
-
-    (define GREEN (color 32))
-    (define RED (color 31))
-    (define YELLOW (color 33))
-    (define RESET (color 0))
 
     ;; 缓存控制：由入口在运行前通过 set-test-cache-force! 设置（#t 表示强制绕过缓存）
     (define *test-cache-force* #f)
@@ -187,59 +175,77 @@
       ) ;let
     ) ;define
 
-    (define (run-test-file test-file)
-      (let ((cache-key (%cache-check test-file)))
-        (if cache-key
-          (begin
-            ;; 命中缓存：静默跳过，仅在 Summary 汇总命中数
-            (cached-count-bump!)
-            (cons test-file 0)
-          ) ;begin
-          (let* ((command (%test-command test-file))
-                 (cmd (car command))
-                 (context (cdr command))
+    ;; 单文件可复制重跑命令（供截断提示；构造失败时回退 #f）：
+    ;; gf test -V <项目根相对路径>，用户在仓库根直接粘贴即可复现完整输出。
+    (define (%test-rerun-line test-file)
+      (catch #t
+        (lambda ()
+          (let* ((context (%test-execution-context test-file))
+                 (cwd (car context))
+                 (root (and cwd (%find-project-root cwd)))
                 ) ;
-            (display "\n----------->\n")
-            (display (%runnable-line (car context) cmd))
-            (newline)
-            (flush-output-port (current-output-port))
-            (let* ((result (%run-test-process cmd 'inherit (car context)))
-                   (code (car result))
-                   (timeout? (cdr result))
-                  ) ;
-              (if timeout?
-                (show #t
-                  (as-red "FAIL")
-                  " (timeout "
-                  (number->string (%test-timeout-seconds))
-                  "s, killed)\n"
-                ) ;show
-                (if (zero? code)
-                  (show #t (as-green "PASS") "\n")
-                  (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
-                ) ;if
-              ) ;if
-              (%cache-record test-file code)
-              (cons test-file code)
-            ) ;let*
+            (string-append (%shorten-home (executable))
+              " test -V "
+              (if root (%rerun-test-path root cwd (cadr context) test-file) test-file)
+            ) ;string-append
           ) ;let*
-        ) ;if
+        ) ;lambda
+        (lambda args #f)
+      ) ;catch
+    ) ;define
+
+    (define (run-test-file test-file . maybe-verbose)
+      (let ((verbose? (and (pair? maybe-verbose) (car maybe-verbose))))
+        (let ((cache-key (%cache-check test-file)))
+          (if cache-key
+            (begin
+              ;; 命中缓存：静默跳过，仅在 Summary 汇总命中数
+              (cached-count-bump!)
+              (cons test-file 0)
+            ) ;begin
+            (let* ((command (%test-command test-file))
+                   (cmd (car command))
+                   (context (cdr command))
+                  ) ;
+              (display "\n----------->\n")
+              (display (%runnable-line (car context) cmd))
+              (newline)
+              (flush-output-port (current-output-port))
+              (let* ((result (%run-test-process cmd 'inherit (car context)))
+                     (code (car result))
+                     (timeout? (cdr result))
+                    ) ;
+                (%print-serial-result code timeout?)
+                (%cache-record test-file code)
+                (cons test-file code)
+              ) ;let*
+            ) ;let*
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
-    (define (%build-indexed-vec test-files)
-      (list->vector
-        (let loop
-          ((i 0) (rest test-files))
-          (if (null? rest) '() (cons (list i (car rest)) (loop (+ i 1) (cdr rest))))
-        ) ;let
-      ) ;list->vector
+    ;; 串行模式单文件结果行（stdout 实时透传，无需截断与 rerun 提示）
+    (define (%print-serial-result code timeout?)
+      (if timeout?
+        (show #t
+          (as-red "FAIL")
+          " (timeout "
+          (number->string (%test-timeout-seconds))
+          "s, killed)\n"
+        ) ;show
+        (if (zero? code)
+          (show #t (as-green "PASS") "\n")
+          (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
+        ) ;if
+      ) ;if
     ) ;define
 
     ;; 单个并行任务体（导出以便 worker 会话可见）：先查缓存，命中静默返回
     ;; （不打印，仅在 Summary 汇总），否则拉起子进程执行。
-    (define (%run-one-parallel-test pair total tmo cache-force)
-      (let* ((idx (car pair))
+    (define (%run-one-parallel-test pair total tmo cache-force . maybe-verbose)
+      (let* ((verbose? (and (pair? maybe-verbose) (car maybe-verbose)))
+             (idx (car pair))
              (test-file (cadr pair))
              (cached (%cache-check test-file cache-force))
             ) ;
@@ -264,7 +270,7 @@
                     ) ;catch
                   ) ;res
                  ) ;
-              (%parallel-result idx total res test-file tmo cache-force)
+              (%parallel-result idx total res test-file tmo cache-force verbose?)
             ) ;let
           ) ;let*
         ) ;if
@@ -274,13 +280,14 @@
     ;; 并行执行：逐文件即时打印进度与失败诊断。闭包在 (liii go) worker 会话
     ;; 内执行，只能引用主库导出绑定；tmo/cache-force 等参数经 funclet 捕获环境
     ;; 以可序列化值传入。
-    (define (run-tests-parallel test-files jobs)
-      (let* ((total (length test-files))
+    (define (run-tests-parallel test-files jobs . maybe-verbose)
+      (let* ((verbose? (and (pair? maybe-verbose) (car maybe-verbose)))
+             (total (length test-files))
              (exe (executable))
              (tmo (%test-timeout-seconds))
              (cache-force (test-cache-force?))
              (vec (%build-indexed-vec test-files))
-             (run-one-test (lambda (pair) (%run-one-parallel-test pair total tmo cache-force))
+             (run-one-test (lambda (pair) (%run-one-parallel-test pair total tmo cache-force verbose?))
              ) ;run-one-test
              (raw-results (vector-par-map run-one-test vec jobs))
             ) ;
@@ -322,22 +329,6 @@
       (if (either-left? res) (process-error-stderr (to-left res)) "")
     ) ;define
 
-    (define (%progress-prefix idx total test-file)
-      (string-append "  ["
-        (number->string (+ idx 1))
-        "/"
-        (number->string total)
-        "] "
-        test-file
-        " ... "
-      ) ;string-append
-    ) ;define
-
-    (define (%print-progress-marker idx total test-file)
-      (display (%progress-prefix idx total test-file))
-      (flush-output-port (current-output-port))
-    ) ;define
-
     ;; 并行任务结果处置（导出以便 worker 会话可见）；整体防御性 catch：报告路径
     ;; 出错时降级为 FAIL 结果，不让单个异常炸掉整个 runner（之前 CI 上曾因处理超
     ;; 时结果时的访问错误导致 runner 崩溃，掩盖真实卡点）。
@@ -354,9 +345,12 @@
              (force-flag
                (if (and p5 (> (length args) 5)) (list-ref args 5) #f)
              ) ;force-flag
+             (verbose?
+               (if (and p5 (> (length args) 6)) (list-ref args 6) #f)
+             ) ;verbose?
             ) ;
         (catch #t
-          (lambda () (%parallel-result% prefix res test-file tmo force-flag))
+          (lambda () (%parallel-result% prefix res test-file tmo force-flag verbose?))
           (lambda err-args
             (display (show #f
                        prefix
@@ -373,8 +367,12 @@
       ) ;let*
     ) ;define
 
-    (define (%parallel-result% prefix res test-file tmo . maybe-force)
-      (let ((force-flag (if (pair? maybe-force) (car maybe-force) #f)))
+    (define (%parallel-result% prefix res test-file tmo . opts)
+      (let ((force-flag (if (pair? opts) (car opts) #f))
+            (verbose?
+              (if (and (pair? opts) (> (length opts) 1)) (cadr opts) #f)
+            ) ;verbose?
+           ) ;
         (if (either-right? res)
           (begin
             (display (show #f prefix (as-green "PASS") "\n"))
@@ -388,6 +386,8 @@
               code
               (%captured-stdout res)
               (%captured-stderr res)
+              verbose?
+              (%test-rerun-line test-file)
             ) ;%report-test-failure
             (%cache-record test-file code force-flag)
             (list test-file code "")
