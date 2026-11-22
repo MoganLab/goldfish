@@ -24,9 +24,9 @@
   (import (scheme base))
   (begin
     ;; Unicode Nd（十进制数字）区间起点列表，每个区间宽 10。
-    ;; 数据来源：Unicode 15.1 的 Nd 类别，共 68 个区间，
-    ;; 与 Guile 3.0.10 实测行为对齐：仅 Nd 类返回数值，
-    ;; CJK 表意数字（〇一等 Nl/No 类）一律 #f。
+    ;; 数据来源：Unicode 15.1 的 Nd 类别，共 68 个区间。
+    ;; 查询走 native 的 g_digit-value（src/scheme_char.cpp，68 区间二分查找，
+    ;; 与 Guile 3.0.10 实测行为对齐），本表仅作为权威数据记录供对照。
     (define *digit-value-nd-starts*
       '(48 1632 1776 1984 2406 2534 2662 2790 2918 3046 3174 3302 3430 3558 3664
         3792 3872 4160 4240 6112 6160 6470 6608 6784 6800 6992 7088 7232 7248
@@ -36,28 +36,8 @@
         123632 124144 125264 130032)
     ) ;define
 
-    (unless (defined? '*char-digit-value-ht*)
-      (define *char-digit-value-ht* (s7-make-hash-table))
-      ;; Nd 区间：数字值 = 码点 - 区间起点
-      (for-each
-        (lambda (start)
-          (do ((i 0 (+ i 1)))
-            ((= i 10))
-            (s7-hash-table-set! *char-digit-value-ht* (+ start i) i)
-          ) ;do
-        ) ;lambda
-        *digit-value-nd-starts*
-      ) ;for-each
-    ) ;unless
-
     ;; R7RS-small 6.6：digit-value 对 Nd（十进制数字）字符返回 0-9，否则 #f。
-    ;; 与 Guile 3.0.10 对齐：仅 Nd 类，CJK 表意数字等一律 #f。
-    (define (digit-value ch)
-      (unless (char? ch)
-        (error 'type-error "digit-value: parameter must be character")
-      ) ;unless
-      (hash-table-ref *char-digit-value-ht* (char->integer ch))
-    ) ;define
+    (define digit-value g_digit-value)
 
     (define char-upcase g_char-upcase)
 
