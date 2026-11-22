@@ -17,7 +17,12 @@
   (export scan scan-datum normalize-datum stem-mode? call-with-stem-mode
     write-to-string split-pair-list
   ) ;export
-  (import (liii base) (liii syntax) (liii list) (liii goldfmt record))
+  (import (liii base)
+    (liii syntax)
+    (liii list)
+    (liii goldfmt marker)
+    (liii goldfmt record)
+  ) ;import
   (begin
     (define %stem-mode? #f)
 
@@ -31,7 +36,7 @@
 
     (define (raw-string-form? datum)
       (and (pair? datum)
-        (eq? (car datum) '*raw-string*)
+        (eq? (car datum) %raw-string-marker-symbol)
         (pair? (cdr datum))
         (string? (cadr datum))
         (pair? (cddr datum))
@@ -42,7 +47,7 @@
 
     (define (char-literal-form? datum)
       (and (pair? datum)
-        (eq? (car datum) '*char-literal*)
+        (eq? (car datum) %char-literal-marker-symbol)
         (pair? (cdr datum))
         (string? (cadr datum))
         (pair? (cddr datum))

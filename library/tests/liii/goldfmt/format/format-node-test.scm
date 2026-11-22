@@ -30,6 +30,7 @@
 
 (import (liii check)
   (liii goldfmt format)
+  (liii goldfmt marker)
   (liii goldfmt record)
   (liii goldfmt scan)
   (liii raw-string)
@@ -63,7 +64,7 @@
 ) ;call-with-values
 
 (call-with-values (lambda ()
-                    (format-node (scan (list '*comment* "hello"))
+                    (format-node (scan (list %comment-marker-symbol "hello"))
                       0
                     ) ;format-node
                   ) ;lambda
@@ -83,7 +84,7 @@
 ) ;call-with-values
 
 (call-with-values (lambda ()
-                    (format-node (scan (list '*comment* "")) 2)
+                    (format-node (scan (list %comment-marker-symbol "")) 2)
                   ) ;lambda
   (lambda (text node)
     (check text => ";;")

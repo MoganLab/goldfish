@@ -14,20 +14,20 @@
 ;; boolean?
 
 (import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record))
+(import (liii goldfmt format atom) (liii goldfmt record) (liii goldfmt marker))
 
 (check-set-mode! 'report-failed)
 
 
 ;; 测试：注释节点本身返回 #t
-(let ((node (make-env :tag-name "*comment*" :children (vector (make-atom :value "x")))
+(let ((node (make-env :tag-name %comment-marker-tag-name :children (vector (make-atom :value "x")))
       ) ;node
      ) ;
   (check (contains-comment? node) => #t)
 ) ;let
 
 ;; 测试：子节点含注释的 env 返回 #t
-(let* ((comment (make-env :tag-name "*comment*" :children (vector (make-atom :value "x")))
+(let* ((comment (make-env :tag-name %comment-marker-tag-name :children (vector (make-atom :value "x")))
        ) ;comment
        (node (make-env :tag-name "begin" :children (vector (make-atom :value 1) comment))
        ) ;node

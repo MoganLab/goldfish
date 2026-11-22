@@ -17,12 +17,24 @@
 ;;
 ;; 说明
 ;; ----
-;; comment 类型的 token 会还原为 (*comment* "...") 形式，newline 类型还原为 (*newline* n) 形式。
+;; comment 类型的 token 会还原为 (*goldfmt-comment-<nonce>* "...") 形式，
+;; newline 类型还原为 (*goldfmt-newline-<nonce>* n) 形式（nonce 标记符号见
+;; (liii goldfmt marker)，用户源码不可能包含）。
 
 (import (liii check)
   (liii string)
   (liii goldfmt tokenize)
+  (liii goldfmt marker)
 ) ;import
+
+;; 期望文本由 marker 符号动态拼出，避免硬编码一次性 nonce 标记
+(define (comment-token-text content)
+  (string-append "(" %comment-marker-tag-name " \"" content "\")")
+) ;define
+
+(define (newline-token-text n)
+  (string-append "(" %newline-marker-tag-name " " (number->string n) ")")
+) ;define
 
 (check-set-mode! 'report-failed)
 
@@ -47,10 +59,7 @@
       ) ;str
      ) ;
   (check (string? str) => #t)
-  (check str
-    =>
-    "(*comment* \"这是一个注释\")"
-  ) ;check
+  (check str => (comment-token-text "这是一个注释"))
 ) ;let
 
 ;; 测试 tokens->string：代码和注释混合
@@ -61,7 +70,7 @@
   (check (string? str) => #t)
   (check str
     =>
-    "(define x 1)\n(*comment* \"变量定义\")\n(define y 2)"
+    (string-append "(define x 1)\n" (comment-token-text "变量定义") "\n(define y 2)")
   ) ;check
 ) ;let
 
@@ -73,7 +82,7 @@
   (check (string? str) => #t)
   (check str
     =>
-    "(*comment* \"注释1\")\n(*comment* \"注释2\")"
+    (string-append (comment-token-text "注释1") "\n" (comment-token-text "注释2"))
   ) ;check
 ) ;let
 
@@ -83,10 +92,7 @@
       ) ;str
      ) ;
   (check (string? str) => #t)
-  (check str
-    =>
-    "(*comment* \"包含 (括号) 和 [方括号]\")"
-  ) ;check
+  (check str => (comment-token-text "包含 (括号) 和 [方括号]"))
 ) ;let
 
 ;; 测试 tokens->string：注释包含双引号（需要转义）
@@ -95,10 +101,7 @@
       ) ;str
      ) ;
   (check (string? str) => #t)
-  (check str
-    =>
-    "(*comment* \"包含\\\"引号\\\"\")"
-  ) ;check
+  (check str => (comment-token-text "包含\\\"引号\\\""))
 ) ;let
 
 ;; 测试 tokens->string：注释包含反斜杠
@@ -107,10 +110,7 @@
       ) ;str
      ) ;
   (check (string? str) => #t)
-  (check str
-    =>
-    "(*comment* \"包含\\\\反斜杠\")"
-  ) ;check
+  (check str => (comment-token-text "包含\\\\反斜杠"))
 ) ;let
 
 ;; 测试 tokens->string：注释包含换行
@@ -119,17 +119,14 @@
       ) ;str
      ) ;
   (check (string? str) => #t)
-  (check str
-    =>
-    "(*comment* \"第一行\\n第二行\")"
-  ) ;check
+  (check str => (comment-token-text "第一行\\n第二行"))
 ) ;let
 
 ;; 测试 tokens->string：空注释
 (let ((str (tokens->string '((comment . ""))))
      ) ;
   (check (string? str) => #t)
-  (check str => "(*comment* \"\")")
+  (check str => (comment-token-text ""))
 ) ;let
 
 ;; 测试 tokens->string：空行 token
@@ -140,7 +137,7 @@
   (check (string? str) => #t)
   (check str
     =>
-    "(define x 1)\n(*newline* 1)\n(define y 2)"
+    (string-append "(define x 1)\n" (newline-token-text 1) "\n(define y 2)")
   ) ;check
 ) ;let
 
@@ -152,7 +149,7 @@
   (check (string? str) => #t)
   (check str
     =>
-    "(define x 1)\n(*newline* 2)\n(define y 2)"
+    (string-append "(define x 1)\n" (newline-token-text 2) "\n(define y 2)")
   ) ;check
 ) ;let
 
@@ -164,7 +161,12 @@
   (check (string? str) => #t)
   (check str
     =>
-    "(define x 1)\n(*newline* 1)\n(*comment* \"注释\")\n(*newline* 2)\n(define y 2)"
+    (string-append "(define x 1)\n"
+      (newline-token-text 1) "\n"
+      (comment-token-text "注释") "\n"
+      (newline-token-text 2) "\n"
+      "(define y 2)"
+    ) ;string-append
   ) ;check
 ) ;let
 

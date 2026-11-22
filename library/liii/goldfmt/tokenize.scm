@@ -15,7 +15,12 @@
 
 (define-library (liii goldfmt tokenize)
   (export tokenize tokens->string escape-string-content)
-  (import (liii base) (liii string) (liii list) (liii unicode))
+  (import (liii base)
+    (liii string)
+    (liii list)
+    (liii unicode)
+    (liii goldfmt marker)
+  ) ;import
   (begin
 
     ;; 行内空白字符：空格与制表符
@@ -324,9 +329,16 @@
           (lambda (token)
             (let ((type (car token)) (content (cdr token)))
               (cond ((eq? type 'comment)
-                     (string-append "(*comment* \"" (escape-string-content content) "\")")
+                     (string-append "("
+                       %comment-marker-tag-name
+                       " \""
+                       (escape-string-content content)
+                       "\")"
+                     ) ;string-append
                     ) ;
-                    ((eq? type 'newline) (string-append "(*newline* " (number->string content) ")"))
+                    ((eq? type 'newline)
+                     (string-append "(" %newline-marker-tag-name " " (number->string content) ")")
+                    ) ;
                     (else content)
               ) ;cond
             ) ;let

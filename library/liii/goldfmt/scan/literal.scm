@@ -19,6 +19,7 @@
   (import (liii base)
     (liii raw-string)
     (srfi srfi-13)
+    (liii goldfmt marker)
     (liii goldfmt scan normalize)
   ) ;import
 
@@ -50,7 +51,9 @@
             (if literal-end
               (let* ((literal (substring source i literal-end))
                      (value (read-raw-string-literal-value literal))
-                     (rewritten (string-append "(*raw-string* "
+                     (rewritten (string-append "("
+                                  %raw-string-marker-tag-name
+                                  " "
                                   (write-to-string literal)
                                   " "
                                   (write-to-string value)
@@ -72,7 +75,14 @@
         (if literal-end
           (let* ((literal (substring source i literal-end))
                  (value (read (open-input-string literal)))
-                 (rewritten (string-append "(*char-literal* " (write-to-string literal) " " literal ")")
+                 (rewritten (string-append "("
+                              %char-literal-marker-tag-name
+                              " "
+                              (write-to-string literal)
+                              " "
+                              literal
+                              ")"
+                            ) ;string-append
                  ) ;rewritten
                 ) ;
             (if (char? value) (cons literal-end rewritten) #f)

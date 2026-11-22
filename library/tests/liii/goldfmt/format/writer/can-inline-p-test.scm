@@ -24,7 +24,7 @@
 ;; 5. 其他情况使用 `format-inline` 得到单行候选字符串，再和 max-inline-length 比较
 ;;
 
-(import (liii check) (liii goldfmt format writer) (liii goldfmt scan))
+(import (liii check) (liii goldfmt format writer) (liii goldfmt scan) (liii goldfmt marker))
 
 (check-set-mode! 'report-failed)
 
@@ -35,9 +35,9 @@
 
 (check (can-inline? (scan "hello")) => #t)
 
-(check (can-inline? (scan (list '*comment* "hello"))) => #t)
+(check (can-inline? (scan (list %comment-marker-symbol "hello"))) => #t)
 
-(check (can-inline? (scan (list '*comment* ""))) => #t)
+(check (can-inline? (scan (list %comment-marker-symbol ""))) => #t)
 
 ;; max-inline-length 当前为 80：长度等于 80 时仍可单行。
 (check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa))) => #t)
@@ -87,7 +87,7 @@
 
 ;; 包含 comment 的普通 env 需要跨行处理，避免输出成 (begin ;; note x)。
 (check
-  (can-inline? (scan (list 'begin (list '*comment* "note") 'x)))
+  (can-inline? (scan (list 'begin (list %comment-marker-symbol "note") 'x)))
   =>
   #f
 ) ;check

@@ -21,7 +21,7 @@
 ;; 2. 连续空行会被转换为 tag-name 为 "*newline*" 的 env 节点
 ;; 3. 文本末尾的换行符同样会生成一个换行节点
 
-(import (liii check) (liii goldfmt scan) (liii goldfmt record))
+(import (liii check) (liii goldfmt scan) (liii goldfmt marker) (liii goldfmt record))
 
 (check-set-mode! 'report-failed)
 
@@ -34,13 +34,13 @@
   (check (vector? results) => #t)
   (check (vector-length results) => 1)
   (check (env? (vector-ref results 0)) => #t)
-  (check (env-tag-name (vector-ref results 0)) => "*comment*")
+  (check (env-tag-name (vector-ref results 0)) => %comment-marker-tag-name)
 ) ;let
 
 ;; 测试：注释与代码混合
 (let ((results (scan-source-string ";; hello\n(define x 1)")))
   (check (vector-length results) => 2)
-  (check (env-tag-name (vector-ref results 0)) => "*comment*")
+  (check (env-tag-name (vector-ref results 0)) => %comment-marker-tag-name)
   (check (env-tag-name (vector-ref results 1)) => "define")
 ) ;let
 
@@ -48,29 +48,29 @@
 (let ((results (scan-source-string "(define x 1)\n")))
   (check (vector-length results) => 2)
   (check (env-tag-name (vector-ref results 0)) => "define")
-  (check (env-tag-name (vector-ref results 1)) => "*newline*")
+  (check (env-tag-name (vector-ref results 1)) => %newline-marker-tag-name)
 ) ;let
 
 ;; 测试：连续空行合并为一个 newline 节点
 (let ((results (scan-source-string "(define x 1)\n\n\n(define y 2)\n")))
   (check (vector-length results) => 4)
   (check (env-tag-name (vector-ref results 0)) => "define")
-  (check (env-tag-name (vector-ref results 1)) => "*newline*")
+  (check (env-tag-name (vector-ref results 1)) => %newline-marker-tag-name)
   (check (env-tag-name (vector-ref results 2)) => "define")
-  (check (env-tag-name (vector-ref results 3)) => "*newline*")
+  (check (env-tag-name (vector-ref results 3)) => %newline-marker-tag-name)
 ) ;let
 
 ;; 测试：开头的空行也会生成 newline 节点
 (let ((results (scan-source-string "\n(define x 1)")))
   (check (vector-length results) => 2)
-  (check (env-tag-name (vector-ref results 0)) => "*newline*")
+  (check (env-tag-name (vector-ref results 0)) => %newline-marker-tag-name)
   (check (env-tag-name (vector-ref results 1)) => "define")
 ) ;let
 
 ;; 测试：注释内容被保留在节点中
 (let ((results (scan-source-string ";; hello\n")))
   (check (vector-length results) => 2)
-  (check (car (env-value (vector-ref results 0))) => '*comment*)
+  (check (car (env-value (vector-ref results 0))) => %comment-marker-symbol)
   (check (cadr (env-value (vector-ref results 0))) => " hello")
 ) ;let
 

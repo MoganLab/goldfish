@@ -22,6 +22,7 @@
 
 (import (liii check)
   (liii goldfmt scan)
+  (liii goldfmt marker)
   (liii goldfmt record)
   (liii path)
   (liii vector)
@@ -47,7 +48,7 @@
 ;; 辅助函数：判断是否为注释节点
 
 (define (comment-node? node)
-  (and (env? node) (string=? (env-tag-name node) "*comment*"))
+  (and (env? node) (string=? (env-tag-name node) %comment-marker-tag-name))
 ) ;define
 
 ;; 辅助函数：判断是否为 define 节点
@@ -59,7 +60,7 @@
 ;; 辅助函数：判断是否为 newline 节点
 
 (define (newline-node? node)
-  (and (env? node) (string=? (env-tag-name node) "*newline*"))
+  (and (env? node) (string=? (env-tag-name node) %newline-marker-tag-name))
 ) ;define
 
 ;; 测试 006_01.scm：基本注释处理
@@ -76,12 +77,12 @@
     (check newline-count => 1)
   ) ;let
   ;; 验证顺序：注释-define-注释-define-注释-空行
-  (check (env-tag-name (vector-ref results 0)) => "*comment*")
+  (check (env-tag-name (vector-ref results 0)) => %comment-marker-tag-name)
   (check (env-tag-name (vector-ref results 1)) => "define")
-  (check (env-tag-name (vector-ref results 2)) => "*comment*")
+  (check (env-tag-name (vector-ref results 2)) => %comment-marker-tag-name)
   (check (env-tag-name (vector-ref results 3)) => "define")
-  (check (env-tag-name (vector-ref results 4)) => "*comment*")
-  (check (env-tag-name (vector-ref results 5)) => "*newline*")
+  (check (env-tag-name (vector-ref results 4)) => %comment-marker-tag-name)
+  (check (env-tag-name (vector-ref results 5)) => %newline-marker-tag-name)
 ) ;let
 
 ;; 测试 006_02.scm：跨行注释应该被正确处理（忽略）
@@ -98,10 +99,10 @@
   ) ;let
   (check (vector-length results) => 4)
   ;; 验证顺序
-  (check (env-tag-name (vector-ref results 0)) => "*comment*")
-  (check (env-tag-name (vector-ref results 1)) => "*newline*")
+  (check (env-tag-name (vector-ref results 0)) => %comment-marker-tag-name)
+  (check (env-tag-name (vector-ref results 1)) => %newline-marker-tag-name)
   (check (env-tag-name (vector-ref results 2)) => "define")
-  (check (env-tag-name (vector-ref results 3)) => "*newline*")
+  (check (env-tag-name (vector-ref results 3)) => %newline-marker-tag-name)
 ) ;let
 
 ;; 测试 006_03.scm：字符串中的分号不应被视为注释
@@ -118,10 +119,10 @@
   ) ;let
   (check (vector-length results) => 4)
   ;; 验证顺序
-  (check (env-tag-name (vector-ref results 0)) => "*comment*")
+  (check (env-tag-name (vector-ref results 0)) => %comment-marker-tag-name)
   (check (env-tag-name (vector-ref results 1)) => "define")
   (check (env-tag-name (vector-ref results 2)) => "define")
-  (check (env-tag-name (vector-ref results 3)) => "*newline*")
+  (check (env-tag-name (vector-ref results 3)) => %newline-marker-tag-name)
 ) ;let
 
 ;; 测试 006_04.scm：raw string 中以 ;; 开头的行不应被拆成注释
@@ -134,7 +135,7 @@
        ) ;
     (check (env-tag-name first) => "define")
     (check (env-tag-name second) => "define")
-    (check (env-tag-name third) => "*newline*")
+    (check (env-tag-name third) => %newline-marker-tag-name)
     (let* ((value-node (vector-ref (env-children first) 1))
            (literal (atom-value value-node))
           ) ;
@@ -162,9 +163,9 @@
         (fourth (vector-ref results 3))
        ) ;
     (check (env-tag-name first) => "define")
-    (check (env-tag-name second) => "*comment*")
+    (check (env-tag-name second) => %comment-marker-tag-name)
     (check (env-tag-name third) => "define")
-    (check (env-tag-name fourth) => "*newline*")
+    (check (env-tag-name fourth) => %newline-marker-tag-name)
     (let ((content (vector-ref (env-children second) 0)))
       (check (atom? content) => #t)
       (check (atom-value content) => " raw string 后的注释")

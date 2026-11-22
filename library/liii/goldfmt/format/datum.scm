@@ -29,6 +29,7 @@
     (liii list)
     (srfi srfi-13)
     (liii vector)
+    (liii goldfmt marker)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
@@ -52,7 +53,7 @@
 
     (define (raw-string-datum? datum)
       (and (pair? datum)
-        (eq? (car datum) '*raw-string*)
+        (eq? (car datum) %raw-string-marker-symbol)
         (pair? (cdr datum))
         (string? (cadr datum))
         (pair? (cddr datum))
@@ -63,7 +64,7 @@
 
     (define (newline-marker-datum? datum)
       (and (pair? datum)
-        (eq? (car datum) '*newline*)
+        (eq? (car datum) %newline-marker-symbol)
         (pair? (cdr datum))
         (number? (cadr datum))
         (null? (cddr datum))
@@ -72,7 +73,7 @@
 
     (define (comment-datum? datum)
       (and (pair? datum)
-        (eq? (car datum) '*comment*)
+        (eq? (car datum) %comment-marker-symbol)
         (pair? (cdr datum))
         (string? (cadr datum))
         (null? (cddr datum))

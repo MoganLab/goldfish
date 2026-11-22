@@ -23,7 +23,11 @@
 ;; 4. 空 tag-name 的 env 不会在第一个 child 前额外输出空格
 ;;
 
-(import (liii check) (liii goldfmt format writer) (liii goldfmt scan))
+(import (liii check)
+  (liii goldfmt format writer)
+  (liii goldfmt scan)
+  (liii goldfmt marker)
+)
 
 (check-set-mode! 'report-failed)
 
@@ -48,11 +52,11 @@
 
 (check (format-inline (scan '(quote (1 2 3)))) => "'(1 2 3)")
 
-(check (format-inline (scan (list '*comment* "hello"))) => ";; hello")
+(check (format-inline (scan (list %comment-marker-symbol "hello"))) => ";; hello")
 
-(check (format-inline (scan (list '*comment* ""))) => ";;")
+(check (format-inline (scan (list %comment-marker-symbol ""))) => ";;")
 
-(check (format-inline (scan (list '*comment* "包含 \"quote\" 和 \\ slash")))
+(check (format-inline (scan (list %comment-marker-symbol "包含 \"quote\" 和 \\ slash")))
   =>
   ";; 包含 \"quote\" 和 \\ slash"
 ) ;check
