@@ -42,4 +42,31 @@
   (check result => '(33 22 11))
 ) ;let
 
+;; R7RS 6.10：多列表参数之一为循环列表时，按其它有限列表的长度遍历
+(let ((ls1 (list 10 100 1000))
+      (ls2 (list 1 2 3 4 5 6))
+      (count 0))
+  (set-cdr! (cddr ls1) ls1)
+  (for-each (lambda (x y) (set! count (+ count (* x y)))) ls2 ls1)
+  (check count => 9750)
+) ;let
+
+;; 循环列表在首位时同样按有限列表长度遍历
+(let ((ls1 (list 10 100 1000))
+      (ls2 (list 1 2 3 4 5 6))
+      (count 0))
+  (set-cdr! (cddr ls1) ls1)
+  (for-each (lambda (x y) (set! count (+ count (* x y)))) ls1 ls2)
+  (check count => 9750)
+) ;let
+
+;; 循环列表参与时不产生额外迭代：结果与仅有限列表时一致
+(let ((ls1 (list 1 2 3))
+      (ls2 (list 10 20 30))
+      (count 0))
+  (set-cdr! (cddr ls1) ls1)
+  (for-each (lambda (x y) (set! count (+ count (* x y)))) ls1 ls2)
+  (check count => 140)
+) ;let
+
 (check-report)

@@ -1161,6 +1161,88 @@
     (define %s7-write-string write-string)
     (define %s7-newline newline)
 
+    ;; R7RS 6.10 map/for-each：s7 原生实现对「多列表且其一为循环列表」的场景
+    ;; 遍历长度不正确（早停），且对循环列表 (length ls) 返回 +inf.0。
+    ;; 此处仅在检测到循环列表参数时改按「最小有限长度」迭代修正，
+    ;; 其余情况（含 vector/string 等序列参数）完全委托 s7 原生原语，
+    ;; 以保留 s7 的既有行为与多态扩展。
+    (define %s7-map map)
+    (define %s7-for-each for-each)
+
+    (define (%lists-have-cycle? lists)
+      ;; 单次遍历完成：列表骨架检查 + 循环检测。
+      ;; 返回 #t：全部为列表骨架且至少一个为循环列表；
+      ;; 返回 #f：全部为列表骨架但无循环；
+      ;; 返回 'delegate：存在非列表骨架参数（vector/string 等），
+      ;;   应委托 s7 原生原语以保留其多态扩展。
+      (let loop
+        ((rest lists))
+        (cond ((null? rest) #f)
+              ((or (pair? (car rest)) (null? (car rest)))
+               (if (infinite? (length (car rest))) #t (loop (cdr rest)))
+              ) ;
+              (else 'delegate)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%min-finite-length lists)
+      ;; 仅在已确认含循环列表时调用：循环列表长度 +inf.0，取最小有限长度。
+      (let loop
+        ((rest (cdr lists)) (n (length (car lists))))
+        (cond ((null? rest) n)
+              ((< (length (car rest)) n) (loop (cdr rest) (length (car rest))))
+              (else (loop (cdr rest) n))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (map proc . lists)
+      ;; 单列表快速通道：委托 s7 原生原语。单循环列表时原生与修正路径
+      ;; 均无限迭代，行为等价，故无需进入检测流程。
+      (if (or (null? lists) (null? (cdr lists)))
+        (apply %s7-map proc lists)
+        (case (%lists-have-cycle? lists)
+              ((#t)
+               (let ((n (%min-finite-length lists)))
+                 (let loop
+                   ((i 0) (rests lists) (acc '()))
+                   (if (>= i n)
+                     (reverse acc)
+                     (loop (+ i 1) (%s7-map cdr rests) (cons (apply proc (%s7-map car rests)) acc))
+                   ) ;if
+                 ) ;let
+               ) ;let
+              ) ;
+              (else (apply %s7-map proc lists))
+        ) ;case
+      ) ;if
+    ) ;define
+
+    (define (for-each proc . lists)
+      ;; 单列表快速通道：见 map 说明。
+      (if (or (null? lists) (null? (cdr lists)))
+        (apply %s7-for-each proc lists)
+        (case (%lists-have-cycle? lists)
+              ((#t)
+               (let ((n (%min-finite-length lists)))
+                 (let loop
+                   ((i 0) (rests lists))
+                   (if (>= i n)
+                     (if #f #f)
+                     (begin
+                       (apply proc (%s7-map car rests))
+                       (loop (+ i 1) (%s7-map cdr rests))
+                     ) ;begin
+                   ) ;if
+                 ) ;let
+               ) ;let
+              ) ;
+              (else (apply %s7-for-each proc lists))
+        ) ;case
+      ) ;if
+    ) ;define
+
     ;; R7RS 6.13.1 Ports: 端口类型的防御性隔离检查
     ;; 文本端口与二进制端口必须隔离，对文本端口执行二进制操作或对二进制端口执行文本操作均属于错误。
 
