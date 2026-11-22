@@ -21,7 +21,8 @@
   (import (scheme base) (scheme file) (liii base) (liii list))
   (export read-all-forms find-define-library parse-library-file lib-name
     lib-line lib-imports lib-exports lib-defines def-name def-kind def-arity
-    def-line def-expr def-bodies proper-list? form-line
+    def-line def-expr def-bodies proper-list? form-line lib-import-clauses
+    lib-export-entries
   ) ;export
   (begin
 
@@ -287,7 +288,33 @@
         ) ;if
       ) ;let
     ) ;define
-
+    (define (%export-pairs sets)
+      (let loop
+        ((items (apply append sets)) (acc '()))
+        (if (null? items)
+          (reverse acc)
+          (let ((e (car items)))
+            (loop (cdr items)
+              (cond ((symbol? e) (cons (cons e e) acc))
+                    ((and (pair? e)
+                       (eq? (car e) 'rename)
+                       (pair? (cdr e))
+                       (pair? (cddr e))
+                       (symbol? (cadr e))
+                       (symbol? (caddr e))
+                     ) ;and
+                     (cons (cons (caddr e) (cadr e)) acc)
+                    ) ;
+                    (else acc)
+              ) ;cond
+            ) ;loop
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+    (define (%raw-import-clauses sets)
+      (apply append sets)
+    ) ;define
     (define (find-define-library forms)
       (let loop
         ((fs forms))
@@ -313,6 +340,8 @@
                 (cons 'line (form-line lib))
                 (cons 'imports (%import-entries (reverse imports)))
                 (cons 'exports (%export-entries (reverse exports)))
+                (cons 'import-clauses (%raw-import-clauses (reverse imports)))
+                (cons 'export-entries (%export-pairs (reverse exports)))
                 (cons 'defines defines)
               ) ;list
               (let ((c (car clauses)))
@@ -325,6 +354,11 @@
                  ) ;
                  ((and (pair? c) (eq? (car c) 'begin))
                   (loop (cdr clauses) imports exports (append defines (collect-defines (cdr c))))
+                 ) ;
+                 ((and (pair? c) (memq (car c) '(define define*)))
+                  (let ((d (parse-define c)))
+                    (loop (cdr clauses) imports exports (if d (cons d defines) defines))
+                  ) ;let
                  ) ;
                  (else (loop (cdr clauses) imports exports defines))
                 ) ;cond
@@ -346,6 +380,12 @@
     ) ;define
     (define (lib-exports info)
       (cdr (assq 'exports info))
+    ) ;define
+    (define (lib-import-clauses info)
+      (cdr (assq 'import-clauses info))
+    ) ;define
+    (define (lib-export-entries info)
+      (cdr (assq 'export-entries info))
     ) ;define
     (define (lib-defines info)
       (cdr (assq 'defines info))
