@@ -9,6 +9,7 @@ on:
       - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
+      - 'tui/**'
       - 'tools/**'
       - 'xmake/**'
       - 'xmake.lua'
@@ -22,6 +23,7 @@ on:
       - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
+      - 'tui/**'
       - 'tools/**'
       - 'xmake/**'
       - 'xmake.lua'
@@ -92,6 +94,8 @@ jobs:
               - 'goldfish/**'
             library:
               - 'library/**'
+            tui:
+              - 'tui/**'
             tools_shared:
               - 'tools/test/**'
               - 'tools/*.py'
@@ -121,6 +125,9 @@ jobs:
       - name: run library tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true'
         run: bin/gf test library/tests/
+      - name: run tui tests
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tui == 'true'
+        run: bin/gf test tui/tests/
       - name: run tools/fmt tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_fmt == 'true'
         run: bin/gf test tools/fmt/tests
@@ -137,6 +144,6 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_pi == 'true'
         run: bin/gf test tools/pi/tests
       - name: run tools/repl tests
-        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_repl == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tui == 'true' || steps.filter.outputs.tools_shared == 'true' || steps.filter.outputs.tools_repl == 'true'
         run: bin/gf test tools/repl/tests
 
