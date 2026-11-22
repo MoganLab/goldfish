@@ -30,7 +30,7 @@ gf doc liii/unicode "函数名"
 
 ### 一、UTF-8 字符串
 - `utf8-string` / `utf8-make-string` / `utf8-string-set!` - 构造与修改
-- `utf8-string-length` / `utf8-substring` - 按码点定位与截取
+- `utf8-string-length` / `utf8-string-ref` / `utf8-substring` - 按码点定位与截取
 - `utf8-string-trim-left` / `utf8-string-trim-right` / `utf8-string-trim-both` - 去除空白
 
 ### 二、UTF-8 编解码

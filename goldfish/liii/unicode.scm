@@ -6,6 +6,7 @@
     utf8->string
     string->utf8
     utf8-string-length
+    utf8-string-ref
     utf8-substring
     utf8-sequence-length
     bytevector-advance-utf8
