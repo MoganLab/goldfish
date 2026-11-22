@@ -22,7 +22,8 @@
 ;; any
 ;; 返回最后一个 body 表达式的求值结果。
 
-(import (scheme base) (srfi 78))
+(import (liii check))
+(import (scheme base))
 
 (check-set-mode! 'report-failed)
 
@@ -66,6 +67,22 @@
   ) ;let-syntax
   =>
   'now
+) ;check
+
+;; 测试4：卫生性——宏模板内的自由标识符引用定义点词法绑定（R7RS 4.3.1）
+;; 模板里的 x 应指 let-syntax 定义处可见的 x（'outer），
+;; 而不是使用点 (let ((x 'inner))) 里的 'inner。
+(check
+  (let ((x 'outer))
+    (let-syntax
+      ((m (syntax-rules () ((m) x))))
+      (let ((x 'inner))
+        (m)
+      ) ;let
+    ) ;let-syntax
+  ) ;let
+  =>
+  'outer
 ) ;check
 
 (check-report)
