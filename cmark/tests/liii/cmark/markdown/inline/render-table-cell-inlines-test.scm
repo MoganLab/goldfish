@@ -27,6 +27,7 @@
 (check (render-table-cell-inlines '("a|b")) => "a\\|b")
 (check (render-table-cell-inlines '("a*b")) => "a\\*b")
 (check (render-table-cell-inlines '((em "斜体"))) => "*斜体*")
-(check (render-table-cell-inlines '((code "x|y"))) => "`x|y`")
+;; code 内容管道符转义为 \| 保持单元格结构
+(check (render-table-cell-inlines '((code "x|y"))) => "`x\\|y`")
 
 (check-report)

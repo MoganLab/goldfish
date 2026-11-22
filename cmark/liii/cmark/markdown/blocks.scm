@@ -54,7 +54,7 @@
     ;; 段落行内内容为单行字符串（soft-break/line-break 已在行内渲染
     ;; 为空格或两空格），因此段落总是单行
     (define (render-paragraph node)
-      (list (render-inlines-at-line-start (cdr node)))
+      (render-paragraph-inlines (cdr node))
     ) ;define
 
     ;; ---- 标题 ----

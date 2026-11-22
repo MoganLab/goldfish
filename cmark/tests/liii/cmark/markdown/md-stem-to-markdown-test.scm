@@ -107,8 +107,9 @@
 ;; 15. 段落
 (check (md-stem->markdown '(md-stem (p "正文"))) => "正文\n")
 (check (md-stem->markdown '(md-stem (p "a" (strong "b")))) => "a**b**\n")
+;; soft-break 渲染为换行（多行段落），语义往返保留结构
 (check (md-stem->markdown '(md-stem (p "第一段" (soft-break) "第二段")))
-  => "第一段 第二段\n"
+  => "第一段\n第二段\n"
 ) ;check
 
 ;; 16. 标题 h1 至 h6
@@ -181,6 +182,12 @@
 ) ;check
 (check (leaf-roundtrip '(md-stem (h1 "a*b") (h2 "c`d") (p "e[f]g")))
   => '(md-stem (h1 "a*b") (h2 "c`d") (p "e[f]g"))
+) ;check
+(check (leaf-roundtrip '(md-stem (p "第一段" (soft-break) "#第二行")))
+  => '(md-stem (p "第一段" (soft-break) "#第二行"))
+) ;check
+(check (leaf-roundtrip '(md-stem (p "a" (line-break) "b")))
+  => '(md-stem (p "a" (line-break) "b"))
 ) ;check
 
 ;; ---- ST4：递归容器 ----
@@ -277,6 +284,76 @@
 (check
   (container-roundtrip '(md-stem (bullet-list tight (item (blockquote (p "q"))))))
   => '(md-stem (bullet-list tight (item (blockquote (p "q")))))
+) ;check
+
+;; ---- ST5：表格 ----
+
+;; 30. 基本表格、四种对齐与空表体
+(check
+  (md-stem->markdown
+    '(md-stem (table (align default) (thead (tr (th "a"))) (tbody))))
+  => "|a|\n|---|\n"
+) ;check
+(check
+  (md-stem->markdown
+    '(md-stem
+       (table (align left center right default)
+         (thead (tr (th "a") (th "b") (th "c") (th "d")))
+         (tbody (tr (td "1") (td "2") (td "3") (td "4"))))))
+  => "|a|b|c|d|\n|:--|:-:|--:|---|\n|1|2|3|4|\n"
+) ;check
+
+;; 31. 单元格管道符转义与空单元格
+(check
+  (md-stem->markdown
+    '(md-stem (table (align default) (thead (tr (th "a|b"))) (tbody (tr (td "1"))))))
+  => "|a\\|b|\n|---|\n|1|\n"
+) ;check
+(check
+  (md-stem->markdown
+    '(md-stem (table (align default default)
+                 (thead (tr (th "a") (th)))
+                 (tbody (tr (td "1") (td "2"))))))
+  => "|a||\n|---|---|\n|1|2|\n"
+) ;check
+
+;; 32. 表格语义往返
+(define (table-roundtrip doc)
+  (markdown->md-stem (md-stem->markdown doc))
+) ;define
+(check (table-roundtrip '(md-stem (table (align default) (thead (tr (th "a"))) (tbody))))
+  => '(md-stem (table (align default) (thead (tr (th "a"))) (tbody)))
+) ;check
+(check
+  (table-roundtrip
+    '(md-stem (table (align left center right default)
+                 (thead (tr (th "a") (th "b") (th "c") (th "d")))
+                 (tbody (tr (td "1") (td "2") (td "3") (td "4"))))))
+  => '(md-stem (table (align left center right default)
+                   (thead (tr (th "a") (th "b") (th "c") (th "d")))
+                   (tbody (tr (td "1") (td "2") (td "3") (td "4")))))
+) ;check
+(check
+  (table-roundtrip
+    '(md-stem (table (align default) (thead (tr (th "a|b"))) (tbody (tr (td "1"))))))
+  => '(md-stem (table (align default) (thead (tr (th "a|b"))) (tbody (tr (td "1")))))
+) ;check
+;; code 含管道符：单元格结构保持，\| 留在字面量中（无法语义无损往返）
+(check
+  (table-roundtrip
+    '(md-stem (table (align default) (thead (tr (th "x")))
+                 (tbody (tr (td (code "c|d")))))))
+  => '(md-stem (table (align default) (thead (tr (th "x")))
+                   (tbody (tr (td (code "c\\|d"))))))
+) ;check
+(check
+  (table-roundtrip
+    '(md-stem (table (align default default)
+                 (thead (tr (th "a") (th "b")))
+                 (tbody (tr (td "1") (td)) (tr (td) (td "2"))))))
+  => '(md-stem (table (align default default)
+                   (thead (tr (th "a") (th "b")))
+                   (tbody (tr (td "1") (td)) (tr (td) (td "2")))))
 ) ;check
 
 (check-report)

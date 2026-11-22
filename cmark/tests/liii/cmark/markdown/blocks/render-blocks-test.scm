@@ -81,10 +81,12 @@
   => '("1. a")
 ) ;check
 
-;; ---- 尚未支持的表格 ----
-(check-catch 'md-stem-error
-  (render-blocks '((table (align default) (thead (tr (th "a"))) (tbody))))
-) ;check-catch
+;; ---- 表格 ----
+(check
+  (render-blocks
+    '((table (align default) (thead (tr (th "a"))) (tbody))))
+  => '("|a|" "|---|")
+) ;check
 
 ;; ---- 非法节点 ----
 (check-catch 'md-stem-error (render-blocks '(42)))

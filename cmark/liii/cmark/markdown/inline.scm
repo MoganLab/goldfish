@@ -26,7 +26,7 @@
   (import (liii cmark markdown code))
   (import (only (liii cmark text) string-join))
   (export render-inlines render-inlines-at-line-start render-table-cell-inlines
-    render-image-alt-items
+    render-image-alt-items render-paragraph-inlines
   ) ;export
   (begin
     ;; 渲染上下文符号：
@@ -66,6 +66,34 @@
       ) ;apply
     ) ;define
 
+    ;; 段落渲染：soft-break 渲染为换行、line-break 为两空格加换行，
+    ;; 输出多行文本；换行后的首个文本项按行首规则转义
+    (define (render-paragraph-inlines items)
+      (let ((raw
+              (apply string-append
+                (let loop
+                  ((rem items) (line-start? #t) (acc '()))
+                  (cond ((null? rem) (reverse acc))
+                        (else
+                          (loop (cdr rem)
+                            ;; 换行节点之后的项重新回到行首上下文
+                            (and (pair? (car rem)) (memq (car (car rem)) '(soft-break line-break)))
+                            (cons (%render-inline-item (car rem)
+                                    (if line-start? 'paragraph-line-start 'paragraph)
+                                  ) ;%render-inline-item
+                              acc
+                            ) ;cons
+                          ) ;loop
+                        ) ;else
+                  ) ;cond
+                ) ;let
+              ) ;apply
+            ) ;raw
+           ) ;
+        (string-split-lines raw)
+      ) ;let
+    ) ;define
+
     ;; ---- 内部：分派 ----
     (define (%render-inline-items items context)
       (apply string-append
@@ -95,7 +123,7 @@
         ;; 纯文本：按上下文转义
         ((string? item)
          (case context
-          ((line-start) (escape-text-at-line-start item))
+          ((line-start paragraph-line-start) (escape-text-at-line-start item))
           ((table-cell) (escape-table-cell-text item))
           (else (escape-text item))
          ) ;case
@@ -107,9 +135,9 @@
                ((em) (%render-emphasis item context))
                ((strong) (%render-strong item context))
                ((strikeout) (%render-strikeout item context))
-               ((code) (render-code-span item))
-               ((soft-break) " ")
-               ((line-break) "  ")
+               ((code) (%render-code-span item context))
+               ((soft-break) (if (paragraph-line-context? context) "\n" " "))
+               ((line-break) (if (paragraph-line-context? context) "  \n" "  "))
                ((link) (%render-link item context))
                ((image) (%render-image item))
                ((math-inline) (render-math-inline item))
@@ -121,6 +149,12 @@
         (else (md-stem-error 'md-stem "行内内容项必须是字符串或节点: " item)
         ) ;else
       ) ;cond
+    ) ;define
+
+    (define (paragraph-line-context? context)
+      (and (symbol? context)
+        (or (eq? context 'paragraph-line-start) (eq? context 'paragraph))
+      ) ;and
     ) ;define
 
     ;; ---- 强调家族 ----
@@ -138,13 +172,35 @@
     ) ;define
 
     ;; ---- 行内代码 ----
-    (define (render-code-span item)
+    ;; 表格单元格上下文中管道符转义为 \|：防止拆分单元格。
+    ;; 注意：正向解析中 \| 进入代码字面量，因此含 | 的代码内容
+    ;; 在表格内无法语义无损往返（正向转换也不可能产生该结构）。
+    (define (%render-code-span item context)
       (let* ((literal (cadr item))
              (delim (code-span-delimiter literal))
              (content (code-span-content literal))
+             (content* (if (eq? context 'table-cell) (escape-table-cell-pipes content) content)
+             ) ;content*
             ) ;
-        (string-append delim content delim)
+        (string-append delim content* delim)
       ) ;let*
+    ) ;define
+
+    (define (escape-table-cell-pipes str)
+      (let ((len (string-length str)))
+        (let loop
+          ((i 0) (parts '()))
+          (if (>= i len)
+            (string-join (reverse parts) "")
+            (let ((ch (string-ref str i)))
+              (if (char=? ch #\|)
+                (loop (+ i 1) (cons "\\|" parts))
+                (loop (+ i 1) (cons (string ch) parts))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
     ) ;define
 
     ;; ---- 链接与图片 ----
