@@ -61249,7 +61249,12 @@ static bool op_cond1(s7_scheme *sc)
 		return(false);
 	      if (has_fx(sc->code))
 		{
+		  /* 同 op_cond1_simple：fx 内可再进 eval 改写 sc->code，
+		   * 保存/恢复后再遍历剩余表达式（issue #1741） */
+		  const s7_pointer saved_code = sc->code;
 		  sc->value = fx_call(sc, sc->code);
+		  if (sc->code != saved_code)
+		    sc->code = saved_code;
 		  sc->code = cdr(sc->code);
 		  if (is_pair(cdr(sc->code)))
 		    push_stack_no_args(sc, sc->begin_op, cdr(sc->code));
@@ -61298,7 +61303,19 @@ static bool op_cond1_simple(s7_scheme *sc)
 	    }
  	  if (!has_fx(sc->code))
 	    return(false);
-	  sc->value = fx_call(sc, sc->code);
+	  {
+	    /* fx 契约上要求 fx 函数不改 sc->code，但 fx_c_nc 等包装的
+	     * semisafe C 函数内部可能再进 eval（如 g_fold 回调里的
+	     * g_subprocess-run-values），期间 sc->code 会被 eval 循环改写。
+	     * 此处 fx_call 后还要继续遍历同一子句，必须保存/恢复 code，
+	     * 否则在被改写的指针上 cdr/is_pair 会读到垃圾
+	     * （UBSan: misaligned member access；特定布局下 SIGSEGV，
+	     * 见 issue #1741）。 */
+	    const s7_pointer saved_code = sc->code;
+	    sc->value = fx_call(sc, sc->code);
+	    if (sc->code != saved_code)
+	      sc->code = saved_code;
+	  }
 	  sc->code = cdr(sc->code);
 	  if (is_pair(sc->code)) return(false); /* goto begin */
 	  pop_stack(sc);

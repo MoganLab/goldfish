@@ -31,6 +31,7 @@
   (liii path)
   (liii string)
   (liii subprocess)
+  (srfi srfi-1)
   (scheme file)
 ) ;import
 
@@ -284,5 +285,50 @@
 (check-catch 'value-error (run-either "true" :stdin 'invalid-mode))
 (check-catch 'type-error (run-either "true" :stdin 123))
 (check-catch 'type-error (run-either "true" :cwd 123))
+
+;; 回归测试（issue #1741）：fold 的 C 循环回调内多轮 run-either。
+;; g_fold 用 s7_call 回调用户闭包，闭包体经 cond 优化为 fx；
+;; fx 包装的 semisafe C 函数（g_subprocess-run-values）内部会再进 eval，
+;; 改写 sc->code。op_cond1_simple 在 fx_call 后继续用 sc->code 遍历子句，
+;; 在被改写的指针上 cdr/is_pair 读垃圾（UBSan: misaligned access，
+;; 特定编译器布局下 SIGSEGV）。修复：fx_call 前后保存/恢复 sc->code。
+;; 此处两轮以上子进程调用才会触发，单轮不触发。
+(when (or (os-linux?) (os-macos?))
+  (let ((results
+          (fold (lambda (cmd acc) (cons (run-either cmd :stdin 'null :stdout 'capture) acc))
+            '()
+            '("echo one" "echo two" "echo three")
+          ) ;fold
+        ) ;results
+       ) ;
+    (check (length results) => 3)
+    (check (either-right? (car results)) => #t)
+    (check (to-right (car results)) => "three\n")
+    (check (to-right (cadr results)) => "two\n")
+    (check (to-right (caddr results)) => "one\n")
+  ) ;let
+  ;; 同型路径：回调内 catch 包裹 run-either（goldtest 串行模式的真实形态）
+  (let ((results
+          (fold
+            (lambda (cmd acc)
+              (cons (catch #t
+                      (lambda ()
+                        (run-either cmd :stdin 'null :stdout 'capture :stderr 'stdout :timeout 300)
+                      ) ;lambda
+                      (lambda args #f)
+                    ) ;catch
+                acc
+              ) ;cons
+            ) ;lambda
+            '()
+            '("echo one" "echo two")
+          ) ;fold
+        ) ;results
+       ) ;
+    (check (length results) => 2)
+    (check (either-right? (car results)) => #t)
+    (check (to-right (car results)) => "two\n")
+  ) ;let
+) ;when
 
 (check-report)
