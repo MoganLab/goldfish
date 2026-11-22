@@ -307,6 +307,12 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
       if (is_auxiliary_syntax (s7_symbol_name (expr))) {
         return expr;
       }
+      /* [1290] datum->syntax 产生的“使用处语境”标识符（rename=#t）：
+       * 还原为裸符号，保证宏展开生成的 define 注册名与
+       * 使用处的引用同名（R7RS datum->syntax 的反卫生语义）。 */
+      if (s->rename == s7_t (sc)) {
+        return expr;
+      }
       s7_pointer root_val= s7_let_ref (sc, s7_rootlet (sc), expr);
       if (strcmp (s7_symbol_name (expr), "quote") == 0) {
         s7_pointer quote_val= s7_is_let (env) ? s7_let_ref (sc, env, expr) : root_val;
@@ -364,15 +370,22 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
       return res;
     }
     if (is_define_form (sc, kar) && s7_is_pair (cdr_x)) {
+      /* [1290] define 目标必须与同名引用走同一条改名路径：
+       * 此前这里对目标直接 strip_synclos，得到裸符号；而模板中其它位置
+       * 对同一标识符的引用走 resolve_ast 的 gensym 改名路径。展开
+       * (begin (define (ff x) (gg x)) (define (gg x) ...)) 时，ff 体内
+       * 引用 {gg}-N 而 gg 的 define 注册名是裸 gg，前向引用运行时 unbound。
+       * 改为统一 resolve_ast 后，定义处与引用处得到同一 gensym。
+       * 若目标本身不含 synclo，resolve_ast 原样返回，不影响 #1451 行为。 */
       s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head);
       s7_gc_protect_via_stack (sc, resolved_kar);
-      s7_pointer stripped_target= strip_synclos (sc, s7_car (cdr_x));
-      s7_gc_protect_via_stack (sc, stripped_target);
+      s7_pointer resolved_target= resolve_ast (sc, s7_car (cdr_x), def_env, memo_head);
+      s7_gc_protect_via_stack (sc, resolved_target);
       s7_pointer resolved_body= resolve_ast (sc, s7_cdr (cdr_x), def_env, memo_head);
       s7_gc_protect_via_stack (sc, resolved_body);
-      s7_pointer res= s7_cons (sc, resolved_kar, s7_cons (sc, stripped_target, resolved_body));
+      s7_pointer res= s7_cons (sc, resolved_kar, s7_cons (sc, resolved_target, resolved_body));
       s7_gc_unprotect_via_stack (sc, resolved_body);
-      s7_gc_unprotect_via_stack (sc, stripped_target);
+      s7_gc_unprotect_via_stack (sc, resolved_target);
       s7_gc_unprotect_via_stack (sc, resolved_kar);
       return res;
     }

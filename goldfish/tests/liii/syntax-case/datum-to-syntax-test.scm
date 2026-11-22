@@ -46,4 +46,17 @@
 (def-x datum-stx-var 999)
 (check datum-stx-var => 999)
 
+;; 5. [1290] datum->syntax 产生的 define 目标必须与使用处引用同名：
+;;    目标经 resolve 后应是裸符号，而不是 gensym 改名。
+;;    展开后 datum-stx-var-2 在使用处直接可见。
+(define-syntax def-x2
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ id val)
+       (datum->syntax (syntax id)
+         `(define ,(syntax->datum (syntax id))
+            (lambda () ,(syntax->datum (syntax val)))))))))
+(def-x2 datum-stx-var-2 777)
+(check (datum-stx-var-2) => 777)
+
 (check-report)
