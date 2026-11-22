@@ -23,31 +23,11 @@
   ) ;export
   (import (scheme base))
   (begin
-    (define (digit-value ch)
-      (case ch
-       ((#\0 #\x3007 #\x96F6 #\xC601) 0)
-       ;; 0 〇 零 영
-       ((#\1 #\x4E00 #\x58F1 #\x58F9 #\xC77C #\x20B20) 1)
-       ;; 1 一 壱 壹 일 𠬠
-       ((#\2 #\x4E8C #\x5F10 #\x8D30 #\xC774 #\x20129) 2)
-       ;; 2 二 弐 贰 이 𠄩
-       ((#\3 #\x4E09 #\x53C2 #\x53C1 #\xC0BC #\x20027) 3)
-       ;; 3 三 参 叁 삼 𠀧
-       ((#\4 #\x56DB #\x8086 #\xC0AC #\x2629A) 4)
-       ;; 4 四 肆 사 𦊚
-       ((#\5 #\x4E94 #\x4F0D #\xC624 #\x2013C) 5)
-       ;; 5 五 伍 오 𠄼
-       ((#\6 #\x516D #\x9678 #\x9646 #\xC721 #\x264B9) 6)
-       ;; 6 六 陸 陆 육 𦒹
-       ((#\7 #\x4E03 #\x67D2 #\xCE60 #\x26271) 7)
-       ;; 7 七 柒 칠 𦉱
-       ((#\8 #\x516B #\x634C #\xD314 #\x20969) 8)
-       ;; 8 八 捌 팔 𠥩
-       ((#\9 #\x4E5D #\x7396 #\xAD6C #\x200E9) 9)
-       ;; 9 九 玖 구 𠃩
-       (else #f)
-      ) ;case
-    ) ;define
+    ;; R7RS-small 6.6：digit-value 对 Nd（十进制数字）字符返回 0-9，否则 #f。
+    ;; Unicode 15.1 全部 68 个 Nd 区间的权威数据固化在
+    ;; r7rs/tests/scheme/char/digit-value-test.scm（68 区间 x 10 断言），
+    ;; native 实现见 src/scheme_char.cpp 的 g_digit-value。
+    (define digit-value g_digit-value)
 
     (define char-upcase g_char-upcase)
 
