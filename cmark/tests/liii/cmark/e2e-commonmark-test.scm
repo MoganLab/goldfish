@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; bin/gf test library/tests/liii/cmark/e2e-commonmark-test.scm
+;; bin/gf test cmark/tests/liii/cmark/e2e-commonmark-test.scm
 ;;
 ;; 参数
 ;; ----

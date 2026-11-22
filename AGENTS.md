@@ -98,6 +98,7 @@ bin/gf check --only no-glue          # 只运行指定规则
 | R7RS | `r7rs/`（规划新增） | 维护 Scheme 语言标准 R7RS-small 所定义的部分：`(scheme ...)` 系列库与 R7RS 一致性测试 |
 | 语言 | `goldfish/` | Goldfish Scheme 的语言本体、核心语义、运行时和启动必需的最小能力，以及语言增强：SRFI、数据结构与算法、语法与文本原语 |
 | 标准库 | `library/` | Goldfish Scheme 官方标准库，即 `(liii ...)` 库：I/O、系统、网络、格式化与工具类能力 |
+| Markdown | `cmark/` | Markdown 解析领域库 `(liii cmark ...)`：CommonMark 解析器、行内解析、AST 节点与 md-stem 转换，独立成 domain 维护 |
 | 工具 | `tools/pi/` | Pi Coding Agent 的命令行、交互、Agent 工作流和产品策略 |
 
 ### 2.2 R7RS 板块
@@ -140,11 +141,13 @@ R7RS-small 规范定义的库及其在仓库中的对应关系：
 ```text
 tools/ → library/ → goldfish/ → r7rs/
     └────────────────→ goldfish/
+cmark/ → goldfish/ → r7rs/
 ```
 
 - `r7rs/` 不依赖 `goldfish/`、`library/` 或 `tools/`。
 - `goldfish/` 可以依赖 `r7rs/`，但不依赖 `library/` 或 `tools/`。
 - `library/` 可以依赖 `goldfish/` 和 `r7rs/`，但不依赖工具，库之间不得循环依赖。
+- `cmark/` 是独立 domain，可以依赖 `goldfish/` 和 `r7rs/`，不依赖 `library/` 与 `tools/`；对外以 `(liii cmark ...)` 库名提供能力。
 - `tools/` 可以依赖语言、R7RS 和标准库，其他层不得依赖工具。
 
 ### 2.4 单元测试位置
@@ -156,6 +159,7 @@ tools/ → library/ → goldfish/ → r7rs/
 | R7RS | `r7rs/tests/` | `r7rs/tests/scheme/base-test.scm` |
 | 语言 | `goldfish/tests/` | `goldfish/tests/liii/list-test.scm` |
 | 标准库 | `library/tests/` | `library/tests/liii/list-test.scm` |
+| Markdown | `cmark/tests/` | `cmark/tests/liii/cmark/node-test.scm` |
 | 工具 | `tools/pi/tests/` | `tools/pi/tests/liii/pi/agent-test.scm` |
 
 现有语言测试主要存放在仓库根目录的 `tests/`，这一布局不再作为新增测试的目标。后续应参照 `tools/pi/tests/` 的组织方式，将语言测试逐步迁移到 `goldfish/tests/`；迁移模块时同步迁移对应测试。

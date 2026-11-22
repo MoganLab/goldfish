@@ -110,6 +110,9 @@ jobs:
       - name: test library
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true'
         run: bin/gf test library/tests/
+      - name: test cmark
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.cmark == 'true'
+        run: bin/gf test cmark/tests/
       - name: test tui
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tui == 'true'
         run: bin/gf test tui/tests/

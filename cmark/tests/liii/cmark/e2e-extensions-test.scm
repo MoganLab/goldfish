@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; bin/gf test library/tests/liii/cmark/e2e-extensions-test.scm
+;; bin/gf test cmark/tests/liii/cmark/e2e-extensions-test.scm
 ;;
 ;; 参数
 ;; ----

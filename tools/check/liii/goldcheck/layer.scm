@@ -68,8 +68,9 @@
             (cond ((>= i (length segs)) #f)
                   ((not (member (list-ref segs i) '("liii" "srfi" "scheme"))) (loop (+ i 1)))
                   ((and (> i 0)
-                     (member (list-ref segs (- i 1)) '("goldfish" "library"
-                                                       "r7rs" "bignum" "tui"))
+                     (member (list-ref segs (- i 1))
+                       '("goldfish" "library" "r7rs" "bignum" "cmark" "tui")
+                     ) ;member
                    ) ;and
                    (%join-space (list-tail segs i))
                   ) ;

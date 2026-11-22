@@ -26,6 +26,13 @@
       ],
       "mode": "r7rs"
     },
+    "cmark": {
+      "root": "cmark/",
+      "depends-on": [
+        "goldfish"
+      ],
+      "mode": "r7rs"
+    },
     "tui": {
       "root": "tui/",
       "depends-on": [

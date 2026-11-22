@@ -6,6 +6,7 @@ on:
       - 'goldfish/**'
       - 'json/**'
       - 'library/**'
+      - 'cmark/**'
       - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
@@ -20,6 +21,7 @@ on:
       - 'goldfish/**'
       - 'json/**'
       - 'library/**'
+      - 'cmark/**'
       - 'r7rs/**'
       - 'src/**'
       - 'tests/**'
@@ -94,6 +96,8 @@ jobs:
               - 'goldfish/**'
             library:
               - 'library/**'
+            cmark:
+              - 'cmark/**'
             tui:
               - 'tui/**'
             tools_shared:
@@ -125,6 +129,9 @@ jobs:
       - name: run library tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true'
         run: bin/gf test library/tests/
+      - name: run cmark tests
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.cmark == 'true'
+        run: bin/gf test cmark/tests/
       - name: run tui tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true' || steps.filter.outputs.library == 'true' || steps.filter.outputs.tui == 'true'
         run: bin/gf test tui/tests/
