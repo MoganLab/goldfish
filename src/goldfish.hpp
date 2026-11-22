@@ -1431,11 +1431,14 @@ string
 find_goldfish_boot (const char* gf_lib) {
   // boot.scm 位于 R7RS 板块（r7rs/scheme/）：安装布局为 <gf_lib>/r7rs/，
   // 源码布局为 <gf_lib>/../r7rs/。
+  // 注意：两个路径缓冲必须与指向它们的指针同生命周期。曾把 data_src
+  // 放在内层 if 块中，块结束后 gf_boot 悬垂指向已失效栈缓冲
+  // （ASan: stack-use-after-scope，后续 tb_file_access/string() 读失效内存）。
   tb_char_t        data_boot[TB_PATH_MAXN]= {0};
+  tb_char_t        data_src[TB_PATH_MAXN] = {0};
   tb_char_t const* gf_boot= tb_path_absolute_to (gf_lib, "r7rs/scheme/boot.scm", data_boot, sizeof (data_boot));
 
   if (!tb_file_access (gf_boot, TB_FILE_MODE_RO)) {
-    tb_char_t        data_src[TB_PATH_MAXN]= {0};
     tb_char_t const* src_boot= tb_path_absolute_to (gf_lib, "../r7rs/scheme/boot.scm", data_src, sizeof (data_src));
     if (tb_file_access (src_boot, TB_FILE_MODE_RO)) {
       gf_boot= src_boot;
