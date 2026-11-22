@@ -580,11 +580,34 @@ r7rs_library_name_to_path (s7_scheme* sc, s7_pointer libname) {
   return path;
 }
 
+/*
+ * Sentinel value stored in the library registry while a library's file is
+ * still being loaded.  Its imports are evaluated during the load, so a
+ * cyclic import (A->B->A) re-enters r7rs_library_env for A before A's
+ * environment has been registered; without this marker the loader would
+ * call s7_load again and recurse until the C stack overflows.
+ */
+#define R7RS_LOADING_SENTINEL_NAME "*r7rs-library-loading*"
+
+static bool
+r7rs_is_loading_sentinel (s7_pointer val) {
+  return s7_is_symbol (val)
+    && (strcmp (s7_symbol_name (val), R7RS_LOADING_SENTINEL_NAME) == 0);
+}
+
 /* return the exported environment of libname, loading its file on first use */
 static s7_pointer
 r7rs_library_env (s7_scheme* sc, s7_pointer libname) {
   s7_pointer env= s7_hash_table_ref (sc, r7rs_library_registry (sc), libname);
   if (s7_is_let (env)) return env;
+  if (r7rs_is_loading_sentinel (env))
+    return r7rs_library_error (sc, "error",
+                               "import: circular dependency detected while loading library ~S",
+                               libname);
+  /* mark the library as in-progress before loading so re-entrant imports of
+   * the same library (cycles) are detected instead of recursing forever. */
+  s7_hash_table_set (sc, r7rs_library_registry (sc), libname,
+                     s7_make_symbol (sc, R7RS_LOADING_SENTINEL_NAME));
   char* path= r7rs_library_name_to_path (sc, libname);
   /* s7_load keeps s7's own *load-path* search semantics (including its
    * chdir handling of relative entries) and returns NULL only when the
@@ -593,6 +616,7 @@ r7rs_library_env (s7_scheme* sc, s7_pointer libname) {
    * the process cwd, which s7_load may have moved while loading the
    * file whose imports we are currently evaluating. */
   if (!s7_load (sc, path)) {
+    s7_hash_table_set (sc, r7rs_library_registry (sc), libname, s7_f (sc));
     s7_pointer err= s7_error (sc, s7_make_symbol (sc, "io-error"),
       s7_list (sc, 3,
         s7_make_string (sc, "import: cannot find file ~S for library ~S"),
@@ -603,6 +627,10 @@ r7rs_library_env (s7_scheme* sc, s7_pointer libname) {
   }
   free (path);
   env= s7_hash_table_ref (sc, r7rs_library_registry (sc), libname);
+  if (r7rs_is_loading_sentinel (env))
+    /* the file loaded without defining this library: clear the marker so a
+     * later retry starts clean instead of being mistaken for a cycle. */
+    s7_hash_table_set (sc, r7rs_library_registry (sc), libname, s7_f (sc));
   if (!s7_is_let (env))
     return r7rs_library_error (sc, "unbound-variable", "import: loading did not define the library ~S", libname);
   return env;
