@@ -745,8 +745,27 @@
     ;;
     ;; 异常协议：body 正常 → 值原样透传（含多值）；异常 → 打包为
     ;; (list %guard-tag args)，作为唯一返回值与正常路径区分。
+    ;;
+    ;; guard 与 R7RS raise/raise-continuable 的协作：
+    ;; R7RS 的 raise/raise-continuable 通过当前异常处理器（current-exception-handler
+    ;; 参数）分发，而非 s7 原生 throw/catch。若 guard 仅靠 catch #t，则嵌套在
+    ;; with-exception-handler 内的 guard 会漏掉 raise——raise 直接交给外层 self
+    ;; 处理器，绕过 guard。故 guard 在执行 body 期间临时把 current-exception-handler
+    ;; 替换为 %guard-raise-handler：它把条件以 %guard-raise-tag 重新 throw 进
+    ;; guard 自己的 catch，使 guard 能优先于外层处理器捕获 raise/raise-continuable。
+    ;; 当 guard 无匹配子句需 re-raise 时，对来自 raise 的条件，应把原始条件交回
+    ;; guard 激活前的那个 current-exception-handler（orig-handler），由它在原动态
+    ;; 环境中处理；对 s7 原生 throw（error/file-error/read-error 等），仍按原样
+    ;; (apply throw ...) 重新抛出。
 
     (define %guard-tag (list 'guard 'tag))
+
+    ;; 专用于“经 raise/raise-continuable 进入 guard”的 throw 标签。
+    ;; 必须是非 pair 对象（vector）：%guard-try 的 catch handler 会对 pair? 的
+    ;; 参数做 list-copy 以防 s7 复用/改写参数结构，pair 标签会被拷贝而丢失 eq?
+    ;; 同一性；vector 不被拷贝，标签在 throw → catch → reraise 全链路保持 eq?。
+    ;; throw 载荷为：条件值 obj、guard 激活前的 current-exception-handler。
+    (define %guard-raise-tag (vector 'guard 'raise 'tag))
 
     (define %file-error-tags
       '(file file-error io-error file-not-found-error permission-denied-error)
@@ -757,15 +776,47 @@
     ;; 执行 body：异常时打包标记。S7 会复用/改写 catch handler 的参数列表，
     ;; 且内层 payload 列表与异常结构共享（跨求值步骤会被改写为循环结构），
     ;; 故逐层拷贝两层结构。
+    ;; 在 body 执行期间，将 current-exception-handler 直接换为 %guard-raise-handler，
+    ;; 使 raise/raise-continuable 以 %guard-raise-tag 进入本 catch，优先于外层
+    ;; with-exception-handler 被捕获；其余 s7 原生 throw（error 等）照常被
+    ;; catch #t 捕获。
+    ;; 这里不使用 parameterize/dynamic-wind：s7 的 throw 在穿越 dynamic-wind 展开
+    ;; 时会改写 throw 参数（如把 payload 覆盖为 %parameter-exchange），导致 catch
+    ;; handler 拿不到原始 payload。手动换入/换出避免了该问题，且 body 内部的
+    ;; 嵌套 parameterize 仍会基于当前值正确动态作用。catch handler 中恢复
+    ;; 原值；正常返回路径同样恢复。
     (define (%guard-try body-thunk)
-      (catch #t
-        body-thunk
-        (lambda args
-          (list %guard-tag
-            (map (lambda (x) (if (pair? x) (list-copy x) x)) (list-copy args))
-          ) ;list
-        ) ;lambda
-      ) ;catch
+      (let ((orig-handler (current-exception-handler)))
+        (catch #t
+          (lambda ()
+            (dynamic-wind (lambda () (current-exception-handler (%guard-raise-handler orig-handler)))
+              body-thunk
+              (lambda () (current-exception-handler orig-handler))
+            ) ;dynamic-wind
+          ) ;lambda
+          (lambda args
+            (list %guard-tag
+              (map (lambda (x) (if (pair? x) (list-copy x) x)) (list-copy args))
+            ) ;list
+          ) ;lambda
+        ) ;catch
+      ) ;let
+    ) ;define
+
+    ;; guard 在 body 期间安装的异常处理器：把 raise/raise-continuable 的条件
+    ;; 以 %guard-raise-tag 重新 throw 进 guard 的 catch。
+    ;; raise-continuable 传给处理器的是 (cons %continuable-tag obj) 信封（供
+    ;; with-exception-handler 的 self 区分可继续性）；guard 的语义是“逃逸型”
+    ;; 处理器（子句匹配后以子句值作为 guard 的返回值跳出，不恢复到 raise 的
+    ;; 调用点），故这里解包信封、直接把原始条件交给子句链；后续 re-raise 也
+    ;; 按非 continuable 语义把原始条件交回 orig-handler。
+    (define (%guard-raise-handler orig-handler)
+      (lambda (obj)
+        (throw %guard-raise-tag
+          (if (and (pair? obj) (eq? (car obj) %continuable-tag)) (cdr obj) obj)
+          orig-handler
+        ) ;throw
+      ) ;lambda
     ) ;define
 
     ;; 消费 %guard-try 结果：正常 → 原样透传；打包值 → 交 dispatch 分发，
@@ -785,45 +836,67 @@
       ) ;call-with-values
     ) ;define
 
-    ;; 从打包的异常参数中提取条件值：caught-args 形如 (tag (payload ...))。
+    ;; 从打包的异常参数中提取条件值：caught-args 形如 (tag payload-list ...)。
+    ;; 0. 若 tag 为 %guard-raise-tag（条件来自 R7RS raise/raise-continuable），
+    ;;    payload-list 为 (obj orig-handler)，条件即 obj（%guard-raise-handler
+    ;;    已解包 raise-continuable 的信封，子句链拿到的是原始条件）。
     ;; 1. 若首个 payload 是 R7RS <error-object>，直接交付该错误对象。
     ;; 2. 若 tag 为 'no-catch（由 R7RS 标准 (error "m" ...) 产生），转译为 kind 为 'user 的标准 <error-object>。
     ;; 3. 若 tag 为文件错误相关符号，转译为相应 kind 的 <error-object>。
     ;; 4. 若 tag 为读取错误相关符号，转译为 kind 为 'read-error 的 <error-object>。
     ;; 5. 其余情况原样提取首个 payload，兼容底层与既有测试。
     (define (%guard-condition caught-args)
-      (if (and (pair? caught-args) (pair? (cdr caught-args)) (pair? (cadr caught-args)))
-        (let ((tag (car caught-args)) (payload (car (cadr caught-args))))
-          (cond ((error-object? payload) payload)
-                ((and (eq? tag 'no-catch) (string? payload))
-                 (%make-error-object 'user payload (list-copy (cdr (cadr caught-args))))
-                ) ;
-                ((memq tag %file-error-tags)
-                 (%make-error-object tag
-                   (catch #t
-                     (lambda () (apply format #f (cadr caught-args)))
-                     (lambda _ (if (string? payload) payload (object->string payload)))
-                   ) ;catch
-                   (list-copy (cdr (cadr caught-args)))
-                 ) ;%make-error-object
-                ) ;
-                ((memq tag %read-error-tags)
-                 (%make-error-object 'read-error
-                   (if (string? payload) payload (object->string payload))
-                   (list-copy (cdr (cadr caught-args)))
-                 ) ;%make-error-object
-                ) ;
-                (else payload)
-          ) ;cond
-        ) ;let
-        (if (pair? caught-args) (car caught-args) caught-args)
-      ) ;if
+      (cond ((eq? (car caught-args) %guard-raise-tag) (car (cadr caught-args)))
+            ((and (pair? caught-args) (pair? (cdr caught-args)) (pair? (cadr caught-args)))
+             (let ((tag (car caught-args)) (payload (car (cadr caught-args))))
+               (cond ((error-object? payload) payload)
+                     ((and (eq? tag 'no-catch) (string? payload))
+                      (%make-error-object 'user payload (list-copy (cdr (cadr caught-args))))
+                     ) ;
+                     ((memq tag %file-error-tags)
+                      (%make-error-object tag
+                        (catch #t
+                          (lambda () (apply format #f (cadr caught-args)))
+                          (lambda _ (if (string? payload) payload (object->string payload)))
+                        ) ;catch
+                        (list-copy (cdr (cadr caught-args)))
+                      ) ;%make-error-object
+                     ) ;
+                     ((memq tag %read-error-tags)
+                      (%make-error-object 'read-error
+                        (if (string? payload) payload (object->string payload))
+                        (list-copy (cdr (cadr caught-args)))
+                      ) ;%make-error-object
+                     ) ;
+                     (else payload)
+               ) ;cond
+             ) ;let
+            ) ;
+            (else (if (pair? caught-args) (car caught-args) caught-args))
+      ) ;cond
     ) ;define
 
     ;; 恢复并重新抛出打包的异常参数（re-raise 语义）。
-    ;; caught-args 形如 (tag (payload ...))，还原为原始 (throw tag payload ...)。
+    ;; caught-args 形如 (tag payload-list ...)。
+    ;; 1. 若 tag 为 %guard-raise-tag（条件来自 R7RS raise/raise-continuable），
+    ;;    payload-list 为 (obj orig-handler)。把原始条件 obj 交回 guard 激活前的
+    ;;    current-exception-handler（orig-handler），使其在原动态环境中被处理
+    ;;    （外层 with-exception-handler 的 self 仍会按 R7RS 语义执行用户 handler
+    ;;    并在非 continuable 返回时报 “exception handler returned”）；
+    ;;    若 orig-handler 为默认处理器，则按默认策略重新 throw。
+    ;;    orig-handler 正常返回（非逃逸）时按 R7RS 报 “exception handler returned”。
+    ;; 2. 其余 s7 原生 throw（error/file-error/read-error 等）按原样
+    ;;    (apply throw tag payload ...) 重新抛出。
     (define (%guard-reraise caught-args)
-      (apply throw (car caught-args) (cadr caught-args))
+      (if (eq? (car caught-args) %guard-raise-tag)
+        (let* ((info (cadr caught-args)) (obj (car info)) (orig-handler (cadr info)))
+          (orig-handler obj)
+          ;; orig-handler 正常返回（非逃逸）意味着 re-raise 后处理器未跳转，
+          ;; 按 R7RS 语义报错。
+          (error "exception handler returned")
+        ) ;let*
+        (apply throw (car caught-args) (cadr caught-args))
+      ) ;if
     ) ;define
 
     ;; 按序驱动子句链：clauses 是扁平列表 (test1 handler1 test2 handler2 ...)，
@@ -878,7 +951,10 @@
              (list
                `(lambda (,var) ,(car clause))
                `(lambda (caught-args t)
-                  ((lambda (,var) (begin ,@(cdr clause)))
+                  ((lambda (,var)
+                     ,@(if (null? (cdr clause))
+                         (list 't)
+                         `((begin ,@(cdr clause)))))
                    (,%guard-condition caught-args)))
              ) ;list
            ) ;else

@@ -131,14 +131,7 @@
 ) ;check
 
 ;; 7. 卫生性（Issue 1341）：条件变量命名为内部使用的标识符时宏不被破坏
-(check
-  (guard (cond (#t cond))
-    (error 'x "boom")
-    'no-error
-  ) ;guard
-  =>
-  "boom"
-) ;check
+(check (guard (cond (#t cond)) (error 'x "boom") 'no-error) => "boom")
 
 (check (guard (else (#t else)) (error 'x "e1")) => "e1")
 (check (guard (apply (#t apply)) (error 'x "e2")) => "e2")
@@ -161,7 +154,9 @@
 ;; 故多值场景不遮蔽 values）
 (check
   (let ((cond 42) (apply 43) (throw 44))
-    (guard (e (else 'err)) 'normal)
+    (guard (e (else 'err))
+      'normal
+    ) ;guard
   ) ;let
   =>
   'normal
@@ -171,7 +166,9 @@
   (call-with-values
     (lambda ()
       (let ((cond 42) (apply 43) (throw 44))
-        (guard (e (else 'err)) (values 1 2))
+        (guard (e (else 'err))
+          (values 1 2)
+        ) ;guard
       ) ;let
     ) ;lambda
     (lambda (a b) (+ (* 10 a) b))
@@ -196,7 +193,8 @@
 ;; 8.3 遮蔽环境下 => 子句
 (check
   (let ((cond 42) (apply 43))
-    (guard (ex ((and (integer? ex) (* ex 100)) => (lambda (r) (+ ex r))))
+    (guard
+      (ex ((and (integer? ex) (* ex 100)) => (lambda (r) (+ ex r))))
       (raise 5)
     ) ;guard
   ) ;let
@@ -208,56 +206,70 @@
 
 ;; 9.1 guard 模式匹配谓词分发 (file-error? / read-error? / error-object?)
 (check
-  (guard (ex
-          ((file-error? ex) 'handled-file)
+  (guard (ex ((file-error? ex) 'handled-file)
           ((read-error? ex) 'handled-read)
           ((error-object? ex) (error-object-message ex))
-          (else 'unknown))
-    (open-input-file "tests/scheme/base/nonexistent-file-12345.scm"))
+          (else 'unknown)
+         ) ;ex
+    (open-input-file "tests/scheme/base/nonexistent-file-12345.scm")
+  ) ;guard
   =>
   'handled-file
 ) ;check
 
 (check
-  (guard (ex
-          ((file-error? ex) 'handled-file)
+  (guard (ex ((file-error? ex) 'handled-file)
           ((read-error? ex) 'handled-read)
           ((error-object? ex) (error-object-message ex))
-          (else 'unknown))
-    (read (open-input-string "(")))
+          (else 'unknown)
+         ) ;ex
+    (read (open-input-string "("))
+  ) ;guard
   =>
   'handled-read
 ) ;check
 
 (check
-  (guard (ex
-          ((file-error? ex) 'handled-file)
-          ((error-object? ex) (list (error-object-message ex) (error-object-irritants ex)))
-          (else 'unknown))
-    (error "standard failure" 100 200))
+  (guard
+    (ex ((file-error? ex) 'handled-file)
+     ((error-object? ex)
+      (list (error-object-message ex) (error-object-irritants ex))
+     ) ;
+     (else 'unknown)
+    ) ;ex
+    (error "standard failure" 100 200)
+  ) ;guard
   =>
   '("standard failure" (100 200))
 ) ;check
 
 ;; 9.2 guard => 接收器子句处理 error-object
 (check
-  (guard (ex
-          ((and (error-object? ex) ex) => (lambda (err) (string-append "prefix: " (error-object-message err))))
-          (else "fallback"))
-    (error "core dumped"))
+  (guard
+    (ex
+     ((and (error-object? ex) ex)
+      =>
+      (lambda (err) (string-append "prefix: " (error-object-message err)))
+     ) ;
+     (else "fallback")
+    ) ;ex
+    (error "core dumped")
+  ) ;guard
   =>
   "prefix: core dumped"
 ) ;check
 
 ;; 9.3 嵌套 guard 未匹配 re-raise 透传保持 error-object 完整性
 (check
-  (guard (outer
-          ((file-error? outer) (list 'outer-caught (error-object-message outer)))
-          (else 'unexpected))
-    (guard (inner
-            ((read-error? inner) 'handled-read))
+  (guard
+    (outer ((file-error? outer) (list 'outer-caught (error-object-message outer)))
+      (else 'unexpected)
+    ) ;outer
+    (guard (inner ((read-error? inner) 'handled-read))
       ;; 抛出 file-error，内层只处理 read-error，自动在原动态环境 re-raise 给外层
-      (error 'file-error "no such file: data.db")))
+      (error 'file-error "no such file: data.db")
+    ) ;guard
+  ) ;guard
   =>
   '(outer-caught "no such file: data.db")
 ) ;check
@@ -265,12 +277,122 @@
 ;; 9.4 遮蔽内部关键字环境下 guard 与 error-object 正常联动
 (check
   (let ((cond 'shadowed) (apply 'shadowed) (throw 'shadowed))
-    (guard (ex
-            ((error-object? ex) (error-object-message ex))
-            (else 'failed))
-      (error "hygiene ok")))
+    (guard (ex ((error-object? ex) (error-object-message ex)) (else 'failed))
+      (error "hygiene ok")
+    ) ;guard
+  ) ;let
   =>
   "hygiene ok"
+) ;check
+
+;; 10. guard 嵌套在 with-exception-handler 内（R7RS 6.11 / SRFI-34 示例 #5–#7）
+;;
+;; R7RS 的 raise/raise-continuable 通过当前异常处理器分发，guard 必须能
+;; 优先拦截 raise，而不是直接交给外层 with-exception-handler 的 handler。
+
+(define (test-exception-handler-4 v out)
+  (call-with-current-continuation
+    (lambda (k)
+      (with-exception-handler (lambda (x) (display "reraised " out) (write x out) (display #\! out) (k 'zero))
+        (lambda ()
+          (guard (condition ((positive? condition) 'positive) ((negative? condition) 'negative))
+            (raise v)
+          ) ;guard
+        ) ;lambda
+      ) ;with-exception-handler
+    ) ;lambda
+  ) ;call-with-current-continuation
+) ;define
+
+;; 10.1 SRFI-34 #5：guard 匹配 positive?，外层 handler 不触发
+(let* ((out (open-output-string)) (value (test-exception-handler-4 1 out)))
+  (check value => 'positive)
+  (check (get-output-string out) => "")
+) ;let*
+
+;; 10.2 SRFI-34 #6：guard 匹配 negative?，外层 handler 不触发
+(let* ((out (open-output-string)) (value (test-exception-handler-4 -1 out)))
+  (check value => 'negative)
+  (check (get-output-string out) => "")
+) ;let*
+
+;; 10.3 SRFI-34 #7：guard 无匹配子句，re-raise 原始条件 0 给外层 handler
+(let* ((out (open-output-string)) (value (test-exception-handler-4 0 out)))
+  (check value => 'zero)
+  (check (get-output-string out) => "reraised 0!")
+) ;let*
+
+;; 10.4 guard 捕获 raise 时不应触发外层 with-exception-handler
+(check
+  (with-exception-handler (lambda (x) 'should-not-be-called)
+    (lambda ()
+      (guard (condition ((positive? condition) 'positive) ((negative? condition) 'negative))
+        (raise 1)
+      ) ;guard
+    ) ;lambda
+  ) ;with-exception-handler
+  =>
+  'positive
+) ;check
+
+(check
+  (with-exception-handler (lambda (x) 'should-not-be-called)
+    (lambda ()
+      (guard (condition ((positive? condition) 'positive) ((negative? condition) 'negative))
+        (raise -1)
+      ) ;guard
+    ) ;lambda
+  ) ;with-exception-handler
+  =>
+  'negative
+) ;check
+
+;; 10.5 guard 未匹配时 re-raise 到外层 with-exception-handler
+;; R7RS：handler 若对非 continuable 异常正常返回（不跳转）属于程序错误，
+;; 故此处用 call/cc 跳转取回结果（同 SRFI-34 示例 #5–#7 的写法）。
+(check
+  (call-with-current-continuation
+    (lambda (k)
+      (with-exception-handler (lambda (x) (k (list 'outer x)))
+        (lambda () (guard (condition ((zero? condition) 'zero)) (raise 7)))
+      ) ;with-exception-handler
+    ) ;lambda
+  ) ;call-with-current-continuation
+  =>
+  '(outer 7)
+) ;check
+
+;; 10.6 guard 与 raise-continuable 在 with-exception-handler 内
+;; guard 的隐式 handler 通过 escape 返回子句值，因此 guard 内部的
+;; raise-continuable 不会恢复到调用点——guard 直接以匹配子句的值逃逸返回。
+;; 此处验证 guard 仍能优先拦截 raise-continuable，而非交给外层 fallback。
+(check
+  (with-exception-handler (lambda (x) 'fallback)
+    (lambda ()
+      (guard (condition ((number? condition) (* condition 10)))
+        (+ 1 (raise-continuable 5))
+      ) ;guard
+    ) ;lambda
+  ) ;with-exception-handler
+  =>
+  50
+) ;check
+
+;; 11. test-only 子句（无 body）返回 test 的值（R7RS cond 子句语义）
+(check
+  (guard (condition ((assq 'a condition) => cdr) ((assq 'b condition)))
+    (raise (list (cons 'a 42)))
+  ) ;guard
+  =>
+  42
+) ;check
+
+(check
+  (guard (condition ((assq 'a condition) => cdr) ((assq 'b condition)))
+    (raise (list (cons 'b 23)))
+  ) ;guard
+  =>
+  '(b . 23)
 ) ;check
 
 (check-report)
