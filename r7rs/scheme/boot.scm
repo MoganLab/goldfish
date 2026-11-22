@@ -36,7 +36,7 @@
   (if (not (string? path))
     (error 'type-error "(delete-file path): path should be string")
     (if (not (file-exists? path))
-      (error 'read-error (string-append path " does not exist"))
+      (error 'file-not-found-error (string-append path " does not exist"))
       (g_delete-file path)
     ) ;if
   ) ;if
