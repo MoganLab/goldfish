@@ -46,4 +46,25 @@
   3
 ) ;check
 
+;; 测试3：R7RS 4.3.2 卫生性——模板中的 if/begin 不被使用处局部绑定捕获
+;; 来自 R7RS 4.3.2 规范示例（r7rs-test.scm 4.3 节用例）
+(check
+  (let-syntax
+    ((when
+       (syntax-rules ()
+         ((when test stmt1 stmt2 ...) (if test (begin stmt1 stmt2 ...)))
+       ) ;syntax-rules
+     ) ;when
+    ) ;
+    (let ((if #t))
+      (when if
+        (set! if 'now)
+      ) ;when
+      if
+    ) ;let
+  ) ;let-syntax
+  =>
+  'now
+) ;check
+
 (check-report)

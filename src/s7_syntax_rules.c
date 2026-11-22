@@ -325,10 +325,19 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
               return val;
             }
           }
+          /* [1290] 特殊形式（if/begin/let 等 syntax 对象）内联进展开结果，
+             避免还原成裸符号后被使用处的局部同名绑定捕获（R7RS 4.3.2 卫生性）。 */
+          if (s7_is_syntax (val)) {
+            return val;
+          }
           return expr;
         }
       }
       if (root_val != s7_undefined (sc)) {
+        /* [1290] 同上：rootlet 中的特殊形式也内联，避免被使用处遮蔽。 */
+        if (s7_is_syntax (root_val)) {
+          return root_val;
+        }
         return expr;
       }
       for (synclo_rename_entry* e= *memo_head; e; e= e->next) {
