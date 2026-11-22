@@ -136,4 +136,16 @@
 ;; read-error 测试
 (check-catch 'read-error (read (open-input-string "(1 2")))
 
+;; R7RS 6.2.1 / 7.1.1 #e (exact) / #i (inexact) 前缀：
+;; 默认 mode 未启用 bignum，reader 不解析这两个前缀，也不应 crash。
+;; #i 紧跟整数后遇 EOF 时，旧版 reader 会在 C 层 throw 'read-error
+;; “unexpected end of input while reading #n...”，此处固化不 crash 的行为
+;; （与 #e、#I1 等同类输入一致，均读成 undefined 对象）。
+(check-true (undefined? (read (open-input-string "#i1"))))
+(check-true (undefined? (read (open-input-string "#I1"))))
+(check-true (undefined? (read (open-input-string "#e3"))))
+(check-true (undefined? (read (open-input-string "#i1.0"))))
+(check-true (undefined? (read (open-input-string "#i3/2"))))
+(check-true (undefined? (read (open-input-string "#i+inf.0"))))
+
 (check-report)
