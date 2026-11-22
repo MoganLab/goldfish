@@ -13,23 +13,16 @@ bin/gf doc "函数名"
 
 ### 导出函数
 
-- `ESC`
-- `color`
-- `GREEN`
-- `RED`
-- `YELLOW`
-- `RESET`
 - `goldfish-cmd`
 - `run-test-file`
 - `run-tests-parallel`
 - `%parallel-result`
 - `%run-one-parallel-test`
-- `%build-indexed-vec`
 - `%parallel-cached-result`
 - `%process-exit-code`
 - `%captured-stdout`
 - `%captured-stderr`
-- `%print-progress-marker`
+- `%test-rerun-line`
 
 ### 缓存控制
 
@@ -50,3 +43,6 @@ bin/gf doc "函数名"
 - `cached-count-bump!`
 - `cached-count-reset!`
 - `%count-cached-results`
+- `%progress-prefix`
+- `%print-progress-marker`
+- `%build-indexed-vec`

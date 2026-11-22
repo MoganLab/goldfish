@@ -25,7 +25,7 @@
   (export make-test-arg-parser classify-test-arg parse-test-args
     parse-test-changed-since parse-test-jobs parse-test-all test-help-requested?
     show-help split-tests-target check-and-switch-to-target parse-test-force
-    parse-test-clear-cache
+    parse-test-clear-cache parse-test-verbose
   ) ;export
   (begin
 
@@ -50,6 +50,9 @@
         (parser :add-argument '((name . "force") (action . store-true)))
         (parser :add-argument '((name . "no-cache") (action . store-true)))
         (parser :add-argument '((name . "clear-cache") (action . store-true)))
+        (parser :add-argument '((name . "verbose")
+                                (short . "V")
+                                (action . store-true)))
         parser
       ) ;let
     ) ;define
@@ -186,6 +189,8 @@
                  (equal? (car remaining) "--all")
                  (equal? (car remaining) "--force")
                  (equal? (car remaining) "--no-cache")
+                 (equal? (car remaining) "--verbose")
+                 (equal? (car remaining) "-V")
                  (equal? (car remaining) "--clear-cache")
                ) ;or
                (loop (cdr remaining) found-target)
@@ -204,6 +209,7 @@
                  "  --all                            Run all tests (greedy: changed first, then all)\n"
                  "  --changed-since REV              Run tests changed since REV\n"
                  "  --force, --no-cache              Bypass cache, always run tests\n"
+                 "  -V, --verbose                    Show full test output on failure (no truncation)\n"
                  "  --clear-cache                    Clear test cache directory\n\n"
                  "Examples:\n"
                  "  gf test                          Run tests (smart route based on git branch)\n"
@@ -214,6 +220,7 @@
                  "  gf test string                   Run tests matching pattern\n"
                  "  gf test --changed-since=HEAD     Run changed test files\n"
                  "  gf test --force tools/pi/tests/  Force run, bypassing cache\n"
+                 "  gf test -V tests/liii/json/      Show full output for failed tests\n"
                  "  gf test --clear-cache            Clear test cache directory\n\n"
                  "Note:\n"
                  "  Smart routing: on non-main branch, gf test runs --changed-since=main\n"
@@ -228,6 +235,13 @@
       (let ((parser (make-test-arg-parser)))
         (parser :parse-argv args)
         (or (parser 'force) (parser 'no-cache))
+      ) ;let
+    ) ;define
+
+    (define (parse-test-verbose args)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (parser 'verbose)
       ) ;let
     ) ;define
 

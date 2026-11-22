@@ -148,16 +148,18 @@
       (exit 0)
     ) ;define
 
-    (define (execute-tests test-files jobs)
-      (let ((test-results
-              (if (> jobs 1)
-                (run-tests-parallel test-files jobs)
-                (fold (lambda (f acc) (cons (run-test-file f) acc)) (list) test-files)
-              ) ;if
-            ) ;test-results
-           ) ;
-        (let ((failed (display-summary test-results)))
-          (exit (if (> failed 0) -1 0))
+    (define (execute-tests test-files jobs . maybe-verbose)
+      (let ((verbose? (and (pair? maybe-verbose) (car maybe-verbose))))
+        (let ((test-results
+                (if (> jobs 1)
+                  (run-tests-parallel test-files jobs verbose?)
+                  (fold (lambda (f acc) (cons (run-test-file f verbose?) acc)) (list) test-files)
+                ) ;if
+              ) ;test-results
+             ) ;
+          (let ((failed (display-summary test-results)))
+            (exit (if (> failed 0) -1 0))
+          ) ;let
         ) ;let
       ) ;let
     ) ;define
@@ -190,6 +192,7 @@
              (jobs (parse-test-jobs args))
              (force? (parse-test-force args))
              (clear-cache? (parse-test-clear-cache args))
+             (verbose? (parse-test-verbose args))
             ) ;
         (when clear-cache?
           (test-cache-clear!)
@@ -225,7 +228,10 @@
                   (when final-since
                     (display (string-append "Running changed tests since: " final-since "\n"))
                   ) ;when
-                  (execute-tests test-files jobs)
+                  (when verbose?
+                    (display "Verbose mode: full output for failed tests\n")
+                  ) ;when
+                  (execute-tests test-files jobs verbose?)
                 ) ;begin
               ) ;if
             ) ;let*
