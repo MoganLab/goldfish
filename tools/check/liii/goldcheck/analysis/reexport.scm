@@ -47,6 +47,64 @@
       ) ;cond
     ) ;define
 
+    (define (source-for-clause clause roots internal-name)
+      (let* ((base-lib (import-base-name clause))
+             (mapping (if base-lib
+                        (normalize-import-mapping clause roots)
+                        (list 'indeterminate "unsupported import")
+                      ) ;if
+             ) ;mapping
+            ) ;
+        (cond
+         ((or (not (pair? mapping)) (eq? (car mapping) 'indeterminate))
+          (list 'indeterminate)
+         ) ;
+         ((find (lambda (m) (eq? (cdr m) internal-name)) mapping)
+          (list 'source base-lib)
+         ) ;
+         (else (list 'none))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (scan-reexport-sources clauses roots internal-name)
+      (let loop
+        ((rest clauses) (sources '()) (indeterminate? #f))
+        (if (null? rest)
+          (list sources indeterminate?)
+          (let ((source (source-for-clause (car rest) roots internal-name)))
+            (cond
+             ((eq? (car source) 'source)
+              (loop (cdr rest) (cons (cadr source) sources) indeterminate?)
+             ) ;
+             ((eq? (car source) 'indeterminate) (loop (cdr rest) sources #t))
+             (else (loop (cdr rest) sources indeterminate?))
+            ) ;cond
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (finish-reexport-sources scan-result current-lib internal-name seen loop-owner)
+      (let* ((sources (dedup-items (car scan-result))) (indeterminate? (cadr scan-result)))
+        (cond
+         ((and (pair? sources) (pair? (cdr sources)))
+          (list 'indeterminate "ambiguous re-export source" sources internal-name)
+         ) ;
+         ((pair? sources)
+          (loop-owner (car sources) internal-name (cons current-lib seen))
+         ) ;
+         (else (list 'indeterminate
+                 (if indeterminate?
+                   "re-export source could not be resolved"
+                   "re-export source could not be resolved"
+                 ) ;if
+               ) ;list
+         ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
+
     (define (reexport-owner lib-name external-name . maybe-roots)
       (let ((roots (if (null? maybe-roots) (all-hint-roots) (car maybe-roots))))
         (let loop-owner
@@ -71,41 +129,12 @@
                           ) ;
                       (if local?
                         (list 'owner current-lib internal-name)
-                        (let ((sources '()) (indeterminate? #f))
-                          (let scan
-                            ((clauses (lib-import-clauses info)))
-                            (if (null? clauses)
-                              (let ((unique (dedup-items sources)))
-                                (cond
-                                 ((and (pair? unique) (pair? (cdr unique)))
-                                  (list 'indeterminate "ambiguous re-export source" unique internal-name)
-                                 ) ;
-                                 ((pair? unique) (loop-owner (car unique) internal-name (cons current-lib seen)))
-                                 (else (list 'indeterminate "re-export source could not be resolved"))
-                                ) ;cond
-                              ) ;let
-                              (let* ((clause (car clauses))
-                                     (base-lib (import-base-name clause))
-                                     (mapping (if base-lib
-                                                (normalize-import-mapping clause roots)
-                                                (list 'indeterminate "unsupported import")
-                                              ) ;if
-                                     ) ;mapping
-                                    ) ;
-                                (if
-                                  (and (pair? mapping) (not (eq? (car mapping) 'indeterminate)))
-                                  (let ((matches (filter (lambda (m) (eq? (cdr m) internal-name)) mapping)))
-                                    (when (pair? matches)
-                                      (set! sources (cons base-lib sources))
-                                    ) ;when
-                                  ) ;let
-                                  (set! indeterminate? #t)
-                                ) ;if
-                                (scan (cdr clauses))
-                              ) ;let*
-                            ) ;if
-                          ) ;let
-                        ) ;let
+                        (finish-reexport-sources (scan-reexport-sources (lib-import-clauses info) roots internal-name)
+                          current-lib
+                          internal-name
+                          seen
+                          loop-owner
+                        ) ;finish-reexport-sources
                       ) ;if
                     ) ;let*
                   ) ;if
