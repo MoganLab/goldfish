@@ -17,7 +17,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 当文件不存在或无法删除时抛出 read-error 或对应错误。
+;; 当文件不存在或无法删除时抛出 file-not-found-error 或对应错误。
 ;; 当参数类型不为字符串时抛出 type-error。
 
 (import (liii check) (liii path) (liii tempfile) (scheme file))
@@ -37,7 +37,7 @@
       ;; 验证文件已删除
       (check-false (file-exists? test-file))
       ;; 测试删除不存在的文件应报错
-      (check-catch 'read-error
+      (check-catch 'file-not-found-error
         (delete-file (path->string (path-join dir "non-existent-file.txt")))
       ) ;check-catch
       ;; 测试删除参数类型错误
