@@ -259,7 +259,18 @@ static bool
 is_quote_form (s7_scheme* sc, s7_pointer p) {
   /* [1292] reader 开启 symbol-quote? 后 'x 一律读为 (quote x)，不再产生 #_quote 语法对象 */
   p= synclo_expr (sc, p);
-  return s7_is_symbol (p) && (strcmp (s7_symbol_name (p), "quote") == 0);
+  if (s7_is_symbol (p)) return strcmp (s7_symbol_name (p), "quote") == 0;
+  /* [1290] 宏生宏链路：内层 transformer 运行期输出的 (quote <data>) 头部
+   * 可能是 s7 的 T_SYNTAX 对象（#_quote）而非裸符号，漏判会令 quoted
+   * 数据被 resolve_ast 当作自由标识符 gensym 改名，把 {x}-N 泄漏到
+   * 运行期。与 is_define_form 一致地识别 syntax 对象。 */
+  if (s7_is_syntax (p)) {
+    char* str= s7_object_to_c_string (sc, p);
+    bool  is_q= (str && (strcmp (str, "quote") == 0 || strcmp (str, "#_quote") == 0));
+    if (str) free (str);
+    return is_q;
+  }
+  return false;
 }
 
 static bool

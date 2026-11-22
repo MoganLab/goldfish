@@ -150,6 +150,16 @@
 (sr-forward-ref-macro sr-forward-fn)
 (check (sr-forward-fn 10) => 100)
 
+;; [1290 #3-5] 宏生宏：内层宏模板中的 'y 替换后必须去标记（strip），
+;; 不能把展开器的 gensym 改名标记（如 {x}-15）泄漏为运行期符号
+(let ()
+  (define-syntax macro-gen-macro-quote
+    (syntax-rules () ((macro-gen-macro-quote bar y)
+      (define-syntax bar
+        (syntax-rules () ((bar x) 'y))))))
+  (macro-gen-macro-quote mgmq-inner x)
+  (check (mgmq-inner 1) => 'x))
+
 ;; 顺序多值绑定宏 let*-values
 (check
   (let*-values (((a b) (values 1 2)) ((sum) (values (+ a b))))
