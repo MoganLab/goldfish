@@ -27,7 +27,12 @@
 
 (check-true (rational? 123))
 (check-true (rational? 1/2))
-(check-false (rational? 123.456))
+;; R7RS 6.2.6：有限浮点数属于有理数
+(check-true (rational? 123.456))
+(check-true (rational? 9007199254740992.0))
+(check-false (rational? +inf.0))
+(check-false (rational? -inf.0))
+(check-false (rational? +nan.0))
 (check-false (rational? 1.0+2.0i))
 (check-false (rational? "123"))
 (check-false (rational? #t))

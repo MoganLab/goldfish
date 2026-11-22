@@ -524,6 +524,17 @@
 
     (define exact-integer? integer?)
 
+    ;; R7RS 6.2.6：rational? 对任何有限实数（含浮点数）应为 #t。
+    ;; s7 的 rational? 只认 T_INTEGER/T_RATIO，浮点一律 #f；
+    ;; 这里包装补齐：有限浮点可以精确转换为有理数，故属有理数。
+    ;; ±inf.0 与 +nan.0 不是有理数（s7 原生行为已正确）。
+    ;; 零虚部复数不是 real?，天然被 real? 过滤，无需单独处理。
+    (define rational?
+      (let ((s7-rational? ((rootlet) 'rational?)))
+        (lambda (x) (and (real? x) (not (infinite? x)) (not (nan? x))))
+      ) ;let
+    ) ;define
+
     (define (boolean=? obj1 obj2 . rest)
       (define (same-boolean obj rest)
         (if (null? rest) #t (and (equal? obj (car rest)) (same-boolean obj (cdr rest))))
