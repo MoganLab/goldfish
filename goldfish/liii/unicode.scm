@@ -301,34 +301,10 @@
     ;; utf8-string-length / utf8-substring 同属显式声明 UTF-8 编码的码点操作：
     ;; index 是码点序号（0 起始），返回该码点对应的字符。对非法 UTF-8 序列
     ;; 或越界 index 报错。
-    (define (utf8-string-ref str index)
-      (unless (string? str)
-        (error 'type-error "utf8-string-ref: expected string" str)
-      ) ;unless
-      (unless (and (integer? index) (>= index 0))
-        (error 'out-of-range
-          "utf8-string-ref: index must be non-negative integer"
-          index
-        ) ;error
-      ) ;unless
-      (let ((bv (string->byte-vector str)) (N (string-length str)))
-        (if (zero? N)
-          (error 'out-of-range "utf8-string-ref: index out of range" index)
-          (let loop
-            ((pos 0) (i 0))
-            (if (>= pos N)
-              (error 'out-of-range "utf8-string-ref: index out of range" index)
-              (let ((next-pos (bytevector-advance-utf8 bv pos N)))
-                (cond ((= next-pos pos) (error 'value-error "Invalid UTF-8 sequence at index: " pos))
-                      ((= i index) (integer->char (utf8->codepoint-at bv pos)))
-                      (else (loop next-pos (+ i 1)))
-                ) ;cond
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
+    ;; 实现委托 C 原语 g_utf8_string_ref：直接在原 string 字节缓冲上遍历定位，
+    ;; 相比纯 Scheme 版省去 string->byte-vector 的字节向量拷贝与 utf8->codepoint-at
+    ;; 的二次遍历调用。
+    (define utf8-string-ref g_utf8_string_ref)
 
     (define (utf8->codepoint bv)
       (unless (bytevector? bv)

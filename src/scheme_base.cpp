@@ -153,9 +153,61 @@ glue_string_to_utf8 (s7_scheme* sc) {
   s7_define_function (sc, name, f_string_to_utf8, 1, 0, true, desc);
 }
 
+// (g_utf8_string_ref str index) => char
+// 按 Unicode 码点位置读取字符：直接在原 string 字节缓冲上遍历定位第 index 个
+// 码点的起始字节偏移，解码返回 char。相比 Scheme 版省去 string->byte-vector 的
+// 字节向量拷贝与 utf8->codepoint-at 的二次遍历调用。
+static s7_pointer
+f_utf8_string_ref (s7_scheme* sc, s7_pointer args) {
+  s7_pointer str_arg= s7_car (args);
+  s7_pointer idx_arg= s7_cadr (args);
+
+  if (!s7_is_string (str_arg)) return base_error (sc, "type-error", "utf8-string-ref: expected string", str_arg);
+  if (!s7_is_integer (idx_arg)) return base_error (sc, "type-error", "utf8-string-ref: index must be integer", idx_arg);
+
+  s7_int index= s7_integer (idx_arg);
+  if (index < 0) return base_error (sc, "out-of-range", "utf8-string-ref: index must be non-negative integer", idx_arg);
+
+  const char*    s   = s7_string (str_arg);
+  s7_int         blen= s7_string_length (str_arg);
+  const uint8_t* buf = (const uint8_t*) s;
+
+  // 遍历定位第 index 个码点的起始字节偏移；顺便校验 UTF-8 合法性
+  s7_int i  = 0;
+  s7_int cnt= 0;
+  while (i < blen) {
+    int len= utf8_seq_len (buf[i]);
+    if (len == 0 || i + len > blen)
+      return base_error (sc, "value-error", "Invalid UTF-8 sequence at index: ", s7_make_integer (sc, i));
+    if (cnt == index) {
+      // 解码码点
+      uint32_t cp;
+      uint8_t  b0= buf[i];
+      if (len == 1) cp= b0;
+      else if (len == 2) cp= ((b0 & 0x1F) << 6) | (buf[i + 1] & 0x3F);
+      else if (len == 3) cp= ((b0 & 0x0F) << 12) | ((buf[i + 1] & 0x3F) << 6) | (buf[i + 2] & 0x3F);
+      else cp= ((b0 & 0x07) << 18) | ((buf[i + 1] & 0x3F) << 12) | ((buf[i + 2] & 0x3F) << 6) | (buf[i + 3] & 0x3F);
+      return s7_make_character (sc, cp);
+    }
+    i+= len;
+    cnt+= 1;
+  }
+
+  // index 越界（>= 码点数，或空串）
+  return base_error (sc, "out-of-range", "utf8-string-ref: index out of range", idx_arg);
+}
+
+static void
+glue_utf8_string_ref (s7_scheme* sc) {
+  const char* name= "g_utf8_string_ref";
+  const char* desc= "(g_utf8_string_ref str index) => char";
+  s7_define_function (sc, name, f_utf8_string_ref, 2, 0, false, desc);
+}
+
 void
 glue_scheme_base (s7_scheme* sc) {
   glue_string_to_utf8 (sc);
+  glue_utf8_string_ref (sc);
 }
 
 } // namespace goldfish
