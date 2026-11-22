@@ -31,3 +31,10 @@ gf doc %ctrl-char-key
 
 ### 修饰键
 - `%modifier-prefix` - 将修饰键代码转换为键名前缀字符串
+- `%alt-wrap` - 把 Meta 前缀与基础键名合成为 alt- 组合键名
+
+### 双 ESC Meta 序列判定
+- `%csi-final-byte?` - 判断字节是否为 CSI 序列终结字节（0x40~0x7E）
+- `%csi-meta-prefix?` - 判断字节是否为双 ESC Meta 序列中允许的序列起始字节（[ 或 O）
+- `%meta-escape-prefix?` - 判断字节流是否为双 ESC Meta 序列前缀（macOS Option=Esc+）
+- `%meta-escape-complete?` - 判断双 ESC Meta 序列字节是否已聚齐
