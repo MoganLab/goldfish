@@ -1496,7 +1496,18 @@ s7_pointer set_elist_1(s7_scheme *sc, s7_pointer x1);
 
 static inline FILE *xfopen(const char *path, const char *mode)
 {
+  /*
+   * [200_17] UTF-8 fopen pathname support on Windows by locale.
+   *
+   * The ".UTF8" suffix is a Windows/MSVC locale convention; on glibc/Linux
+   * setlocale(LC_ALL, ".UTF8") fails (returns NULL) and repeatedly invoking a
+   * failing setlocale corrupts glibc's internal locale state, eventually
+   * crashing in _nl_find_locale/__memmem during deep library import chains.
+   * Guard it so the locale switch only happens on Windows.
+   */
+#ifdef _WIN32
   setlocale(LC_ALL, ".UTF8");
+#endif
   return fopen(path, mode);
 }
 #define fopen(path, mode) xfopen(path, mode)
