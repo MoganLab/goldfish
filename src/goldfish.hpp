@@ -67,7 +67,7 @@
 #endif
 #endif
 
-#define GOLDFISH_VERSION "18.11.64"
+#define GOLDFISH_VERSION "18.11.65"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
