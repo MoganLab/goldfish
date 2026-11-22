@@ -64,6 +64,12 @@
               (%escape-with %always-escape-chars (substring str 1 (string-length str)))
             ) ;string-append
            ) ;
+           ((char=? head #\=)
+            ;; 行首 ===/===... 为 setext h1 下划线，转义首字符
+            (string-append "\\="
+              (%escape-with %always-escape-chars (substring str 1 (string-length str)))
+            ) ;string-append
+           ) ;
            ((and (char-numeric? head) (starts-with-list-marker? str))
             ;; 数字 + ./) 开头：转义第一个标记字符
             (escape-leading-list-marker str)

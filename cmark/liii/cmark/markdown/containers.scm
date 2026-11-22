@@ -39,8 +39,11 @@
 
     ;; ---- 引用块 ----
     ;; > 行前缀；子块之间以空行分隔（空行也带 > 前缀保持引用结构）
+    ;; 空引用块渲染为单行 >（保持结构，重新解析仍为 (blockquote)）
     (define (render-blockquote node render-blocks)
-      (prefix-lines "> " (interpose-blocks (cdr node) render-blocks))
+      (let ((lines (interpose-blocks (cdr node) render-blocks)))
+        (if (null? lines) (list ">") (prefix-lines "> " lines))
+      ) ;let
     ) ;define
 
     ;; ---- Alert ----
@@ -154,7 +157,7 @@
           (if (null? lines)
             (list marker*)
             (cons (string-append marker* (car lines))
-              (indent-lines (string-length marker*) (cdr lines))
+              (indent-lines (string-length marker) (cdr lines))
             ) ;cons
           ) ;if
         ) ;let

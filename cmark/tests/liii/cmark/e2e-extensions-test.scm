@@ -1,5 +1,9 @@
 ;; e2e-extensions
 ;; Markdown 数学公式、GFM/Goldfish 扩展与综合端到端回归测试。
+;; 每个资源默认执行双向检查：正向（Markdown -> md-stem 等于资源）
+;; 与反向语义往返（md-stem -> Markdown -> md-stem 等于资源）；
+;; 少数例外在 e2e-directions.scm 集中登记方向与原因。
+;; 资源遍历辅助与 e2e-commonmark-test.scm 一致，方向定义只维护一份。
 ;;
 ;; 语法
 ;; ----
@@ -12,14 +16,17 @@
 ;; 返回值
 ;; ----
 ;; unspecified
-;; 验证数学公式、表格、任务列表、删除线、裸链接、Alert、Emoji 与综合样例的转换结果。
+;; 验证数学公式、表格、任务列表、删除线、裸链接、Alert、Emoji 与综合样例的双向转换结果。
 
 (import (scheme base))
 (import (scheme file))
 (import (liii check))
-(import (liii cmark stem))
+(import (liii cmark))
 (import (liii cmark stem-reader))
 (import (liii unicode))
+
+;; 方向清单（数据）只维护一份：tests/liii/cmark/e2e-directions.scm
+(load "tests/liii/cmark/e2e-directions.scm")
 
 (check-set-mode! 'report-failed)
 
@@ -36,12 +43,29 @@
   ) ;call-with-input-file
 ) ;define
 
+;; 资源方向：both / forward-only / reverse-only；未登记默认 both
+(define (resource-direction basename)
+  (let ((entry (assoc basename e2e-direction-entries string=?)))
+    (if entry (cadr entry) 'both)
+  ) ;let
+) ;define
+
+;; 按方向检查单个资源：
+;; - both：正向相等 + 反向语义往返
+;; - forward-only：只检查正向相等
+;; - reverse-only：只检查反向语义往返
 (define (check-resource-case basename)
   (let* ((base (string-append "tests/resources/markdown/" basename))
          (markdown (read-file-string (string-append base ".md")))
          (expected (call-with-input-file (string-append base ".md.stem") read-md-stem))
+         (direction (resource-direction basename))
         ) ;
-    (check (markdown->md-stem markdown) => expected)
+    (when (memq direction '(both forward-only))
+      (check (markdown->md-stem markdown) => expected)
+    ) ;when
+    (when (memq direction '(both reverse-only))
+      (check (markdown->md-stem (md-stem->markdown expected)) => expected)
+    ) ;when
   ) ;let*
 ) ;define
 

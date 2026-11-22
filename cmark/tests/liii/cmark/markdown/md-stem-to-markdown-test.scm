@@ -99,7 +99,6 @@
 (check-catch 'md-stem-error (md-stem->markdown '(md-stem . tail)))
 
 ;; ---- ST3：叶块与文档输出 ----
-
 ;; 14. 文档末尾换行规则：非空文档以单个换行结尾
 (check (md-stem->markdown '(md-stem (p "正文"))) => "正文\n")
 (check (md-stem->markdown '(md-stem)) => "")
@@ -191,7 +190,6 @@
 ) ;check
 
 ;; ---- ST4：递归容器 ----
-
 ;; 24. 引用块与嵌套
 (check (md-stem->markdown '(md-stem (blockquote (p "引用")))) => "> 引用\n")
 (check (md-stem->markdown '(md-stem (blockquote (p "a") (p "b"))))
@@ -354,6 +352,49 @@
   => '(md-stem (table (align default default)
                    (thead (tr (th "a") (th "b")))
                    (tbody (tr (td "1") (td)) (tr (td) (td "2")))))
+) ;check
+
+;; ---- ST6：autolink / setext 标题 / 空引用块 / 紧凑任务续行 ----
+;; 30. 链接自动链接化：url==text 且无 title 输出 <url>
+(check (md-stem->markdown '(md-stem (p (link "https://example.com" "" "https://example.com"))))
+  => "<https://example.com>\n"
+) ;check
+;; 邮件链接 url 为 mailto:text 输出 <text>
+(check (md-stem->markdown '(md-stem (p (link "mailto:foo@bar.example.com" "" "foo@bar.example.com"))))
+  => "<foo@bar.example.com>\n"
+) ;check
+;; 有 title 不自动链接化
+(check (md-stem->markdown '(md-stem (p (link "/url" "标题" "文本"))))
+  => "[文本](/url \"标题\")\n"
+) ;check
+;; url != text 不自动链接化
+(check (md-stem->markdown '(md-stem (p (link "/url" "" "文本"))))
+  => "[文本](/url)\n"
+) ;check
+
+;; 31. 含 soft-break 的 h1/h2 用 setext 下划线渲染
+(check (md-stem->markdown '(md-stem (h1 "Foo" (soft-break) "Bar")))
+  => "Foo\nBar\n===\n"
+) ;check
+(check (md-stem->markdown '(md-stem (h2 "Foo" (soft-break) "Bar")))
+  => "Foo\nBar\n---\n"
+) ;check
+;; h3 仍用 ATX（setext 只支持 h1/h2）
+(check (md-stem->markdown '(md-stem (h3 "Foo" (soft-break) "Bar")))
+  => "### Foo\nBar\n"
+) ;check
+
+;; 32. 空引用块渲染为单行 >
+(check (md-stem->markdown '(md-stem (blockquote))) => ">\n")
+;; 33. 紧凑任务列表多段落续行按基础 marker 宽度缩进
+(check (md-stem->markdown
+   '(md-stem (bullet-list loose (item unchecked (p "第一段") (p "第二段")))))
+  => "- [ ] 第一段\n\n  第二段\n"
+) ;check
+
+;; 34. 行首 === 在引用块中被转义为 setext 下划线
+(check (md-stem->markdown '(md-stem (blockquote (p "foo" (soft-break) "==="))))
+  => "> foo\n> \\===\n"
 ) ;check
 
 (check-report)

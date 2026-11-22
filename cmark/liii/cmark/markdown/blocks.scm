@@ -58,14 +58,31 @@
     ) ;define
 
     ;; ---- 标题 ----
+    ;; 标题内联内容可能含 soft-break（跨行）。ATX 标题（# ...）只占单行，
+    ;; 多行内容会被拆成段落；因此含 soft-break 的标题改用 setext 下划线
+    ;; 渲染（h1 用 ===，h2 用 ---），其余级别仍用 ATX。setext 的续行需
+    ;; 按行首规则转义，防止 === / --- 被识别为下划线。
     (define (render-heading node)
-      (let ((level (heading-level (car node))))
-        (list (string-append (make-string level #\#)
-                " "
-                (render-inlines-at-line-start (cdr node))
-              ) ;string-append
-        ) ;list
-      ) ;let
+      (let* ((level (heading-level (car node)))
+             (lines (render-paragraph-inlines (cdr node)))
+            ) ;
+        (cond
+         ((and (> level 0) (<= level 2) (> (length lines) 1))
+          ;; setext：内容行 + 下划线
+          (append lines (list (if (= level 1) "===" "---")))
+         ) ;
+         ((and (> level 0) (<= level 2) (null? lines))
+          (list (string-append (make-string level #\#) " "))
+         ) ;
+         (else
+           ;; ATX：首行加 "# ..." 前缀，续行无前缀
+           (if (null? lines)
+             (list (string-append (make-string level #\#) " "))
+             (cons (string-append (make-string level #\#) " " (car lines)) (cdr lines))
+           ) ;if
+         ) ;else
+        ) ;cond
+      ) ;let*
     ) ;define
 
     (define (heading-level type)

@@ -74,7 +74,7 @@
       ) ;let
     ) ;define
 
-    ;; 给非空行左侧补 n 个空格；空行保持为空
+    ;; 给非空行左侧补 n 个空格；空行保持为空（纯空行不破坏容器续行）
     (define (indent-lines n lines)
       (let ((pad (make-string n #\space)))
         (map (lambda (line) (if (string=? line "") "" (string-append pad line))) lines)
