@@ -163,7 +163,10 @@ g_syntactic_closure_set_rename_b (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 g_identifier_p (s7_scheme* sc, s7_pointer args) {
-  return s7_make_boolean (sc, s7_is_symbol (synclo_expr (sc, s7_car (args))));
+  s7_pointer x= synclo_expr (sc, s7_car (args));
+  /* [1290] 内联的 syntax 对象（特殊形式值）在宏体中仍是标识符性质：
+   * expand-pattern/identifier->symbol 需把它当标识符处理。 */
+  return s7_make_boolean (sc, s7_is_symbol (x) || s7_is_syntax (x));
 }
 
 static s7_pointer
@@ -171,6 +174,17 @@ g_identifier_to_symbol (s7_scheme* sc, s7_pointer args) {
   s7_pointer x= s7_car (args);
   s7_pointer y= synclo_expr (sc, x);
   if (s7_is_symbol (y)) return y;
+  /* [1290] syntax 对象（如内联的 #_let）还原为同名符号。 */
+  if (s7_is_syntax (y)) {
+    char* str= s7_object_to_c_string (sc, y);
+    if (str) {
+      const char* name= str;
+      if (name[0] == '#' && name[1] == '_') name += 2;
+      s7_pointer sym= s7_make_symbol (sc, name);
+      free (str);
+      return sym;
+    }
+  }
   return s7_error (sc, s7_make_symbol (sc, "type-error"),
                    s7_list (sc, 2, s7_make_string (sc, "expected identifier"), x));
 }
@@ -232,6 +246,31 @@ g_identifier_eq_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer sym2  = synclo_expr_env (sc, id2, &eff_e2);
 
   if (!s7_is_symbol (sym1) || !s7_is_symbol (sym2)) {
+    /* [1290] 内联的 syntax 对象（特殊形式值）与符号比较时按名字归一：
+     * 宏展开产物中的 (syntax-and ...) 头与字面量 and 的比较
+     * 不应因值形态不同而失败。 */
+    s7_pointer n1= sym1, n2= sym2;
+    if (s7_is_syntax (n1)) {
+      char* str= s7_object_to_c_string (sc, n1);
+      if (str) {
+        const char* name= str;
+        if (name[0] == '#' && name[1] == '_') name += 2;
+        n1= s7_make_symbol (sc, name);
+        free (str);
+      }
+    }
+    if (s7_is_syntax (n2)) {
+      char* str= s7_object_to_c_string (sc, n2);
+      if (str) {
+        const char* name= str;
+        if (name[0] == '#' && name[1] == '_') name += 2;
+        n2= s7_make_symbol (sc, name);
+        free (str);
+      }
+    }
+    if (s7_is_symbol (n1) && s7_is_symbol (n2)) {
+      return s7_make_boolean (sc, n1 == n2);
+    }
     return s7_make_boolean (sc, s7_is_equal (sc, sym1, sym2));
   }
 
@@ -334,9 +373,25 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
           return quote_val;
         }
       }
+      /* [1290] 宏模板自由标识符（rename 闭包）的解析：
+       * 此前仅在 val != root_val 时才内联 procedure/macro 值，
+       * 其余情况返回裸 expr 符号。裸符号会在 use-site 被同名局部绑定
+       * 捕获，破坏卫生性（R7RS 4.3.1）：模板里的 if/let 应指定义处
+       * 的绑定，而不是使用处的 (let ((if #t)) ...)。
+       * s7 的 eval 对调用位置内联的 syntax 对象按特殊形式处理，
+       * 因此对 syntax / macro 值统一内联绑定值本身。
+       * 普通值与绑定名位置仍返回裸符号：绑定名必须是符号，且模板
+       * 自我一致（绑定处与引用处同名）比捕获保护更重要；
+       * procedure 依旧仅在与 root 不同名绑定时内联。 */
       if (s7_is_let (env)) {
         s7_pointer val= s7_let_ref (sc, env, expr);
         if (val != s7_undefined (sc)) {
+          /* [1290] 仅内联 syntax（特殊形式）值；macro/procedure 仍走原逻辑：
+           * macro 内联会污染下游宏的模式匹配（宏体中的宏名不再是最初的符号，
+           * 字面量判定与递归展开失真，见 match 库 and 模式回归）。 */
+          if (s7_is_syntax (val)) {
+            return val;
+          }
           if (root_val == s7_undefined (sc) || val != root_val) {
             if (s7_is_procedure (val) || s7_is_macro (sc, val)) {
               return val;
@@ -346,6 +401,9 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
         }
       }
       if (root_val != s7_undefined (sc)) {
+        if (s7_is_syntax (root_val)) {
+          return root_val;
+        }
         return expr;
       }
       for (synclo_rename_entry* e= *memo_head; e; e= e->next) {
