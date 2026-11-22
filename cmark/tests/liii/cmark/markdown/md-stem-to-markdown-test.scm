@@ -183,4 +183,100 @@
   => '(md-stem (h1 "a*b") (h2 "c`d") (p "e[f]g"))
 ) ;check
 
+;; ---- ST4：递归容器 ----
+
+;; 24. 引用块与嵌套
+(check (md-stem->markdown '(md-stem (blockquote (p "引用")))) => "> 引用\n")
+(check (md-stem->markdown '(md-stem (blockquote (p "a") (p "b"))))
+  => "> a\n>\n> b\n"
+) ;check
+(check (md-stem->markdown '(md-stem (blockquote (blockquote (p "deep")))))
+  => "> > deep\n"
+) ;check
+
+;; 25. Alert
+(check (md-stem->markdown '(md-stem (alert note (p "提示"))))
+  => "> [!NOTE]\n> 提示\n"
+) ;check
+(check (md-stem->markdown '(md-stem (alert tip))) => "> [!TIP]\n")
+
+;; 26. 列表 tight/loose 与编号
+(check (md-stem->markdown '(md-stem (bullet-list tight (item (p "a")) (item (p "b")))))
+  => "- a\n- b\n"
+) ;check
+(check (md-stem->markdown '(md-stem (bullet-list loose (item (p "a")) (item (p "b")))))
+  => "- a\n\n- b\n"
+) ;check
+(check
+  (md-stem->markdown
+    '(md-stem (ordered-list 10 one-paren tight (item (p "a")) (item (p "b")))))
+  => "10) a\n11) b\n"
+) ;check
+
+;; 27. 任务列表
+(check
+  (md-stem->markdown
+    '(md-stem (bullet-list tight (item checked (p "done")) (item unchecked (p "todo")))))
+  => "- [x] done\n- [ ] todo\n"
+) ;check
+
+;; 28. 嵌套列表与容器混合
+(check
+  (md-stem->markdown
+    '(md-stem (bullet-list tight (item (p "a") (bullet-list tight (item (p "b")))))))
+  => "- a\n  - b\n"
+) ;check
+(check
+  (md-stem->markdown
+    '(md-stem
+       (ordered-list 1 period tight
+         (item (p "a") (ordered-list 1 one-paren tight (item (p "b")))))))
+  => "1. a\n   1) b\n"
+) ;check
+
+;; 29. 容器语义往返
+(define (container-roundtrip doc)
+  (markdown->md-stem (md-stem->markdown doc))
+) ;define
+(check (container-roundtrip '(md-stem (blockquote (p "a") (p "b"))))
+  => '(md-stem (blockquote (p "a") (p "b")))
+) ;check
+(check (container-roundtrip '(md-stem (blockquote (blockquote (p "deep")))))
+  => '(md-stem (blockquote (blockquote (p "deep"))))
+) ;check
+(check (container-roundtrip '(md-stem (alert caution (p "a") (p "b"))))
+  => '(md-stem (alert caution (p "a") (p "b")))
+) ;check
+(check (container-roundtrip '(md-stem (alert tip))) => '(md-stem (alert tip)))
+(check (container-roundtrip '(md-stem (bullet-list loose (item (p "a")) (item (p "b")))))
+  => '(md-stem (bullet-list loose (item (p "a")) (item (p "b"))))
+) ;check
+(check
+  (container-roundtrip
+    '(md-stem (ordered-list 3 one-paren loose (item (p "a")) (item (p "b")))))
+  => '(md-stem (ordered-list 3 one-paren loose (item (p "a")) (item (p "b"))))
+) ;check
+(check
+  (container-roundtrip
+    '(md-stem (bullet-list tight (item checked (p "done")) (item unchecked (p "todo")))))
+  => '(md-stem (bullet-list tight (item checked (p "done")) (item unchecked (p "todo"))))
+) ;check
+(check
+  (container-roundtrip
+    '(md-stem (bullet-list tight (item (p "a") (bullet-list tight (item (p "b")))))))
+  => '(md-stem (bullet-list tight (item (p "a") (bullet-list tight (item (p "b"))))))
+) ;check
+(check
+  (container-roundtrip
+    '(md-stem (ordered-list 1 period loose (item (p "a") (code-block "" "c")))))
+  => '(md-stem (ordered-list 1 period loose (item (p "a") (code-block "" "c"))))
+) ;check
+(check (container-roundtrip '(md-stem (blockquote (p "a") (bullet-list tight (item (p "b"))))))
+  => '(md-stem (blockquote (p "a") (bullet-list tight (item (p "b")))))
+) ;check
+(check
+  (container-roundtrip '(md-stem (bullet-list tight (item (blockquote (p "q"))))))
+  => '(md-stem (bullet-list tight (item (blockquote (p "q")))))
+) ;check
+
 (check-report)

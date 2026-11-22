@@ -71,9 +71,17 @@
 ;; ---- 多块拼接（无空行，由文档层插入） ----
 (check (render-blocks '((p "a") (p "b"))) => '("a" "b"))
 
-;; ---- 尚未支持的容器与表格 ----
-(check-catch 'md-stem-error (render-blocks '((blockquote (p "引用")))))
-(check-catch 'md-stem-error (render-blocks '((bullet-list tight (item)))))
+;; ---- 容器（引用、Alert、列表） ----
+(check (render-blocks '((blockquote (p "引用")))) => '("> 引用"))
+(check (render-blocks '((alert note (p "提示"))))
+  => '("> [!NOTE]" "> 提示")
+) ;check
+(check (render-blocks '((bullet-list tight (item (p "a"))))) => '("- a"))
+(check (render-blocks '((ordered-list 1 period tight (item (p "a")))))
+  => '("1. a")
+) ;check
+
+;; ---- 尚未支持的表格 ----
 (check-catch 'md-stem-error
   (render-blocks '((table (align default) (thead (tr (th "a"))) (tbody))))
 ) ;check-catch
