@@ -30,6 +30,20 @@
 ;; 空绑定测试
 (check (let*-values () 42) => 42)
 
+;; 空绑定时 body 中的 define 不应泄漏到外层作用域
+;; R7RS 规定 <body> 有独立作用域，与空 let 一致
+(check
+  (let ((x 1))
+    (let*-values ()
+      (define x 2)
+      #f
+    ) ;let*-values
+    x
+  ) ;let
+  =>
+  1
+) ;check
+
 ;; 单绑定测试
 (check
   (let*-values (((ret) (+ 1 2)))

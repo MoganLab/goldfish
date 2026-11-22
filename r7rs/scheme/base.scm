@@ -258,7 +258,7 @@
     ;; (scheme base)，避免 (scheme base) 反向依赖 (srfi srfi-11)。
     (define-syntax let-values
       (syntax-rules ()
-        ((let-values () ?body0 ?body1 ...) (begin ?body0 ?body1 ...))
+        ((let-values () ?body0 ?body1 ...) ((lambda () ?body0 ?body1 ...)))
 
         ((let-values ((?formals ?expr))
            ?body0
@@ -323,7 +323,7 @@
 
     (define-syntax let*-values
       (syntax-rules ()
-        ((let*-values () ?body0 ?body1 ...) (begin ?body0 ?body1 ...))
+        ((let*-values () ?body0 ?body1 ...) ((lambda () ?body0 ?body1 ...)))
 
         ((let*-values (?binding0 ?binding1 ...)
            ?body0
