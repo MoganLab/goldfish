@@ -6,6 +6,7 @@
     utf8->string
     string->utf8
     utf8-string-length
+    utf8-string-ref
     utf8-substring
     utf8-sequence-length
     bytevector-advance-utf8
@@ -294,6 +295,16 @@
         ) ;let
       ) ;let*
     ) ;define
+
+    ;; (utf8-string-ref str index) 按 Unicode 码点位置读取字符。
+    ;; string 层默认按字节字符计数（见 AGENTS.md §2.5），utf8-string-ref 与
+    ;; utf8-string-length / utf8-substring 同属显式声明 UTF-8 编码的码点操作：
+    ;; index 是码点序号（0 起始），返回该码点对应的字符。对非法 UTF-8 序列
+    ;; 或越界 index 报错。
+    ;; 实现委托 C 原语 g_utf8_string_ref：直接在原 string 字节缓冲上遍历定位，
+    ;; 相比纯 Scheme 版省去 string->byte-vector 的字节向量拷贝与 utf8->codepoint-at
+    ;; 的二次遍历调用。
+    (define utf8-string-ref g_utf8_string_ref)
 
     (define (utf8->codepoint bv)
       (unless (bytevector? bv)

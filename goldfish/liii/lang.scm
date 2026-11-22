@@ -102,11 +102,7 @@
     ) ;define
 
     (define (%$chars->string chars)
-      (utf8->string
-        (apply bytevector-append
-          (map (lambda (ch) (codepoint->utf8 (char->integer ch))) chars)
-        ) ;apply
-      ) ;utf8->string
+      (apply utf8-string chars)
     ) ;define
 
     ;; Scala 宽容边界：n 越界/为负时 clamp 到 [0, 字符数]
@@ -337,7 +333,7 @@
             ) ;
             ((string? x)
              (let ((n (%$strlen x)))
-               (if (zero? n) (err) (string-ref/cursor x (string-index->cursor x (- n 1))))
+               (if (zero? n) (err) (utf8-string-ref x (- n 1)))
              ) ;let
             ) ;
             (else (%$dispatch-error 'last x))
@@ -373,7 +369,7 @@
         (vector-ref x (- (vector-length x) 1))
        ) ;
        ((and (string? x) (positive? (%$strlen x)))
-        (string-ref/cursor x (string-index->cursor x (- (%$strlen x) 1)))
+        (utf8-string-ref x (- (%$strlen x) 1))
        ) ;
        (else #f)
       ) ;cond
@@ -722,11 +718,7 @@
        ((list? x) (split-seq (length x) list-ref (lambda (l) l)))
        ((vector? x) (split-seq (vector-length x) vector-ref list->vector))
        ((string? x)
-        (let ((parts
-                (split-seq (%$strlen x)
-                  (lambda (s i) (string-ref/cursor s (string-index->cursor s i)))
-                  (lambda (l) l)
-                ) ;split-seq
+        (let ((parts (split-seq (%$strlen x) (lambda (s i) (utf8-string-ref s i)) (lambda (l) l))
               ) ;parts
              ) ;
           (list (%$chars->string (car parts)) (%$chars->string (cadr parts)))
