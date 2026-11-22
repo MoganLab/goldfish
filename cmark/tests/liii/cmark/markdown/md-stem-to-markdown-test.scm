@@ -98,4 +98,89 @@
 (check-catch 'md-stem-error (md-stem->markdown '(md-stem 42)))
 (check-catch 'md-stem-error (md-stem->markdown '(md-stem . tail)))
 
+;; ---- ST3：叶块与文档输出 ----
+
+;; 14. 文档末尾换行规则：非空文档以单个换行结尾
+(check (md-stem->markdown '(md-stem (p "正文"))) => "正文\n")
+(check (md-stem->markdown '(md-stem)) => "")
+
+;; 15. 段落
+(check (md-stem->markdown '(md-stem (p "正文"))) => "正文\n")
+(check (md-stem->markdown '(md-stem (p "a" (strong "b")))) => "a**b**\n")
+(check (md-stem->markdown '(md-stem (p "第一段" (soft-break) "第二段")))
+  => "第一段 第二段\n"
+) ;check
+
+;; 16. 标题 h1 至 h6
+(check (md-stem->markdown '(md-stem (h1 "一"))) => "# 一\n")
+(check (md-stem->markdown '(md-stem (h6 "六"))) => "###### 六\n")
+(check (md-stem->markdown '(md-stem (h1))) => "# \n")
+
+;; 17. 分隔线
+(check (md-stem->markdown '(md-stem (thematic-break))) => "---\n")
+
+;; 18. 相邻块空行
+(check (md-stem->markdown '(md-stem (p "a") (h1 "b") (p "c")))
+  => "a\n\n# b\n\nc\n"
+) ;check
+
+;; 19. 围栏代码块：语言信息、空内容、含 fence 内容
+(check (md-stem->markdown '(md-stem (code-block "ruby" "def foo")))
+  => "```ruby\ndef foo\n```\n"
+) ;check
+(check (md-stem->markdown '(md-stem (code-block "" ""))) => "```\n```\n")
+(check (md-stem->markdown '(md-stem (code-block "" "```\ninside")))
+  => "````\n```\ninside\n````\n"
+) ;check
+(check-catch 'md-stem-error (md-stem->markdown '(md-stem (code-block "a`b" "x"))))
+
+;; 20. 数学块
+(check (md-stem->markdown '(md-stem (math-block "E = mc^2")))
+  => "$$\nE = mc^2\n$$\n"
+) ;check
+(check-catch 'md-stem-error (md-stem->markdown '(md-stem (math-block "a$$b"))))
+
+;; 21. 原始 HTML 块
+(check (md-stem->markdown '(md-stem (raw-block "html" "<div>\nfoo\n</div>")))
+  => "<div>\nfoo\n</div>\n"
+) ;check
+
+;; 22. 块首特殊文本
+(check (md-stem->markdown '(md-stem (p "#不是标题"))) => "\\#不是标题\n")
+(check (md-stem->markdown '(md-stem (p "- 列表？"))) => "\\- 列表？\n")
+(check (md-stem->markdown '(md-stem (p "1. 编号？"))) => "1\\. 编号？\n")
+
+;; 23. 叶块文档语义往返
+(define (leaf-roundtrip doc)
+  (markdown->md-stem (md-stem->markdown doc))
+) ;define
+(check (leaf-roundtrip '(md-stem (p "正文") (h1 "标题")))
+  => '(md-stem (p "正文") (h1 "标题"))
+) ;check
+(check (leaf-roundtrip '(md-stem (code-block "ruby" "def foo\n  1\nend")))
+  => '(md-stem (code-block "ruby" "def foo\n  1\nend"))
+) ;check
+(check (leaf-roundtrip '(md-stem (code-block "" "```\ninside")))
+  => '(md-stem (code-block "" "```\ninside"))
+) ;check
+;; 代码块内容末尾空行保留（末尾 \n 不丢）
+(check (leaf-roundtrip '(md-stem (code-block "" "abc\n")))
+  => '(md-stem (code-block "" "abc\n"))
+) ;check
+(check (leaf-roundtrip '(md-stem (code-block "" "\nabc")))
+  => '(md-stem (code-block "" "\nabc"))
+) ;check
+(check (leaf-roundtrip '(md-stem (math-block "E = mc^2")))
+  => '(md-stem (math-block "E = mc^2"))
+) ;check
+(check (leaf-roundtrip '(md-stem (raw-block "html" "<div>\nfoo\n</div>")))
+  => '(md-stem (raw-block "html" "<div>\nfoo\n</div>"))
+) ;check
+(check (leaf-roundtrip '(md-stem (p "a") (thematic-break) (p "b")))
+  => '(md-stem (p "a") (thematic-break) (p "b"))
+) ;check
+(check (leaf-roundtrip '(md-stem (h1 "a*b") (h2 "c`d") (p "e[f]g")))
+  => '(md-stem (h1 "a*b") (h2 "c`d") (p "e[f]g"))
+) ;check
+
 (check-report)

@@ -26,6 +26,16 @@
 ;; 空文档
 (check (render-md-stem-document '()) => "")
 
+;; 单块
+(check (render-md-stem-document '((p "正文"))) => "正文")
+(check (render-md-stem-document '((h1 "标题"))) => "# 标题")
+
+;; 相邻块之间以空行分隔
+(check (render-md-stem-document '((p "a") (p "b"))) => "a\n\nb")
+(check (render-md-stem-document '((h1 "t") (p "a") (thematic-break)))
+  => "# t\n\na\n\n---"
+) ;check
+
 ;; 非法节点沿块层校验报错
 (check-catch 'md-stem-error (render-md-stem-document '((bad))))
 

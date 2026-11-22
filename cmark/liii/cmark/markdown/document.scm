@@ -27,10 +27,10 @@
     ;; 已校验的文档体（(md-stem ...) 的 cdr）→ 多行文本（无末尾换行）
     ;; 顶层块之间以空行分隔；空文档返回空字符串
     (define (render-md-stem-document body)
-      (if (null? body) "" (join-lines (interpose-empty-line (render-blocks body))))
+      (if (null? body) "" (join-lines (interpose-empty-line (map render-block body))))
     ) ;define
 
-    ;; 在相邻块渲染结果之间插入一个空行；空块渲染结果跳过
+    ;; 在相邻块的行列表之间插入一个空行；空行列表的块跳过
     (define (interpose-empty-line line-lists)
       (let loop
         ((rem line-lists) (acc '()) (first? #t))

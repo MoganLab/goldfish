@@ -20,10 +20,34 @@
   (import (scheme base))
   (import (liii error))
   (import (liii cmark text))
-  (export md-stem-error join-lines append-line-lists prefix-lines indent-lines
-    longest-char-run make-string-repeat
+  (import (rename (liii cmark text) (string-split-lines %cmark-string-split-lines))
+  ) ;import
+  (export md-stem-error join-lines string-split-lines append-line-lists
+    prefix-lines indent-lines longest-char-run make-string-repeat
   ) ;export
   (begin
+    ;; 字面内容按 \n 拆成行列表，保留末尾空行：
+    ;; "a" → ("a")，"a\n" → ("a" "")，"\n" → ("" "")，"" → ()
+    ;; （渲染代码块内容时末尾空行不能丢，否则字面量末尾 \n 会丢失）
+    (define (string-split-lines literal)
+      (if (string=? literal "")
+        '()
+        (reverse
+          (let loop
+            ((rest literal) (acc '()))
+            (let ((idx (string-index rest #\newline 0)))
+              (if idx
+                (loop (substring rest (+ idx 1) (string-length rest))
+                  (cons (substring rest 0 idx) acc)
+                ) ;loop
+                (cons rest acc)
+              ) ;if
+            ) ;let
+          ) ;let
+        ) ;reverse
+      ) ;if
+    ) ;define
+
     ;; 反向转换统一的错误形式：所有非法 md-stem 输入都报 md-stem-error，
     ;; 消息中带上出问题的节点类型，方便定位
     (define (md-stem-error node-type . message)
