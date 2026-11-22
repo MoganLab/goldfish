@@ -48,10 +48,23 @@
            ) ;
         (let loop
           ((x datum))
-          (cond ((symbol? x) (if renamer (renamer x) (make-syntactic-closure env '() x)))
-                ((pair? x) (cons (loop (car x)) (loop (cdr x))))
-                ((vector? x) (list->vector (map loop (vector->list x))))
-                (else x)
+          (cond
+           ((symbol? x)
+            (if renamer
+              (renamer x)
+              ;; [1290] 无 renamer 时这里是“使用处语境”标识符：
+              ;; 给产物设 rename=#t 标记，resolve_ast 遇到它
+              ;; 直接还原裸符号（反卫生语义），避免被 gensym 改名
+              ;; 导致 define 注册名与使用处引用不一致。
+              (let ((id (make-syntactic-closure env '() x)))
+                (syntactic-closure-set-rename! id #t)
+                id
+              ) ;let
+            ) ;if
+           ) ;
+           ((pair? x) (cons (loop (car x)) (loop (cdr x))))
+           ((vector? x) (list->vector (map loop (vector->list x))))
+           (else x)
           ) ;cond
         ) ;let
       ) ;let

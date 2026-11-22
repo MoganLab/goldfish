@@ -139,6 +139,17 @@
 (check (let ((quote 42)) (hygienic-quote)) => 'ok)
 (check (equal? (let ((quote 42)) (hygienic-quote nested)) '(quote ok)) => #t)
 
+;; [1290] 宏展开生成的顶层 define 互相引用：前向引用的名字应一致
+;; 展开产物 (begin (define (ff x) (gg x)) (define (gg x) (* x x)))
+;; 中，ff 体内对 gg 的引用与 gg 的 define 注册名必须是同一绑定。
+(define-syntax sr-forward-ref-macro
+  (syntax-rules ()
+    ((sr-forward-ref-macro fname)
+     (begin (define (fname x) (sr-forward-helper x))
+            (define (sr-forward-helper x) (* x x))))))
+(sr-forward-ref-macro sr-forward-fn)
+(check (sr-forward-fn 10) => 100)
+
 ;; 顺序多值绑定宏 let*-values
 (check
   (let*-values (((a b) (values 1 2)) ((sum) (values (+ a b))))
