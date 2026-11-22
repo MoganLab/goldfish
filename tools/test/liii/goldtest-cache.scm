@@ -43,6 +43,7 @@
                (string-starts? path "goldfish/")
                (string-starts? path "r7rs/")
                (string-starts? path "bignum/")
+               (string-starts? path "cmark/")
                (string-starts? path "tui/")
              ) ;or
              #f

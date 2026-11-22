@@ -1320,6 +1320,14 @@ add_goldfish_load_paths (s7_scheme* sc, const char* gf_lib) {
   else if (fs::is_directory (source_library)) {
     s7_add_to_load_path (sc, source_library.string ().c_str ());
   }
+  fs::path installed_cmark= fs::path (gf_lib) / "cmark";
+  fs::path source_cmark   = fs::path (gf_lib).parent_path () / "cmark";
+  if (fs::is_directory (installed_cmark)) {
+    s7_add_to_load_path (sc, installed_cmark.string ().c_str ());
+  }
+  else if (fs::is_directory (source_cmark)) {
+    s7_add_to_load_path (sc, source_cmark.string ().c_str ());
+  }
   fs::path installed_bignum= fs::path (gf_lib) / "bignum";
   fs::path source_bignum   = fs::path (gf_lib).parent_path () / "bignum";
   if (fs::is_directory (installed_bignum)) {

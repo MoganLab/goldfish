@@ -37,6 +37,7 @@
         "goldfish",
         "r7rs",
         "library",
+        "cmark",
         "tui",
         "tools",
         "demo",
@@ -155,7 +156,7 @@
         "reason": "自举环境各模块与全局符号加载测试"
       },
       {
-        "path": "library/liii/cmark/html-entities.scm",
+        "path": "cmark/liii/cmark/html-entities.scm",
         "reason": "HTML 实体映射大查表"
       }
     ],

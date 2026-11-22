@@ -182,7 +182,7 @@
 
     ;; 这些域根已内置在 *load-path*，运行其测试无需 -I 追加搜索路径。
     (define %builtin-domain-roots
-      '("" "goldfish/" "r7rs/" "library/" "bignum/" "tui/")
+      '("" "goldfish/" "r7rs/" "library/" "bignum/" "cmark/" "tui/")
     ) ;define
 
     (define (%include-root project-root root test-file)
