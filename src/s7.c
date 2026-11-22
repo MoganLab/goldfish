@@ -4048,7 +4048,7 @@ static void init_small_ints(void)
 #define make_real_unchecked(Sc, X)       s7_make_real(Sc, X)
 #define make_complex(Sc, R, I)           s7_make_complex(Sc, R, I)
 #define make_complex_unchecked(Sc, R, I) s7_make_complex(Sc, R, I)
-#define make_complex_not_0i(Sc, R, I)    s7_make_complex(Sc, R, I)
+#define make_complex_not_0i(Sc, R, I)    make_complex_raw(Sc, R, I)
 #define real_to_double(Sc, X, Caller)    s7_number_to_real_with_caller(Sc, X, Caller)
 #define rational_to_double(Sc, X)        s7_number_to_real(Sc, X)
 #endif
@@ -11159,6 +11159,16 @@ s7_pointer s7_make_complex(s7_scheme *sc, s7_double a, s7_double b)
   return(x);
 }
 
+/* like s7_make_complex, but keeps a zero imaginary part (R7RS: an inexact zero imaginary part is a complex, not a real) */
+static s7_pointer make_complex_raw(s7_scheme *sc, s7_double a, s7_double b)
+{
+  s7_pointer x;
+  new_cell(sc, x, T_COMPLEX);
+  set_real_part(x, a);
+  set_imag_part(x, b);
+  return(x);
+}
+
 static s7_pointer make_mutable_complex(s7_scheme *sc, s7_double rl, s7_double im)
 {
   s7_pointer x;
@@ -12897,7 +12907,10 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
 	if ((has_plus_or_minus == -1) &&
 	    (im != 0.0))
 	  im = -im;
-	result = make_complex(sc, rl, im);
+	if ((im == 0.0) &&
+	    ((has_dec_point2) || (ex2)))  /* R7RS: an inexact zero imaginary part is a complex, not a real number */
+	  result = make_complex_not_0i(sc, rl, im);
+	else result = make_complex(sc, rl, im);
 	/* restore original string */
 	q[len - 1] = ql1;
 	(*((char *)(plus - 1))) = pl1;
@@ -15199,7 +15212,7 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_REAL:
 	  return(integer(x) == real(y));
 	case T_COMPLEX:
-	  return(false);
+	  return((integer(x) == real_part(y)) && (imag_part(y) == 0.0));
 	default: return(eq_out_y(sc, x, y));
 	}
       break;
@@ -15208,7 +15221,7 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(false);
 	case T_REAL:    return(fraction(x) == real(y));
-	case T_COMPLEX: return(false);
+	case T_COMPLEX: return((fraction(x) == real_part(y)) && (imag_part(y) == 0.0));
 	default: return(eq_out_y(sc, x, y));
 	}
       break;
@@ -15220,12 +15233,12 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_RATIO:
 	  return(real(x) == fraction(y));
 	case T_COMPLEX:
-	  return(false);
+	  return((real(x) == real_part(y)) && (imag_part(y) == 0.0));
 	default: return(eq_out_y(sc, x, y));
 	}
       break;
     case T_COMPLEX:
-      if (is_real(y)) return(false);
+      if (is_real(y)) return((real_part(x) == real(y)) && (imag_part(x) == 0.0));
       return(eq_out_y(sc, x, y));
 
     default: return(eq_out_x(sc, x, y));
