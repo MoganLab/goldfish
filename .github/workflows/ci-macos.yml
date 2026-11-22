@@ -104,6 +104,8 @@ jobs:
       - name: run r7rs tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true'
         run: bin/gf test r7rs/tests/
+        env:
+          GF_FOLD_TRACE: '1'   # [CI-DEBUG] issue #1741 探针，正式修复后移除
       - name: run goldfish tests
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.core == 'true' || steps.filter.outputs.r7rs == 'true' || steps.filter.outputs.goldfish == 'true'
         run: bin/gf test goldfish/tests/
