@@ -294,6 +294,26 @@ typedef struct synclo_rename_entry {
   struct synclo_rename_entry* next;
 } synclo_rename_entry;
 
+/* [1290] 词法注入记录：宏模板引用的标识符在其定义环境（mac-env）里
+ * 绑定为普通数据值（非 syntax/macro/procedure）时，为它生成 gensym 并
+ * 记录 gensym→def-env 取值表达式，最后在展开产物外层包一个 let 把
+ * 定义点的词法绑定注入。绑定处与引用处同键同 gensym，保持一致
+ * （[1290] #1748 的“统一改名路径”原则），set! 也能正确指向注入绑定。 */
+typedef struct synclo_lexical_inject {
+  s7_pointer                  gensym;
+  s7_pointer                  env;    /* 定义点环境（let） */
+  s7_pointer                  expr;   /* 原始符号 */
+  struct synclo_lexical_inject* next;
+} synclo_lexical_inject;
+
+static synclo_lexical_inject*
+lexical_inject_find (synclo_lexical_inject* head, s7_pointer env, s7_pointer expr) {
+  for (synclo_lexical_inject* e= head; e; e= e->next) {
+    if (e->env == env && e->expr == expr) return e;
+  }
+  return NULL;
+}
+
 static bool
 is_quote_form (s7_scheme* sc, s7_pointer p) {
   /* [1292] reader 开启 symbol-quote? 后 'x 一律读为 (quote x)，不再产生 #_quote 语法对象 */
@@ -342,7 +362,7 @@ is_auxiliary_syntax (const char* name) {
 }
 
 static s7_pointer
-resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entry** memo_head) {
+resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entry** memo_head, synclo_lexical_inject** inject_head) {
   if (is_synclo (sc, x)) {
     syntactic_closure_t* s   = (syntactic_closure_t*) s7_c_object_value (x);
     s7_pointer           expr= s->expr;
@@ -351,7 +371,7 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
       env= def_env;
     }
     if (s7_is_pair (expr) || s7_is_vector (expr)) {
-      return resolve_ast (sc, expr, env, memo_head);
+      return resolve_ast (sc, expr, env, memo_head, inject_head);
     }
     if (s7_is_symbol (expr)) {
       if (is_auxiliary_syntax (s7_symbol_name (expr))) {
@@ -397,6 +417,46 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
               return val;
             }
           }
+          /* [1290] 普通数据值（非 syntax/macro/procedure）且 rootlet 无同名
+           * 绑定：说明这是定义点环境的局部词法变量。若直接返回裸符号，
+           * 引用会被 use-site 同名绑定捕获，破坏卫生性（R7RS 4.3.1：
+           * (let ((x 'outer)) (let-syntax ((m (syntax-rules () ((m) x))))
+           *   (let ((x 'inner)) (m)))) 应为 'outer）。
+           * 改为统一走 gensym 改名（绑定处与引用处同键同 gensym，保持
+           * #1748 的一致性原则），并在顶层展开产物外层包一个 let 把
+           * 定义点的绑定值注入（见 g_resolve_syntactic_closures）。 */
+          if (root_val == s7_undefined (sc) && s7_is_symbol (val)) {
+            synclo_lexical_inject* inj= lexical_inject_find (*inject_head, env, expr);
+            if (!inj) {
+              s7_pointer g= s7_gensym (sc, s7_symbol_name (expr));
+              s7_gc_protect_via_stack (sc, g);
+              inj= (synclo_lexical_inject*) malloc (sizeof (synclo_lexical_inject));
+              if (inj) {
+                inj->gensym= g;
+                inj->env   = env;
+                inj->expr  = expr;
+                inj->next  = *inject_head;
+                *inject_head= inj;
+              }
+              s7_gc_unprotect_via_stack (sc, g);
+            }
+            if (inj) {
+              /* 与 memo 链互通：同一 (env,expr) 后续命中同一 gensym。 */
+              for (synclo_rename_entry* e= *memo_head; e; e= e->next) {
+                if (e->env == env && e->expr == expr) return e->gensym;
+              }
+              synclo_rename_entry* e= (synclo_rename_entry*) malloc (sizeof (synclo_rename_entry));
+              if (e) {
+                e->key   = x;
+                e->env   = env;
+                e->expr  = expr;
+                e->gensym= inj->gensym;
+                e->next  = *memo_head;
+                *memo_head= e;
+              }
+              return inj->gensym;
+            }
+          }
           return expr;
         }
       }
@@ -429,7 +489,7 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
     s7_pointer kar = s7_car (x);
     s7_pointer cdr_x= s7_cdr (x);
     if (is_quote_form (sc, kar) && s7_is_pair (cdr_x) && s7_is_null (sc, s7_cdr (cdr_x))) {
-      s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head);
+      s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head, inject_head);
       s7_gc_protect_via_stack (sc, resolved_kar);
       s7_pointer stripped_kdr= strip_synclos (sc, cdr_x);
       s7_gc_protect_via_stack (sc, stripped_kdr);
@@ -446,11 +506,11 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
        * 引用 {gg}-N 而 gg 的 define 注册名是裸 gg，前向引用运行时 unbound。
        * 改为统一 resolve_ast 后，定义处与引用处得到同一 gensym。
        * 若目标本身不含 synclo，resolve_ast 原样返回，不影响 #1451 行为。 */
-      s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head);
+      s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head, inject_head);
       s7_gc_protect_via_stack (sc, resolved_kar);
-      s7_pointer resolved_target= resolve_ast (sc, s7_car (cdr_x), def_env, memo_head);
+      s7_pointer resolved_target= resolve_ast (sc, s7_car (cdr_x), def_env, memo_head, inject_head);
       s7_gc_protect_via_stack (sc, resolved_target);
-      s7_pointer resolved_body= resolve_ast (sc, s7_cdr (cdr_x), def_env, memo_head);
+      s7_pointer resolved_body= resolve_ast (sc, s7_cdr (cdr_x), def_env, memo_head, inject_head);
       s7_gc_protect_via_stack (sc, resolved_body);
       s7_pointer res= s7_cons (sc, resolved_kar, s7_cons (sc, resolved_target, resolved_body));
       s7_gc_unprotect_via_stack (sc, resolved_body);
@@ -458,9 +518,9 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
       s7_gc_unprotect_via_stack (sc, resolved_kar);
       return res;
     }
-    s7_pointer res_kar= resolve_ast (sc, kar, def_env, memo_head);
+    s7_pointer res_kar= resolve_ast (sc, kar, def_env, memo_head, inject_head);
     s7_gc_protect_via_stack (sc, res_kar);
-    s7_pointer res_kdr= resolve_ast (sc, cdr_x, def_env, memo_head);
+    s7_pointer res_kdr= resolve_ast (sc, cdr_x, def_env, memo_head, inject_head);
     s7_gc_protect_via_stack (sc, res_kdr);
     s7_pointer res= (res_kar == kar && res_kdr == cdr_x) ? x : s7_cons (sc, res_kar, res_kdr);
     s7_gc_unprotect_via_stack (sc, res_kdr);
@@ -475,7 +535,7 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
     s7_pointer v  = s7_make_vector (sc, len);
     s7_gc_protect_via_stack (sc, v);
     for (s7_int i= 0; i < len; i++) {
-      s7_vector_set (sc, v, i, resolve_ast (sc, s7_vector_ref (sc, x, i), def_env, memo_head));
+      s7_vector_set (sc, v, i, resolve_ast (sc, s7_vector_ref (sc, x, i), def_env, memo_head, inject_head));
     }
     s7_gc_unprotect_via_stack (sc, v);
     return v;
@@ -486,14 +546,45 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
 static s7_pointer
 g_resolve_syntactic_closures (s7_scheme* sc, s7_pointer args) {
   s7_gc_protect_via_stack (sc, args);
-  s7_pointer           form     = s7_car (args);
-  s7_pointer           def_env  = (s7_is_pair (s7_cdr (args)) ? s7_cadr (args) : s7_rootlet (sc));
-  synclo_rename_entry* memo_head= NULL;
-  s7_pointer           res      = resolve_ast (sc, form, def_env, &memo_head);
+  s7_pointer            form        = s7_car (args);
+  s7_pointer            def_env     = (s7_is_pair (s7_cdr (args)) ? s7_cadr (args) : s7_rootlet (sc));
+  synclo_rename_entry*  memo_head   = NULL;
+  synclo_lexical_inject* inject_head= NULL;
+  s7_pointer            res         = resolve_ast (sc, form, def_env, &memo_head, &inject_head);
   while (memo_head) {
     synclo_rename_entry* next= memo_head->next;
     free (memo_head);
     memo_head= next;
+  }
+  /* [1290] 若展开中引用了定义点环境的局部词法变量，则用 let 把这些
+   * 绑定注入到展开产物外层：gensym 绑定到 (let-ref def-env sym)。
+   * 绑定处与引用处同 gensym，值在展开时从定义点环境求取，
+   * 既保住卫生性又不被 use-site 捕获。 */
+  if (inject_head) {
+    s7_pointer bindings= s7_nil (sc);
+    s7_gc_protect_via_stack (sc, bindings);
+    for (synclo_lexical_inject* inj= inject_head; inj; inj= inj->next) {
+      /* (gensym (let-ref <env> 'sym)) */
+      s7_pointer ref_call= s7_cons (sc, s7_make_symbol (sc, "let-ref"),
+                                s7_cons (sc, inj->env,
+                                  s7_cons (sc, s7_cons (sc, s7_make_symbol (sc, "quote"),
+                                               s7_cons (sc, inj->expr, s7_nil (sc))),
+                                    s7_nil (sc))));
+      s7_gc_protect_via_stack (sc, ref_call);
+      s7_pointer binding= s7_cons (sc, inj->gensym, s7_cons (sc, ref_call, s7_nil (sc)));
+      s7_gc_protect_via_stack (sc, binding);
+      bindings= s7_cons (sc, binding, bindings);
+      s7_gc_unprotect_via_stack (sc, binding);
+      s7_gc_unprotect_via_stack (sc, ref_call);
+    }
+    s7_gc_unprotect_via_stack (sc, bindings);
+    res= s7_cons (sc, s7_make_symbol (sc, "let"),
+             s7_cons (sc, bindings, s7_cons (sc, res, s7_nil (sc))));
+  }
+  while (inject_head) {
+    synclo_lexical_inject* next= inject_head->next;
+    free (inject_head);
+    inject_head= next;
   }
   s7_gc_unprotect_via_stack (sc, args);
   return res;
