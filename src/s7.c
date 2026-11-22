@@ -11983,7 +11983,7 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
 #define SYMBOL_OK true
 #define NO_SYMBOLS false
 
-static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with_error, s7_pointer port, bool error_if_bad_number)
+static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with_error, s7_pointer port, bool error_if_bad_number, int32_t radix)
 {
   /* name is the stuff after the '#', return sc->nil if not a recognized #... entity */
   if ((!name) || (!*name)) /* (string->number "#") for example */
@@ -12084,7 +12084,28 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
 	    error_nr(sc, sc->read_error_symbol, set_elist_2(sc, wrap_string(sc, "#~A is not a number", 19), wrap_string(sc, name, safe_strlen(name))));
 	  return(result);
 	}
-      break;
+      /* 非 bignum 模式：自行解析 #d/#e/#i 前缀。#d 强制十进制基数；
+       * #e 将结果转为 exact，#i 将结果转为 inexact（不改变基数，沿用外层 radix）。
+       * 跳过前导前缀字符后，剩余部分可能仍带 #x/#o/#b/#i/#e 等嵌套前缀，交给
+       * make_atom 递归处理（其 case '#' 会回派到 make_sharp_constant 并携带 radix）。 */
+      {
+	int32_t inner_radix = ((name[0] == 'd') || (name[0] == 'D')) ? 10 : radix;
+	s7_pointer result = make_atom(sc, (char *)(name + 1), inner_radix, NO_SYMBOLS, with_error);
+	if (result == sc->F)
+	  {
+	    if (error_if_bad_number)
+	      error_nr(sc, sc->read_error_symbol, set_elist_2(sc, wrap_string(sc, "#~A is not a number", 19), wrap_string(sc, name, safe_strlen(name))));
+	    return(result);
+	  }
+	if ((name[0] == 'i') || (name[0] == 'I'))
+	  result = exact_to_inexact_p_p(sc, result);
+	else if ((name[0] == 'e') || (name[0] == 'E'))
+	  result = inexact_to_exact_p_p(sc, result);
+	/* #d/#D: 无需转换 */
+	if (result == NULL)
+	  return(make_undefined(sc, name));
+	return(result);
+      }
 
       /* -------- #\... -------- */
     case '\\':
@@ -12169,7 +12190,7 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
 }
  
 /* bridge for s7_scheme_read.c */
-s7_pointer s7i_make_sharp_constant(s7_scheme *sc, const char *name, bool with_error, s7_pointer port, bool error_if_bad_number) {return(make_sharp_constant(sc, name, with_error, port, error_if_bad_number));}
+s7_pointer s7i_make_sharp_constant(s7_scheme *sc, const char *name, bool with_error, s7_pointer port, bool error_if_bad_number) {return(make_sharp_constant(sc, name, with_error, port, error_if_bad_number, 10));}
 
 static const char *radstr[17] = {NULL, NULL, "01", "012", "0123", "01234", "012345", "0123456", "01234567", "012345678", "0123456789",
   "0123456789aA", "0123456789aAbB", "0123456789aAbBcC", "0123456789aAbBcCdD", "0123456789aAbBcCdDeE", "0123456789aAbBcCdDeEfF"};
@@ -12554,7 +12575,7 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
     {
     case '#':
       /* from string->number, (string->number #xc) */
-      return(make_sharp_constant(sc, p, with_error, NULL, false)); /* make_sharp_constant expects the '#' to be removed */
+      return(make_sharp_constant(sc, p, with_error, NULL, false, radix)); /* make_sharp_constant expects the '#' to be removed */
 
     case '+':
     case '-':
@@ -72003,13 +72024,13 @@ static token_t read_sharp(s7_scheme *sc, s7_pointer port)
 	    }
 	  break;
 	}
-      /* 非 bignum 模式：#i 前缀语义依赖 bignum 钩子，此处不解析。
-       * 递归 read_sharp 会把紧跟的数字误当向量维度，遇 EOF 时在 C 层
-       * throw 'read-error “unexpected end of input while reading #n...”，
-       * 导致 (read "#i1") 等输入 crash。直接回退到 token_sharp_const，
-       * 与 #e（read_sharp 无 case 'e'）路径一致，最终读成符号。 */
-      backchar('i', port);
-      break;
+      /* 非 bignum 模式：#i<number> 走 token_sharp_const 路径交由
+       * make_sharp_constant 解析。此处不 backchar，使后续 string_read_sharp/
+       * file_read_sharp 读取的名称去掉前导 '#'（即 "i1"），与 #x/#o/#b/#d 等路径一致。
+       * 旧版 backchar('i') 会让名称变成 "#i1"，make_sharp_constant 因 name[0]='#'
+       * 无法匹配 case 'i' 而读成 undefined（写出为 "##i1"）。 */
+      sc->strbuf[0] = (unsigned char)c;
+      return(token_sharp_const);
 
     case 'r':                      /* #r(...) */
       if (read_sharp(sc, port) == token_vector)
