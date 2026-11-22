@@ -33,8 +33,7 @@
 ;; type-error
 ;; 当 string 不是字符串时抛出错误。
 
-(import (liii check))
-(import (scheme base))
+(import (liii check) (liii unicode) (scheme base))
 
 (check-set-mode! 'report-failed)
 
