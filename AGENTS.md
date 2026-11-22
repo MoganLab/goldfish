@@ -173,6 +173,14 @@ cmark/ → goldfish/ → r7rs/
 - 迁移应小步进行，不批量移动无关代码；每次迁移配套回归测试。
 - 测试、构建配置和基础设施服务于上述板块，不单独构成第五层。
 
+### 2.5 字符与字符串的 Unicode 设计
+
+- **char 层完整支持 Unicode 码点**：`#\x10F700` 等 astral 字符可直接构造，`char->integer` / `integer->char` / `char=?` 等语义与 BMP 字符一致。
+- **string 层不默认 Unicode**：string 是字节字符序列，其内容可能来自任意编码（UTF-8、GBK、Latin-1……）的外部数据，运行时无法假设编码，因此 `string-length` / `string-ref` / `string->list` 一律按字节字符计数；astral 字符进入 string 时按其 UTF-8 编码展开为 4 个字节字符。这同时保证了 O(1) 随机访问等基础操作的性能：若默认按码点计数，每次索引都需从头打描变长编码。
+- **文本端口同理**：`read-char` / `peek-char` 按字节字符读取，`write-char` 写入 astral 字符时按 UTF-8 编码写入全部字节。
+- **按码点操作需显式声明编码**：Unicode 本身也有多种编码形式（UTF-8/UTF-16BE/UTF-16LE），应使用 `(liii unicode)` 的 `utf8-*` / `utf16be-*` / `utf16le-*` 系列函数，而非默认 string 操作。
+- 该设计的固化测试位于 `r7rs/tests/scheme/base/astral-char-test.scm`。
+
 ## 3. Record 定义规范
 
 - 定义带默认值或关键字参数的 record 类型时，应使用 `(liii base)` 提供的 `define*-record-type`，直接生成对外构造器（如 `pi-retry-config`），避免在 `types.scm` 中定义并导出 `%make-xxx` 内部构造器后再在 `record.scm` 中二次包装。
