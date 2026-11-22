@@ -278,13 +278,32 @@
       ) ;if
     ) ;define
 
+    ;; ESC ESC 是 Meta 前缀（macOS 终端 Option=Meta/Esc+ 时 Option+键的编码
+    ;; 形式）：消费第二个 ESC，解析剩余序列合成 alt- 组合键（ESC ESC [A →
+    ;; alt-up）；双 ESC 之后无字节或非 CSI/SS3 起始时维持双击 escape 现状
+    (define (%parse-meta-escape bv i len)
+      (if (>= (+ i 2) len)
+        (values 'escape (+ i 1))
+        (let* ((b2 (bytevector-u8-ref bv (+ i 2)))
+               (parse (if (= b2 91) %parse-csi %parse-ss3))
+              ) ;
+          (if (%csi-meta-prefix? b2)
+            (let-values (((k next) (parse bv (+ i 1) len)))
+              (values (%alt-wrap k) next)
+            ) ;let-values
+            (values 'escape (+ i 1))
+          ) ;if
+        ) ;let*
+      ) ;if
+    ) ;define
+
     (define (%parse-escape bv i len)
       (if (>= (+ i 1) len)
         (values 'escape (+ i 1))
         (let ((b1 (bytevector-u8-ref bv (+ i 1))))
           (cond ((= b1 91) (%parse-csi bv i len))
                 ((= b1 79) (%parse-ss3 bv i len))
-                ((= b1 27) (values 'escape (+ i 1)))
+                ((= b1 27) (%parse-meta-escape bv i len))
                 ((= b1 13) (%parse-alt-enter bv i len))
                 ((= b1 10) (values 'alt-enter (+ i 2)))
                 ((= b1 9) (values 'alt-tab (+ i 2)))

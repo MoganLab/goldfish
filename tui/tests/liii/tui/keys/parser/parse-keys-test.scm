@@ -45,6 +45,12 @@
 (check (parse-keys "\x1b;[A\x1b;[B\x1b;[C\x1b;[D") => '(up down right left))
 (check (parse-keys "\x1b;OA\x1b;OB") => '(up down))
 
+;; 双 ESC Meta 序列流（macOS 终端 Option=Meta/Esc+ 时 Option+键的编码）
+(check (parse-keys "\x1b;\x1b;[A\x1b;\x1b;[B") => '(alt-up alt-down))
+(check (parse-keys "\x1b;\x1b;[Dabc") => '(alt-left "a" "b" "c"))
+;; 无时序信息时裸双 ESC 无法与两个独立 ESC 区分，维持两个 escape（回归）
+(check (parse-keys "\x1b;\x1b;") => '(escape escape))
+
 ;; 混合输入（文本、方向键、回车、快捷键）
 (check (parse-keys "w\x1b;[As\x1b;[B") => '("w" up "s" down))
 (check (parse-keys "quit\r\n") => '("q" "u" "i" "t" enter))

@@ -188,6 +188,20 @@
 (check (parse-key "\x1b;\t") => 'alt-tab)
 (check (parse-key "\x1b;") => 'alt-backspace)
 
+;; 双 ESC Meta 序列（macOS 终端 Option=Meta/Esc+ 时 Option+键的编码）
+(check (parse-key "\x1b;\x1b;[A") => 'alt-up)
+(check (parse-key "\x1b;\x1b;[B") => 'alt-down)
+(check (parse-key "\x1b;\x1b;[C") => 'alt-right)
+(check (parse-key "\x1b;\x1b;[D") => 'alt-left)
+(check (parse-key "\x1b;\x1b;OA") => 'alt-up)
+(check (parse-key "\x1b;\x1b;OB") => 'alt-down)
+(check (parse-key "\x1b;\x1b;OP") => 'alt-f1)
+(check (parse-key "\x1b;\x1b;[1;3A") => 'alt-up)
+(check (parse-key "\x1b;\x1b;[1;5A") => 'alt-ctrl-up)
+(check (parse-key "\x1b;\x1b;[3~") => 'alt-delete)
+(check (parse-key "\x1b;\x1b;") => 'escape)
+(check (parse-key "\x1b;\x1b;[A" #t) => (cons 'alt-up ""))
+
 ;; with-rest? 参数
 (check (parse-key "\x1b;[Adef" #t) => (cons 'up "def"))
 (check (parse-key "\r\nxyz" #t) => (cons 'enter "xyz"))

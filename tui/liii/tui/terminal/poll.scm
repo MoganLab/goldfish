@@ -38,6 +38,7 @@
     (liii tui terminal virtual)
     (liii tui terminal key-map)
     (liii tui keys parser)
+    (liii tui keys table)
     (liii tui mouse)
   ) ;import
   (begin
@@ -85,27 +86,24 @@
       ) ;let
     ) ;define
 
-    ;; CSI 终结字节（0x40~0x7E）：序列到此结束
-    (define (%csi-final-byte? b)
-      (and (integer? b) (>= b 64) (<= b 126))
-    ) ;define
-
     ;; 转义序列是否已完整（bytes 按到达顺序排列）：
+    ;;   ESC ESC [ ... <终结字节> → 双 ESC Meta 序列（macOS Option=Esc+）
+    ;;   ESC ESC O <键>            → 双 ESC Meta 的 SS3 形式
     ;;   ESC [ ... <终结字节>  → CSI 序列（鼠标 SGR 事件即此类）
     ;;   ESC O <终结字节>      → SS3 序列
     ;;   ESC <字符>            → 单字符转义
     ;; 序列完整即可停止读取：否则每个转义序列都要在末尾多等一次超时
     ;; （鼠标滚轮事件因此凭空多出 10ms 延迟）。
+    ;; 双 ESC Meta 前缀（如 Option+方向键）不提前判完整：
+    ;; 序列字节聚齐后一次返回完整序列，真双击 ESC 则由超时兜底，
+    ;; 解析为 escape，行为不变。
     (define (%escape-bytes-complete? bytes)
-      (let ((len (length bytes)))
-        (cond ((< len 2) #f)
-              ((= (cadr bytes) 91)
-               (and (> len 2) (%csi-final-byte? (list-ref bytes (- len 1))))
-              ) ;
-              ((= (cadr bytes) 79) (> len 2))
-              (else #t)
-        ) ;cond
-      ) ;let
+      (cond ((%meta-escape-prefix? bytes) (%meta-escape-complete? bytes))
+            ((< (length bytes) 2) #f)
+            ((= (cadr bytes) 91) (and (> (length bytes) 2) (%csi-final-byte? (last bytes))))
+            ((= (cadr bytes) 79) (> (length bytes) 2))
+            (else #t)
+      ) ;cond
     ) ;define
 
     ;; 读取一个转义序列的字节：按到达顺序累积，序列完整即返回

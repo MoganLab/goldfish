@@ -46,4 +46,14 @@
 ;; 普通按键仍解析为符号
 (check (%resolve-ansi-bytes '(27 91 65)) => 'up)
 
+;; 双 ESC Meta 序列（macOS 终端 Option=Meta/Esc+ 时 Option+键的编码）：
+;; ESC ESC [ A = 27 27 91 65 等，第二个 ESC 是 Meta 前缀而非独立按键
+(check (%resolve-ansi-bytes '(27 27 91 65)) => 'alt-up)
+(check (%resolve-ansi-bytes '(27 27 91 66)) => 'alt-down)
+(check (%resolve-ansi-bytes '(27 27 91 67)) => 'alt-right)
+(check (%resolve-ansi-bytes '(27 27 91 68)) => 'alt-left)
+(check (%resolve-ansi-bytes '(27 27 79 65)) => 'alt-up)
+(check (%resolve-ansi-bytes '(27 27 91 49 59 53 65)) => 'alt-ctrl-up)
+(check (%resolve-ansi-bytes '(27 27)) => 'escape)
+
 (check-report)
