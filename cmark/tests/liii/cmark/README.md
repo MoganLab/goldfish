@@ -10,5 +10,6 @@
 - `(liii cmark inline parser)` - 行内解析器
 - `(liii cmark inline math)` - 数学公式解析器
 - `(liii cmark stem)` - Markdown 到 md-stem S 表达式转换
+- `(liii cmark markdown)` - md-stem S 表达式到 Markdown 文本反向转换
 - `(liii cmark stem-reader)` - `.md.stem` 资源文本读取器
 - `(liii cmark text)` - 通用字符串与文本辅助工具
