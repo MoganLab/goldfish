@@ -38,6 +38,7 @@
     (liii tui terminal virtual)
     (liii tui terminal key-map)
     (liii tui keys parser)
+    (liii tui keys table)
     (liii tui mouse)
   ) ;import
   (begin
