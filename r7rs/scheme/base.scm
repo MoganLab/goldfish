@@ -530,7 +530,8 @@
     ;; ±inf.0 与 +nan.0 不是有理数（s7 原生行为已正确）。
     ;; 零虚部复数不是 real?，天然被 real? 过滤，无需单独处理。
     (define rational?
-      (lambda (x) (and (real? x) (not (infinite? x)) (not (nan? x)))))
+      (lambda (x) (and (real? x) (not (infinite? x)) (not (nan? x))))
+    ) ;define
 
     (define (boolean=? obj1 obj2 . rest)
       (define (same-boolean obj rest)
