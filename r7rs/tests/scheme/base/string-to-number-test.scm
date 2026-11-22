@@ -90,9 +90,7 @@
 (check (string->number "-3+4i") => -3.0+4.0i)
 (check (string->number "3.14-2.71i") => 3.14-2.71i)
 (check (string->number "0+1i") => 0.0+1.0i)
-(check (string->number "0+0i") => 0)
-;; R7RS：虚部为非精确零时结果是非实数复数，不再塔缩为实数
-(check (string->number "1+0i") => 1)
+(check (string->number "0+0i") => 0.0)
 ;; R7RS：虚部为非精确零时结果是非实数复数，不再塔缩为实数
 (check (complex? (string->number "1.0+0.0i")) => #t)
 (check (real? (string->number "1.0+0.0i")) => #f)

@@ -12831,11 +12831,6 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
 	s7_pointer result;
 	s7_int len = safe_strlen(q);
 	char ql1, pl1;
-	bool exact_rl = false;
-	s7_int rl_int = 0;
-	bool exact_ratio_rl = false;
-	s7_int rl_num = 0, rl_den = 1;
-	bool exact_im_zero = false;
 
 	if (q[len - 1] != 'i')
 	  return((want_symbol) ? make_symbol_with_strlen(sc, q) : sc->F);
@@ -12881,16 +12876,11 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
 		      {
 			if (overflow) return(make_undefined_overflow(sc, q)); /* denominator overflow */
 			rl = (long_double)num / (long_double)den; /* no gmp, so we do what we can */
-			exact_ratio_rl = true;
-			rl_num = num;
-			rl_den = den;
 		      }}}
 	    else
 	      {
 		rl = (s7_double)s7_string_to_integer(q, radix, &overflow);
 		if (overflow) return(make_undefined_overflow(sc, q));
-		exact_rl = true;
-		rl_int = (s7_int)rl;
 	      }}
 	if (rl == -0.0) rl = 0.0;
 
@@ -12914,7 +12904,6 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
 		      {
 			im = 0.0;
 			overflow = false;
-			exact_im_zero = true;
 		      }
 		    else
 		      {
@@ -12925,19 +12914,12 @@ s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bo
 	      {
 		im = (s7_double)s7_string_to_integer(plus, radix, &overflow);
 		if (overflow) return(make_undefined_overflow(sc, q));
-		exact_im_zero = (im == 0.0);
 	      }}
 	if ((has_plus_or_minus == -1) &&
 	    (im != 0.0))
 	  im = -im;
-	if (exact_im_zero)
-	  {
-	    if (exact_rl) result = make_integer(sc, rl_int);
-	    else if (exact_ratio_rl) result = make_ratio(sc, rl_num, rl_den);
-	    else result = make_real(sc, rl);
-	  }
-	else if ((im == 0.0) &&
-		 ((has_dec_point2) || (ex2)))  /* R7RS: an inexact zero imaginary part is a complex, not a real number */
+	if ((im == 0.0) &&
+	    ((has_dec_point2) || (ex2)))  /* R7RS: an inexact zero imaginary part is a complex, not a real number */
 	  result = make_complex_not_0i(sc, rl, im);
 	else result = make_complex(sc, rl, im);
 	/* restore original string */
