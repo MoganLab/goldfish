@@ -46,4 +46,26 @@
   3
 ) ;check
 
+;; 测试3：卫生性——宏模板内的 if 不被 use-site 同名局部绑定捕获（#1290）
+;; 模板展开生成的 (if test (begin ...)) 中的 if 必须引用定义处的特殊形式，
+;; 而非使用点 (let ((if #t))) 里的布尔值。
+(check
+  (let-syntax
+    ((when
+       (syntax-rules ()
+         ((when test stmt1 stmt2 ...) (if test (begin stmt1 stmt2 ...)))
+       ) ;syntax-rules
+     ) ;when
+    ) ;
+    (let ((if #t))
+      (when if
+        (set! if 'now)
+      ) ;when
+      if
+    ) ;let
+  ) ;let-syntax
+  =>
+  'now
+) ;check
+
 (check-report)
