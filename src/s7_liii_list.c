@@ -10,6 +10,20 @@
 #include <stddef.h>
 #include <stdio.h>
 
+/* [CI-DEBUG] issue #1741 探针：每轮回调前后校验 s7 栈是否漂移。
+ * struct s7_scheme 对本编译单元不透明，栈深/top-op 经 s7.c 导出的 getter 获取。 */
+extern int s7i_gf_fold_trace_enabled(void);
+extern long s7i_stack_top(s7_scheme *sc);      /* s7.c: stack_end - stack_start */
+extern long s7i_stack_top_op(s7_scheme *sc);   /* s7.c: 栈顶 opcode 原始值 */
+static void gf_dbg_check(s7_scheme *sc, const char *where, long iter, long top_before)
+{
+  const long top_now = s7i_stack_top(sc);
+  const long op_now  = s7i_stack_top_op(sc);
+  fprintf(stderr, "[gf-dbg] %s: iter=%ld top %ld -> %ld top_op=%ld%s\n",
+          where, iter, top_before, top_now, op_now,
+          (top_now != top_before) ? "  <<<< STACK DRIFT" : "");
+}
+
 static s7_pointer list_type_error(s7_scheme *sc, const char *caller, s7_pointer arg, const char *descr)
 {
   char msg[256];
@@ -920,6 +934,8 @@ s7_pointer g_fold(s7_scheme *sc, s7_pointer args)
   s7_pointer f = s7_car(keep);
   s7_pointer acc_cell = s7_cdr(anchor);
   s7_pointer p = lst;
+  long gf_dbg_iter = 0;                                             /* [CI-DEBUG] */
+  const long gf_dbg_top0 = s7i_stack_top(sc);                    /* [CI-DEBUG] 进入循环时栈深 */
   while (s7_is_pair(p))
     {
       /* 用 s7_call 而非 s7_apply_function：semisafe 的 g_fold 在 C 循环里回调用户过程，
@@ -928,7 +944,12 @@ s7_pointer g_fold(s7_scheme *sc, s7_pointer args)
        * g_fold 帧内；而 s7_apply_function 不建帧，catch 会跳到 g_fold 之上（调用者帧），
        * 导致 g_fold 栈帧被越过、永不返回（表现为串行测试静默中止）。
        * 见 s7.h 对 s7_call / s7_apply_function 的说明。 */
+      if (s7i_gf_fold_trace_enabled())                              /* [CI-DEBUG] */
+        gf_dbg_check(sc, "g_fold pre-call", gf_dbg_iter, gf_dbg_top0);
       s7_set_car(acc_cell, s7_call(sc, f, s7i_set_plist_2(sc, s7_car(p), s7_car(acc_cell))));
+      if (s7i_gf_fold_trace_enabled())                              /* [CI-DEBUG] */
+        gf_dbg_check(sc, "g_fold post-call", gf_dbg_iter, gf_dbg_top0);
+      gf_dbg_iter++;
       p = s7_cdr(p);
     }
   if (!s7_is_null(sc, p))
@@ -972,10 +993,17 @@ s7_pointer g_fold_right(s7_scheme *sc, s7_pointer args)
     }
   s7_pointer f = s7_car(keep);
   s7_pointer acc_cell = s7_cdr(anchor);
+  long gf_dbg_iter = 0;                                             /* [CI-DEBUG] */
+  const long gf_dbg_top0 = s7i_stack_top(sc);                    /* [CI-DEBUG] */
   while (s7_is_pair(rev))
     {
       /* 同 g_fold：用 s7_call 建立局部跳转帧，避免回调内的 (catch ...) 跳过 g_fold_right 帧而中止迭代。 */
+      if (s7i_gf_fold_trace_enabled())                              /* [CI-DEBUG] */
+        gf_dbg_check(sc, "g_fold_right pre-call", gf_dbg_iter, gf_dbg_top0);
       s7_set_car(acc_cell, s7_call(sc, f, s7i_set_plist_2(sc, s7_car(rev), s7_car(acc_cell))));
+      if (s7i_gf_fold_trace_enabled())                              /* [CI-DEBUG] */
+        gf_dbg_check(sc, "g_fold_right post-call", gf_dbg_iter, gf_dbg_top0);
+      gf_dbg_iter++;
       rev = s7_cdr(rev);
     }
   s7_pointer result = s7_car(acc_cell);

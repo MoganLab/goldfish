@@ -34557,6 +34557,23 @@ pass (rootlet):\n\
 }
 
 
+/* [CI-DEBUG] issue #1741 探针：环境变量 GF_FOLD_TRACE=1 时打点 g_fold 迭代，
+ * 追除 s7_call 内 catch/longjmp 返回后 s7 栈是否漂移。async-signal-safe，正式修复后删除 */
+#include <stdlib.h>
+static int gf_fold_trace_enabled(void)
+{
+  static int enabled = -1;
+  if (enabled < 0)
+    {
+      const char *e = getenv("GF_FOLD_TRACE");
+      enabled = (e && *e && *e != '0');
+    }
+  return enabled;
+}
+int s7i_gf_fold_trace_enabled(void) {return gf_fold_trace_enabled();} /* [CI-DEBUG] 导出给 s7_liii_list.c 的 g_fold 探针 */
+long s7i_stack_top(s7_scheme *sc) {return (long)(sc->stack_end - sc->stack_start);} /* [CI-DEBUG] */
+long s7i_stack_top_op(s7_scheme *sc) {return (long)(intptr_t)sc->stack_end[-1];}    /* [CI-DEBUG] 栈顶 opcode 原始值 */
+
 s7_pointer s7_call(s7_scheme *sc, s7_pointer func, s7_pointer args)
 {
   if (is_c_function(func))
@@ -34570,6 +34587,9 @@ s7_pointer s7_call(s7_scheme *sc, s7_pointer func, s7_pointer args)
     sc->temp4 = T_App(func);                           /* this is feeble GC protection */
     sc->temp2 = T_Lst(args);                           /* only use of temp2 */
     store_jump_info(sc);
+    if (gf_fold_trace_enabled())
+      { const s7_int dbg_top0 = stack_top(sc);
+        fprintf(stderr, "[gf-dbg] s7_call: enter top=%ld func=%s\n", (long)dbg_top0, c_function_name(func) ? "c-func" : "scheme"); } /* [CI-DEBUG] */
     set_jump_info(sc, s7_call_set_jump);
     if (jump_loc != no_jump)
       {
@@ -34578,6 +34598,9 @@ s7_pointer s7_call(s7_scheme *sc, s7_pointer func, s7_pointer args)
 	if ((jump_loc == catch_jump) &&                /* we're returning (back to eval) from an error in catch */
 	    (sc->stack_end == sc->stack_start))
 	  push_stack_op(sc, OP_ERROR_QUIT);
+	if (gf_fold_trace_enabled()) /* [CI-DEBUG] longjmp 返回路径：对比进入时栈深，观察漂移 */
+	  fprintf(stderr, "[gf-dbg] s7_call: longjmp-return loc=%d top=%ld (func was %s)\n",
+		  (int)jump_loc, (long)stack_top(sc), is_c_function(func) ? "c" : "scheme");
       }
     else
       {
@@ -34588,6 +34611,8 @@ s7_pointer s7_call(s7_scheme *sc, s7_pointer func, s7_pointer args)
 	sc->args = (needs_copied_args(func)) ? copy_proper_list(sc, args) : args;
 	eval(sc, OP_APPLY);
       }
+    if (gf_fold_trace_enabled()) /* [CI-DEBUG] 正常返回路径 */
+      fprintf(stderr, "[gf-dbg] s7_call: eval-done top=%ld\n", (long)stack_top(sc));
     restore_jump_info(sc);
     /* don't clear temp4 or temp2 here -- lots of (Snd) code calls s7_call repeatedly and assumes the "func" arg is protected between calls */
     return(sc->value);
@@ -79583,6 +79608,70 @@ static s7_pointer g_is_bignum_enabled(s7_scheme *sc, s7_pointer args)
   return(sc->bignum_enabled ? sc->T : sc->F);
 }
 
+/* ---- [CI-DEBUG] 布局敏感 SIGSEGV 探针（issue #1741），正式修复后整体删除 ---- */
+#if !MS_WINDOWS
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
+static s7_scheme *gf_crash_sc = NULL;
+static void gf_sigsegv_dump(int sig)
+{
+  void *frames[64];
+  int n = backtrace(frames, 64);
+  const char banner[] = "\n===SIGSEGV BACKTRACE===\n";
+  write(2, banner, sizeof(banner) - 1);
+  backtrace_symbols_fd(frames, n, 2);
+  if (gf_crash_sc)
+    {
+      char buf[512];
+      int len;
+      s7_scheme *sc = gf_crash_sc;
+      len = snprintf(buf, sizeof(buf),
+        "===S7 STATE===\nsc=%p code=%p args=%p value=%p curlet=%p\n",
+        (void *)sc, (void *)sc->code, (void *)sc->args, (void *)sc->value, (void *)sc->curlet);
+      write(2, buf, len);
+      len = snprintf(buf, sizeof(buf),
+        "stack: start=%p end=%p top=%ld size=%u op_stack_now_off=%ld\n",
+        (void *)sc->stack_start, (void *)sc->stack_end,
+        (long)(sc->stack_end - sc->stack_start), (unsigned)sc->stack_size,
+        (long)(sc->op_stack_now - sc->op_stack));
+      write(2, buf, len);
+      /* dump 栈顶 opcode 序列：栈错位/溢出时可见 garbage op */
+      {
+        const s7_int top = sc->stack_end - sc->stack_start;
+        s7_int i = 0, wrote = 0;
+        /* 只用 write(2)，逐帧打印 op 序号，不做任何对象 display（不安全） */
+        len = snprintf(buf, sizeof(buf), "===S7 STACK OPS (top..bottom)===");
+        write(2, buf, len);
+        for (i = top - 1; (i >= 3) && (wrote < 24); i -= 4)
+          {
+            long op = (long)(intptr_t)sc->stack_start[i];
+            len = snprintf(buf, sizeof(buf), " %ld", op);
+            write(2, buf, len);
+            wrote++;
+          }
+        len = snprintf(buf, sizeof(buf), "\n");
+        write(2, buf, len);
+      }
+      {
+        const s7_int op_top = sc->op_stack_now - sc->op_stack;
+        s7_int i, wrote = 0;
+        len = snprintf(buf, sizeof(buf), "===S7 OP_STACK (top..bottom)===");
+        write(2, buf, len);
+        for (i = op_top - 1; (i >= 0) && (wrote < 16); i--)
+          {
+            len = snprintf(buf, sizeof(buf), " %p", (void *)(intptr_t)sc->op_stack[i]);
+            write(2, buf, len);
+            wrote++;
+          }
+        len = snprintf(buf, sizeof(buf), "\n");
+        write(2, buf, len);
+      }
+    }
+  _exit(128 + sig);
+}
+#endif
+
 s7_scheme *s7_init(void)
 {
   s7_scheme *sc;
@@ -80127,6 +80216,16 @@ s7_scheme *s7_init(void)
 	  (int)sizeof(block_t), (int)sizeof(port_functions_t), (int)sizeof(s7_cell), (int)sizeof(s7_scheme), (int)sizeof(opt_info));
 #endif
 
+  /* [CI-DEBUG] SIGSEGV 探针：记录主会话 sc（go worker 会话的 s7_init 也会走这里，
+   * 但崩溃发生在主会话的 g_fold 路径，这里只挂主会话；handler 本身异步安全） */
+#if !MS_WINDOWS
+  if (!gf_crash_sc)
+    {
+      gf_crash_sc = sc;
+      signal(SIGSEGV, gf_sigsegv_dump);
+      signal(SIGBUS, gf_sigsegv_dump);
+    }
+#endif
   return(sc);
 }
 
