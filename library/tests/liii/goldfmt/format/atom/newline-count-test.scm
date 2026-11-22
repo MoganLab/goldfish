@@ -15,19 +15,19 @@
 ;; 子 atom 的数字值。
 
 (import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record))
+(import (liii goldfmt format atom) (liii goldfmt record) (liii goldfmt marker))
 
 (check-set-mode! 'report-failed)
 
 
 ;; 测试：读取数字值
-(let ((node (make-env :tag-name "*newline*" :children (vector (make-atom :value 3))))
+(let ((node (make-env :tag-name %newline-marker-tag-name :children (vector (make-atom :value 3))))
      ) ;
   (check (newline-count node) => 3)
 ) ;let
 
 ;; 测试：值为 1
-(let ((node (make-env :tag-name "*newline*" :children (vector (make-atom :value 1))))
+(let ((node (make-env :tag-name %newline-marker-tag-name :children (vector (make-atom :value 1))))
      ) ;
   (check (newline-count node) => 1)
 ) ;let

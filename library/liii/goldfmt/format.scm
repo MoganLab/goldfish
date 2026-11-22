@@ -19,6 +19,7 @@
   ) ;export
   (import (liii base)
     (srfi srfi-13)
+    (liii goldfmt marker)
     (liii goldfmt record)
     (liii goldfmt scan)
     (liii goldfmt format atom)
@@ -62,59 +63,8 @@
       ) ;let
     ) ;define
 
-    (define (define-form? datum)
-      (and (pair? datum) (not (null? datum)) (eq? (car datum) 'define))
-    ) ;define
-
     (define (define-node? node)
       (and (env? node) (string=? (env-tag-name node) "define"))
-    ) ;define
-
-    (define (newline-form? datum)
-      (and (pair? datum)
-        (not (null? datum))
-        (eq? (car datum) '*newline*)
-        (not (null? (cdr datum)))
-        (number? (cadr datum))
-      ) ;and
-    ) ;define
-
-    (define (newline-form-count datum)
-      (cadr datum)
-    ) ;define
-
-    (define (needs-blank-line? datum is-first-expr)
-      (and (define-form? datum) (not is-first-expr))
-    ) ;define
-
-    (define (format-top-level datums)
-      (let loop
-        ((rest datums) (is-first #t) (result '()))
-        (if (null? rest)
-          (reverse result)
-          (let ((datum (car rest)))
-            (cond
-             ((newline-form? datum)
-              (if is-first
-                (loop (cdr rest) #t result)
-                (let ((blank-lines (newline-form-count datum)))
-                  (loop (cdr rest) #f (cons (make-newlines blank-lines) result))
-                ) ;let
-              ) ;if
-             ) ;
-             (else
-               (let* ((needs-blank (needs-blank-line? datum is-first))
-                      (formatted (format-datum datum))
-                      (new-result (if needs-blank (cons formatted (cons "" result)) (cons formatted result))
-                      ) ;new-result
-                     ) ;
-                 (loop (cdr rest) #f new-result)
-               ) ;let*
-             ) ;else
-            ) ;cond
-          ) ;let
-        ) ;if
-      ) ;let
     ) ;define
 
     (define (format-top-level-nodes nodes)

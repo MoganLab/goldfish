@@ -25,6 +25,7 @@
 
 (import (liii check)
   (liii goldfmt format)
+  (liii goldfmt marker)
   (liii goldfmt scan)
   (liii goldfmt record)
   (liii os)
@@ -137,7 +138,7 @@
   "`(begin\n   (define x ,a)\n   (define y ,b)\n   (define z ,c))"
 ) ;check
 
-(check (format-datum '(quote #(a (*newline* 1) b)))
+(check (format-datum (list 'quote (vector 'a (list %newline-marker-symbol 1) 'b)))
   =>
   "'#(a\n   b\n ) ;#"
 ) ;check
@@ -212,7 +213,7 @@
 ) ;check
 
 ;; 纯分号分隔线注释不应在中间插入空格
-(let ((semicolon-line (make-env :tag-name "*comment*" :children (vector (make-atom :value ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")))))
+(let ((semicolon-line (make-env :tag-name %comment-marker-tag-name :children (vector (make-atom :value ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")))))
   (check (call-with-values (lambda () (format-node semicolon-line 0))
            (lambda (text positioned-node) text))
     =>
@@ -221,7 +222,7 @@
 ) ;let
 
 ;; 内容以分号开头的注释（对应原始输入 ;;; ...）应保持连续分号
-(let ((mixed-comment (make-env :tag-name "*comment*" :children (vector (make-atom :value "; not all semicolons")))))
+(let ((mixed-comment (make-env :tag-name %comment-marker-tag-name :children (vector (make-atom :value "; not all semicolons")))))
   (check (call-with-values (lambda () (format-node mixed-comment 0))
            (lambda (text positioned-node) text))
     =>
@@ -230,7 +231,7 @@
 ) ;let
 
 ;; 空注释
-(let ((empty-comment (make-env :tag-name "*comment*" :children (vector (make-atom :value "")))))
+(let ((empty-comment (make-env :tag-name %comment-marker-tag-name :children (vector (make-atom :value "")))))
   (check (call-with-values (lambda () (format-node empty-comment 0))
            (lambda (text positioned-node) text))
     =>
@@ -239,7 +240,7 @@
 ) ;let
 
 ;; 三个分号开头的注释应保持原样
-(let ((triple-comment (make-env :tag-name "*comment*" :children (vector (make-atom :value "; certain Scheme versions do not define 'filter'")))))
+(let ((triple-comment (make-env :tag-name %comment-marker-tag-name :children (vector (make-atom :value "; certain Scheme versions do not define 'filter'")))))
   (check (call-with-values (lambda () (format-node triple-comment 0))
            (lambda (text positioned-node) text))
     =>
@@ -248,54 +249,48 @@
 ) ;let
 
 ;; 测试文件开头空行后紧跟注释，空行应被保留
-(check (format-string "(*newline* 1)\n(*comment* \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\")\n")
+(check (format-string (string-append "(" %newline-marker-tag-name " 1)\n" "(" %comment-marker-tag-name " \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\")\n"))
   =>
   "\n;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n"
 ) ;check
 
-;; 测试 quasiquote 内的 (*comment*) 被还原为 ;; 注释
+;; 测试 quasiquote 内的注释标记被还原为 ;; 注释
 ;; 注意：format-string 使用 read 读取输入，raw ;; 注释会被 read 丢弃，
-;; 因此测试输入需直接使用 tokenize 后的 (*comment*) 形式。
-(check (format-string #"IN"`(let ((x ,y))
-   (*comment* " comment inside quasiquote")
-   (display x))
-"IN")
+;; 因此测试输入需直接使用 tokenize 后的 nonce 标记形式。
+(check (format-string (string-append "`(let ((x ,y))\n   (" %comment-marker-tag-name
+                                  " \" comment inside quasiquote\")\n   (display x))\n"
+               ) ;string-append
+       ) ;format-string
   =>
-  #"OUT"`(let ((x ,y))
-   ;; comment inside quasiquote
-   (display x))
-"OUT"
+  "`(let ((x ,y))\n   ;; comment inside quasiquote\n   (display x))\n"
 ) ;check
 
-;; 测试 quote 内的 (*comment*) 被还原为 ;; 注释
-(check (format-string #"IN"'(let ((x 1))
-   (*comment* " comment inside quote")
-   (display x))
-"IN")
+;; 测试 quote 内的注释标记被还原为 ;; 注释
+(check (format-string (string-append "'(let ((x 1))\n   (" %comment-marker-tag-name
+                                  " \" comment inside quote\")\n   (display x))\n"
+               ) ;string-append
+       ) ;format-string
   =>
-  #"OUT"'(let ((x 1))
-   ;; comment inside quote
-   (display x))
-"OUT"
+  "'(let ((x 1))\n   ;; comment inside quote\n   (display x))\n"
 ) ;check
 
 ;; issue 912: 当最后一个元素是注释时，闭合括号不应合并到注释行末尾
 ;; 测试 1: format-datum 处理 comment datum — 闭合括号应独占一行
 ;; 使用 list 构建 datum，避免 gf fmt 将 (*comment* ...) 转换为 ;; ……
-(check (format-datum (list 'operator_field "$" "@" "%%" "%" (list '*comment* " ${var##pat} ${var%pat} ...")))
+(check (format-datum (list 'operator_field "$" "@" "%%" "%" (list %comment-marker-symbol " ${var##pat} ${var%pat} ...")))
   =>
   "(operator_field \"$\"\n  \"@\"\n  \"%%\"\n  \"%\"\n  ;; ${var##pat} ${var%pat} ...\n) ;operator_field"
 ) ;check
 
 ;; 测试 2: format-string 处理嵌套 form，注释是内部 form 的最后一个子元素
-(check (format-string "(define f\n  (operator_field \"$\"\n    \"@\"\n    \"%%\"\n    \"%\"\n    (*comment* \" ${var##pat} ${var%pat} ...\")\n  )\n)\n"
+(check (format-string (string-append "(define f\n  (operator_field \"$\"\n    \"@\"\n    \"%%\"\n    \"%\"\n    (" %comment-marker-tag-name " \" ${var##pat} ${var%pat} ...\")\n  )\n)\n")
        ) ;format-string
   =>
   "(define f\n  (operator_field \"$\"\n    \"@\"\n    \"%%\"\n    \"%\"\n    ;; ${var##pat} ${var%pat} ...\n  ) ;operator_field\n) ;define\n"
 ) ;check
 
 ;; 测试 3: format-string 直接测试 operator_field 中有注释作为最后一个元素
-(check (format-string "(operator_field \"$\"\n  \"@\"\n  \"%%\"\n  \"%\"\n  (*comment* \" ${var##pat} ${var%pat} ...\")\n)\n"
+(check (format-string (string-append "(operator_field \"$\"\n  \"@\"\n  \"%%\"\n  \"%\"\n  (" %comment-marker-tag-name " \" ${var##pat} ${var%pat} ...\")\n)\n")
        ) ;format-string
   =>
   "(operator_field \"$\"\n  \"@\"\n  \"%%\"\n  \"%\"\n  ;; ${var##pat} ${var%pat} ...\n) ;operator_field\n"
@@ -304,7 +299,7 @@
 ;; 测试 4: quote 形式中注释是最后一个元素 — reader-datum 路径
 ;; format-datum 处理 '(operator_field ...)，内部走 format-reader-datum-at 路径
 ;; 使用 list 构建 datum，避免 gf fmt 将 (*comment* ...) 转换为 ;; ……
-(check (format-datum (list 'quote (list 'operator_field "$" "@" "%%" "%" (list '*comment* " comment"))))
+(check (format-datum (list 'quote (list 'operator_field "$" "@" "%%" "%" (list %comment-marker-symbol " comment"))))
   =>
   "'(operator_field \"$\"\n   \"@\"\n   \"%%\"\n   \"%\"\n   ;; comment\n )"
 ) ;check

@@ -27,3 +27,4 @@ gf doc liii/goldfmt "format-scheme-string"
 - `(liii goldfmt record)` - `tests/liii/goldfmt/record/`
 - `(liii goldfmt rule)` - `tests/liii/goldfmt/rule/`
 - `(liii goldfmt tokenize)` - `tests/liii/goldfmt/tokenize/`
+- `(liii goldfmt marker)` - 内部模块：一次性 nonce 标记符号（`%comment-marker-symbol` 等，仅供同库兄弟模块导入，不单独提供单元测试文件，由 `user-marker-collision-test.scm` 等上层用例覆盖）

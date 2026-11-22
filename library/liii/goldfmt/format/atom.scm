@@ -23,6 +23,7 @@
   (import (scheme base)
     (liii base)
     (liii vector)
+    (liii goldfmt marker)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt scan normalize)
@@ -47,7 +48,7 @@
 
     (define (comment-node? node)
       (and (env? node)
-        (string=? (env-tag-name node) "*comment*")
+        (string=? (env-tag-name node) %comment-marker-tag-name)
         (= (vector-length (env-children node)) 1)
         (let ((child (vector-ref (env-children node) 0)))
           (and (atom? child) (string? (atom-value child)))
@@ -57,7 +58,7 @@
 
     (define (newline-node? node)
       (and (env? node)
-        (string=? (env-tag-name node) "*newline*")
+        (string=? (env-tag-name node) %newline-marker-tag-name)
         (= (vector-length (env-children node)) 1)
         (let ((child (vector-ref (env-children node) 0)))
           (and (atom? child) (number? (atom-value child)))
@@ -138,10 +139,7 @@
     ) ;define
 
     (define (quote-env? node)
-      (and (not (stem-mode?))
-        (env? node)
-        (string=? (env-tag-name node) "quote")
-      ) ;and
+      (and (not (stem-mode?)) (env? node) (string=? (env-tag-name node) "quote"))
     ) ;define
 
     (define (reader-prefix-env? node)

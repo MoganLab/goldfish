@@ -23,6 +23,7 @@
 
 (import (liii check)
   (liii goldfmt format)
+  (liii goldfmt marker)
   (liii goldfmt record)
   (liii list)
   (liii raw-string)
@@ -47,12 +48,12 @@
   "#(1 2)"
 ) ;check
 
-(check (format-datum (list '*comment* "hello"))
+(check (format-datum (list %comment-marker-symbol "hello"))
   =>
   ";; hello"
 ) ;check
 
-(check (format-datum (list '*comment* ""))
+(check (format-datum (list %comment-marker-symbol ""))
   =>
   ";;"
 ) ;check

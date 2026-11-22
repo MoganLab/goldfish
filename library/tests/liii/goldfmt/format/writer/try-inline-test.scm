@@ -19,6 +19,7 @@
   (liii goldfmt format writer)
   (liii goldfmt record)
   (liii goldfmt scan)
+  (liii goldfmt marker)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -30,10 +31,10 @@
 (check (try-inline (scan '(+ 1 2))) => "(+ 1 2)")
 
 ;; 测试：注释节点可以内联
-(check (try-inline (scan (list '*comment* "note"))) => #t)
+(check (try-inline (scan (list %comment-marker-symbol "note"))) => #t)
 
 ;; 测试：换行节点不能内联
-(check (try-inline (scan '(*newline* 1))) => #f)
+(check (try-inline (scan (list %newline-marker-symbol 1))) => #f)
 
 ;; 测试：过长的 env 节点不能内联
 (let ((node (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
@@ -45,7 +46,7 @@
 
 ;; 测试：包含注释的 env 不能内联
 (check
-  (try-inline (scan (list 'begin (list '*comment* "note") 'x)))
+  (try-inline (scan (list 'begin (list %comment-marker-symbol "note") 'x)))
   =>
   #f
 ) ;check
