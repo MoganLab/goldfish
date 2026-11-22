@@ -1093,32 +1093,25 @@
     (define %s7-map map)
     (define %s7-for-each for-each)
 
-    (define (%all-pair-or-null? lists)
-      ;; 所有参数均为列表骨架（pair 或 null），可能循环；
-      ;; 不含 vector/string 等序列，后者直接委托 s7 原生原语。
-      (let loop
-        ((rest lists))
-        (cond ((null? rest) #t)
-              ((or (pair? (car rest)) (null? (car rest))) (loop (cdr rest)))
-              (else #f)
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (%any-circular? lists)
-      ;; 任一参数为循环列表时 (length x) 返回 +inf.0；非列表参数在此
-      ;; 路径下不会被调用（先行委托 s7 原生）。
+    (define (%lists-have-cycle? lists)
+      ;; 单次遍历完成：列表骨架检查 + 循环检测。
+      ;; 返回 #t：全部为列表骨架且至少一个为循环列表；
+      ;; 返回 #f：全部为列表骨架但无循环；
+      ;; 返回 'delegate：存在非列表骨架参数（vector/string 等），
+      ;;   应委托 s7 原生原语以保留其多态扩展。
       (let loop
         ((rest lists))
         (cond ((null? rest) #f)
-              ((infinite? (length (car rest))) #t)
-              (else (loop (cdr rest)))
+              ((or (pair? (car rest)) (null? (car rest)))
+               (if (infinite? (length (car rest))) #t (loop (cdr rest)))
+              ) ;
+              (else 'delegate)
         ) ;cond
       ) ;let
     ) ;define
 
     (define (%min-finite-length lists)
-      ;; 循环列表长度为 +inf.0，取最小有限长度作为迭代次数。
+      ;; 仅在已确认含循环列表时调用：循环列表长度 +inf.0，取最小有限长度。
       (let loop
         ((rest (cdr lists)) (n (length (car lists))))
         (cond ((null? rest) n)
@@ -1129,35 +1122,48 @@
     ) ;define
 
     (define (map proc . lists)
-      (if (and (pair? lists) (%all-pair-or-null? lists) (%any-circular? lists))
-        (let ((n (%min-finite-length lists)))
-          (let loop
-            ((i 0) (rests lists) (acc '()))
-            (if (>= i n)
-              (reverse acc)
-              (loop (+ i 1) (%s7-map cdr rests) (cons (apply proc (%s7-map car rests)) acc))
-            ) ;if
-          ) ;let
-        ) ;let
+      ;; 单列表快速通道：委托 s7 原生原语。单循环列表时原生与修正路径
+      ;; 均无限迭代，行为等价，故无需进入检测流程。
+      (if (or (null? lists) (null? (cdr lists)))
         (apply %s7-map proc lists)
+        (case (%lists-have-cycle? lists)
+              ((#t)
+               (let ((n (%min-finite-length lists)))
+                 (let loop
+                   ((i 0) (rests lists) (acc '()))
+                   (if (>= i n)
+                     (reverse acc)
+                     (loop (+ i 1) (%s7-map cdr rests) (cons (apply proc (%s7-map car rests)) acc))
+                   ) ;if
+                 ) ;let
+               ) ;let
+              ) ;
+              (else (apply %s7-map proc lists))
+        ) ;case
       ) ;if
     ) ;define
 
     (define (for-each proc . lists)
-      (if (and (pair? lists) (%all-pair-or-null? lists) (%any-circular? lists))
-        (let ((n (%min-finite-length lists)))
-          (let loop
-            ((i 0) (rests lists))
-            (if (>= i n)
-              (if #f #f)
-              (begin
-                (apply proc (%s7-map car rests))
-                (loop (+ i 1) (%s7-map cdr rests))
-              ) ;begin
-            ) ;if
-          ) ;let
-        ) ;let
+      ;; 单列表快速通道：见 map 说明。
+      (if (or (null? lists) (null? (cdr lists)))
         (apply %s7-for-each proc lists)
+        (case (%lists-have-cycle? lists)
+              ((#t)
+               (let ((n (%min-finite-length lists)))
+                 (let loop
+                   ((i 0) (rests lists))
+                   (if (>= i n)
+                     (if #f #f)
+                     (begin
+                       (apply proc (%s7-map car rests))
+                       (loop (+ i 1) (%s7-map cdr rests))
+                     ) ;begin
+                   ) ;if
+                 ) ;let
+               ) ;let
+              ) ;
+              (else (apply %s7-for-each proc lists))
+        ) ;case
       ) ;if
     ) ;define
 
