@@ -61,7 +61,8 @@
 
 ;; ---- 自动链接判定收紧：不满足 autolink 条件回退内联形式 ----
 ;; children 含结构节点不自动链接化
-(check (render-inlines '((link "ab" "" "ab" (em "x"))))
+(check
+  (render-inlines '((link "ab" "" "ab" (em "x"))))
   =>
   "[ab*x*](ab)"
 ) ;check
@@ -78,12 +79,13 @@
   "<https://example.com>"
 ) ;check
 ;; 合法的 mailto autolink 输出 <email>
-(check (render-inlines
-   '((link "mailto:foo@bar.example.com" "" "foo@bar.example.com")))
+(check (render-inlines '((link "mailto:foo@bar.example.com" ""
+                           "foo@bar.example.com")))
   =>
   "<foo@bar.example.com>"
 ) ;check
-(check (render-inlines '((link "u(v)" "" "文本"))) => "[文本](u\\(v\\))")(check (render-inlines '((link "u v" "标题" "文本")))
+(check (render-inlines '((link "u(v)" "" "文本"))) => "[文本](u\\(v\\))")
+(check (render-inlines '((link "u v" "标题" "文本")))
   =>
   "[文本](<u v> \"标题\")"
 ) ;check
@@ -142,6 +144,7 @@
 
 ;; 非字母数字包裹版：用于相邻强调用下划线定界的场景（X 为字母会阻止
 ;; 下划线闭标记闭合，改用 @ 非字母数字包裹正确反映段落边界）
+
 (define (inline-roundtrip-nw items)
   (let ((md (render-inlines items)))
     (cdr
@@ -149,7 +152,6 @@
     ) ;cdr
   ) ;let
 ) ;define
- ;define
 
 (check (inline-roundtrip '("a*b")) => '("Xa*bX"))
 (check (inline-roundtrip '((em "斜体"))) => '("X" (em "斜体") "X"))
@@ -200,7 +202,10 @@
 ;; ---- 相邻强调定界冲突：正向可达 → 完整往返 ----
 ;; 用非字母数字 @ 包裹（X 会阻止下划线闭标记闭合）
 ;; 相邻 em：星号与下划线交替，避免 *a**b* 合并为单个 em
-(check (inline-roundtrip-nw '((em "a") (em "b"))) => '("@" (em "a") (em "b") "@"))
+(check (inline-roundtrip-nw '((em "a") (em "b")))
+  =>
+  '("@" (em "a") (em "b") "@")
+) ;check
 ;; 三个相邻 em：星号/下划线交替
 (check (inline-roundtrip-nw '((em "a") (em "b") (em "c")))
   =>

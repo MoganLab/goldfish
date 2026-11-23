@@ -93,7 +93,9 @@
 
     ;; ---- 内部 ----
     ;; 主转义循环：chars 集合内的字符直接转义；
-    ;; 冒号按上下文规则转义（Emoji shortcode 形式 :name: 与裸 URL 的 ://）。
+    ;; 冒号按上下文规则转义（Emoji shortcode 形式 :name: 与裸 URL 的 ://）；
+    ;; & 在开启实体引用（&name; / &#123; / &#x1F;）时转义为 \&，
+    ;; 避免反向输出后被正向解析重新解码为字符。
     (define (%escape-with chars str)
       (let ((len (string-length str)))
         (let loop
@@ -108,12 +110,27 @@
                 ) ;and
                 (loop (+ i 1) (cons (string-append "\\:") parts))
                ) ;
+               ((and (char=? ch #\&) (amp-starts-entity? str i))
+                (loop (+ i 1) (cons "\\&" parts))
+               ) ;
                (else (loop (+ i 1) (cons (string ch) parts)))
               ) ;cond
             ) ;let
           ) ;if
         ) ;let
       ) ;let
+    ) ;define
+
+    ;; 位置 i 的 & 开启实体引用：后跟字母（&name;）或 #（&#123; / &#x1F;）
+    (define (amp-starts-entity? str i)
+      (let ((next (char-at str (+ i 1))))
+        (and next (or (char-alphabetic? next) (char=? next #\#)))
+      ) ;let
+    ) ;define
+
+    ;; 取字符串指定位置字符；越界返回 #f
+    (define (char-at str i)
+      (if (or (< i 0) (>= i (string-length str))) #f (string-ref str i))
     ) ;define
 
     ;; 位置 i 的冒号开启 URL scheme：冒号后紧跟 //

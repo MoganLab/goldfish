@@ -13,11 +13,6 @@
 
 (define e2e-direction-entries
   '(
-    ;; ---- 实体与字符信息丢失 ----
-    ;; 正向解析把 HTML 实体（&ouml;）解码为字符（ö），md-stem 不保留实体形式
-    ("2_Preliminaries/2.2_Backslash_escapes/Example14" forward-only
-     "正向解析把 HTML 实体解码为字符，md-stem 不保留实体形式")
-
     ;; ---- 列表内 thematic-break 结构信息丢失 ----
     ;; md-stem 把列表项内的分隔线存为 (item (thematic-break))，
     ;; 反向渲染后重新解析为顶层 thematic-break，列表结构改变

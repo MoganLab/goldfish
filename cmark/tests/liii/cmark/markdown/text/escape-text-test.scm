@@ -13,7 +13,8 @@
 ;; 返回值
 ;; ----
 ;; string
-;; 转义后的文本；标记字符 \\ ` * _ [ ] < > 前插入反斜杠。
+;; 转义后的文本；标记字符 \\ ` * _ [ ] < > 前插入反斜杠；
+;; 开启实体引用的 &（&name; / &#123; / &#x1F;）转义为 \\&。
 
 (import (scheme base))
 (import (liii check))
@@ -40,5 +41,14 @@
 ;; 普通冒号不转义（时间、比例）
 (check (escape-text "时间 12:30") => "时间 12:30")
 (check (escape-text "a:b") => "a:b")
+
+;; & 实体转义：开启实体引用的 & 转义为 \&，避免反向输出被再解码
+(check (escape-text "&copy;") => "\\&copy;")
+(check (escape-text "&#123;") => "\\&#123;")
+(check (escape-text "&#x1F;") => "\\&#x1F;")
+(check (escape-text "Tom&Jerry") => "Tom\\&Jerry")
+;; 普通用法（& 后跟空格）不转义；& 后跟字母仍转义（保守防护实体引用）
+(check (escape-text "a & b") => "a & b")
+(check (escape-text "a&b") => "a\\&b")
 
 (check-report)
