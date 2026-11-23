@@ -58,8 +58,32 @@
   =>
   "[链接](https://example.com)"
 ) ;check
-(check (render-inlines '((link "u(v)" "" "文本"))) => "[文本](u\\(v\\))")
-(check (render-inlines '((link "u v" "标题" "文本")))
+
+;; ---- 自动链接判定收紧：不满足 autolink 条件回退内联形式 ----
+;; children 含结构节点不自动链接化
+(check (render-inlines '((link "ab" "" "ab" (em "x"))))
+  =>
+  "[ab*x*](ab)"
+) ;check
+;; 相对 URL 不自动链接化
+(check (render-inlines '((link "/url" "" "/url"))) => "[/url](/url)")
+;; 含空格的 URL 不自动链接化
+(check (render-inlines '((link "http://a b" "" "http://a b")))
+  =>
+  "[http\\://a b](<http://a b>)"
+) ;check
+;; 合法的 scheme autolink 仍输出 <url>
+(check (render-inlines '((link "https://example.com" "" "https://example.com")))
+  =>
+  "<https://example.com>"
+) ;check
+;; 合法的 mailto autolink 输出 <email>
+(check (render-inlines
+   '((link "mailto:foo@bar.example.com" "" "foo@bar.example.com")))
+  =>
+  "<foo@bar.example.com>"
+) ;check
+(check (render-inlines '((link "u(v)" "" "文本"))) => "[文本](u\\(v\\))")(check (render-inlines '((link "u v" "标题" "文本")))
   =>
   "[文本](<u v> \"标题\")"
 ) ;check

@@ -390,6 +390,28 @@
   => "[文本](/url)\n"
 ) ;check
 
+;; ---- 自动链接判定收紧：正向可达 → 完整往返 ----
+;; children 含结构节点回退内联形式（em 内容不丢失）
+(check (leaf-roundtrip (markdown->md-stem "[ab*x*](ab)"))
+  => (markdown->md-stem "[ab*x*](ab)")
+) ;check
+;; 相对 URL 不自动链接化，完整往返
+(check (leaf-roundtrip '(md-stem (p (link "/url" "" "/url"))))
+  => '(md-stem (p (link "/url" "" "/url")))
+) ;check
+;; 合法 scheme autolink 完整往返
+(check (leaf-roundtrip
+   '(md-stem (p (link "https://example.com" "" "https://example.com"))))
+  => '(md-stem (p (link "https://example.com" "" "https://example.com")))
+) ;check
+;; 合法 mailto autolink 完整往返
+(check (leaf-roundtrip
+   '(md-stem (p (link "mailto:foo@bar.example.com" ""
+                     "foo@bar.example.com"))))
+  => '(md-stem (p (link "mailto:foo@bar.example.com" ""
+                      "foo@bar.example.com")))
+) ;check
+
 ;; 31. 含 soft-break 的 h1/h2 用 setext 下划线渲染
 (check (md-stem->markdown '(md-stem (h1 "Foo" (soft-break) "Bar")))
   => "Foo\nBar\n===\n"

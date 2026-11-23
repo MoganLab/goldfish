@@ -25,7 +25,7 @@
   (import (liii cmark markdown validate))
   (import (liii cmark markdown text))
   (import (liii cmark markdown code))
-  (import (only (liii cmark text) string-join string-prefix?))
+  (import (only (liii cmark text) string-join string-prefix? string-index))
   (export render-inlines render-inlines-at-line-start render-table-cell-inlines
     render-image-alt-items render-paragraph-inlines
   ) ;export
@@ -381,23 +381,111 @@
     ) ;define
 
     ;; ---- 链接与图片 ----
-    ;; 链接自动链接化：title 为空且 (url==text 或 url 为 mailto:text) 时
-    ;; 输出 <url> 形式自动链接，避免链接文本被重新识别为裸链接。
+    ;; 链接自动链接化：仅当 title 为空、children 全为纯字符串、且
+    ;; url 满足 CommonMark autolink 语法（合法 scheme:url 或 mailto:合法 email）
+    ;; 且不含空白/控制字符/ < > \ 时，输出 <url> 形式自动链接。
     ;; 其余按内联形式 [文本](url "标题") 输出。
     (define (link-autolink? url title children)
       (and (string=? title "")
         (> (string-length url) 0)
-        (let ((text (apply string-append (map (lambda (x) (if (string? x) x "")) children))))
-          (or (string=? url text)
-            (and (string-prefix? "mailto:" url)
-              (> (string-length url) 7)
+        (all-strings? children)
+        (let ((text (apply string-append children)))
+          (cond
+           ((string-prefix? "mailto:" url)
+            (and (> (string-length url) 7)
               (let ((rest (substring url 7 (string-length url))))
-                (string=? rest text)
+                (and (string=? rest text) (autolink-email? rest))
               ) ;let
             ) ;and
-          ) ;or
+           ) ;
+           ((string=? url text) (autolink-scheme-url? url))
+           (else #f)
+          ) ;cond
         ) ;let
       ) ;and
+    ) ;define
+
+    ;; children 是否全为纯字符串
+    (define (all-strings? lst)
+      (let loop
+        ((rem lst))
+        (cond ((null? rem) #t)
+              ((string? (car rem)) (loop (cdr rem)))
+              (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; URL 是否为合法的 scheme autolink：scheme:rest，不含空白/控制/ < > \，
+    ;; scheme 以字母开头后跟字母数字与 + . -
+    (define (autolink-scheme-url? url)
+      (let ((len (string-length url)))
+        (and (> len 0)
+          (autolink-no-forbidden-chars? url)
+          (let loop
+            ((i 0) (phase 'scheme))
+            (cond
+             ((= i len) (and (eq? phase 'rest) (> (- i 1) 0)))
+             ((eq? phase 'scheme)
+              (let ((ch (string-ref url i)))
+                (cond ((and (= i 0) (char-alphabetic? ch)) (loop (+ i 1) 'scheme))
+                      ((char=? ch #\:) (and (> i 0) (loop (+ i 1) 'rest)))
+                      ((or (char-alphabetic? ch) (char-numeric? ch) (memq ch '(#\+
+                                                                               #\.
+                                                                               #\-)))
+                       (loop (+ i 1) 'scheme)
+                      ) ;
+                      (else #f)
+                ) ;cond
+              ) ;let
+             ) ;
+             (else (loop (+ i 1) 'rest))
+            ) ;cond
+          ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
+    ;; email 是否为合法的 autolink email：简化判定，包含且仅包含一个 @，
+    ;; local 与 domain 非空且不含空白/控制/ < > \ 及非法字符
+    (define (autolink-email? str)
+      (let ((len (string-length str)) (at (string-index str #\@ 0)))
+        (and at
+          (> at 0)
+          (< at (- len 1))
+          (autolink-no-forbidden-chars? str)
+          (not (string-index str #\@ (+ at 1) len))
+        ) ;and
+      ) ;let
+    ) ;define
+
+    ;; 字符串不含空白、控制字符、 < > \
+    (define (autolink-no-forbidden-chars? str)
+      (let ((len (string-length str)))
+        (let loop
+          ((i 0))
+          (cond ((= i len) #t)
+                (else
+                  (let ((ch (string-ref str i)))
+                    (if (or (char-whitespace? ch) (char-control? ch) (memq ch '(#\<
+                                                                                #\>
+                                                                                #\\)))
+                      #f
+                      (loop (+ i 1))
+                    ) ;if
+                  ) ;let
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (char-control? ch)
+      (or (char=? ch #\newline)
+        (char=? ch #\return)
+        (char=? ch #\tab)
+        (char<? ch #\space)
+      ) ;or
     ) ;define
 
     (define (%render-link item context)
