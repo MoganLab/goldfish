@@ -28,148 +28,55 @@
     (liii date-time format)
     (liii date-time parse)
   ) ;import
-  (export
-    ;; date
-    make-date
-    date?
-    date-year
-    date-month
-    date-day
-    date-ymd
-    date->iso-8601
-    iso-8601->date
-    date-iso-weekday
-    date-iso-week
-    date-iso-week-year
-    date->rata-die
-    rata-die->date
-    date->mjd
-    mjd->date
-    date=?
-    date<?
-    date<=?
-    date>?
-    date>=?
-
-    ;; gregorian
-    leap-year?
-    days-in-month
-    day-name->weekday
-    first-in-month
-    last-in-month
-    nth-in-month
-
-    ;; clock-time
-    make-clock-time
-    clock-time?
-    clock-time-hour
-    clock-time-minute
-    clock-time-second
-    clock-time-hms
-    clock-time->iso-8601
-    iso-8601->clock-time
-    clock-time=?
-    clock-time<?
-    clock-time<=?
-    clock-time>?
-    clock-time>=?
-
-    ;; moment
-    make-moment
-    moment?
-    moment-date
-    moment-second-of-day
-    moment=?
-    moment<?
-    moment<=?
-    moment>?
-    moment>=?
-
-    ;; time-delta
-    make-time-delta
-    time-delta?
-    time-delta-years
-    time-delta-months
-    time-delta-weeks
-    time-delta-days
-    time-delta-hours
-    time-delta-minutes
-    time-delta-seconds
-    years-delta
-    months-delta
-    weeks-delta
-    days-delta
-    hours-delta
-    minutes-delta
-    seconds-delta
-    milliseconds-delta
-    time-delta+
-    time-delta-
-    time-delta-negate
-    time-delta=?
-    date+
-    date-
-
-    ;; timezone
-    timezone?
-    utc-timezone
-    utc-offset-timezone
-    system-timezone
-    tz-timezone
-    timezone-earliest
-    timezone-latest
-    timezone-offset
-    timezone-dst?
-
-    ;; tzdb
-    tz-timezones
-    reload-timezone-data!
-
-    ;; timestamp
-    make-timestamp
-    date+clock-time->timestamp
-    timestamp?
-    timestamp-date
-    timestamp-clock-time
-    timestamp-timezone
-    timestamp-fold
-    timestamp-year
-    timestamp-month
-    timestamp-day
-    timestamp-ymd
-    timestamp-hour
-    timestamp-minute
-    timestamp-second
-    timestamp-hms
-    moment->timestamp
-    timestamp->moment
-    posix-time->utc-timestamp
-    timestamp->utc-posix-time
-    timestamp-in-timezone
-    timestamp-timezone-offset
-    timestamp-timezone-dst?
-    timestamp-timezone-abbreviation
-    timestamp->iso-8601
-    iso-8601->timestamp
-    timestamp+
-    timestamp-
-    timestamp=?
-    timestamp<?
-    timestamp<=?
-    timestamp>?
-    timestamp>=?
-
-    ;; current-time
-    current-moment
-    current-utc-timestamp
-    current-system-timestamp
-    current-monotonic-millis
-    current-monotonic-seconds
-
-    ;; format
-    date-time-format
-    date-time-parse
+  ;; date
+  (export make-date date? date-year date-month date-day date-ymd date->iso-8601
+    iso-8601->date date-iso-weekday date-iso-week date-iso-week-year
+    date->rata-die rata-die->date date->mjd mjd->date date=? date<? date<=?
+    date>? date>=?
   ) ;export
+  ;; gregorian
+  (export leap-year? days-in-month day-name->weekday first-in-month
+    last-in-month nth-in-month
+  ) ;export
+  ;; clock-time
+  (export make-clock-time clock-time? clock-time-hour clock-time-minute
+    clock-time-second clock-time-hms clock-time->iso-8601 iso-8601->clock-time
+    clock-time=? clock-time<? clock-time<=? clock-time>? clock-time>=?
+  ) ;export
+  ;; moment
+  (export make-moment moment? moment-date moment-second-of-day moment=? moment<?
+    moment<=? moment>? moment>=?
+  ) ;export
+  ;; time-delta
+  (export make-time-delta time-delta? time-delta-years time-delta-months
+    time-delta-weeks time-delta-days time-delta-hours time-delta-minutes
+    time-delta-seconds years-delta months-delta weeks-delta days-delta
+    hours-delta minutes-delta seconds-delta milliseconds-delta time-delta+
+    time-delta- time-delta-negate time-delta=? date+ date-
+  ) ;export
+  ;; timezone
+  (export timezone? utc-timezone utc-offset-timezone system-timezone tz-timezone
+    timezone-earliest timezone-latest timezone-offset timezone-dst?
+  ) ;export
+  ;; tzdb
+  (export tz-timezones reload-timezone-data!)
+  ;; timestamp
+  (export make-timestamp date+clock-time->timestamp timestamp? timestamp-date
+    timestamp-clock-time timestamp-timezone timestamp-fold timestamp-year
+    timestamp-month timestamp-day timestamp-ymd timestamp-hour timestamp-minute
+    timestamp-second timestamp-hms moment->timestamp timestamp->moment
+    posix-time->utc-timestamp timestamp->utc-posix-time timestamp-in-timezone
+    timestamp-timezone-offset timestamp-timezone-dst?
+    timestamp-timezone-abbreviation timestamp->iso-8601 iso-8601->timestamp
+    timestamp+ timestamp- timestamp=? timestamp<? timestamp<=? timestamp>?
+    timestamp>=?
+  ) ;export
+  ;; current-time
+  (export current-moment current-utc-timestamp current-system-timestamp
+    current-monotonic-millis current-monotonic-seconds
+  ) ;export
+  ;; format / parse
+  (export date-time-format date-time-parse)
   (begin
   ) ;begin
 ) ;define-library
