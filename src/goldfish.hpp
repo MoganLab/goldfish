@@ -17,6 +17,7 @@
 #include "s7.h"
 #include "s7_liii_record.h"
 #include "s7_r7rs_library.h"
+#include "s7_scheme_read.h"
 #include <algorithm>
 #include <argh.h>
 #include <cctype>
@@ -95,6 +96,8 @@ static s7_pointer f_function_libraries (s7_scheme* sc, s7_pointer args);
 static s7_pointer f_goldfish_library_dir (s7_scheme* sc, s7_pointer args);
 
 static s7_pointer f_project_root (s7_scheme* sc, s7_pointer args);
+
+static s7_pointer f_library_file (s7_scheme* sc, s7_pointer args);
 
 static vector<string> split_library_query_parts (const string& query);
 
@@ -187,6 +190,11 @@ glue_goldfish (s7_scheme* sc) {
   const char* d_project_root=
       "(g_project-root) => string or #f, returns the directory containing the local gfproject.json, "
       "or #f if none is found in the current working directory";
+  const char* s_library_file= "g_library-file";
+  const char* d_library_file=
+      "(g_library-file) => string or #f, returns the absolute path of the Scheme source file currently "
+      "being loaded (the innermost loader port), or #f when no file is being loaded. "
+      "Libraries can use it to locate resource files next to their own sources, independent of cwd";
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_version),
              s7_make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
@@ -204,6 +212,9 @@ glue_goldfish (s7_scheme* sc) {
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_project_root),
              s7_make_typed_function (sc, s_project_root, f_project_root, 0, 0, false, d_project_root, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_library_file),
+             s7_make_typed_function (sc, s_library_file, f_library_file, 0, 0, false, d_library_file, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -1245,6 +1256,37 @@ f_project_root (s7_scheme* sc, s7_pointer args) {
     return s7_f (sc);
   }
   return s7_make_string (sc, s.c_str ());
+}
+
+// (g_library-file) => string or #f
+// 返回当前正在加载的 Scheme 源文件（最内层 loader port）的绝对路径；
+// 无文件加载时返回 #f。库代码可据此定位与自身源码同目录的资源文件，
+// 不受 cwd 与 *load-path* 相对条目的影响。
+// 路径来自 s7i_loader_port + s7_port_filename，与 include 的解析基准一致；
+// 归一化放在独立辅助函数中，避免在可能 s7_error 的帧内混入 EH 内容。
+static string
+library_file_absolute_path (const char* filename) {
+  std::error_code ec;
+  fs::path        p (filename);
+  fs::path        abs= fs::absolute (p, ec);
+  if (ec) return string (filename);
+  // weakly_canonical 归一化 . / .. 并解析符号链接（对齐 g_project-root 的
+  // realpath 语义）；失败时退回 absolute 结果。
+  fs::path canon= fs::weakly_canonical (abs, ec);
+  if (ec) return abs.generic_string ();
+  return canon.generic_string ();
+}
+
+static s7_pointer
+f_library_file (s7_scheme* sc, s7_pointer args) {
+  (void) args;
+  s7_pointer  port= s7i_loader_port (sc);
+  const char* name= (s7_is_input_port (sc, port)) ? s7_port_filename (sc, port) : NULL;
+  if ((!name) || (name[0] == '\0')) {
+    return s7_f (sc);
+  }
+  string path= library_file_absolute_path (name);
+  return s7_make_string (sc, path.c_str ());
 }
 
 static int
