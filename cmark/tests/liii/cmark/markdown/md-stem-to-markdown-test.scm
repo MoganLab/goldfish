@@ -189,6 +189,24 @@
   => '(md-stem (p "a" (line-break) "b"))
 ) ;check
 
+;; ---- 相邻强调定界冲突修复：段落路径完整往返 ----
+(check (leaf-roundtrip '(md-stem (p (em "a") (em "b"))))
+  => '(md-stem (p (em "a") (em "b")))
+) ;check
+(check (leaf-roundtrip '(md-stem (p (strong (em "a") (em "b")))))
+  => '(md-stem (p (strong (em "a") (em "b"))))
+) ;check
+(check (leaf-roundtrip
+   '(md-stem (p (link "/u" "" (em "a") (em "b")))))
+  => '(md-stem (p (link "/u" "" (em "a") (em "b"))))
+) ;check
+(check (leaf-roundtrip '(md-stem (p (em "a") (em "b") (em "c"))))
+  => '(md-stem (p (em "a") (em "b") (em "c")))
+) ;check
+;; 相邻删除线无法安全往返，统一报 md-stem-error
+(check-catch 'md-stem-error
+  (md-stem->markdown '(md-stem (p (strikeout "a") (strikeout "b")))))
+
 ;; ---- ST4：递归容器 ----
 ;; 24. 引用块与嵌套
 (check (md-stem->markdown '(md-stem (blockquote (p "引用")))) => "> 引用\n")

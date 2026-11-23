@@ -20,6 +20,7 @@
 ;; 仅被 (liii cmark markdown ...) 内部模块使用，不对最终用户开放。
 (define-library (liii cmark markdown inline)
   (import (scheme base))
+  (import (scheme char))
   (import (liii cmark markdown util))
   (import (liii cmark markdown validate))
   (import (liii cmark markdown text))
@@ -67,57 +68,90 @@
     ) ;define
 
     ;; 段落渲染：soft-break 渲染为换行、line-break 为两空格加换行，
-    ;; 输出多行文本；换行后的首个文本项按行首规则转义
+    ;; 输出多行文本；换行后的首个文本项按行首规则转义。
+    ;; 贯穿 prev 状态以检测相邻强调定界冲突；line-start 上下文持续到
+    ;; 第一个非空渲染片段（空串项不消耗行首状态）。换行后 prev 与
+    ;; line-start 均重置。
     (define (render-paragraph-inlines items)
-      (let ((raw
-              (apply string-append
-                (let loop
-                  ((rem items) (line-start? #t) (acc '()))
-                  (cond ((null? rem) (reverse acc))
-                        (else
-                          (loop (cdr rem)
-                            ;; 换行节点之后的项重新回到行首上下文
-                            (and (pair? (car rem)) (memq (car (car rem)) '(soft-break line-break)))
-                            (cons (%render-inline-item (car rem)
-                                    (if line-start? 'paragraph-line-start 'paragraph)
-                                  ) ;%render-inline-item
-                              acc
-                            ) ;cons
-                          ) ;loop
-                        ) ;else
-                  ) ;cond
-                ) ;let
-              ) ;apply
-            ) ;raw
-           ) ;
-        (string-split-lines raw)
+      (string-split-lines (apply string-append (%render-paragraph-loop items #t '() ""))
+      ) ;string-split-lines
+    ) ;define
+
+    ;; 段落状态循环：返回反向的渲染片段列表。line-start? 上下文与 prev
+    ;; 贯穿；换行后重置。
+    (define (%render-paragraph-loop rem line-start? acc prev)
+      (cond ((null? rem) (reverse acc))
+            (else
+              (let* ((node (car rem))
+                     (next (and (pair? (cdr rem)) (cadr rem)))
+                     (r (%render-paragraph-item node line-start? prev next))
+                    ) ;
+                (%render-paragraph-loop (cdr rem)
+                  (if (cdr r) #t (and line-start? (string=? (car r) "")))
+                  (cons (car r) acc)
+                  (if (cdr r) "" (car r))
+                ) ;%render-paragraph-loop
+              ) ;let*
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    ;; 渲染段落中单个项。返回 (渲染结果 . 是否为换行节点)。
+    ;; 换行节点行首输出空串；非换行节点按上下文渲染并贯穿 prev/next。
+    (define (%render-paragraph-item node line-start? prev next)
+      (when (pair? node)
+        (check-inline-node node)
+      ) ;when
+      (let ((is-break (and (pair? node) (memq (car node) '(soft-break line-break)))))
+        (if is-break
+          (cons
+            (if line-start? "" (if (eq? (car node) 'line-break) "  \n" "\n"))
+            #t
+          ) ;cons
+          (cons (%render-inline-item-state node
+                  (if line-start? 'paragraph-line-start 'paragraph)
+                  '(* ** _ __)
+                  prev
+                  next
+                ) ;%render-inline-item-state
+            #f
+          ) ;cons
+        ) ;if
       ) ;let
     ) ;define
 
     ;; ---- 内部：分派 ----
     ;; context：normal / line-start / paragraph-line-start / paragraph /
     ;;          table-cell
-    ;; delim-state：当前可用的强调定界符集合（避免相邻标记冲突）
+    ;; delims：保留参数（不再使用，定界符由 prev/inner/next 推断）
     (define (%render-inline-items items context)
       (%render-inline-items-state items context '(* ** _ __))
     ) ;define
 
+    ;; 贯穿 prev（前一已渲染片段）与 next（后一原始项）的状态循环。
+    ;; line-start 上下文持续到首个非空渲染片段：空串项不消耗行首状态。
     (define (%render-inline-items-state items context delims)
       (apply string-append
         (let loop
-          ((rem items) (first? #t) (acc '()) (prev ""))
+          ((rem items) (first? #t) (line-start? #f) (acc '()) (prev ""))
           (cond ((null? rem) (reverse acc))
                 (else
                   (let* ((item-context
-                           (cond ((and first? (eq? context 'line-start)) 'line-start)
+                           (cond ((and (or first? line-start?) (eq? context 'line-start)) 'line-start)
                                  ((eq? context 'table-cell) 'table-cell)
                                  ((eq? context 'line-start) 'normal)
                                  (else context)
                            ) ;cond
                          ) ;item-context
-                         (rendered (%render-inline-item-state (car rem) item-context delims prev))
+                         (next (if (pair? (cdr rem)) (cadr rem) #f))
+                         (rendered (%render-inline-item-state (car rem) item-context delims prev next))
                         ) ;
-                    (loop (cdr rem) #f (cons rendered acc) rendered)
+                    (loop (cdr rem)
+                      #f
+                      (and (eq? context 'line-start) (or first? line-start?) (string=? rendered ""))
+                      (cons rendered acc)
+                      rendered
+                    ) ;loop
                   ) ;let*
                 ) ;else
           ) ;cond
@@ -126,11 +160,12 @@
     ) ;define
 
     (define (%render-inline-item item context)
-      (%render-inline-item-state item context '(* ** _ __) "")
+      (%render-inline-item-state item context '(* ** _ __) "" #f)
     ) ;define
 
-    ;; prev：前一个已渲染片段，用于判断强调定界符是否与前文冲突
-    (define (%render-inline-item-state item context delims prev)
+    ;; prev：前一已渲染片段（判断开标记与前文冲突）
+    ;; next：后一原始项（判断闭标记与后文冲突，特别是下划线闭标记右侧）
+    (define (%render-inline-item-state item context delims prev next)
       (cond
         ;; 纯文本：按上下文转义
         ((string? item)
@@ -144,9 +179,9 @@
         ((pair? item)
          (check-inline-node item)
          (case (car item)
-               ((em) (%render-emphasis item context delims prev))
-               ((strong) (%render-strong item context delims prev))
-               ((strikeout) (%render-strikeout item context))
+               ((em) (%render-emphasis item context delims prev next))
+               ((strong) (%render-strong item context delims prev next))
+               ((strikeout) (%render-strikeout item context prev next))
                ((code) (%render-code-span item context))
                ((soft-break) (if (paragraph-line-context? context) "\n" " "))
                ((line-break) (if (paragraph-line-context? context) "  \n" "  "))
@@ -170,47 +205,68 @@
     ) ;define
 
     ;; ---- 强调家族 ----
-    ;; 渲染策略：先用星号系列（* / **）递归渲染内部内容，再根据内部
-    ;; 首尾字符与前文 prev 决定外层定界符，避免相邻标记合并成更长游程。
-    ;; 星号与下划线二选一；若两者均与首尾冲突，则无法安全往返报错。
+    ;; 渲染策略：递归渲染内部内容（同样贯穿 prev/next 状态），再根据内部
+    ;; 首尾字符、前文 prev 与后文 next 在星号（* / **）与下划线（_ / __）
+    ;; 两个家族之间选择外层定界符，避免相邻标记合并成更长游程。
+    ;; 先试星号（无字母数字边界限制），不可行时试下划线，两者都不可行才报错。
     (define (render-emphasis-inner item context)
-      (%render-inline-items-state (cdr item)
-        (if (paragraph-line-context? context) 'paragraph 'normal)
-        '(* ** _ __)
-      ) ;%render-inline-items-state
+      (let ((inner-context (if (paragraph-line-context? context) 'paragraph 'normal)))
+        (%render-inline-items-state (cdr item) inner-context '(* ** _ __))
+      ) ;let
     ) ;define
 
-    ;; 选择定界符：star/under 二选一。返回单字符字符串或 #f。
-    ;; inner：已渲染内部内容；prev：前一个已渲染片段。
-    ;; inner 尾部若为 1 个星号（不匹配的强调标记）会与外层 * 合并成 **，
-    ;; 被识别为粗体，故这种情况改用 _；尾部 2 个以上星号（闭合的粗体）
-    ;; 与外层 * 合并为 ***，仍能正确解析为 em+strong，可继续用 *。
-    (define (choose-1char-delim inner prev)
+    ;; 单字符定界符（em）选择：在星号 * 与下划线 _ 之间二选一。
+    ;; inner 尾部星号游程若为 1 个会与闭标记 * 合并为 **（被识别为粗体闭），
+    ;; 故改用 _；尾部 2 个以上星号（闭合的粗体）与外层 * 合并为 ***，
+    ;; 仍能正确解析为 em+strong，可继续用 *。前文 prev 尾为 * 时开标记合并，
+    ;; 同样改用 _。下划线额外要求开/闭标记两侧非字母数字。
+    (define (choose-em-delim inner prev next)
       (let ((star-run (trailing-run inner #\*))
-            (prev-star (char-at prev (- (string-length prev) 1)))
+            (under-run (trailing-run inner #\_))
+            (prev-tail (char-at prev (- (string-length prev) 1)))
+            (next-head (next-first-char next))
            ) ;
-        (cond
-         ((and (<= star-run 0) (not (eq? prev-star #\*))) "*")
-         ((and (<= star-run 1) (eq? prev-star #\*)) #f)
-         ((and (= star-run 1) (not (eq? prev-star #\*))) "_")
-         ((and (>= star-run 2) (not (eq? prev-star #\*))) "*")
-         ((and (>= star-run 2) (eq? prev-star #\*)) "_")
-         ((<= star-run 0) "*")
-         (else #f)
+        (define (star-ok?)
+          (and (not (eq? prev-tail #\*)) (or (= star-run 0) (>= star-run 2)))
+        ) ;define
+        (define (under-ok?)
+          (and (not (eq? prev-tail #\_))
+            (or (= under-run 0) (>= under-run 2))
+            ;; 下划线开标记左侧须非字母数字或行首
+            (or (not prev-tail) (not (word-char? prev-tail)))
+            ;; 下划线闭标记右侧须非字母数字或行末
+            (or (not next-head) (not (word-char? next-head)))
+          ) ;and
+        ) ;define
+        (cond ((star-ok?) "*")
+              ((under-ok?) "_")
+              (else #f)
         ) ;cond
       ) ;let
     ) ;define
 
-    (define (choose-2char-delim inner prev)
+    ;; 双字符定界符（strong）选择：在星号 ** 与下划线 __ 之间二选一。
+    ;; inner 尾部只要有星号游程就会与闭标记 ** 合并为更长游程（*** 等），
+    ;; 干扰粗体边界，故改用 __；前文 prev 尾为 * 同样改用 __。
+    (define (choose-strong-delim inner prev next)
       (let ((star-run (trailing-run inner #\*))
-            (prev-star (char-at prev (- (string-length prev) 1)))
+            (under-run (trailing-run inner #\_))
+            (prev-tail (char-at prev (- (string-length prev) 1)))
+            (next-head (next-first-char next))
            ) ;
-        (cond
-         ((and (<= star-run 0) (not (eq? prev-star #\*))) "**")
-         ((and (<= star-run 0) (eq? prev-star #\*)) "__")
-         ((>= star-run 3) "__")
-         ((>= star-run 1) "__")
-         (else #f)
+        (define (star-ok?)
+          (and (not (eq? prev-tail #\*)) (= star-run 0))
+        ) ;define
+        (define (under-ok?)
+          (and (not (eq? prev-tail #\_))
+            (or (= under-run 0) (>= under-run 2))
+            (or (not prev-tail) (not (word-char? prev-tail)))
+            (or (not next-head) (not (word-char? next-head)))
+          ) ;and
+        ) ;define
+        (cond ((star-ok?) "**")
+              ((under-ok?) "__")
+              (else #f)
         ) ;cond
       ) ;let
     ) ;define
@@ -226,14 +282,27 @@
       ) ;let
     ) ;define
 
+    ;; next 原始项的首个渲染字符预估：纯字符串取其首字符，结构节点难以
+    ;; 预估返回 #f（保守认为右侧无字母数字限制触发）。#f 表示行末或未知。
+    (define (next-first-char next)
+      (cond ((not next) #f)
+            ((string? next) (char-at next 0))
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (word-char? ch)
+      (or (char-alphabetic? ch) (char-numeric? ch))
+    ) ;define
+
     ;; 取字符串指定位置字符；越界返回 #f
     (define (char-at str i)
       (if (or (< i 0) (>= i (string-length str))) #f (string-ref str i))
     ) ;define
 
-    (define (%render-emphasis item context delims prev)
+    (define (%render-emphasis item context delims prev next)
       (let* ((inner (render-emphasis-inner item context))
-             (delim (choose-1char-delim inner prev))
+             (delim (choose-em-delim inner prev next))
             ) ;
         (if delim
           (string-append delim inner delim)
@@ -245,9 +314,9 @@
       ) ;let*
     ) ;define
 
-    (define (%render-strong item context delims prev)
+    (define (%render-strong item context delims prev next)
       (let* ((inner (render-emphasis-inner item context))
-             (delim (choose-2char-delim inner prev))
+             (delim (choose-strong-delim inner prev next))
             ) ;
         (if delim
           (string-append delim inner delim)
@@ -259,14 +328,24 @@
       ) ;let*
     ) ;define
 
-    (define (%render-strikeout item context)
-      (string-append "~~"
-        (%render-inline-items-state (cdr item)
-          (if (paragraph-line-context? context) 'paragraph 'normal)
-          '(* ** _ __)
-        ) ;%render-inline-items-state
-        "~~"
-      ) ;string-append
+    ;; 删除线：增加相邻防护。prev 尾为 ~（前一个删除线尾）时与 ~~ 开标记
+    ;; 合并为 ~~~ 或更长游程，会破坏删除线边界，需报错。
+    (define (%render-strikeout item context prev next)
+      (let ((prev-tail (char-at prev (- (string-length prev) 1))))
+        (if (eq? prev-tail #\~)
+          (md-stem-error 'strikeout
+            "相邻删除线定界游程冲突，无法安全往返: "
+            prev
+          ) ;md-stem-error
+          (string-append "~~"
+            (%render-inline-items-state (cdr item)
+              (if (paragraph-line-context? context) 'paragraph 'normal)
+              '(* ** _ __)
+            ) ;%render-inline-items-state
+            "~~"
+          ) ;string-append
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; ---- 行内代码 ----

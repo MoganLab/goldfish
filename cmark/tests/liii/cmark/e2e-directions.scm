@@ -60,12 +60,6 @@
     ;; 转义后与强调开标记合并成长游程，无法恢复原语义
     ("6_Inlines/6.2_Emphasis_and_strong_emphasis/Example417" forward-only
      "strong 三层嵌套加尾随星号文本：定界符无法稳定往返")
-    ("6_Inlines/6.2_Emphasis_and_strong_emphasis/Example442" forward-only
-     "首部星号文本紧接 em：转义后开标记游程冲突，无法往返")
-    ("6_Inlines/6.2_Emphasis_and_strong_emphasis/Example444" forward-only
-     "首部星号文本紧接 strong：转义后开标记游程冲突，无法往返")
-    ("6_Inlines/6.2_Emphasis_and_strong_emphasis/Example445" forward-only
-     "首部三星号文本紧接 em：转义后开标记游程冲突，无法往返")
 
     ;; ---- 链接/图片纯文本与数学块定界冲突 ----
     ;; md-stem 中含方括号纯文本或链接文本，反向转义方括号后被
