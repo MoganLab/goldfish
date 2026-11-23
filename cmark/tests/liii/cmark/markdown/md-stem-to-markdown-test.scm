@@ -607,6 +607,22 @@
 (check (leaf-roundtrip '(md-stem (p "&#123;"))) => '(md-stem (p "&#123;")))
 (check (leaf-roundtrip '(md-stem (p "&#x1F;"))) => '(md-stem (p "&#x1F;")))
 
+;; ---- 行首转义不被空串首项击穿 ----
+;; 段落首项为空串时不被击穿为列表/标题，输出被转义的文本（空串项无体积，
+;; 重解析后空串丢失属正常，关键是结构不变为 bullet-list/h1）
+(check (md-stem->markdown '(md-stem (p "" "- x"))) => "\\- x\n")
+(check (md-stem->markdown '(md-stem (p "" "# x"))) => "\\# x\n")
+(check
+  (markdown->md-stem (md-stem->markdown '(md-stem (p "" "- x"))))
+  =>
+  '(md-stem (p "- x"))
+) ;check
+(check
+  (markdown->md-stem (md-stem->markdown '(md-stem (p "" "# x"))))
+  =>
+  '(md-stem (p "# x"))
+) ;check
+
 ;; 31. 含 soft-break 的 h1/h2 用 setext 下划线渲染
 (check
   (md-stem->markdown '(md-stem (h1 "Foo" (soft-break) "Bar")))

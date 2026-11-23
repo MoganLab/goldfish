@@ -35,7 +35,19 @@
 
 ;; 非首项不受行首规则影响（行中 # 无语法含义，不转义）
 (check (render-inlines-at-line-start '("a" "#不是标题"))
-  => "a#不是标题"
+  =>
+  "a#不是标题"
 ) ;check
+
+;; ---- 行首转义不被空串首项击穿 ----
+;; 空串首项不消耗行首状态，后续非空文本仍按行首规则转义
+(check (render-inlines-at-line-start '("" "- x")) => "\\- x")
+(check (render-inlines-at-line-start '("" "# x")) => "\\# x")
+(check (render-inlines-at-line-start '("" "1. x")) => "1\\. x")
+(check (render-inlines-at-line-start '("" "> x")) => "\\> x")
+;; 多个空串首项也不消耗行首状态
+(check (render-inlines-at-line-start '("" "" "- x")) => "\\- x")
+;; 空串后跟非行首特殊文本保持不变
+(check (render-inlines-at-line-start '("" "普通")) => "普通")
 
 (check-report)
