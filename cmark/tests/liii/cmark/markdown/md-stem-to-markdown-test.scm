@@ -623,6 +623,12 @@
   '(md-stem (p "# x"))
 ) ;check
 
+;; ---- ! + link 合并为 image 防护：正向可达 → 完整往返 ----
+(define bang-link-doc '(md-stem (p "!" (link "/u" "" "t"))))
+(check (leaf-roundtrip bang-link-doc) => bang-link-doc)
+(define bang-em-link-doc '(md-stem (p "!" (link "/u" "" (em "x")))))
+(check (leaf-roundtrip bang-em-link-doc) => bang-em-link-doc)
+
 ;; 31. 含 soft-break 的 h1/h2 用 setext 下划线渲染
 (check
   (md-stem->markdown '(md-stem (h1 "Foo" (soft-break) "Bar")))

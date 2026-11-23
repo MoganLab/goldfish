@@ -167,14 +167,20 @@
     ;; next：后一原始项（判断闭标记与后文冲突，特别是下划线闭标记右侧）
     (define (%render-inline-item-state item context delims prev next)
       (cond
-        ;; 纯文本：按上下文转义
+        ;; 纯文本：按上下文转义，并检查尾部 ! 与紧随链接的图片语法冲突
         ((string? item)
-         (case context
-          ((line-start paragraph-line-start) (escape-text-at-line-start item))
-          ((table-cell) (escape-table-cell-text item))
-          (else (escape-text item))
-         ) ;case
+         (let ((escaped (case context
+                         ((line-start paragraph-line-start) (escape-text-at-line-start item))
+                         ((table-cell) (escape-table-cell-text item))
+                         (else (escape-text item))
+                        ) ;case
+               ) ;escaped
+              ) ;
+
+           (escape-bang-before-link-text escaped next)
+         ) ;let
         ) ;
+
         ;; 结构节点：先校验再渲染
         ((pair? item)
          (check-inline-node item)
@@ -298,6 +304,21 @@
     ;; 取字符串指定位置字符；越界返回 #f
     (define (char-at str i)
       (if (or (< i 0) (>= i (string-length str))) #f (string-ref str i))
+    ) ;define
+
+    ;; 文本以 ! 结尾且后一原始项为 link 时，把尾 ! 转义为 \!，
+    ;; 防止 ! 与链接的 [ 合并为图片语法（正向可达：\![t](/u) 解析为
+    ;; (p "!" (link ...))）。
+    (define (escape-bang-before-link-text escaped next)
+      (if
+        (and (char-at escaped (- (string-length escaped) 1))
+          (pair? next)
+          (eq? (car next) 'link)
+          (char=? (char-at escaped (- (string-length escaped) 1)) #\!)
+        ) ;and
+        (string-append (substring escaped 0 (- (string-length escaped) 1)) "\\!")
+        escaped
+      ) ;if
     ) ;define
 
     (define (%render-emphasis item context delims prev next)

@@ -81,10 +81,6 @@
      "方括号纯文本转义后与数学块定界冲突")
     ("6_Inlines/6.4_Images/Example587" forward-only
      "图片后空方括号纯文本转义后与数学块定界冲突")
-    ;; 无效图片 ! + link 与有效图片 ![..](..) 同形，md-stem 区分二者但
-    ;; 反向渲染同形，重新解析都成图片
-    ("6_Inlines/6.4_Images/Example593" forward-only
-     "感叹号加链接与图片同形，md-stem 区分但反向无法还原")
     ;; 无效邮件自动链接 <foo+@..> 解析为纯文本，反向转义尖括号后中间
     ;; 地址仍被裸链接识别，无法还原纯文本
     ("6_Inlines/6.5_Autolinks/Example606" forward-only

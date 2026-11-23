@@ -97,6 +97,23 @@
   =>
   "![替代](img.png \"标题\")"
 ) ;check
+
+;; ---- ! + link 合并为 image 防护 ----
+;; 文本以 ! 结尾且后一项为 link 时，尾 ! 转义为 \!，避免与 [ 合并为图片
+(check (render-inlines '("!" (link "/u" "" "t"))) => "\\![t](/u)")
+(check (render-inlines '("Hi!" (link "/u" "" "t"))) => "Hi\\![t](/u)")
+(check (render-inlines '("a!" (link "/u" "" "t") "b"))
+  =>
+  "a\\![t](/u)b"
+) ;check
+;; ! 后跟非 link 不转义
+(check (render-inlines '("!" "普通")) => "!普通")
+(check (render-inlines '("看这个！")) => "看这个！")
+;; link 的 children 为结构节点时仍转义前文 !
+(check (render-inlines '("!" (link "/u" "" (em "x"))))
+  =>
+  "\\![*x*](/u)"
+) ;check
 (check (render-inlines '((image "i.png" "" ""))) => "![](i.png)")
 (check
   (render-inlines '((image "i.png" "" "图 " (math-inline "x"))))
@@ -243,6 +260,20 @@
 (check-catch 'md-stem-error
   (render-inlines '((strikeout "a") (strikeout "b") (strikeout "c")))
 ) ;check-catch
+
+;; ---- ! + link 合并为 image 防护：正向可达 → 完整往返 ----
+(check (inline-roundtrip-nw '("!" (link "/u" "" "t")))
+  =>
+  '("@!" (link "/u" "" "t") "@")
+) ;check
+(check (inline-roundtrip-nw '("Hi!" (link "/u" "" "t")))
+  =>
+  '("@Hi!" (link "/u" "" "t") "@")
+) ;check
+(check (inline-roundtrip-nw '("!" (link "/u" "" (em "x"))))
+  =>
+  '("@!" (link "/u" "" (em "x")) "@")
+) ;check
 
 ;; ---- 非法输入 ----
 (check-catch 'md-stem-error (render-inlines '((unknown-inline "x"))))
