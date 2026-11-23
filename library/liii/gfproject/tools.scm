@@ -26,6 +26,7 @@
     (liii string)
     (liii gfproject config)
     (liii gfproject external)
+    (liii gfproject get store)
   ) ;import
   (export gfproject-find-tool-root
     gfproject-resolve-tool
@@ -196,8 +197,7 @@
     ) ;define
 
     ;; ; 冲突提示：内置插件不受用户/本地同名注册影响，提示后继续用内置实现。
-    ;; ; 直写 *stderr*（进程 fd）：工具的 main 可能直接 (exit)，若写入被捕获的
-    ;; ; current-error-port，提示会随捕获 port 一起丢失
+    ;; ; 直写 *stderr*：工具 main 可能直接 (exit)，捕获 port 中的提示会丢失
     (define (gfproject--warn-tool-conflict command bundle)
       (let ((p (if (defined? '*stderr*) *stderr* (current-error-port)))
             (lib-path (bundle-ref bundle "lib_path"))
@@ -286,7 +286,10 @@
              (tools-dir (if (json-object? tool-config) (json-ref-string tool-config "tools_dir" #f) #f)
              ) ;tools-dir
              (has-tools-dir? (and tools-dir (not (string-null? tools-dir))))
-             (effective-fallback (if has-tools-dir? #f allow-fallback))
+             (package-id (if (json-object? tool-config) (json-ref-string tool-config "package" #f) #f)
+             ) ;package-id
+             (package-root (and package-id (get-package-root package-id)))
+             (effective-fallback (if (or has-tools-dir? package-id) #f allow-fallback))
              (expanded-tools-dir (and has-tools-dir? (gfproject-expand-tools-dir tools-dir base-dir))
              ) ;expanded-tools-dir
             ) ;
@@ -309,24 +312,32 @@
                 command
                 "' is not fully implemented (missing organization or module).\n"
               ) ;fail
-              (let ((tool-root (gfproject-find-tool-root tool-name (or expanded-tools-dir tools-dir) gf-lib)
+              (let ((tool-root
+                      (if package-root
+                        (and (path-dir? package-root) (path->string (path-resolve package-root)))
+                        (gfproject-find-tool-root tool-name (or expanded-tools-dir tools-dir) gf-lib)
+                      ) ;if
                     ) ;tool-root
                    ) ;
                 (if (not tool-root)
-                  (if has-tools-dir?
-                    (fail "Error: Tool '"
-                      command
-                      "' directory not found: "
-                      (path->string (path-join expanded-tools-dir tool-name))
-                      "\n"
-                    ) ;fail
-                    (fail "Error: tools/" tool-name "/" org " directory not found.\n")
-                  ) ;if
+                  (fail "Error: Tool '"
+                    command
+                    "' root not found"
+                    (if package-id
+                      (string-append "; package " package-id
+                        " is not installed, run gf get -g " package-id
+                      ) ;string-append
+                      ""
+                    ) ;if
+                    ".\n"
+                  ) ;fail
                   (begin
                     (set! *load-path* (cons tool-root *load-path*))
-                    ;; 外部项目：读取其自身 gfproject.json 的 domains，
-                    ;; 把项目根与 domain 根注入 *load-path*，避免复制 domains。
-                    (if has-tools-dir? (gfproject-external-project-load-path! tool-root) #f)
+                    ;; 外部项目：注入其项目根与全部 domain 根
+                    (if (or has-tools-dir? package-root)
+                      (gfproject-external-project-load-path! tool-root)
+                      #f
+                    ) ;if
                     (gfproject--run-loaded-tool (gfproject-parse-import-spec org module) fail)
                   ) ;begin
                 ) ;if

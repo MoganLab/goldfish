@@ -26,9 +26,7 @@
     (liii string)
     (liii gfproject config)
   ) ;import
-  (export gfproject-find-project-root
-    gfproject-external-project-load-path!
-  ) ;export
+  (export gfproject-find-project-root gfproject-external-project-load-path!)
   (begin
 
     ;; 从目录向上定位最近的 gfproject.json（外部项目根）。
@@ -98,10 +96,7 @@
           (let* ((config-path (path-join project-root "gfproject.json"))
                  (config (gfproject-read-file config-path))
                  (domains (gfproject-extract-domains config))
-                 (entries
-                   (cons (%normalize-root project-root)
-                     (%all-domain-roots project-root domains)
-                   ) ;cons
+                 (entries (cons (%normalize-root project-root) (%all-domain-roots project-root domains))
                  ) ;entries
                 ) ;
             (for-each
