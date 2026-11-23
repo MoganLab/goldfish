@@ -18,11 +18,13 @@
   (import (liii cmark node)
     (liii cmark parser)
     (liii cmark stem)
+    (liii cmark markdown)
     (liii cmark stem-reader)
   ) ;import
   (export
     ;; stem 转换与读取
     markdown->md-stem
+    md-stem->markdown
     read-md-stem
     ;; 解析入口
     parse-inlines

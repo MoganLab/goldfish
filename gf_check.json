@@ -158,6 +158,14 @@
       {
         "path": "cmark/liii/cmark/html-entities.scm",
         "reason": "HTML 实体映射大查表"
+      },
+      {
+        "path": "cmark/liii/cmark/markdown/inline.scm",
+        "reason": "行内渲染统一分派与强调定界选择核心逻辑不可分割"
+      },
+      {
+        "path": "cmark/tests/liii/cmark/markdown/md-stem-to-markdown-test.scm",
+        "reason": "md-stem->markdown 集成测试随节点覆盖与往返回归持续增长"
       }
     ],
     "max-tree-depth": [
