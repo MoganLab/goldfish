@@ -102,6 +102,7 @@
     hours-delta
     minutes-delta
     seconds-delta
+    milliseconds-delta
     time-delta+
     time-delta-
     time-delta-negate

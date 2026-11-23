@@ -45,8 +45,8 @@
   (export make-time-delta time-delta? time-delta-years time-delta-months
     time-delta-weeks time-delta-days time-delta-hours time-delta-minutes
     time-delta-seconds years-delta months-delta weeks-delta days-delta
-    hours-delta minutes-delta seconds-delta time-delta+ time-delta-
-    time-delta-negate time-delta=? date+ date-
+    hours-delta minutes-delta seconds-delta milliseconds-delta time-delta+
+    time-delta- time-delta-negate time-delta=? date+ date-
   ) ;export
   (begin
 
@@ -192,6 +192,24 @@
         (error 'type-error "seconds-delta: expected an exact number" v)
       ) ;unless
       (%make-time-delta 0 0 0 0 0 0 v)
+    ) ;define
+
+    ;; 创建 time-delta，毫秒进位到 hours/minutes/seconds 分量。
+    ;; 不足 1 秒的余数以分数秒形式保留在 seconds 分量。
+    ;; 不进位到 day 及以上分量（与 time-delta->seconds 的折算范围一致）。
+    (define (milliseconds-delta v)
+      (unless (and (integer? v) (exact? v))
+        (error 'type-error "milliseconds-delta: expected an exact integer" v)
+      ) ;unless
+      (let* ((total-sec (quotient v 1000))
+             (frac-ms (modulo v 1000))
+             (h (quotient total-sec 3600))
+             (rem (modulo total-sec 3600))
+             (m (quotient rem 60))
+             (s (+ (modulo rem 60) (/ frac-ms 1000)))
+            ) ;
+        (%make-time-delta 0 0 0 0 h m s)
+      ) ;let*
     ) ;define
 
     (define (time-delta+ . dts)
