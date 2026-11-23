@@ -13,6 +13,7 @@ gf doc liii/gfproject/external
 ## 子模块
 
 - `(liii gfproject config)` - 配置读取与合并：`gfproject-root`、`gfproject-load-config`、`gfproject-deep-merge` 等
+- `(liii gfproject package)` - 包元数据解析：`json->gfproject-package`、`gfproject-package-id` 等；JSON Schema 见 `library/resources/gfproject.schema.json`
 - `(liii gfproject tools)` - 工具注册解析与执行：`gfproject-resolve-tool`、`gfproject-prepare-and-run-tool` 等
 - `(liii gfproject external)` - 外部项目加载：`gfproject-find-project-root`、`gfproject-external-project-load-path!`
 

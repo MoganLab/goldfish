@@ -1,4 +1,10 @@
 {
+  "$schema": "./library/resources/gfproject.schema.json",
+  "package": {
+    "name": "lang",
+    "organization": "liii",
+    "description": "Goldfish Scheme programming language and standard libraries"
+  },
   "domains": {
     "r7rs": {
       "root": "r7rs/",

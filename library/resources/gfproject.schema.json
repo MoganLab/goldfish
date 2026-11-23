@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liii.dev/schemas/gfproject.schema.json",
+  "title": "Goldfish project configuration",
+  "description": "Schema for gfproject.json. Unknown top-level fields remain allowed for forward compatibility.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "package": {
+      "$ref": "#/$defs/package"
+    },
+    "domains": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/domain"
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/tool"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "package": {
+      "type": "object",
+      "description": "Identity of the current project as a distributable package. The display form is name@organization.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/packageNamePart"
+        },
+        "organization": {
+          "$ref": "#/$defs/packageNamePart"
+        },
+        "description": {
+          "type": "string",
+          "description": "Short human-readable package description."
+        }
+      },
+      "required": ["name", "organization"],
+      "additionalProperties": false
+    },
+    "packageNamePart": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Lowercase package identifier component without whitespace, slashes, or @."
+    },
+    "domain": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "type": "string"
+        },
+        "depends-on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "mode": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "tool": {
+      "type": "object",
+      "properties": {
+        "organization": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "description": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tools_dir": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
