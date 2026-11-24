@@ -1291,9 +1291,9 @@ f_library_file (s7_scheme* sc, s7_pointer args) {
 
 static int
 goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, s7_pointer old_port,
-                   int gc_loc) {
-  s7_eval_c_string (sc, "(import (liii gfproject tools))");
-  s7_pointer func= s7_name_to_value (sc, "gfproject-run-tool");
+                   int gc_loc, bool prefer_user= false) {
+  s7_eval_c_string (sc, prefer_user ? "(import (liii gfproject default))" : "(import (liii gfproject tools))");
+  s7_pointer func= s7_name_to_value (sc, prefer_user ? "gfproject-run-default-tool" : "gfproject-run-tool");
   if (!func || !s7_is_procedure (func)) {
     return -1;
   }
@@ -2442,8 +2442,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   string command      = startup_opts.command;
   int    command_index= startup_opts.command_index;
 
-  // 如果没有找到命令或没有参数，使用 pi 命令
-  if (argc <= 1 || command.empty ()) {
+  // 无参数启动时使用用户级 pi；显式 gf pi 仍允许项目级配置覆盖用户级配置。
+  bool prefer_user_tool= argc <= 1 || command.empty ();
+  if (prefer_user_tool) {
     command= "pi";
   }
   if (command == "-e") {
@@ -2505,7 +2506,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
 
   // 处理动态注册的工具（从 gfproject.json 加载）
-  int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
+  int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc, prefer_user_tool);
   if (tool_ret != -1) {
     // Tool was found and executed (or failed with an error)
     return tool_ret;

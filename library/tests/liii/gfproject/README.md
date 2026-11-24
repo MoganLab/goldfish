@@ -15,6 +15,7 @@ gf doc liii/gfproject/external
 - `(liii gfproject config)` - 配置读取与合并：`gfproject-root`、`gfproject-load-config`、`gfproject-deep-merge` 等
 - `(liii gfproject package)` - 包元数据解析：`json->gfproject-package`、`gfproject-package-id` 等；JSON Schema 见 `library/resources/gfproject.schema.json`
 - `(liii gfproject tools)` - 工具注册解析与执行：`gfproject-resolve-tool`、`gfproject-prepare-and-run-tool` 等
+- `(liii gfproject default)` - 无参数 `gf` 的默认工具加载：`gfproject-run-default-tool` 仅使用用户级注册
 - `(liii gfproject external)` - 外部项目加载：`gfproject-find-project-root`、`gfproject-external-project-load-path!`
 
 ## 配置约定
@@ -27,7 +28,8 @@ gf doc liii/gfproject/external
 | 用户层 | `~/.gf/gfproject.json` | 用户全局注册的外部工具 |
 | 项目层 | 当前项目根 | 项目自己的工具与 domains |
 
-- 命令行解析时，项目层覆盖用户层；内置工具名始终优先（同名自定义注册会被忽略并提示）。
+- 显式命令解析时，项目层覆盖用户层；内置工具名始终优先（同名自定义注册会被忽略并提示）。
+- 无参数 `gf` 默认启动 `pi` 时只使用用户级注册，不受当前项目覆盖；未注册时提示用 `gf get` 安装 gfcode。
 - `domains` **不跨层合并**：每份配置中的 `domains.{name}.root` 都相对该 `gfproject.json` 所在目录解析。
 - `gfproject-root` 仍只表示当前项目根，用户层配置不会改变 `g_project-root`，因此 `gf fmt` / `gf test` / `gf check` 语义不变。
 
