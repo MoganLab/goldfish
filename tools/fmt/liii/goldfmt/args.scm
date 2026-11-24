@@ -15,7 +15,13 @@
 ;;
 
 (define-library (liii goldfmt args)
-  (import (scheme base) (liii base) (liii string) (liii list) (liii argparse) (liii goldfmt lang))
+  (import (scheme base)
+    (liii base)
+    (liii string)
+    (liii list)
+    (liii argparse)
+    (liii goldfmt lang)
+  ) ;import
   (export normalize-extension token->extensions file-extension-match?
     parse-extensions parse-excludes make-fmt-arg-parser normalize-jobs
     parse-fmt-jobs first-positional display-help extension-option-explicit?
@@ -32,7 +38,11 @@
     ;; 按 -e token 转成后缀列表：若是语言名（cpp/scheme/...）展开为该语言后缀表，
     ;; 否则按后缀处理（补点）。使 -e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx 全部。
     (define (token->extensions token)
-      (let ((lang-exts (extensions-for-lang-name token)))
+      (let ((lang-exts (or (extensions-for-lang-name token)
+                         (and (string=? token "md") (extensions-for-lang-name "markdown"))
+                       ) ;or
+            ) ;lang-exts
+           ) ;
         (if lang-exts lang-exts (list (normalize-extension token)))
       ) ;let
     ) ;define
@@ -43,8 +53,7 @@
 
     (define (parse-extensions raw)
       (reverse
-        (fold
-          (lambda (ext acc) (if (member ext acc) acc (cons ext acc)))
+        (fold (lambda (ext acc) (if (member ext acc) acc (cons ext acc)))
           '()
           (append-map token->extensions (string-split raw ","))
         ) ;fold
@@ -132,7 +141,7 @@
       (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
       ) ;display
       (newline)
-      (display "  -e, --extension EXT    按语言名或后缀指定：-e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx；-e scheme 涵盖 .scm；-e stem 涵盖 .stem；也可直接写后缀 -e scm,sld"
+      (display "  -e, --extension EXT    按语言名或后缀指定：-e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx；-e scheme 涵盖 .scm；-e stem 涵盖 .stem；-e md 涵盖 .md/.markdown；也可直接写后缀 -e scm,sld"
       ) ;display
       (newline)
       (display "      --changed-since REV    仅格式化自 REV 以来变更的文件（按 -e 过滤；未指定 -e 时包含所有语言）"
@@ -149,7 +158,7 @@
       (newline)
       (display "  path    要格式化的文件或目录路径（可选）")
       (newline)
-      (display "          无 path 时：读 gf_fmt.json 仓库批量格式化所有语言（scheme + cpp + stem）"
+      (display "          无 path 时：读 gf_fmt.json 仓库批量格式化所有已配置语言（scheme + cpp + stem + markdown）"
       ) ;display
       (newline)
       (newline)
@@ -165,12 +174,15 @@
       (newline)
       (display "  gf fmt file.scm              格式化单个文件")
       (newline)
+      (display "  gf fmt file.md               通过 cmark 格式化 Markdown（含表格对齐）"
+      ) ;display
+      (newline)
       (display "  gf fmt --dry-run file.scm    预览格式化结果")
       (newline)
       (display "  gf fmt /path/to/dir          递归格式化目录下所有 .scm 文件"
       ) ;display
       (newline)
-      (display "  gf fmt -e scm,sld dir/       递归格式化目录下所有 .scm 和 .sld 文件"
+      (display "  gf fmt -e md docs/            递归格式化目录下所有 Markdown 文件"
       ) ;display
       (newline)
       (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的所有文件"
@@ -179,14 +191,13 @@
     ) ;define
 
     (define (extension-option-explicit? args)
-      (any
-        (lambda (a)
-          (or (string=? a "-e")
-            (string=? a "--extension")
-            (string-starts? a "-e=")
-            (string-starts? a "--extension=")
-          ) ;or
-        ) ;lambda
+      (any (lambda (a)
+             (or (string=? a "-e")
+               (string=? a "--extension")
+               (string-starts? a "-e=")
+               (string-starts? a "--extension=")
+             ) ;or
+           ) ;lambda
         args
       ) ;any
     ) ;define

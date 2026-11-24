@@ -59,6 +59,7 @@
       (cond ((eq? lang 'cpp) '(".hpp" ".cpp" ".h" ".c" ".cc" ".cxx"))
             ((eq? lang 'scheme) '(".scm"))
             ((eq? lang 'stem) '(".stem"))
+            ((eq? lang 'markdown) '(".md" ".markdown"))
             (else '())
       ) ;cond
     ) ;define

@@ -29,13 +29,14 @@
     (liii goldfmt dispatch)
     (liii goldfmt cpp)
     (liii goldfmt stem-fmt)
+    (liii goldfmt markdown)
     (liii goldfmt parallel)
     (liii go)
     (srfi srfi-13)
   ) ;import
   (export main format-datum format-datum+node format-node format-string
-    format-scheme-string format-stem-string can-inline? scan-string
-    call-with-stem-mode string-contains all-registered-extensions
+    format-scheme-string format-stem-string format-markdown-string can-inline?
+    scan-string call-with-stem-mode string-contains all-registered-extensions
     group-files-by-lang format-changed-since check-goldfish-version
     parse-fmt-jobs
   ) ;export

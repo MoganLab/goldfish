@@ -18,6 +18,7 @@
 (check-set-mode! 'report-failed)
 
 ;; TODO: 补充 default-suffixes 的断言用例。
+(check (default-suffixes 'markdown) => '(".md" ".markdown"))
 (check-true (procedure? default-suffixes))
 
 (check-report)
