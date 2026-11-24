@@ -39,6 +39,10 @@
         "description": {
           "type": "string",
           "description": "Short human-readable package description."
+        },
+        "version": {
+          "type": "string",
+          "description": "Optional package version string, e.g. a calendar version like 2026.11.24."
         }
       },
       "required": ["name", "organization"],

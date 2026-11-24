@@ -97,6 +97,16 @@
   ) ;json-schema-valid?
 ) ;check-true
 
+;; version 字符串可选字段合法
+(check-true
+  (json-schema-valid?
+    (string->json
+      "{\"package\":{\"name\":\"pi\",\"organization\":\"liii\",\"version\":\"2026.11.24\"}}"
+    ) ;string->json
+    schema
+  ) ;json-schema-valid?
+) ;check-true
+
 ;; package 非法实例
 (for-each
   (lambda (text)
@@ -112,7 +122,7 @@
     "{\"package\":{\"name\":\"1lang\",\"organization\":\"liii\"}}"
     "{\"package\":{\"name\":\"lang\",\"organization\":\"liii labs\"}}"
     "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"description\":1}}"
-    "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"version\":\"1.0.0\"}}")
+    "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"version\":1}}")
 ) ;for-each
 
 ;; 顶层保留前向兼容，已有 domains/tools 字段受 Schema 约束

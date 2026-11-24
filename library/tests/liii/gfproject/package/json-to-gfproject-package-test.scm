@@ -50,7 +50,20 @@
   (check (gfproject-package-name package) => "pi")
   (check (gfproject-package-organization package) => "liii")
   (check (gfproject-package-description package) => "")
+  (check (gfproject-package-version package) => #f)
   (check (gfproject-package-id package) => "pi@liii")
+) ;let
+
+;; version 可选字符串，缺省为 #f
+(let ((package
+        (json->gfproject-package
+          (string->json
+            "{\"package\":{\"name\":\"pi\",\"organization\":\"liii\",\"version\":\"2026.11.24\"}}"
+          ) ;string->json
+        ) ;json->gfproject-package
+      ) ;package
+     ) ;
+  (check (gfproject-package-version package) => "2026.11.24")
 ) ;let
 
 ;; package 整体可选，保持旧项目兼容
@@ -74,17 +87,21 @@
     "{\"package\":{\"name\":\"lang@liii\",\"organization\":\"liii\"}}"
     "{\"package\":{\"name\":\"1lang\",\"organization\":\"liii\"}}"
     "{\"package\":{\"name\":\"lang\",\"organization\":\"liii labs\"}}"
-    "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"description\":1}}")
+    "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"description\":1}}"
+    "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"version\":1}}")
 ) ;for-each
 
-;; 未知字段由 Schema 和解析器共同拒绝
-(check-catch 'value-error
-  (json->gfproject-package
-    (string->json
-      "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"version\":\"1.0.0\"}}"
-    ) ;string->json
-  ) ;json->gfproject-package
-) ;check-catch
+;; version 现为已知字段，解析器接受字符串值
+(let ((package
+        (json->gfproject-package
+          (string->json
+            "{\"package\":{\"name\":\"lang\",\"organization\":\"liii\",\"version\":\"1.0.0\"}}"
+          ) ;string->json
+        ) ;json->gfproject-package
+      ) ;package
+     ) ;
+  (check (gfproject-package-version package) => "1.0.0")
+) ;let
 
 ;; ID 访问器强校验记录类型
 (check-catch 'type-error (gfproject-package-id '(("name" . "lang"))))

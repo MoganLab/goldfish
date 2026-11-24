@@ -18,16 +18,17 @@
   (import (scheme base) (liii base) (liii error) (liii json) (liii string))
   (export gfproject-package gfproject-package? gfproject-package-name
     gfproject-package-organization gfproject-package-description
-    gfproject-package-id json->gfproject-package
+    gfproject-package-version gfproject-package-id json->gfproject-package
   ) ;export
   (begin
 
     (define*-record-type <gfproject-package>
-      (gfproject-package name organization (description ""))
+      (gfproject-package name organization (description "") (version #f))
       gfproject-package?
       (name gfproject-package-name)
       (organization gfproject-package-organization)
       (description gfproject-package-description)
+      (version gfproject-package-version)
     ) ;define*-record-type
 
     (define (gfproject-package-id package)
@@ -90,10 +91,25 @@
       ) ;let
     ) ;define
 
+    ;; version 可选；缺省返回 #f，非字符串时报错。
+    (define (%package-version package)
+      (let ((value (if (json-contains-key? package "version")
+                     (json-ref package "version")
+                     'null
+                   ) ;if
+            ) ;value
+           ) ;
+        (cond ((json-null? value) #f)
+              ((string? value) value)
+              (else (value-error "gfproject package version must be a string" value))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (%check-known-fields package)
       (for-each
         (lambda (key)
-          (unless (member key '("name" "organization" "description"))
+          (unless (member key '("name" "organization" "description" "version"))
             (value-error "gfproject package contains an unknown field" key)
           ) ;unless
         ) ;lambda
@@ -115,6 +131,7 @@
           (gfproject-package (%required-name-part package "name")
             (%required-name-part package "organization")
             (%package-description package)
+            (%package-version package)
           ) ;gfproject-package
         ) ;let
       ) ;if

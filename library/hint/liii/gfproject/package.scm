@@ -23,12 +23,17 @@
 
     (define hint-gfproject-package
       '((string? string? -> gfproject-package?)
-        (string? string? string? -> gfproject-package?))
+        (string? string? string? -> gfproject-package?)
+        (string? string? string? string? -> gfproject-package?))
     ) ;define
     (define hint-gfproject-package? '((any? -> boolean?)))
     (define hint-gfproject-package-name '((gfproject-package? -> string?)))
-    (define hint-gfproject-package-organization '((gfproject-package? -> string?)))
+    (define hint-gfproject-package-organization '((gfproject-package? ->
+                                                    string?)))
     (define hint-gfproject-package-description '((gfproject-package? -> string?)))
+    (define hint-gfproject-package-version
+      '((gfproject-package? -> (or #f string?)))
+    ) ;define
     (define hint-gfproject-package-id '((gfproject-package? -> string?)))
     (define hint-json->gfproject-package '((any? -> (or #f gfproject-package?))))
 
@@ -39,6 +44,7 @@
        ((gfproject-package-name) hint-gfproject-package-name)
        ((gfproject-package-organization) hint-gfproject-package-organization)
        ((gfproject-package-description) hint-gfproject-package-description)
+       ((gfproject-package-version) hint-gfproject-package-version)
        ((gfproject-package-id) hint-gfproject-package-id)
        ((json->gfproject-package) hint-json->gfproject-package)
        (else #f)
