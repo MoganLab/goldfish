@@ -1539,7 +1539,16 @@ static string
 normalize_load_path_dir (const string& raw_dir) {
   fs::path path (raw_dir);
   string   normalized= path.lexically_normal ().string ();
-  return normalized.empty () ? raw_dir : normalized;
+  if (normalized.empty ()) return raw_dir;
+  /* strip a trailing separator so that "foo" and "foo/" compare equal:
+   * otherwise fs::path::lexically_normal keeps the trailing slash (it marks
+   * a directory), and load-path dedup in append/prepend_load_path_entries
+   * fails, so search_load_path probes the same directory twice per library. */
+  if (normalized.size () > 1) {
+    char last= normalized.back ();
+    if (last == '/' || last == '\\') normalized.pop_back ();
+  }
+  return normalized;
 }
 
 static bool
