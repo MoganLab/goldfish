@@ -63,19 +63,15 @@
                  (cdr resolved)
                ) ;if
                ;; 短名重装复用登记 ref；显式 --ref 可覆盖
-               (if (and (string? ref) (> (string-length ref) 0))
-                 ref
-                 (get-declared-ref arg)
-               ) ;if
+               (if (and (string? ref) (> (string-length ref) 0)) ref (get-declared-ref arg))
              ) ;list
            ) ;let
           ) ;
-          (else
-            (list #f
-              kind
-              (if (eq? kind 'path) (get-source-local-path arg) arg)
-              (if (eq? kind 'url) ref #f)
-            ) ;list
+          (else (list #f
+                  kind
+                  (if (eq? kind 'path) (get-source-local-path arg) arg)
+                  (if (eq? kind 'url) ref #f)
+                ) ;list
           ) ;else
         ) ;cond
       ) ;let
@@ -131,9 +127,8 @@
               ) ;value-error
             ) ;unless
             ;; 同 url 但 ref 不同也要求 --force
-            (when (and (eq? kind 'url)
-                    (not (string=? (or ref "") (or (get-declared-ref id) "")))
-                   ) ;when
+            (when
+              (and (eq? kind 'url) (not (string=? (or ref "") (or (get-declared-ref id) ""))))
               (value-error (string-append "gf get: "
                              id
                              " is already registered with ref \""
@@ -147,15 +142,41 @@
       ) ;let
     ) ;define
 
+    ;; 递归复制目录树 src -> dst（跨文件系统安全）。dst 必须不存在。
+    (define (%copy-tree src dst)
+      (path-mkdir dst #t #t)
+      (vector-for-each
+        (lambda (name)
+          (let ((s (path-join src name)) (d (path-join dst name)))
+            (if (path-dir? s) (%copy-tree s d) (path-copy s d))
+          ) ;let
+        ) ;lambda
+        (path-list src)
+      ) ;vector-for-each
+    ) ;define
+
+    ;; 把目录树移动到 target：优先 rename（同文件系统），失败回退递归 copy+remove。
+    (define (%move-tree src target)
+      (unless (path-rename src target)
+        (%copy-tree src target)
+        (rmtree (path->string src) #t)
+      ) ;unless
+    ) ;define
+
     ;; 远程安装：把临时目录移动到 site-lisp/<org>/<name>/<version>/（覆盖旧内容）。
     ;; version 为 ref 或 HEAD（无 ref 时）。
     (define (%install-tree tmp package ref)
-      (let ((target (get-package-dir package (if (and (string? ref) (> (string-length ref) 0)) ref "HEAD"))))
+      (let ((target
+              (get-package-dir package
+                (if (and (string? ref) (> (string-length ref) 0)) ref "HEAD")
+              ) ;get-package-dir
+            ) ;target
+           ) ;
         (path-mkdir (path-parent target) #t #t)
         (when (path-dir? target)
           (rmtree (path->string target))
         ) ;when
-        (path-rename tmp target)
+        (%move-tree tmp target)
         target
       ) ;let
     ) ;define
@@ -178,10 +199,7 @@
               (if (eq? kind 'path)
                 (json-push (json-push '(()) "path" source) "local" #t)
                 (let ((b (json-push '(()) "url" source)))
-                  (if (and (string? ref) (> (string-length ref) 0))
-                    (json-push b "ref" ref)
-                    b
-                  ) ;if
+                  (if (and (string? ref) (> (string-length ref) 0)) (json-push b "ref" ref) b)
                 ) ;let
               ) ;if
             ) ;base
@@ -193,7 +211,8 @@
               "version"
               (cond ((eq? kind 'path) "dev")
                     ((and (string? ref) (> (string-length ref) 0)) ref)
-                    (else "HEAD"))
+                    (else "HEAD")
+              ) ;cond
             ) ;json-push
             (loop (cdr rest) (json-push acc (caar rest) (cdar rest)))
           ) ;if
@@ -293,16 +312,18 @@
                     ) ;get-json-set
                   ) ;get-json-set
                 ) ;get-write-json
-                (display (string-append "Installed "
-                           id
-                           " ("
-                           (cond ((eq? kind 'path) "local development")
-                                 ((and (string? ref) (> (string-length ref) 0)) ref)
-                                 (else "HEAD"))
-                           ") -> "
-                           (path->string root)
-                           "\n"
-                         ) ;string-append
+                (display
+                  (string-append "Installed "
+                    id
+                    " ("
+                    (cond ((eq? kind 'path) "local development")
+                          ((and (string? ref) (> (string-length ref) 0)) ref)
+                          (else "HEAD")
+                    ) ;cond
+                    ") -> "
+                    (path->string root)
+                    "\n"
+                  ) ;string-append
                 ) ;display
                 0
               ) ;let*
