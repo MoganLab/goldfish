@@ -27,6 +27,7 @@
       ) ;
   (check-true (string-contains? text "Usage: gf get"))
   (check-true (string-contains? text "--from"))
+  (check-true (string-contains? text "--ref"))
   (check-true (string-contains? text "name@org"))
 ) ;let
 

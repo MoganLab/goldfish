@@ -31,7 +31,8 @@
   ) ;import
   (export get-user-dir get-site-lisp-dir get-lock-path get-package-dir
     get-read-json get-write-json get-depends-entry get-lock-entry
-    get-resolve-declared-source get-json-set get-json-sub get-package-root
+    get-resolve-declared-source get-declared-ref get-json-set get-json-sub
+    get-package-root
   ) ;export
   (begin
 
@@ -150,6 +151,23 @@
               ) ;else
         ) ;cond
       ) ;let*
+    ) ;define
+
+    ;; 取 depends 中登记的 ref（仅远程 url 来源）；本地路径或未登记 ref 返回 #f。
+    (define (get-declared-ref id)
+      (let ((entry
+              (get-depends-entry (get-read-json (path-join (get-user-dir) "gfproject.json"))
+                id
+              ) ;get-depends-entry
+            ) ;entry
+           ) ;
+        (and entry
+          (json-contains-key? entry "ref")
+          (let ((ref (json-ref-string entry "ref" #f)))
+            (and (string? ref) (> (string-length ref) 0) ref)
+          ) ;let
+        ) ;and
+      ) ;let
     ) ;define
 
     ;; 解析短包名的来源：用户 depends 中登记的 url 或本地 path。

@@ -15,10 +15,10 @@
 - 包标识为 `name@organization`（如 `highlight@liii`），与库名、工具名解耦。
 - `~/.gf/gfproject.json` 的 `depends` 记录来源声明（url 或 path/local），
   同时是短包名的本地注册表；`tools.<name>.package` 绑定提供该工具的包。
-- `~/.gf/gfproject.lock` 记录事实：远程包 version=HEAD + commit；本地包 version=dev。
-- 远程包完整项目安装到 `~/.gf/site-lisp/<org>/<name>/HEAD/`；
+- `~/.gf/gfproject.lock` 记录事实：远程包 version=ref（或 HEAD）+ commit；本地包 version=dev。
+- 远程包完整项目安装到 `~/.gf/site-lisp/<org>/<name>/<version>/`（version 为 ref 或 HEAD）；
   本地开发包不复制源码，直接引用工作副本。
-- 未指定版本时取远端 HEAD；重装即更新，commit 相同幂等。
+- 未指定 ref 时取远端 HEAD；指定 ref 时按分支/标签/commit 检出（commit 走全量 clone+checkout）。重装即更新，commit 相同幂等。
 
 ## 运行测试
 
