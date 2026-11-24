@@ -13,11 +13,13 @@
 ;; ------
 ;; TODO: 返回值说明。
 
-(import (scheme base) (liii check) (liii goldfmt args))
+(import (scheme base) (liii check) (liii goldfmt args) (liii goldfmt markdown))
 
 (check-set-mode! 'report-failed)
 
 ;; TODO: 补充 token->extensions 的断言用例。
+(check (token->extensions "md") => '(".md" ".markdown"))
+(check (token->extensions "markdown") => '(".md" ".markdown"))
 (check-true (procedure? token->extensions))
 
 (check-report)

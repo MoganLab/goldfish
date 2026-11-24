@@ -91,6 +91,7 @@
     "fmt": {
       "root": "tools/fmt/",
       "depends-on": [
+        "cmark",
         "library",
         "goldfish"
       ],

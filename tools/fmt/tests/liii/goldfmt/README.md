@@ -20,6 +20,7 @@ bin/gf doc "函数名"
 - `format-string`
 - `format-scheme-string`
 - `format-stem-string`
+- `format-markdown-string`
 - `can-inline?`
 - `scan-string`
 - `call-with-stem-mode`
