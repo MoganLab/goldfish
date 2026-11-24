@@ -26,21 +26,32 @@
 ;; 测试在隔离 HOME 下运行：临时项目含 package 元数据、两个 domain
 ;; 与一个工具；远程用例先 git init/commit 到工作仓库再 clone --bare。
 
-(import (scheme base) (liii check) (liii json) (liii os) (liii path)
-  (liii shutil) (liii string) (liii subprocess)
-  (liii gfproject get install) (liii gfproject get store)
+(import (scheme base)
+  (liii check)
+  (liii json)
+  (liii os)
+  (liii path)
+  (liii shutil)
+  (liii string)
+  (liii subprocess)
+  (liii gfproject get install)
+  (liii gfproject get store)
   (liii gfproject package)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+
 (define orig-profile (getenv "USERPROFILE"))
+
 (define orig-cwd (getcwd))
 
 (define (set-test-home! dir)
   (putenv "HOME" dir)
-  (when (os-windows?) (putenv "USERPROFILE" dir))
+  (when (os-windows?)
+    (putenv "USERPROFILE" dir)
+  ) ;when
 ) ;define
 
 (define (restore-test-home!)
@@ -51,9 +62,18 @@
 ) ;define
 
 (define base
-  (path-join (path-temp-dir) (string-append "gf-get-install-" (number->string (getpid))))
+  ;; macOS 上系统临时目录 /var 是 /private/var 的符号链接，而
+  ;; get-source-local-path 经 path-resolve 解析后存入 depends 的是物理路径。
+  ;; 此处预先 realpath，使后续路径比较与安装记录一致。
+  (path-realpath
+    (path-join (path-temp-dir)
+      (string-append "gf-get-install-" (number->string (getpid)))
+    ) ;path-join
+  ) ;path-realpath
 ) ;define
+
 (define home-dir (path-join base "home"))
+
 (define proj (path-join base "proj"))
 
 (define (write-text p text)
@@ -62,10 +82,10 @@
 ) ;define
 
 ;; 构造带 package/domains/tools 的最小项目
+
 (define (make-project! root)
   (write-text (path-join root "gfproject.json")
-    (string-append
-      "{\"package\":{\"name\":\"demo\",\"organization\":\"liii\",\"description\":\"Demo\"},"
+    (string-append "{\"package\":{\"name\":\"demo\",\"organization\":\"liii\",\"description\":\"Demo\"},"
       "\"domains\":{\"base\":{\"root\":\"base/\"},\"cli\":{\"root\":\"cli/\",\"depends-on\":[\"base\"]}},"
       "\"tools\":{\"demo\":{\"organization\":\"liii\",\"module\":\"demo/cli\"}}}"
     ) ;string-append
@@ -96,10 +116,12 @@
   (check (json-ref-string tool "package" "") => "demo@liii")
   (check (json-ref-string tool "module" "") => "demo/cli")
   ;; 本地包不复制进 site-lisp
-  (check-false (path-dir? (get-package-dir
-                             (json->gfproject-package
-                               (get-read-json (path-join proj "gfproject.json")))
-                             "HEAD"))
+  (check-false
+    (path-dir?
+      (get-package-dir (json->gfproject-package (get-read-json (path-join proj "gfproject.json")))
+        "HEAD"
+      ) ;get-package-dir
+    ) ;path-dir?
   ) ;check-false
 ) ;let*
 
@@ -121,7 +143,9 @@
 ) ;let
 
 ;; 5. 远程 HEAD 安装：init/commit → bare → file:// clone
+
 (define bare (path-join base "remote.git"))
+
 (define (git! args cwd)
   (let ((r (run-either (cons "git" args) :cwd cwd)))
     (check-true (and (pair? r) (eq? (cdr r) 'right)))
@@ -148,9 +172,13 @@
     (check-true (path-file? (path-join root "cli" "liii" "demo" "cli.scm")))
     ;; 短名重装（更新路径）成功且 commit 稳定
     (check (get-install "demo@liii" #f #f) => 0)
-    (check (json-ref-string (get-lock-entry (get-read-json (get-lock-path)) "demo@liii")
-             "commit" "")
-      => (json-ref-string fact "commit" "")
+    (check
+      (json-ref-string (get-lock-entry (get-read-json (get-lock-path)) "demo@liii")
+        "commit"
+        ""
+      ) ;json-ref-string
+      =>
+      (json-ref-string fact "commit" "")
     ) ;check
   ) ;let*
 ) ;let
