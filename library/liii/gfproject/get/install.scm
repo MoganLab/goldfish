@@ -79,16 +79,24 @@
 
     ;; 获取项目目录与 lock 事实：本地直接使用工作副本；
     ;; 远程按 ref 克隆到临时目录（caller 负责清理），记录实际 commit。
+    ;; ref 为 @latest 时先解析为最新稳定 tag 再克隆。
+    ;; 返回 (list dir tmp-or-#f extra resolved-ref)：resolved-ref 为真实
+    ;; ref（@latest 被解析后的 tag，其余原样），本地路径为 #f。
     (define (%acquire kind source ref)
       (if (eq? kind 'path)
         (begin
           (unless (path-dir? source)
             (value-error "gf get: local path is not a directory" source)
           ) ;unless
-          (list (path source) #f '())
+          (list (path source) #f '() #f)
         ) ;begin
-        (let ((tmp (get-git-clone source ref)))
-          (list tmp tmp (list (cons "commit" (get-git-commit tmp))))
+        (let ((resolved-ref
+                (if (and (string? ref) (string=? ref "@latest")) (get-resolve-latest source) ref)
+              ) ;resolved-ref
+             ) ;
+          (let ((tmp (get-git-clone source resolved-ref)))
+            (list tmp tmp (list (cons "commit" (get-git-commit tmp))) resolved-ref)
+          ) ;let
         ) ;let
       ) ;if
     ) ;define
@@ -279,6 +287,8 @@
              (dir (car acquired))
              (tmp (cadr acquired))
              (extra (caddr acquired))
+             ;; @latest 已被解析为真实 tag；其余 ref 原样，本地为 #f。
+             (resolved-ref (cadddr acquired))
             ) ;
         (catch #t
           (lambda ()
@@ -290,7 +300,7 @@
                   ) ;
               (%check-identity requested-id package)
               (%check-source-conflict config id kind source ref force?)
-              (let* ((root (if (eq? kind 'path) dir (%install-tree tmp package ref)))
+              (let* ((root (if (eq? kind 'path) dir (%install-tree tmp package resolved-ref)))
                      (config (get-json-set config
                                "depends"
                                (get-json-set (get-json-sub config "depends")
@@ -308,7 +318,7 @@
                     "packages"
                     (get-json-set (get-json-sub lock "packages")
                       id
-                      (%lock-entry kind source ref root extra)
+                      (%lock-entry kind source resolved-ref root extra)
                     ) ;get-json-set
                   ) ;get-json-set
                 ) ;get-write-json
@@ -317,7 +327,7 @@
                     id
                     " ("
                     (cond ((eq? kind 'path) "local development")
-                          ((and (string? ref) (> (string-length ref) 0)) ref)
+                          ((and (string? resolved-ref) (> (string-length resolved-ref) 0)) resolved-ref)
                           (else "HEAD")
                     ) ;cond
                     ") -> "

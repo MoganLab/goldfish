@@ -23,7 +23,9 @@
     (liii either)
     (liii error)
     (liii json)
+    (liii list)
     (liii path)
+    (liii semver)
     (liii shutil)
     (liii string)
     (liii subprocess)
@@ -31,7 +33,9 @@
     (liii gfproject config)
     (liii gfproject package)
   ) ;import
-  (export get-git-clone get-git-commit get-read-project-package)
+  (export get-git-clone get-git-commit get-read-project-package
+    get-resolve-latest
+  ) ;export
   (begin
 
     ;; 执行 git 命令，失败时抛 os-error 并附 stderr。
@@ -97,6 +101,61 @@
     ;; 解析目录中 git 仓库的 HEAD commit。
     (define (get-git-commit dir)
       (%git (list "rev-parse" "HEAD") (path->string dir))
+    ) ;define
+
+    ;; 从 git ls-remote --tags 的一行中提取 tag 名（去掉 refs/tags/ 前缀）。
+    ;; 行形如 "<sha>\trefs/tags/<tag>"；annotated tag 的 peel 行
+    ;; "<sha>\trefs/tags/<tag>^{}" 被排除（返回 #f）。
+    ;; 解析失败或不是 tag 行时返回 #f。
+    (define (%ls-remote-line->tag line)
+      (let ((fields (string-split line #\tab)))
+        (and (pair? fields)
+          (pair? (cdr fields))
+          (let ((ref (cadr fields)))
+            (and (string-starts? ref "refs/tags/")
+              (not (string-contains? ref "^{}"))
+              (let ((tag (substring ref (string-length "refs/tags/") (string-length ref))))
+                (and (> (string-length tag) 0) tag)
+              ) ;let
+            ) ;and
+          ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
+    ;; tag 是否为稳定 semver：semver-parse 合法且 prerelease 段为空。
+    ;; prerelease 段为解析结果第三元素（caddr），空 list 表示正式版。
+    (define (%stable-semver? tag)
+      (let ((parsed (semver-parse tag)))
+        (and parsed (null? (caddr parsed)))
+      ) ;let
+    ) ;define
+
+    ;; 解析远端仓库的最新稳定 release tag（@latest 伪 ref 的实现）。
+    ;; 通过 git ls-remote --tags 列出全部 tag，过滤出合法稳定 semver，
+    ;; 按 SemVer 优先级取最高者，返回原始 tag 名（保留 v 前缀）。
+    ;; 无任何稳定 tag 时抛 value-error（不回退 HEAD：latest release ≠ latest commit）。
+    ;; 仅依赖 git 协议，对 GitHub/Gitee/自建/SSH 仓库通用。
+    (define (get-resolve-latest url)
+      (unless (and (string? url) (> (string-length url) 0))
+        (type-error "get-resolve-latest: expected a non-empty url" url)
+      ) ;unless
+      (let* ((output (%git (list "ls-remote" "--tags" url) #f))
+             (lines (if (string-null? output) '() (string-split output #\newline)))
+             (tags (filter (lambda (t) t) (map %ls-remote-line->tag lines)))
+             (stable (filter %stable-semver? tags))
+            ) ;
+        (if (null? stable)
+          (value-error "gf get: no stable release tag found for @latest" url)
+          (let loop
+            ((best (car stable)) (rest (cdr stable)))
+            (if (null? rest)
+              best
+              (loop (if (semver>? (car rest) best) (car rest) best) (cdr rest))
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
     ) ;define
 
     ;; 读取项目 gfproject.json 并解析 package 元数据；缺失时报错。
