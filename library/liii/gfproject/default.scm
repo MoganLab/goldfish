@@ -39,7 +39,7 @@
              (base-dir (and bundle (gfproject-tool-base-dir bundle)))
             ) ;
         (if (and bundle (bundle-ref bundle "has-user-tool"))
-          (gfproject-prepare-and-run-tool* command user-tool gf-lib #f base-dir)
+          (%gfproject-prepare-and-run-tool command user-tool gf-lib #f base-dir)
           (%not-registered)
         ) ;if
       ) ;let*

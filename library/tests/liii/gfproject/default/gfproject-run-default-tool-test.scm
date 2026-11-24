@@ -32,7 +32,9 @@
 (check-set-mode! 'report-failed)
 
 (define orig-home (getenv "HOME"))
+
 (define orig-profile (getenv "USERPROFILE"))
+
 (define orig-cwd (getcwd))
 
 (define (set-test-home! dir)
@@ -53,8 +55,23 @@
   (path-write-text (path path-str) text)
 ) ;define
 
-(define (capture-output args cwd)
-  (let ((res (run-either (cons (executable) args) :cwd cwd :stdout 'capture :stderr 'capture)))
+(define (child-env home-dir)
+  (cons (if (os-windows?) (cons "USERPROFILE" home-dir) (cons "HOME" home-dir))
+    (get-environment-variables)
+  ) ;cons
+) ;define
+
+(define (run-gf args cwd home-dir)
+  (run-either (cons (executable) args)
+    :cwd    cwd
+    :env    (child-env home-dir)
+    :stdout 'capture
+    :stderr 'capture
+  ) ;run-either
+) ;define
+
+(define (capture-output args cwd home-dir)
+  (let ((res (run-gf args cwd home-dir)))
     (if (either-left? res) (process-error-stdout (to-left res)) (to-right res))
   ) ;let
 ) ;define
@@ -110,26 +127,30 @@
   (make-pi-project! user-ext "user")
   (make-pi-project! local-ext "local")
   (write-text user-config (pi-registration user-ext))
-  (write-text (path->string (path-join work-dir "gfproject.json")) (pi-registration local-ext))
+  (write-text (path->string (path-join work-dir "gfproject.json"))
+    (pi-registration local-ext)
+  ) ;write-text
 
   (set-test-home! home-dir)
 
   ;; 无参数启动选择用户级实现；显式 pi 仍选择当前项目实现。
-  (check (string-trim-right (capture-output '() work-dir)) => "user")
-  (check (string-trim-right (capture-output '("pi") work-dir)) => "local")
+  (check (string-trim-right (capture-output '() work-dir home-dir)) => "user")
+  (check (string-trim-right (capture-output '("pi") work-dir home-dir))
+    =>
+    "local"
+  ) ;check
 
   ;; 只有项目级注册时，无参数启动不得回退到当前项目。
   (delete-file user-config)
-  (let* ((result (run-either (list (executable)) :cwd work-dir :stdout 'capture :stderr 'capture))
+  (let* ((result (run-gf '() work-dir home-dir))
          (err (to-left result))
          (message (process-error-stdout err))
         ) ;
     (check (process-error-code err) => 1)
     (check-true (string-contains? message "not registered in ~/.gf"))
-    (check-true
-      (string-contains? message
-        "gf get -g https://github.com/MoganLab/gfcode.git --ref @latest"
-      ) ;string-contains?
+    (check-true (string-contains? message
+                  "gf get -g https://github.com/MoganLab/gfcode.git --ref @latest"
+                ) ;string-contains?
     ) ;check-true
     (check-true (string-contains? message "For help with gf itself, run:"))
     (check-true (string-contains? message "gf help"))
