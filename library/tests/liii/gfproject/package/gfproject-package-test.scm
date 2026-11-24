@@ -31,11 +31,18 @@
   (check (gfproject-package-name package) => "lang")
   (check (gfproject-package-organization package) => "liii")
   (check (gfproject-package-description package) => "Goldfish Scheme")
+  (check (gfproject-package-version package) => #f)
   (check (gfproject-package-id package) => "lang@liii")
 ) ;let
 
 (let ((package (gfproject-package "pi" "liii")))
   (check (gfproject-package-description package) => "")
+  (check (gfproject-package-version package) => #f)
+) ;let
+
+(let ((package (gfproject-package "pi" "liii" "Pi coding agent" "2026.11.24")))
+  (check (gfproject-package-description package) => "Pi coding agent")
+  (check (gfproject-package-version package) => "2026.11.24")
 ) ;let
 
 (check-report)
