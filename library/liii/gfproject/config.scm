@@ -140,6 +140,29 @@
       ) ;cond
     ) ;define
 
+    ;; tools 三层合并：先 deep-merge lib + user，再对 local 层显式注册的工具
+    ;; 做整体覆盖（不用逐键合并），保证本仓库的 local 注册完全生效。
+    (define (%merge-tools-local-override lib-tools user-tools local-tools)
+      (let ((base (gfproject-deep-merge lib-tools user-tools)))
+        (if (equal? local-tools '(()))
+          base
+          (let loop ((keys (json-keys local-tools)) (acc base))
+            (if (null? keys)
+              acc
+              (let* ((k (car keys)) (v (json-ref local-tools k)))
+                (loop (cdr keys)
+                  (if (json-contains-key? acc k)
+                    (json-set acc k v)
+                    (json-push acc k v)
+                  ) ;if
+                ) ;loop
+              ) ;let*
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (gfproject-load-config-bundle . opt-gf-lib)
       (let* ((lib-path (apply gfproject-find-lib-path opt-gf-lib))
              (user-path (gfproject-find-user-path))
@@ -150,8 +173,11 @@
              (lib-tools (gfproject-extract-tools lib-config))
              (user-tools (gfproject-extract-tools user-config))
              (local-tools (gfproject-extract-tools local-config))
-             ;; tools 三层合并：lib -> user -> local
-             (merged-tools (gfproject-deep-merge (gfproject-deep-merge lib-tools user-tools) local-tools)
+             ;; tools 三层合并：lib -> user -> local。
+             ;; local 层显式注册的工具整体覆盖低层条目，不逐键合并——
+             ;; 否则本仓库用 tools_dir 开发时，user 层的 package 字段会残留，
+             ;; 导致 gf <tool> 误走缓存包而非本仓库代码。
+             (merged-tools (%merge-tools-local-override lib-tools user-tools local-tools)
              ) ;merged-tools
              (lib-domains (gfproject-extract-domains lib-config))
              (user-domains (gfproject-extract-domains user-config))

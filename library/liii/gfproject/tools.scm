@@ -31,7 +31,7 @@
   (export gfproject-find-tool-root
     gfproject-resolve-tool
     gfproject-resolve-tool-bundle
-    gfproject-prepare-and-run-tool
+    gfproject-prepare-and-run-tool %gfproject-prepare-and-run-tool
     gfproject-run-tool
     gfproject-expand-tools-dir
     gfproject-parse-import-spec
@@ -272,12 +272,12 @@
     ) ;define
 
     (define (gfproject-prepare-and-run-tool command tool-config gf-lib allow-fallback)
-      (gfproject-prepare-and-run-tool* command tool-config gf-lib allow-fallback #f)
+      (%gfproject-prepare-and-run-tool command tool-config gf-lib allow-fallback #f)
     ) ;define
 
-    (define (gfproject-prepare-and-run-tool* command tool-config gf-lib
+    (define (%gfproject-prepare-and-run-tool command tool-config gf-lib
               allow-fallback base-dir
-            ) ;gfproject-prepare-and-run-tool*
+            ) ;%gfproject-prepare-and-run-tool
       (let* ((tool-name (if (json-object? tool-config)
                           (json-ref-string tool-config "tool" command)
                           command
@@ -375,22 +375,22 @@
                                                   "repl" "run"))
              ) ;builtin-fallback?
             ) ;
-        (cond (force-lib? (gfproject-prepare-and-run-tool* command lib-tool
+        (cond (force-lib? (%gfproject-prepare-and-run-tool command lib-tool
                             gf-lib builtin-fallback? lib-base
-                          ) ;gfproject-prepare-and-run-tool*
+                          ) ;%gfproject-prepare-and-run-tool
               ) ;force-lib?
               ((and (or has-local? has-user?) has-lib?)
-               (let ((ret (gfproject-prepare-and-run-tool* command merged-tool gf-lib #t base-dir)))
+               (let ((ret (%gfproject-prepare-and-run-tool command merged-tool gf-lib #t base-dir)))
                  (or ret
-                   (gfproject-prepare-and-run-tool* command lib-tool gf-lib
+                   (%gfproject-prepare-and-run-tool command lib-tool gf-lib
                      builtin-fallback? lib-base
-                   ) ;gfproject-prepare-and-run-tool*
+                   ) ;%gfproject-prepare-and-run-tool
                  ) ;or
                ) ;let
               ) ;
-              (else (gfproject-prepare-and-run-tool* command merged-tool gf-lib
+              (else (%gfproject-prepare-and-run-tool command merged-tool gf-lib
                       builtin-fallback? base-dir
-                    ) ;gfproject-prepare-and-run-tool*
+                    ) ;%gfproject-prepare-and-run-tool
               ) ;else
         ) ;cond
       ) ;let*
