@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; list
-;; '(help)、'(install arg from force?) 或 '(error message)。
+;; '(help)、'(install arg from ref force?) 或 '(error message)。
 
 (import (liii check) (liii goldget))
 
@@ -25,19 +25,28 @@
 
 ;; 基本安装
 (check (parse-get-args '("-g" "~/git/gf-highlight"))
-  => '(install "~/git/gf-highlight" #f #f)
+  => '(install "~/git/gf-highlight" #f #f #f)
 ) ;check
 
 ;; --from 与 --force
 (check (parse-get-args '("-g" "pi@liii" "--from" "https://example.com/r.git" "--force"))
-  => '(install "pi@liii" "https://example.com/r.git" #t)
+  => '(install "pi@liii" "https://example.com/r.git" #f #t)
 ) ;check
 
-;; 缺少 -g / 缺少来源 / 多余来源 / 未知选项 / --from 缺值
+;; --ref
+(check (parse-get-args '("-g" "https://example.com/r.git" "--ref" "v1.0.0"))
+  => '(install "https://example.com/r.git" #f "v1.0.0" #f)
+) ;check
+(check (parse-get-args '("-g" "pi@liii" "--from" "https://example.com/r.git" "--ref" "main" "--force"))
+  => '(install "pi@liii" "https://example.com/r.git" "main" #t)
+) ;check
+
+;; 缺少 -g / 缺少来源 / 多余来源 / 未知选项 / --from 缺值 / --ref 缺值
 (check (car (parse-get-args '("pi@liii"))) => 'error)
 (check (car (parse-get-args '("-g"))) => 'error)
 (check (car (parse-get-args '("-g" "a@b" "c@d"))) => 'error)
 (check (car (parse-get-args '("-g" "--bogus"))) => 'error)
 (check (car (parse-get-args '("-g" "pi@liii" "--from"))) => 'error)
+(check (car (parse-get-args '("-g" "https://example.com/r.git" "--ref"))) => 'error)
 
 (check-report)

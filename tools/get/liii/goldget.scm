@@ -43,14 +43,16 @@
       (display "  -g               Install into user-level ~/.gf (required)\n")
       (display "  --from <source>  Repository for a package id (first installation)\n"
       ) ;display
+      (display "  --ref <ref>      Git reference (branch/tag/commit) to install; default HEAD\n"
+      ) ;display
       (display "  --force          Replace conflicting source or tool ownership\n")
       (display "  -h, --help       Display this help\n")
     ) ;define
 
-    ;; 解析参数：返回 '(help) / '(install arg from force?) / '(error msg)。
+    ;; 解析参数：返回 '(help) / '(install arg from ref force?) / '(error msg)。
     (define (parse-get-args args)
       (let loop
-        ((rest args) (positional '()) (global? #f) (from #f) (force? #f))
+        ((rest args) (positional '()) (global? #f) (from #f) (ref #f) (force? #f))
         (cond
          ((null? rest)
           (cond ((not global?) (list 'error "gf get: -g (user-level) is required"))
@@ -58,22 +60,30 @@
                 ((> (length positional) 1)
                  (list 'error "gf get: expected exactly one package source")
                 ) ;
-                (else (list 'install (car positional) from force?))
+                (else (list 'install (car positional) from ref force?))
           ) ;cond
          ) ;
          ((or (string=? (car rest) "-h") (string=? (car rest) "--help")) '(help))
-         ((string=? (car rest) "-g") (loop (cdr rest) positional #t from force?))
-         ((string=? (car rest) "--force") (loop (cdr rest) positional global? from #t))
+         ((string=? (car rest) "-g") (loop (cdr rest) positional #t from ref force?))
+         ((string=? (car rest) "--force")
+          (loop (cdr rest) positional global? from ref #t)
+         ) ;
          ((string=? (car rest) "--from")
           (if (null? (cdr rest))
             '(error "gf get: --from requires a source argument")
-            (loop (cddr rest) positional global? (cadr rest) force?)
+            (loop (cddr rest) positional global? (cadr rest) ref force?)
+          ) ;if
+         ) ;
+         ((string=? (car rest) "--ref")
+          (if (null? (cdr rest))
+            '(error "gf get: --ref requires a ref argument")
+            (loop (cddr rest) positional global? from (cadr rest) force?)
           ) ;if
          ) ;
          ((string-starts? (car rest) "-")
           (list 'error (string-append "gf get: unknown option " (car rest)))
          ) ;
-         (else (loop (cdr rest) (cons (car rest) positional) global? from force?))
+         (else (loop (cdr rest) (cons (car rest) positional) global? from ref force?))
         ) ;cond
       ) ;let
     ) ;define
@@ -94,7 +104,9 @@
               ) ;
               ((install)
                (catch #t
-                 (lambda () (get-install (cadr parsed) (caddr parsed) (cadddr parsed)))
+                 (lambda ()
+                   (get-install (cadr parsed) (caddr parsed) (cadddr parsed) (car (cddddr parsed)))
+                 ) ;lambda
                  (lambda (type info)
                    (let ((msg (catch-error->string type info)))
                      (display (string-append (if (string-starts? msg "gf get:") "" "gf get: ") msg "\n")

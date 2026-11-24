@@ -9,6 +9,7 @@
 - `get-package-root` - 已安装包项目根（本地 path / site-lisp）
 - `get-read-json` / `get-write-json` - JSON 文件读写
 - `get-depends-entry` / `get-lock-entry` - 单包声明/事实提取
+- `get-declared-ref` - 取 depends 中登记的 ref（仅远程）
 - `get-resolve-declared-source` - 短包名 → 来源解析
 - `get-json-set` - upsert（已有键替换、缺失键新增）
 - `get-json-sub` - 取子对象，缺失返回空对象

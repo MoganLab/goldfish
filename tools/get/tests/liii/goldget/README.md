@@ -5,7 +5,7 @@
 ## 函数
 
 - `main` - 命令入口
-- `parse-get-args` - 参数解析（-g / --from / --force / -h）
+- `parse-get-args` - 参数解析（-g / --from / --ref / --force / -h）
 - `display-get-help` - 用法帮助
 
 ## 运行测试

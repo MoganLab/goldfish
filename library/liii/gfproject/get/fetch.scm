@@ -15,7 +15,8 @@
 ;;
 
 ;; 远程包获取：浅克隆到临时目录，解析 HEAD commit，读取包元数据。
-;; 未指定版本时直接取远端 HEAD；commit 是写入 lock 的不可变事实。
+;; 未指定 ref 时直接取远端 HEAD；指定 ref 时按分支/标签/commit 检出。
+;; commit 是写入 lock 的不可变事实。
 
 (define-library (liii gfproject get fetch)
   (import (scheme base)
@@ -51,14 +52,38 @@
       ) ;let
     ) ;define
 
-    ;; 浅克隆 url 到临时目录；成功返回临时目录 path，调用方负责清理。
-    (define (get-git-clone url)
+    ;; 浅克隆 url 到临时目录；ref 为 #f 时取远端 HEAD，否则按 ref 检出。
+    ;; ref 优先尝试 clone --branch <ref> --depth 1（分支/标签），失败时
+    ;; 回退全量 clone 后 checkout <ref>（兼容 commit SHA 与禁用 shallow-by-ref 的服务端）。
+    ;; 成功返回临时目录 path，调用方负责清理。
+    (define (get-git-clone url ref)
       (unless (and (string? url) (> (string-length url) 0))
         (type-error "get-git-clone: expected a non-empty url" url)
       ) ;unless
       (let ((tmp (path-join (path-temp-dir) (string-append "gf-get-" (uuid4)))))
         (catch #t
-          (lambda () (%git (list "clone" "--depth" "1" url (path->string tmp)) #f) tmp)
+          (lambda ()
+            (if (and (string? ref) (> (string-length ref) 0))
+              (begin
+                ;; 先尝试按 ref 浅克隆；失败回退全量克隆 + checkout。
+                (catch #t
+                  (lambda ()
+                    (%git (list "clone" "--depth" "1" "--branch" ref url (path->string tmp)) #f)
+                  ) ;lambda
+                  (lambda (type info)
+                    (when (path-dir? tmp)
+                      (rmtree (path->string tmp) #t)
+                    ) ;when
+                    ;; 全量克隆再 checkout 到目标 ref。
+                    (%git (list "clone" "-q" url (path->string tmp)) #f)
+                    (%git (list "checkout" ref) (path->string tmp))
+                  ) ;lambda
+                ) ;catch
+              ) ;begin
+              (%git (list "clone" "--depth" "1" url (path->string tmp)) #f)
+            ) ;if
+            tmp
+          ) ;lambda
           (lambda (type info)
             (when (path-dir? tmp)
               (rmtree (path->string tmp) #t)

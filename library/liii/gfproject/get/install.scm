@@ -36,9 +36,10 @@
   (export get-install)
   (begin
 
-    ;; 解析请求：返回 (list id-or-false kind source)。
-    ;; arg 为短包名时查用户 depends 得到来源；--from 显式指定来源。
-    (define (%resolve-request arg from)
+    ;; 解析请求：返回 (list id-or-false kind source ref)。
+    ;; arg 为短包名时查用户 depends 得到来源与登记 ref；--from 显式指定来源。
+    ;; ref 仅来自显式 --ref 或已登记的 depends；本地路径模式 ref 恒为 #f。
+    (define (%resolve-request arg from ref)
       (let ((kind (get-source-kind arg)))
         (cond
           (from
@@ -49,6 +50,7 @@
               (list (if (eq? kind 'package) arg #f)
                 from-kind
                 (if (eq? from-kind 'path) (get-source-local-path from) from)
+                (if (eq? from-kind 'url) ref #f)
               ) ;list
             ) ;let
           ) ;from
@@ -60,17 +62,28 @@
                  (get-source-local-path (cdr resolved))
                  (cdr resolved)
                ) ;if
+               ;; 短名重装复用登记 ref；显式 --ref 可覆盖
+               (if (and (string? ref) (> (string-length ref) 0))
+                 ref
+                 (get-declared-ref arg)
+               ) ;if
              ) ;list
            ) ;let
           ) ;
-          (else (list #f kind (if (eq? kind 'path) (get-source-local-path arg) arg)))
+          (else
+            (list #f
+              kind
+              (if (eq? kind 'path) (get-source-local-path arg) arg)
+              (if (eq? kind 'url) ref #f)
+            ) ;list
+          ) ;else
         ) ;cond
       ) ;let
     ) ;define
 
     ;; 获取项目目录与 lock 事实：本地直接使用工作副本；
-    ;; 远程克隆到临时目录（caller 负责清理），记录 HEAD commit。
-    (define (%acquire kind source)
+    ;; 远程按 ref 克隆到临时目录（caller 负责清理），记录实际 commit。
+    (define (%acquire kind source ref)
       (if (eq? kind 'path)
         (begin
           (unless (path-dir? source)
@@ -78,7 +91,7 @@
           ) ;unless
           (list (path source) #f '())
         ) ;begin
-        (let ((tmp (get-git-clone source)))
+        (let ((tmp (get-git-clone source ref)))
           (list tmp tmp (list (cons "commit" (get-git-commit tmp))))
         ) ;let
       ) ;if
@@ -98,7 +111,8 @@
     ) ;define
 
     ;; 同 id 已登记不同来源时拒绝，除非 force?。
-    (define (%check-source-conflict config id kind source force?)
+    ;; ref 不同也视为来源变化（避免误覆盖分支槽位）。
+    (define (%check-source-conflict config id kind source ref force?)
       (let ((entry (get-depends-entry config id)))
         (when (and entry (not force?))
           (let ((old (if (json-contains-key? entry "path")
@@ -116,14 +130,27 @@
                            ) ;string-append
               ) ;value-error
             ) ;unless
+            ;; 同 url 但 ref 不同也要求 --force
+            (when (and (eq? kind 'url)
+                    (not (string=? (or ref "") (or (get-declared-ref id) "")))
+                   ) ;when
+              (value-error (string-append "gf get: "
+                             id
+                             " is already registered with ref \""
+                             (get-declared-ref id)
+                             "\"; use --force to change the ref"
+                           ) ;string-append
+              ) ;value-error
+            ) ;when
           ) ;let
         ) ;when
       ) ;let
     ) ;define
 
-    ;; 远程安装：把临时目录移动到 site-lisp/<org>/<name>/HEAD/（覆盖旧内容）。
-    (define (%install-tree tmp package)
-      (let ((target (get-package-dir package "HEAD")))
+    ;; 远程安装：把临时目录移动到 site-lisp/<org>/<name>/<version>/（覆盖旧内容）。
+    ;; version 为 ref 或 HEAD（无 ref 时）。
+    (define (%install-tree tmp package ref)
+      (let ((target (get-package-dir package (if (and (string? ref) (> (string-length ref) 0)) ref "HEAD"))))
         (path-mkdir (path-parent target) #t #t)
         (when (path-dir? target)
           (rmtree (path->string target))
@@ -133,28 +160,41 @@
       ) ;let
     ) ;define
 
-    ;; depends 声明条目：来源与 local 标志；版本事实在 lock，不在此处。
-    (define (%depends-entry kind source)
+    ;; depends 声明条目：来源与 local 标志；远程记 ref（可缺省），版本事实在 lock。
+    (define (%depends-entry kind source ref)
       (if (eq? kind 'path)
         (json-push (json-push '(()) "path" source) "local" #t)
-        (json-push '(()) "url" source)
+        (if (and (string? ref) (> (string-length ref) 0))
+          (json-push (json-push '(()) "url" source) "ref" ref)
+          (json-push '(()) "url" source)
+        ) ;if
       ) ;if
     ) ;define
 
-    ;; lock 事实条目：远程记 url/commit/version=HEAD 与安装相对路径；
-    ;; 本地记 path 与 version=dev，不锁 commit。
-    (define (%lock-entry kind source root extra)
+    ;; lock 事实条目：远程记 url/commit/ref/version 与安装相对路径；
+    ;; 本地记 path 与 version=dev，不锁 commit。version 为 ref 或 HEAD/dev。
+    (define (%lock-entry kind source ref root extra)
       (let ((base
               (if (eq? kind 'path)
                 (json-push (json-push '(()) "path" source) "local" #t)
-                (json-push '(()) "url" source)
+                (let ((b (json-push '(()) "url" source)))
+                  (if (and (string? ref) (> (string-length ref) 0))
+                    (json-push b "ref" ref)
+                    b
+                  ) ;if
+                ) ;let
               ) ;if
             ) ;base
            ) ;
         (let loop
           ((rest extra) (acc base))
           (if (null? rest)
-            (json-push acc "version" (if (eq? kind 'path) "dev" "HEAD"))
+            (json-push acc
+              "version"
+              (cond ((eq? kind 'path) "dev")
+                    ((and (string? ref) (> (string-length ref) 0)) ref)
+                    (else "HEAD"))
+            ) ;json-push
             (loop (cdr rest) (json-push acc (caar rest) (cdar rest)))
           ) ;if
         ) ;let
@@ -210,12 +250,13 @@
     ) ;define
 
     ;; 主入口：安装 arg（URL/路径/短名），返回 0；错误抛异常由 CLI 捕获。
-    (define (get-install arg from force?)
-      (let* ((request (%resolve-request arg from))
+    (define (get-install arg from ref force?)
+      (let* ((request (%resolve-request arg from ref))
              (requested-id (car request))
              (kind (cadr request))
              (source (caddr request))
-             (acquired (%acquire kind source))
+             (ref (cadddr request))
+             (acquired (%acquire kind source ref))
              (dir (car acquired))
              (tmp (cadr acquired))
              (extra (caddr acquired))
@@ -229,11 +270,14 @@
                    (config (get-read-json config-path))
                   ) ;
               (%check-identity requested-id package)
-              (%check-source-conflict config id kind source force?)
-              (let* ((root (if (eq? kind 'path) dir (%install-tree tmp package)))
+              (%check-source-conflict config id kind source ref force?)
+              (let* ((root (if (eq? kind 'path) dir (%install-tree tmp package ref)))
                      (config (get-json-set config
                                "depends"
-                               (get-json-set (get-json-sub config "depends") id (%depends-entry kind source))
+                               (get-json-set (get-json-sub config "depends")
+                                 id
+                                 (%depends-entry kind source ref)
+                               ) ;get-json-set
                              ) ;get-json-set
                      ) ;config
                      (config (%register-tools config package root force?))
@@ -245,14 +289,16 @@
                     "packages"
                     (get-json-set (get-json-sub lock "packages")
                       id
-                      (%lock-entry kind source root extra)
+                      (%lock-entry kind source ref root extra)
                     ) ;get-json-set
                   ) ;get-json-set
                 ) ;get-write-json
                 (display (string-append "Installed "
                            id
                            " ("
-                           (if (eq? kind 'path) "local development" "HEAD")
+                           (cond ((eq? kind 'path) "local development")
+                                 ((and (string? ref) (> (string-length ref) 0)) ref)
+                                 (else "HEAD"))
                            ") -> "
                            (path->string root)
                            "\n"
