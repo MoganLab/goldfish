@@ -452,7 +452,7 @@
     '(md-stem (table (align default) (thead (tr (th "a"))) (tbody)))
   ) ;md-stem->markdown
   =>
-  "|a|\n|---|\n"
+  "| a   |\n| --- |\n"
 ) ;check
 (check
   (md-stem->markdown
@@ -461,10 +461,18 @@
                 (tbody (tr (td "1") (td "2") (td "3") (td "4")))))
   ) ;md-stem->markdown
   =>
-  "|a|b|c|d|\n|:--|:-:|--:|---|\n|1|2|3|4|\n"
+  "| a   | b   | c   | d   |\n| :-- | :-: | --: | --- |\n| 1   | 2   | 3   | 4   |\n"
 ) ;check
 
-;; 31. 单元格管道符转义与空单元格
+;; Markdown → md-stem → Markdown：长短不一和中文列也会美化对齐。
+(check
+  (md-stem->markdown
+    (markdown->md-stem "|Name|值|\n|---|---:|\n|A|中文内容|\n|Long name|x|")
+  ) ;md-stem->markdown
+  =>
+  "| Name      | 值       |\n| --------- | -------: |\n| A         | 中文内容 |\n| Long name | x        |\n"
+) ;check
+
 (check
   (md-stem->markdown
     '(md-stem (table (align default)
@@ -472,7 +480,7 @@
                 (tbody (tr (td "1")))))
   ) ;md-stem->markdown
   =>
-  "|a\\|b|\n|---|\n|1|\n"
+  "| a\\|b |\n| ---- |\n| 1    |\n"
 ) ;check
 (check
   (md-stem->markdown
@@ -481,7 +489,7 @@
                 (tbody (tr (td "1") (td "2")))))
   ) ;md-stem->markdown
   =>
-  "|a||\n|---|---|\n|1|2|\n"
+  "| a   |     |\n| --- | --- |\n| 1   | 2   |\n"
 ) ;check
 
 ;; 32. 表格语义往返

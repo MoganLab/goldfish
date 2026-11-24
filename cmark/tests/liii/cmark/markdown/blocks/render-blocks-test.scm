@@ -85,7 +85,7 @@
 (check
   (render-blocks
     '((table (align default) (thead (tr (th "a"))) (tbody))))
-  => '("|a|" "|---|")
+  => '("| a   |" "| --- |")
 ) ;check
 
 ;; ---- 非法节点 ----
