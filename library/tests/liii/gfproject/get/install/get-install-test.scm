@@ -14,7 +14,8 @@
 ;; --from 显式来源。
 ;;
 ;; ref : string? or #f
-;; git 引用（分支/标签/commit）；仅对远程 url 生效，本地路径忽略。
+;; git 引用（分支/标签/commit）或 @latest（最新稳定 release tag）；
+;; 仅对远程 url 生效，本地路径忽略。
 ;;
 ;; force? : boolean?
 ;; 冲突时是否强制替换。
@@ -242,6 +243,45 @@
     (check (json-ref-string fact "version" "") => head-commit)
   ) ;let
 ) ;let*
+
+;; 10. --ref @latest：depends 存声明 @latest，lock/安装目录取解析后的真实稳定 tag
+(let ((url (string-append "file:///" (path->string bare))))
+  ;; 打稳定 + pre-release tag 并推送到 bare
+  (git! (list "-c" "user.email=t@t" "-c" "user.name=t" "tag" "v1.2.0")
+    (path->string proj)
+  ) ;git!
+  (git! (list "push" "-q" (path->string bare) "refs/tags/v1.2.0")
+    (path->string proj)
+  ) ;git!
+  (git! (list "-c" "user.email=t@t" "-c" "user.name=t" "tag" "v1.10.0")
+    (path->string proj)
+  ) ;git!
+  (git! (list "push" "-q" (path->string bare) "refs/tags/v1.10.0")
+    (path->string proj)
+  ) ;git!
+  (git! (list "-c" "user.email=t@t" "-c" "user.name=t" "tag" "v2.0.0-rc.1")
+    (path->string proj)
+  ) ;git!
+  (git! (list "push" "-q" (path->string bare) "refs/tags/v2.0.0-rc.1")
+    (path->string proj)
+  ) ;git!
+  (check (get-install url #f "@latest" #t) => 0)
+  (let* ((config (get-read-json (path-join (get-user-dir) "gfproject.json")))
+         (entry (get-depends-entry config "demo@liii"))
+         (fact (get-lock-entry (get-read-json (get-lock-path)) "demo@liii"))
+         (root (get-package-root "demo@liii"))
+        ) ;
+    ;; depends 记录声明意图 @latest
+    (check (json-ref-string entry "ref" "") => "@latest")
+    ;; lock 记录解析事实：最高稳定 tag v1.10.0（排除 v2.0.0-rc.1）
+    (check (json-ref-string fact "ref" "") => "v1.10.0")
+    (check (json-ref-string fact "version" "") => "v1.10.0")
+    (check-true (> (string-length (json-ref-string fact "commit" "")) 0))
+    ;; 安装目录为真实 tag 而非字面 @latest
+    (check-true (path-file? (path-join root "gfproject.json")))
+    (check-false (string-contains? (path->string root) "@latest"))
+  ) ;let*
+) ;let
 
 (restore-test-home!)
 (chdir orig-cwd)

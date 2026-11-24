@@ -43,7 +43,7 @@
       (display "  -g               Install into user-level ~/.gf (required)\n")
       (display "  --from <source>  Repository for a package id (first installation)\n"
       ) ;display
-      (display "  --ref <ref>      Git reference (branch/tag/commit) to install; default HEAD\n"
+      (display "  --ref <ref>      Git ref (branch/tag/commit) or @latest (newest stable tag); default HEAD\n"
       ) ;display
       (display "  --force          Replace conflicting source or tool ownership\n")
       (display "  -h, --help       Display this help\n")
