@@ -153,6 +153,14 @@
         "goldfish"
       ],
       "mode": "r7rs"
+    },
+    "remove": {
+      "root": "tools/remove/",
+      "depends-on": [
+        "library",
+        "goldfish"
+      ],
+      "mode": "r7rs"
     }
   },
   "tools": {
@@ -218,6 +226,14 @@
       "description": {
         "en_US": "Install packages and register their gf subcommands",
         "zh_CN": "安装包并注册其 gf 子命令"
+      }
+    },
+    "remove": {
+      "organization": "liii",
+      "module": "goldremove",
+      "description": {
+        "en_US": "Remove user-level packages and unregister their gf subcommands",
+        "zh_CN": "卸载用户级包并注销其 gf 子命令"
       }
     },
     "json": {

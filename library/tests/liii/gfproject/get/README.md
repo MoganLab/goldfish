@@ -1,12 +1,12 @@
 # (liii gfproject get ...) 模块函数分类索引
 
 `gf get` 的支撑库：来源解析、用户级存储、远程获取与安装编排。
-命令入口为 `(liii goldget)`（tools/get/）。
+命令入口为 `(liii goldget)`（tools/get/）；卸载见 `(liii gfproject remove)`。
 
 ## 子模块
 
 - `(liii gfproject get source)` - 来源解析：`get-source-kind`（path/url/package）、`get-source-local-path`、`get-package-id-part`
-- `(liii gfproject get store)` - `~/.gf` 布局与读写：`get-user-dir`、`get-site-lisp-dir`、`get-package-dir`、`get-package-root`、`get-depends-entry`、`get-lock-entry`、`get-json-set`（upsert）、`get-json-sub`
+- `(liii gfproject get store)` - `~/.gf` 布局与读写：`get-user-dir`、`get-site-lisp-dir`、`get-package-dir`、`get-package-root`、`%package-version-dir`、`get-depends-entry`、`get-lock-entry`、`get-json-set`（upsert）、`get-json-sub`
 - `(liii gfproject get fetch)` - 远程获取：`get-git-clone`（浅克隆到临时目录）、`get-git-commit`、`get-read-project-package`
 - `(liii gfproject get install)` - 安装编排：`get-install`
 

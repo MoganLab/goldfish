@@ -7,6 +7,7 @@
 - `get-user-dir` / `get-site-lisp-dir` / `get-lock-path` - 目录与 lock 路径
 - `get-package-dir` - 远程包安装目录（version 缺省 HEAD）
 - `get-package-root` - 已安装包项目根（本地 path / site-lisp）
+- `%package-version-dir` - 远程包版本安装目录（供 get-package-root 与 gf remove 共享）
 - `get-read-json` / `get-write-json` - JSON 文件读写
 - `get-depends-entry` / `get-lock-entry` - 单包声明/事实提取
 - `get-declared-ref` - 取 depends 中登记的 ref（仅远程）

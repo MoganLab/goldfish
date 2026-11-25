@@ -17,6 +17,8 @@ gf doc liii/gfproject/external
 - `(liii gfproject tools)` - 工具注册解析与执行：`gfproject-resolve-tool`、`gfproject-prepare-and-run-tool` 等
 - `(liii gfproject default)` - 无参数 `gf` 的默认工具加载：`gfproject-run-default-tool` 仅使用用户级注册
 - `(liii gfproject external)` - 外部项目加载：`gfproject-find-project-root`、`gfproject-external-project-load-path!`
+- `(liii gfproject get ...)` - 用户级包安装（`gf get` 支撑库）：来源解析、存储、获取与安装编排
+- `(liii gfproject remove)` - 用户级包卸载（`gf remove` 支撑库）：`gfproject-remove-package`
 
 ## 配置约定
 
