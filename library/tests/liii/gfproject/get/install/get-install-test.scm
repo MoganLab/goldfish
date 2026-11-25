@@ -1,5 +1,6 @@
 ;; get-install
-;; 用户级安装编排：本地开发模式与远程 HEAD 安装（file:// 本地裸仓库）。
+;; 用户级安装编排：本地开发模式与远程安装（file:// 本地裸仓库）。
+;; --ref 缺省为 @latest（最新稳定 release tag）。
 ;;
 ;; 语法
 ;; ----
@@ -15,7 +16,7 @@
 ;;
 ;; ref : string? or #f
 ;; git 引用（分支/标签/commit）或 @latest（最新稳定 release tag）；
-;; 仅对远程 url 生效，本地路径忽略。
+;; #f/空串时远程 url 缺省解析为 @latest，本地路径忽略。
 ;;
 ;; force? : boolean?
 ;; 冲突时是否强制替换。
@@ -148,7 +149,7 @@
   (check (get-install (path->string proj2) #f #f #t) => 0)
 ) ;let
 
-;; 5. 远程 HEAD 安装：init/commit → bare → file:// clone
+;; 5. 远程默认安装（--ref 缺省 @latest）：init/commit → tag → bare → file:// clone
 
 (define bare (path-join base "remote.git"))
 
@@ -165,18 +166,30 @@
 (git! (list "clone" "-q" "--bare" (path->string proj) (path->string bare)) #f)
 ;; bare 默认 HEAD 可能指向 master，对齐到 main
 (git! (list "symbolic-ref" "HEAD" "refs/heads/main") (path->string bare))
+;; 默认 @latest 需要至少一个稳定 tag
+(git! (list "-c" "user.email=t@t" "-c" "user.name=t" "tag" "v0.1.0")
+  (path->string proj)
+) ;git!
+(git! (list "push" "-q" (path->string bare) "refs/tags/v0.1.0")
+  (path->string proj)
+) ;git!
 
 (let ((url (string-append "file:///" (path->string bare))))
   (check (get-install url #f #f #t) => 0)
-  (let* ((lock (get-read-json (get-lock-path)))
+  (let* ((config (get-read-json (path-join (get-user-dir) "gfproject.json")))
+         (entry (get-depends-entry config "demo@liii"))
+         (lock (get-read-json (get-lock-path)))
          (fact (get-lock-entry lock "demo@liii"))
          (root (get-package-root "demo@liii"))
         ) ;
-    (check (json-ref-string fact "version" "") => "HEAD")
+    ;; --ref 缺省：depends 记声明 @latest，lock/目录取解析后的真实稳定 tag
+    (check (json-ref-string entry "ref" "") => "@latest")
+    (check (json-ref-string fact "ref" "") => "v0.1.0")
+    (check (json-ref-string fact "version" "") => "v0.1.0")
     (check-true (> (string-length (json-ref-string fact "commit" "")) 0))
     (check-true (path-file? (path-join root "gfproject.json")))
     (check-true (path-file? (path-join root "cli" "liii" "demo" "cli.scm")))
-    ;; 短名重装（更新路径）成功且 commit 稳定
+    ;; 短名重装复用登记 @latest，重新解析到同一 tag，commit 稳定
     (check (get-install "demo@liii" #f #f #f) => 0)
     (check
       (json-ref-string (get-lock-entry (get-read-json (get-lock-path)) "demo@liii")

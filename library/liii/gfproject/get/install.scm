@@ -17,7 +17,8 @@
 ;; 用户级安装编排：解析来源 → 获取项目 → 校验包身份 → 落盘/登记 →
 ;; 自动编辑 ~/.gf/gfproject.json（depends + tools）与 gfproject.lock。
 ;; 本地路径是开发模式：不复制源码，depends 记 path，lock 记 version=dev。
-;; 远程 URL 是安装模式：完整项目进入 site-lisp/<org>/<name>/HEAD/。
+;; 远程 URL 是安装模式：完整项目进入 site-lisp/<org>/<name>/<version>/，
+;; --ref 缺省为 @latest（最新稳定 release tag）。
 
 (define-library (liii gfproject get install)
   (import (scheme base)
@@ -36,9 +37,15 @@
   (export get-install)
   (begin
 
+    ;; --ref 缺省为 @latest：显式 --ref 与登记 ref 之外一律解析最新稳定 tag。
+    (define (%default-ref ref)
+      (if (and (string? ref) (> (string-length ref) 0)) ref "@latest")
+    ) ;define
+
     ;; 解析请求：返回 (list id-or-false kind source ref)。
     ;; arg 为短包名时查用户 depends 得到来源与登记 ref；--from 显式指定来源。
-    ;; ref 仅来自显式 --ref 或已登记的 depends；本地路径模式 ref 恒为 #f。
+    ;; ref 优先取显式 --ref，其次已登记的 depends，缺省 @latest；
+    ;; 本地路径模式 ref 恒为 #f。
     (define (%resolve-request arg from ref)
       (let ((kind (get-source-kind arg)))
         (cond
@@ -50,7 +57,7 @@
               (list (if (eq? kind 'package) arg #f)
                 from-kind
                 (if (eq? from-kind 'path) (get-source-local-path from) from)
-                (if (eq? from-kind 'url) ref #f)
+                (if (eq? from-kind 'url) (%default-ref ref) #f)
               ) ;list
             ) ;let
           ) ;from
@@ -62,15 +69,17 @@
                  (get-source-local-path (cdr resolved))
                  (cdr resolved)
                ) ;if
-               ;; 短名重装复用登记 ref；显式 --ref 可覆盖
-               (if (and (string? ref) (> (string-length ref) 0)) ref (get-declared-ref arg))
+               ;; 短名重装复用登记 ref；显式 --ref 可覆盖；均无时缺省 @latest
+               (%default-ref
+                 (if (and (string? ref) (> (string-length ref) 0)) ref (get-declared-ref arg))
+               ) ;%default-ref
              ) ;list
            ) ;let
           ) ;
           (else (list #f
                   kind
                   (if (eq? kind 'path) (get-source-local-path arg) arg)
-                  (if (eq? kind 'url) ref #f)
+                  (if (eq? kind 'url) (%default-ref ref) #f)
                 ) ;list
           ) ;else
         ) ;cond
@@ -90,8 +99,10 @@
           ) ;unless
           (list (path source) #f '() #f)
         ) ;begin
-        (let ((resolved-ref
-                (if (and (string? ref) (string=? ref "@latest")) (get-resolve-latest source) ref)
+        (let ((resolved-ref (if (and (string? ref) (string=? ref "@latest"))
+                              (get-resolve-latest source)
+                              ref
+                            ) ;if
               ) ;resolved-ref
              ) ;
           (let ((tmp (get-git-clone source resolved-ref)))
@@ -140,7 +151,7 @@
               (value-error (string-append "gf get: "
                              id
                              " is already registered with ref \""
-                             (get-declared-ref id)
+                             (or (get-declared-ref id) "HEAD")
                              "\"; use --force to change the ref"
                            ) ;string-append
               ) ;value-error
