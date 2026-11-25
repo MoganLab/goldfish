@@ -57,7 +57,16 @@
                ((xs form) (acc '()))
                (cond ((null? xs) (reverse acc))
                      ((symbol? xs) (reverse (cons xs acc)))
-                     ((pair? xs) (loop (cdr xs) (cons (car xs) acc)))
+                     ((pair? xs)
+                      (let ((formal (car xs)))
+                        (loop (cdr xs)
+                          (cons
+                            (if (and (pair? formal) (symbol? (car formal))) (car formal) formal)
+                            acc
+                          ) ;cons
+                        ) ;loop
+                      ) ;let
+                     ) ;
                      (else #f)
                ) ;cond
              ) ;let
@@ -126,21 +135,20 @@
       ) ;let
     ) ;define
 
+    (define (definition-name form)
+      (and (pair? form)
+        (memq (car form) '(define define*))
+        (pair? (cdr form))
+        (if (symbol? (cadr form))
+          (cadr form)
+          (and (pair? (cadr form)) (car (cadr form)))
+        ) ;if
+      ) ;and
+    ) ;define
+
     (define (scan-body file body env)
       ;; Internal definitions are visible throughout a body.
-      (let* ((defs
-               (%filter
-                 (lambda (x)
-                   (and (pair? x)
-                     (memq (car x) '(define define*))
-                     (pair? (cdr x))
-                     (symbol? (cadr x))
-                   ) ;and
-                 ) ;lambda
-                 body
-               ) ;%filter
-             ) ;defs
-             (names (map cadr defs))
+      (let* ((names (%filter symbol? (map definition-name body)))
              (body-env (append names env))
             ) ;
         (%scan-sequence file body body-env)
@@ -230,10 +238,26 @@
       ) ;if
     ) ;define
 
+    (define (scan-do-steps file bindings env)
+      (if (null? bindings)
+        '()
+        (let* ((binding (car bindings))
+               (result
+                 (if (and (pair? binding) (pair? (cddr binding)))
+                   (scan-form file (caddr binding) env)
+                   '()
+                 ) ;if
+               ) ;result
+              ) ;
+          (if result (append-result result (scan-do-steps file (cdr bindings) env)) #f)
+        ) ;let*
+      ) ;if
+    ) ;define
+
     (define (scan-do file form env)
       (if (and (pair? (cdr form)) (pair? (cddr form)))
         (let* ((bindings (cadr form)) (names (binding-names bindings)) (body (cddr form)))
-          (if (and names (pair? body))
+          (if (and names (pair? body) (pair? (car body)))
             (let ((init-result (scan-bindings file bindings env)) (loop-env (append names env)))
               (if init-result
                 (let* ((termination (car body))
@@ -245,9 +269,12 @@
                                      ) ;if
                        ) ;value-result
                        (command-result (if value-result (%scan-sequence file (cdr body) loop-env) #f))
+                       (step-result (if command-result (scan-do-steps file bindings loop-env) #f))
                       ) ;
                   (append-result init-result
-                    (append-result test-result (append-result value-result command-result))
+                    (append-result test-result
+                      (append-result value-result (append-result command-result step-result))
+                    ) ;append-result
                   ) ;append-result
                 ) ;let*
                 #f
@@ -279,14 +306,13 @@
 
     (define (scan-quasiquote file form env)
       (let scan
-        ((x (cdr form)) (depth 1))
-        (cond ((null? x) '())
-              ((not (pair? x)) '())
-              ((and (pair? (car x)) (eq? (caar x) 'unquote) (= depth 1))
-               (scan-form file (car x) env)
+        ((x (cadr form)) (depth 1))
+        (cond ((not (pair? x)) '())
+              ((and (eq? (car x) 'unquote) (pair? (cdr x)))
+               (if (= depth 1) (scan-form file (cadr x) env) (scan (cadr x) (- depth 1)))
               ) ;
-              ((and (pair? (car x)) (eq? (caar x) 'quasiquote)) (scan (cdr x) (+ depth 1)))
-              (else (scan (cdr x) depth))
+              ((and (eq? (car x) 'quasiquote) (pair? (cdr x))) (scan (cadr x) (+ depth 1)))
+              (else (append-result (scan (car x) depth) (scan (cdr x) depth)))
         ) ;cond
       ) ;let
     ) ;define
@@ -326,7 +352,9 @@
                  ((eq? head 'define-record-type) '())
                  ((eq? head 'lambda) (scan-lambda file form env))
                  ((eq? head 'case-lambda) (scan-case-lambda file form env))
-                 ((memq head '(let letrec)) (scan-let file form env head))
+                 ((and (memq head '(let letrec)) (pair? (cdr form)))
+                  (scan-let file form env head)
+                 ) ;
                  ((memq head '(let* letrec*)) (scan-let-star file form env))
                  ((eq? head 'let-values) (scan-let-values file form env #f))
                  ((eq? head 'let*-values) (scan-let-values file form env #t))
