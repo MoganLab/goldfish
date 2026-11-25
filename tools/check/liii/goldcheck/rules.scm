@@ -75,6 +75,8 @@
       (display "  unit-test              单元测试规范（文档置顶、函数名/描述/小节、结尾check-report）"
       ) ;display
       (newline)
+      (display "  free-variables         未绑定标识符（仅确定可分析的表达式）\n"
+      ) ;display
       (newline)
       (display "Arguments:")
       (newline)
@@ -343,6 +345,11 @@
          ((eq? rule 'unit-test)
           (let ((file (cadr viol)) (line (caddr viol)) (msg (cadddr viol)))
             (string-append "  " file ":" (number->string line) ": unit-test: " msg)
+          ) ;let
+         ) ;
+         ((eq? rule 'free-variables)
+          (let ((file (cadr viol)) (line (caddr viol)) (name (cadddr viol)))
+            (string-append "  " file ":" (number->string line) ": free-variables: " name)
           ) ;let
          ) ;
          ((eq? rule 'no-glue)

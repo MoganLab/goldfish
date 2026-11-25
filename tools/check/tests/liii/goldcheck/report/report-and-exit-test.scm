@@ -16,7 +16,12 @@
 ;; 不返回
 ;; 输出汇总行并调用 exit 退出程序。
 
-(import (scheme base) (scheme write) (liii check) (liii goldcheck report))
+(import (scheme base)
+  (scheme write)
+  (liii check)
+  (liii string)
+  (liii goldcheck report)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -35,14 +40,31 @@
 ;; 3. 有违规时以 1 退出
 (let* ((exit-code #f) (saved-exit exit))
   (set! exit (lambda (code) (set! exit-code code)))
-  (let ((out (with-output-to-string (lambda () (report-and-exit '#((no-crlf "a.scm"
-                                                                     1)
-                                                                 ) ;# 0.123 5))
-             ) ;with-output-to-string
+  (let ((out
+          (with-output-to-string
+            (lambda () (report-and-exit (vector (list 'no-crlf "a.scm" 1)) 0.123 5))
+          ) ;with-output-to-string
         ) ;out
        ) ;
     (set! exit saved-exit)
     (check exit-code => 1)
+  ) ;let
+) ;let*
+
+;; 4. Free-variable findings are reported as warnings and do not affect exit status
+(let* ((exit-code #f) (saved-exit exit))
+  (set! exit (lambda (code) (set! exit-code code)))
+  (let ((out
+          (with-output-to-string
+            (lambda ()
+              (report-and-exit (vector (list 'free-variables "a.scm" 1 "x")) 0.123)
+            ) ;lambda
+          ) ;with-output-to-string
+        ) ;out
+       ) ;
+    (set! exit saved-exit)
+    (check exit-code => 0)
+    (check (string-index-of out "Check warnings: 1 warning(s) found" 0) => 0)
   ) ;let
 ) ;let*
 

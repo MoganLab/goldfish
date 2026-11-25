@@ -45,6 +45,7 @@
     (liii goldcheck cache)
     (liii goldcheck report)
     (liii goldcheck unit-test)
+    (liii goldcheck free-variables)
   ) ;import
   (export main check-file-lines check-tree-depth check-no-glue check-file
     check-files make-check-arg-parser format-violation display-help
@@ -195,8 +196,9 @@
              (acc6 (check-file-rule-no-glue file-path cfg acc5))
              (acc7 (check-file-rule-unit-test file-path cfg acc6))
              (acc8 (check-file-rule-type-hint file-path cfg acc7))
+             (acc9 (%check-file-rule-free-variables file-path cfg acc8))
             ) ;
-        (reverse acc8)
+        (reverse acc9)
       ) ;let*
     ) ;define
 
@@ -277,7 +279,7 @@
 
     (define %all-rule-names
       '("max-file-lines" "max-tree-depth" "define-record-type" "layer-order"
-        "no-crlf" "no-glue" "type-hint" "unit-test")
+        "no-crlf" "no-glue" "type-hint" "unit-test" "free-variables")
     ) ;define
 
     (define (enabled-rule-names cfg)
