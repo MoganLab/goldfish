@@ -74,4 +74,47 @@
   (path-unlink file #t)
 ) ;let
 
+(let ((file (write-test-file "gf-free-define-star.scm"
+              "(define* (optional-arg x (y 1)) x y)\n"
+            ) ;write-test-file
+      ) ;file
+     ) ;
+  (check (check-free-variables file '()) => '())
+  (path-unlink file #t)
+) ;let
+
+(let ((file (write-test-file "gf-free-internal-define.scm"
+              (string-append "(define (outer x)\n"
+                "  (define (helper y) y)\n"
+                "  (helper x))\n"
+              ) ;string-append
+            ) ;write-test-file
+      ) ;file
+     ) ;
+  (check (check-free-variables file '()) => '())
+  (path-unlink file #t)
+) ;let
+
+(let ((file (write-test-file "gf-free-do.scm"
+              "(define loop (lambda () (do ((i 0 (if #t i missing-step))) (#t i))))\n"
+            ) ;write-test-file
+      ) ;file
+     ) ;
+  (let ((violations (check-free-variables file '())))
+    (check (warning-names violations) => '("missing-step"))
+  ) ;let
+  (path-unlink file #t)
+) ;let
+
+(let ((file (write-test-file "gf-free-quasiquote.scm"
+              "(define quasi `(data ,missing-nested))\n"
+            ) ;write-test-file
+      ) ;file
+     ) ;
+  (let ((violations (check-free-variables file '())))
+    (check (warning-names violations) => '("missing-nested"))
+  ) ;let
+  (path-unlink file #t)
+) ;let
+
 (check-report)
