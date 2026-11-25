@@ -42,6 +42,7 @@
                 (string=? name "no-glue")
                 (string=? name "type-hint")
                 (string=? name "unit-test")
+                (string=? name "free-variables")
               ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless

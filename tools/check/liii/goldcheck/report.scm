@@ -38,7 +38,12 @@
     ) ;define
 
     (define (display-rule-result result)
-      (display (format-rule-line (cadr result) (car result) (caddr result)))
+      (display
+        (format-rule-line (or (cadr result) (string=? (car result) "free-variables"))
+          (car result)
+          (caddr result)
+        ) ;format-rule-line
+      ) ;display
       (newline)
     ) ;define
 
@@ -118,33 +123,45 @@
       ) ;if
     ) ;define
 
-    (define (report-and-exit violations total-elapsed . maybe-cap)
-      (let ((cap (if (null? maybe-cap) #f (car maybe-cap))))
-        (display (format-rule-line (zero? (vector-length violations)) "all" total-elapsed)
-        ) ;display
-        (newline)
-        (if (zero? (vector-length violations))
-          (exit 0)
-          (begin
-            (display (string-append "Check failed: "
-                       (number->string (vector-length violations))
-                       " violation(s) found"
-                     ) ;string-append
-            ) ;display
-            (newline)
-            (for-each (lambda (line) (display line) (newline))
-              (violation-report-lines violations cap)
-            ) ;for-each
-            (let ((hint (violation-display-hint violations cap)))
-              (when hint
-                (display hint)
-                (newline)
-              ) ;when
-            ) ;let
-            (exit 1)
-          ) ;begin
+    (define (%blocking-violations violations)
+      (let loop
+        ((items (vector->list violations)) (acc '()))
+        (if (null? items)
+          (list->vector (reverse acc))
+          (loop (cdr items)
+            (if (eq? (caar items) 'free-variables) acc (cons (car items) acc))
+          ) ;loop
         ) ;if
       ) ;let
+    ) ;define
+
+    (define (report-and-exit violations total-elapsed . maybe-cap)
+      (let* ((cap (if (null? maybe-cap) #f (car maybe-cap)))
+             (blocking (%blocking-violations violations))
+             (ok? (zero? (vector-length blocking)))
+            ) ;
+        (display (format-rule-line ok? "all" total-elapsed))
+        (newline)
+        (when (pair? (vector->list violations))
+          (display
+            (string-append (if ok? "Check warnings: " "Check failed: ")
+              (number->string (if ok? (vector-length violations) (vector-length blocking)))
+              (if ok? " warning(s) found" " violation(s) found")
+            ) ;string-append
+          ) ;display
+          (newline)
+          (for-each (lambda (line) (display line) (newline))
+            (violation-report-lines violations cap)
+          ) ;for-each
+          (let ((hint (violation-display-hint violations cap)))
+            (when hint
+              (display hint)
+              (newline)
+            ) ;when
+          ) ;let
+        ) ;when
+        (if ok? (exit 0) (begin (exit 1)))
+      ) ;let*
     ) ;define
 
   ) ;begin

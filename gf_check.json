@@ -21,6 +21,9 @@
     "unit-test": {
       "enabled": true
     },
+    "free-variables": {
+      "enabled": true
+    },
     "no-crlf": {
       "enabled": true,
       "suffix": [
