@@ -32,7 +32,7 @@
   (export get-user-dir get-site-lisp-dir get-lock-path get-package-dir
     get-read-json get-write-json get-depends-entry get-lock-entry
     get-resolve-declared-source get-declared-ref get-json-set get-json-sub
-    get-package-root
+    get-package-root %package-version-dir
   ) ;export
   (begin
 
@@ -126,6 +126,20 @@
       ) ;and
     ) ;define
 
+    ;; 远程包的版本安装目录：site-lisp/<org>/<name>/<version>，
+    ;; version 由 lock 记录（缺省 HEAD）。id 形如 name@organization；
+    ;; 供 get-package-root 与 gf remove 共享，调用方自行保证 id 已登记。
+    (define (%package-version-dir id)
+      (let* ((at (string-index id #\@))
+             (name (substring id 0 at))
+             (org (substring id (+ at 1) (string-length id)))
+             (lock-entry (get-lock-entry (get-read-json (get-lock-path)) id))
+             (version (if lock-entry (json-ref-string lock-entry "version" "HEAD") "HEAD"))
+            ) ;
+        (path-join (get-site-lisp-dir) org name version)
+      ) ;let*
+    ) ;define
+
     ;; 已安装包的项目根：本地开发包取 depends.path（~ 展开）；
     ;; 远程包取 site-lisp/<org>/<name>/<version>，version 由 lock 记录（缺省 HEAD）。
     ;; id 形如 name@organization；未注册时返回 #f。
@@ -139,16 +153,7 @@
                  (path-expanduser (path (if p p "")))
                ) ;let
               ) ;
-              (else
-                (let* ((at (string-index id #\@))
-                       (name (substring id 0 at))
-                       (org (substring id (+ at 1) (string-length id)))
-                       (lock-entry (get-lock-entry (get-read-json (get-lock-path)) id))
-                       (version (if lock-entry (json-ref-string lock-entry "version" "HEAD") "HEAD"))
-                      ) ;
-                  (path-join (get-site-lisp-dir) org name version)
-                ) ;let*
-              ) ;else
+              (else (%package-version-dir id))
         ) ;cond
       ) ;let*
     ) ;define
