@@ -19,8 +19,8 @@
   (export ??? os-error file-not-found-error not-a-directory-error
     file-exists-error timeout-error type-error type-error? key-error value-error
     index-error permission-denied-error process-not-found-error file-error
-    catch-error->string extract-unbound-variable extract-error-location
-    format-error-location unbound-variable-hint
+    zlib-error catch-error->string extract-unbound-variable
+    extract-error-location format-error-location unbound-variable-hint
   ) ;export
   (begin
 
@@ -74,6 +74,10 @@
 
     (define (index-error . args)
       (apply error (cons 'index-error args))
+    ) ;define
+
+    (define (zlib-error . args)
+      (apply error (cons 'zlib-error args))
     ) ;define
 
     (define (??? . args)
