@@ -74,10 +74,7 @@
   (let ((out
           (with-output-to-string
             (lambda ()
-              (report-and-exit
-                (vector (list 'arity "a.scm" 2 'f 0 '(fixed 1)))
-                0.123
-              ) ;report-and-exit
+              (report-and-exit (vector (list 'arity "a.scm" 2 'f 0 '(fixed 1))) 0.123)
             ) ;lambda
           ) ;with-output-to-string
         ) ;out

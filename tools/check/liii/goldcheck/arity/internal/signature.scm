@@ -2,7 +2,7 @@
 ;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;
 (define-library (liii goldcheck arity internal signature)
-  (import (scheme base) (liii list) (liii goldcheck type-hint parse))
+  (import (scheme base) (liii base) (liii list) (liii goldcheck type-hint parse))
   (export %definition-name %definition-signature %procedure-signature
     %formals-names %star-formals-names %signature-accepts? %keyword-call?
   ) ;export
