@@ -118,6 +118,7 @@ void set_goldfish_lib_dir (const std::string& dir);
 void glue_scheme_base (s7_scheme* sc);
 void glue_scheme_char (s7_scheme* sc);
 void glue_liii_hashlib (s7_scheme* sc);
+void glue_liii_zlib (s7_scheme* sc);
 void glue_liii_os (s7_scheme* sc);
 void glue_liii_fs_watch (s7_scheme* sc);
 void glue_liii_path (s7_scheme* sc);
@@ -674,6 +675,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_date_time (sc);
   glue_liii_uuid (sc);
   glue_liii_hashlib (sc);
+  glue_liii_zlib (sc);
   glue_liii_base64 (sc);
   glue_liii_json (sc);
   glue_liii_go (sc);
