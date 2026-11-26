@@ -24,6 +24,9 @@
     "free-variables": {
       "enabled": true
     },
+    "arity": {
+      "enabled": true
+    },
     "no-crlf": {
       "enabled": true,
       "suffix": [

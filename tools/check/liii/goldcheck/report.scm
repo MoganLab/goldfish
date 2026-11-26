@@ -39,7 +39,8 @@
 
     (define (display-rule-result result)
       (display
-        (format-rule-line (or (cadr result) (string=? (car result) "free-variables"))
+        (format-rule-line (or (cadr result) (member (car result) '("free-variables"
+                                                                   "arity") string=?))
           (car result)
           (caddr result)
         ) ;format-rule-line
@@ -129,7 +130,7 @@
         (if (null? items)
           (list->vector (reverse acc))
           (loop (cdr items)
-            (if (eq? (caar items) 'free-variables) acc (cons (car items) acc))
+            (if (memq (caar items) '(free-variables arity)) acc (cons (car items) acc))
           ) ;loop
         ) ;if
       ) ;let
