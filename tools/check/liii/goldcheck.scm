@@ -45,7 +45,8 @@
     (liii goldcheck cache)
     (liii goldcheck report)
     (liii goldcheck unit-test)
-    (liii goldcheck free-variables) (liii goldcheck arity)
+    (liii goldcheck free-variables)
+    (liii goldcheck arity)
   ) ;import
   (export main check-file-lines check-tree-depth check-no-glue check-file
     check-files make-check-arg-parser format-violation display-help
@@ -395,6 +396,5 @@
         ) ;if
       ) ;let
     ) ;define
-
   ) ;begin
 ) ;define-library
