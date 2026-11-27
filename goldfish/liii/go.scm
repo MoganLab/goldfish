@@ -553,17 +553,17 @@
              (names (append arg-names (map car captured) (list ch-sym)))
              (vals (append args (map cdr captured) (list ch)))
              (code
-               `(begin
-                  ,@(%go-worker-prelude libs)
-                  (catch #t
-                    (lambda ,()
-                      (chan-send! ,ch-sym (list 'ok (,src ,@arg-names))))
-                    (lambda (tag args)
-                      (catch #t
-                        (lambda ,() (chan-send! ,ch-sym (list 'error tag args)))
-                        (lambda (t2 a2)
-                          (chan-send! ,ch-sym
-                            (list 'error tag (list (object->string args)))))))))
+               `(catch #t
+                  (lambda ,()
+                    (begin
+                      ,@(%go-worker-prelude libs)
+                      (chan-send! ,ch-sym (list 'ok (,src ,@arg-names)))))
+                  (lambda (tag args)
+                    (catch #t
+                      (lambda ,() (chan-send! ,ch-sym (list 'error tag args)))
+                      (lambda (t2 a2)
+                        (chan-send! ,ch-sym
+                          (list 'error tag (list (object->string args))))))))
              ) ;code
             ) ;
         (%go-spawn names vals code)
