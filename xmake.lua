@@ -87,6 +87,22 @@ end
 -- local header only dependency, no need to (un)pin version
 add_requires("argh v1.3.2")
 
+-- zlib：(liii zlib) 压缩库的底层依赖（goldfish issue #1788）。
+-- 版本与 mogan 一致：mogan 未显式 pin zlib，由 libpng/libssh2 等传递引入
+-- xmake-repo 最新版 v1.3.2（见 mogan xmake/packages/l/libssh2/xmake.lua 注释）。
+-- 全平台源码静态构建（同 openssl 的理由）：Windows 无系统 zlib，
+-- macOS/Linux 系统 zlib 版本漂移不可控。不依赖 http 配置，--http=n 时同样可用。
+-- 注意：若未来 libcurl 开启 zlib config，必须用
+--   add_requireconfs("libcurl.zlib", {version = ZLIB_VERSION, system = false, override = true})
+-- 统一到同一实例，避免两份静态 zlib 符号冲突 / ninja 引用已不存在的包路径
+-- （同 devel/2092.md 的坑）。
+local ZLIB_VERSION = "v1.3.2"
+if has_config("pin-deps") then
+    add_requires("zlib " .. ZLIB_VERSION, {system = false})
+else
+    add_requires("zlib", {system = false})
+end
+
 target ("goldfish") do
     set_languages("c++17")
     set_targetdir("$(projectdir)/bin/")
@@ -166,6 +182,7 @@ target ("goldfish") do
     add_files ("src/library_liii_random.c", {languages = "c11"})
     add_packages("tbox")
     add_packages("argh")
+    add_packages("zlib")
     if has_config("http") and not is_plat("wasm") then
         add_packages("cpr")
     end
