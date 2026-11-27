@@ -9,7 +9,11 @@
 ;;
 
 (define-library (liii goldcheck free-variables internal scope)
-  (import (scheme base) (liii goldcheck path) (liii goldcheck type-hint parse))
+  (import (scheme base)
+    (liii goldcheck arity internal scope)
+    (liii goldcheck path)
+    (liii goldcheck type-hint parse)
+  ) ;import
   (export %filter %scan-sequence)
   (begin
 
@@ -46,7 +50,7 @@
     ) ;define
 
     (define (bound? name env)
-      (memq name env)
+      (%resolve-binding name env)
     ) ;define
 
     (define (formals form)

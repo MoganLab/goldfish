@@ -68,4 +68,21 @@
   ) ;let
 ) ;let*
 
+;; 5. Arity findings are reported as warnings and do not affect exit status
+(let* ((exit-code #f) (saved-exit exit))
+  (set! exit (lambda (code) (set! exit-code code)))
+  (let ((out
+          (with-output-to-string
+            (lambda ()
+              (report-and-exit (vector (list 'arity "a.scm" 2 'f 0 '(fixed 1))) 0.123)
+            ) ;lambda
+          ) ;with-output-to-string
+        ) ;out
+       ) ;
+    (set! exit saved-exit)
+    (check exit-code => 0)
+    (check (string-index-of out "Check warnings: 1 warning(s) found" 0) => 0)
+  ) ;let
+) ;let*
+
 (check-report)

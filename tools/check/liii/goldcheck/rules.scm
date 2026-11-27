@@ -78,6 +78,8 @@
       (display "  free-variables         未绑定标识符（仅确定可分析的表达式）\n"
       ) ;display
       (newline)
+      (display "  arity                  Same-file call argument count warning\n")
+      (newline)
       (display "Arguments:")
       (newline)
       (display "  PATH...                要检查的文件或目录路径（可选）"
@@ -352,6 +354,7 @@
             (string-append "  " file ":" (number->string line) ": free-variables: " name)
           ) ;let
          ) ;
+         ((eq? rule 'arity) (string-append "  arity: " (object->string (cdr viol))))
          ((eq? rule 'no-glue)
           (let* ((file (cadr viol))
                  (line (caddr viol))

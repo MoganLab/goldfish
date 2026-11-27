@@ -43,6 +43,7 @@
                 (string=? name "type-hint")
                 (string=? name "unit-test")
                 (string=? name "free-variables")
+                (string=? name "arity")
               ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless
