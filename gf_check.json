@@ -63,6 +63,10 @@
       {
         "path": "library/tests/srfi/srfi-64/",
         "reason": "SRFI-64 单元测试使用 (srfi srfi-64) 自身而非 (liii check)，不以 (check-report) 结尾"
+      },
+      {
+        "path": "r7rs/tests/r7rs-test.scm",
+        "reason": "R7RS 官方一致性测试集，使用 (srfi srfi-64) 而非 (liii check)，保持与上游对照"
       }
     ],
     "define-record-type": [
@@ -149,6 +153,10 @@
       {
         "path": "goldfish/tests/liii/match/match-test.scm",
         "reason": "模式匹配器全语法分支测试"
+      },
+      {
+        "path": "r7rs/tests/r7rs-test.scm",
+        "reason": "R7RS 官方一致性测试集，保持与上游对照，不拆分"
       },
       {
         "path": "r7rs/tests/scheme/base/assoc-test.scm",
