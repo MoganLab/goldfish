@@ -78798,7 +78798,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_real_symbol =            bool_defun("real?",	         is_real,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_float_symbol =           bool_defun("float?",           is_float,           0, T_FREE,         mark_simple_vector, true);
   sc->is_complex_symbol =         bool_defun("complex?",         is_complex,	     0, T_FREE,         mark_simple_vector, true);
-  sc->is_rational_symbol =        bool_defun("rational?",        is_rational,	     0, T_FREE,         mark_simple_vector, true);
+  sc->is_rational_symbol =        bool_defun("s7-rational?",       is_rational,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_random_state_symbol =    bool_defun("random-state?",    is_random_state,    0, T_RANDOM_STATE, mark_simple_vector, true);
   sc->is_char_symbol =            define_bool_function(sc, "char?", g_is_char, 0,
                                                        "(char? obj) returns #t if obj is a character",

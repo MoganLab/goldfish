@@ -1,6 +1,7 @@
 (define-library (liii s7)
   (export s7-ceiling s7-floor s7-truncate s7-round s7-min s7-max s7-modulo
     s7-lcm s7-make-hash-table s7-hash-table-set! s7-optimize s7-sqrt
+    s7-rational?
   ) ;export
   (begin
 
@@ -16,6 +17,7 @@
     (define s7-hash-table-set! s7-hash-table-set!)
     (define s7-optimize s7-optimize)
     (define s7-sqrt sqrt)
+    (define s7-rational? s7-rational?)
 
   ) ;begin
 ) ;define-library
